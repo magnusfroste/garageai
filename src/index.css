@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: #7C3AED; /* Grok-inspired purple */
+    --color-accent: #A855F7;  /* Lighter purple accent */
+    --color-warning: #F59E0B; /* Warm amber */
+    --color-bg-dark: #0f0f0f; /* Rich black */
+    --color-bg-darker: #000000; /* Pure black */
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, var(--color-bg-dark) 0%, #1a1625 50%, var(--color-bg-darker) 100%);
+    color: #e0e0e0;
+    overflow-x: hidden;
+  }
+}
+
+@layer components {
+  .hero-gradient {
+    background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.08) 0%, transparent 70%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .glow-neon {
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.4), 0 0 40px rgba(168, 85, 247, 0.2);
+  }
+
+  .glow-text {
+    text-shadow: 0 0 10px rgba(124, 58, 237, 0.6), 0 0 20px rgba(168, 85, 247, 0.3);
+  }
+
+  .particle-bg {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(124, 58, 237, 0.5);
+    border-radius: 50%;
+    animation: float 20s infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
+  }
+
+  .card-hover {
+    transition: all 0.3s ease;
+    transform: translateY(0);
+  }
+
+  .card-hover:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 0 30px rgba(124, 58, 237, 0.3);
+  }
+
+  .fact-box {
+    background: rgba(124, 58, 237, 0.03);
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    border-radius: 12px;
+    padding: 24px;
+    backdrop-filter: blur(10px);
+  }
+
+  .read-more-link {
+    color: var(--color-primary);
+    text-decoration: underline;
+  }
+
+  .read-more-link:hover {
+    color: var(--color-accent);
+  }
+
+  .coming-soon-tooltip {
+    position: relative;
+  }
+
+  .coming-soon-tooltip::after {
+    content: '🚀 Coming Soon';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 215, 0, 0.8);
+    color: black;
+    padding: 6px 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: bold;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    margin-bottom: 8px;
+    pointer-events: none;
+  }
+
+  .coming-soon-tooltip:hover::after {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  h1 { font-size: 48px !important; }
+  h2 { font-size: 32px !important; }
+}
