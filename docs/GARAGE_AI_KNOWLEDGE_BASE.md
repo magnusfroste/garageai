@@ -231,4 +231,47 @@ Garage AI är ett praktiskt svar på AI:s centraliseringsproblem. Genom att åte
 - **Skyddar miljö**: CO₂-neutral genom solenergi
 - **Bygger community**: Open source, tillgängligt för alla
 
+## 📣 Media & Uppmärksamhet
+
+### Vad Saknas för Medial Uppmärksamhet?
+
+Nu när konceptet är känt - vad behövs för att skapa medial buzz?
+
+#### 🎬 Visuella Element
+- **Demo-video**: Visa idle gaming-PC som blir AI-nod (30 sekunder)
+- **Infografik**: Sverige-karta med 1.7M garage som potentiella noder
+- **Time-lapse**: Från idle dator till AI-inferens-output
+
+#### 📊 Konkreta Siffror & Mätvärden
+- **Prestanda-demo**: Visa tokens/sekund från olika GPU-konfigurationer
+- **CO₂-beräkningar**: Jämför vs traditionella datacenter
+- **Energibesparing**: Visa elförbrukning före/efter
+
+#### 📰 Nyhetsvinklar
+- **Svensk innovation**: "Svenska garage räddar AI från centralisering"
+- **Miljöstory**: "Gaming-PCs blir klimathjältar genom AI"
+- **Teknisk genombrott**: "Demokratisering av AI-infrastruktur"
+
+#### 🤝 Influencer & Partners
+- **Gaming-influencers**: Visa hur deras PC bidrar till AI
+- **Tech-podcaster**: Diskutera distributed computing
+- **Miljöorganisationer**: CO₂-neutral AI som hållbar innovation
+
+#### 📋 Press-kit
+- **Högupplösta bilder**: Logo, infografik, skärmdumpar
+- **Pressmeddelande**: 300-500 ord med nyhetsvärde
+- **Bakgrundsfakta**: Tekniska detaljer för journalister
+- **Citat**: Från grundare, partners, experter
+
+#### 🎯 Unika Säljargument
+- **"AI i varje garage"**: Demokratisering av teknik
+- **"CO₂-neutral genom solenergi"**: Miljöpositiv AI
+- **"Svensk suveränitet"**: Data stannar i Sverige
+- **"Från gaming till AI-revolution"**: Oväntad synergi
+
+#### 📅 Timing & Lansering
+- **Soft launch**: Teknisk demo för tech-media
+- **Main launch**: Konsument-fokuserad storytelling
+- **Follow-up**: Milestones och framsteg
+
 **Redo att börja?** → [GET_STARTED.md](GET_STARTED.md)
