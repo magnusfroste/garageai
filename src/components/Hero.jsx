@@ -13,7 +13,7 @@ const Hero = () => {
       if ('gpu' in navigator) {
         const adapter = await navigator.gpu.requestAdapter();
         if (adapter) {
-          const device = await adapter.requestDevice();
+          const _device = await adapter.requestDevice();
           const info = adapter.info || {};
 
           setGpuInfo({
