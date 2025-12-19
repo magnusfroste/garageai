@@ -196,6 +196,80 @@ const FactBoxes = () => {
         </div>
       </motion.section>
 
+      {/* Solpaneler & Decentraliserad Energi */}
+      <motion.section variants={itemVariants}>
+        <div className="apple-card">
+          <h3 className="apple-heading-2 mb-8 text-center">
+            Smart Energi: Solpaneler + AI
+          </h3>
+          <p className="apple-body mb-8 text-center max-w-2xl mx-auto">
+            Solpaneler har blivit vardag i svenska hem – perfekt matchning för decentraliserad AI
+          </p>
+          <div className="grid md:grid-cols-2 gap-8">
+            <div>
+              <p className="apple-caption mb-4">
+                <strong>☀️ Solpaneler i Sverige</strong>{' '}
+                <a
+                  href="https://www.energimyndigheten.se/statistik/solenergi/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  [Energimyndigheten]
+                </a>
+              </p>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <span className="text-green-500">✓</span>
+                  <span className="apple-caption"><span style={{ color: 'var(--color-primary)', fontWeight: '600' }}>300,000+ hushåll</span> har solpaneler (2024)</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-green-500">✓</span>
+                  <span className="apple-caption"><span style={{ color: 'var(--color-primary)', fontWeight: '600' }}>25% årlig tillväxt</span> i solcells-installationer</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-green-500">✓</span>
+                  <span className="apple-caption"><span style={{ color: 'var(--color-primary)', fontWeight: '600' }}>10-12 timmar</span> soltimmar per dag (maj-september)</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-green-500">✓</span>
+                  <span className="apple-caption"><span style={{ color: 'var(--color-primary)', fontWeight: '600' }}>85% av solenergin</span> produceras av villaägare</span>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="apple-caption mb-4">
+                <strong>🧠 Smart AI + Sol Synergi</strong>
+              </p>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <span className="text-lg">🔋</span>
+                  <span className="apple-caption"><span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>Dagsproduktion:</span> Solpaneler matar AI-noder dagtid</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-lg">♻️</span>
+                  <span className="apple-caption"><span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>Överskottsenergi:</span> AI körs på ren solenergi</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-lg">🏡</span>
+                  <span className="apple-caption"><span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>Lokalt producerad:</span> Ingen nätbelastning eller transmission</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-lg">🌱</span>
+                  <span className="apple-caption"><span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>CO₂-neutral:</span> 100% förnybar energi för AI</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-8 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+            <p className="text-sm text-green-400 text-center">
+              <strong>🚀 Decentraliserad Revolution:</strong> Varje villaägare blir både energi- och AI-producent.
+              <span style={{ color: 'var(--color-primary)', fontWeight: '600' }}> Smart, miljövänligt och självförsörjande!</span>
+            </p>
+          </div>
+        </div>
+      </motion.section>
+
       {/* Gaming-Riggar */}
       <motion.section variants={itemVariants}>
         <div className="apple-card">
