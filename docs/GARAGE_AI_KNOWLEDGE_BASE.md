@@ -62,7 +62,7 @@ Svenska Gaming-PC Marknaden:
 ```
 
 ### Teknisk Verklighet
-- **RTX 4090**: 120 tokens/sekund kapacitet
+- **RTX 5090**: 120 tokens/sekund kapacitet
 - **Idle-förbrukning**: 50-100W när datorn inte används
 - **Återanvändning**: Istället för slöseri - skapa AI-värde
 - **Skalbarhet**: Från enskild dator till nätverk
