@@ -31,7 +31,7 @@ This knowledge base contains the original comprehensive Garage AI concept, techn
 - **1.7 Million Garages** potential AI nodes
 - **84% Fiber Coverage** enabling distributed computing
 - **85% CO₂ Reduction** vs centralized datacenters
-- **16 MW Distributed Power** from 5,000 activated garages
+- **1.2M tokens/second** capacity from 10,000 RTX GPUs (can serve 50,000+ concurrent AI users)
 
 ### Unique Value Proposition
 - **Privacy-First**: 100% local processing, zero data exfiltration

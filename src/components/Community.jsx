@@ -78,12 +78,12 @@ const Community = () => {
           <motion.div
             key={index}
             variants={itemVariants}
-            className="text-center p-6 bg-slate-950/30 rounded-xl border border-slate-700/50"
+            className="text-center p-6 bg-slate-950 rounded-xl border border-slate-700"
             whileHover={{ scale: 1.05 }}
           >
             <div className="text-3xl mb-2">{stat.icon}</div>
             <div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
-            <div className="text-sm text-gray-400">{stat.label}</div>
+            <div className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>{stat.label}</div>
           </motion.div>
         ))}
       </motion.div>
@@ -109,14 +109,14 @@ const Community = () => {
               whileHover={{ y: -5 }}
             >
               <div className="text-4xl mb-4 text-center">{testimonial.avatar}</div>
-              <blockquote className="text-sm italic text-gray-300 mb-4 leading-relaxed">
+              <blockquote className="text-sm italic mb-4 leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
                 "{testimonial.quote}"
               </blockquote>
               <div className="text-right">
                 <div className="font-semibold" style={{ color: 'var(--color-primary)' }}>
                   {testimonial.author}
                 </div>
-                <div className="text-xs text-gray-500">{testimonial.location}</div>
+                <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{testimonial.location}</div>
               </div>
             </motion.div>
           ))}
@@ -188,7 +188,7 @@ const Community = () => {
         variants={itemVariants}
         className="text-center"
       >
-        <div className="bg-slate-950/50 border border-slate-700/50 rounded-2xl p-8 max-w-2xl mx-auto">
+        <div className="bg-slate-950 border border-slate-700 rounded-2xl p-8 max-w-2xl mx-auto">
           <motion.h3
             variants={itemVariants}
             className="apple-heading-2 mb-4"
@@ -196,7 +196,7 @@ const Community = () => {
           >
             Bli en del av rörelsen! 🚀
           </motion.h3>
-          <p className="text-gray-300 mb-6">
+          <p className="mb-6" style={{ color: 'var(--color-text-secondary)' }}>
             Gå med i 500+ gaming-entusiaster som redan bidrar till Europas AI-framtid.
             Varje RTX räknas.
           </p>

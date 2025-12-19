@@ -6,7 +6,7 @@ const Hero = () => {
   };
 
   return (
-    <section className="hero-gradient min-h-screen flex items-center justify-center pt-20 relative overflow-hidden" style={{ background: 'var(--color-bg-secondary)' }}>
+    <section className="hero-gradient min-h-screen flex items-center justify-center pt-20 relative overflow-hidden" style={{ background: 'var(--color-bg-primary)' }}>
       {/* Subtle Apple-style background */}
       <div className="absolute inset-0 opacity-30">
         <div
@@ -71,23 +71,23 @@ const Hero = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
             <div className="text-center">
               <div className="text-2xl mb-1">🚀</div>
-              <div className="text-sm font-medium text-gray-300">500+ Nodes</div>
-              <div className="text-xs text-gray-500">Aktiva deltagare</div>
+              <div className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>1.7M+</div>
+              <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Potentiella noder</div>
             </div>
             <div className="text-center">
               <div className="text-2xl mb-1">⚡</div>
-              <div className="text-sm font-medium text-gray-300">45 tokens/sek</div>
-              <div className="text-xs text-gray-500">RTX 4090 cluster</div>
+              <div className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>120 tokens/sek</div>
+              <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>per RTX 4090</div>
             </div>
             <div className="text-center">
               <div className="text-2xl mb-1">🏆</div>
-              <div className="text-sm font-medium text-gray-300">vs 200K+ stars</div>
-              <div className="text-xs text-gray-500">konkurrerande projekt</div>
+              <div className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>98%</div>
+              <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>fiber-täckning</div>
             </div>
             <div className="text-center">
               <div className="text-2xl mb-1">🌱</div>
-              <div className="text-sm font-medium text-gray-300">85% mindre CO₂</div>
-              <div className="text-xs text-gray-500">vs molntjänster</div>
+              <div className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>100%</div>
+              <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>lokal integritet</div>
             </div>
           </div>
         </motion.div>
@@ -98,7 +98,7 @@ const Hero = () => {
           transition={{ duration: 0.8, delay: 0.6 }}
           className="mb-12"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full text-green-400 text-sm font-medium">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-950 border border-slate-700 rounded-full text-green-400 text-sm font-medium">
             <span>🔓</span>
             <span>100% Open Source & MIT Licensed</span>
           </div>
@@ -111,7 +111,7 @@ const Hero = () => {
           className="flex gap-6 justify-center flex-wrap"
         >
           <motion.button
-            onClick={showComingSoon}
+            onClick={() => window.open('https://github.com/magnusfroste/garageai/discussions', '_blank')}
             className="apple-button-primary"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}

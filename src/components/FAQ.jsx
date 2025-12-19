@@ -19,7 +19,7 @@ const FAQ = () => {
   const faqs = [
     {
       question: "Hur mycket kan jag tjäna med min gaming-rigg?",
-      answer: "Med en RTX 4090 kan du tjäna 8-12 GAI-tokens per dag genom att köra AI-inferens under lågtrafik. Det motsvarar ~€5-8 per dag efter el-kostnader. Med solpaneler kopplade får du dessutom 20% bonus."
+      answer: "Med en RTX 5090 kan du tjäna 10-15 GAI-tokens per dag genom att köra AI-inferens under lågtrafik. Det motsvarar ~€6-10 per dag efter el-kostnader. Med solpaneler kopplade får du dessutom 20% bonus."
     },
     {
       question: "Är det säkert? Vad händer med min data?",

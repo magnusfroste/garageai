@@ -123,12 +123,12 @@ const FactBoxes = () => {
                   <span className="apple-caption">5000 × 2 RTX = 10,000 GPUs</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-lg">⚡</span>
-                  <span className="apple-caption">10,000 × 1.6 kW = <span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>16 MW distribuerad kraft</span></span>
+                  <span className="text-lg">🚀</span>
+                  <span className="apple-caption">10,000 GPUs × 120 tokens/sek = <span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>1.2M tokens/sekund kapacitet</span></span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-lg">📈</span>
-                  <span className="apple-caption">Sveriges behov: ~600 MW → <span style={{ color: 'var(--color-secondary)', fontWeight: '600' }}>2,7% täckning</span></span>
+                  <span className="text-lg">👥</span>
+                  <span className="apple-caption">Kan serva <span style={{ color: 'var(--color-secondary)', fontWeight: '600' }}>50,000+ samtidiga AI-användare</span></span>
                 </li>
               </ul>
             </div>
