@@ -151,7 +151,7 @@ const Roadmap = () => {
 
         <div className="text-center">
           <motion.button
-            onClick={() => window.open('https://github.com/magnusfroste/garageai/discussions', '_blank')}
+            onClick={() => window.open('https://github.com/garageai/garageai/discussions', '_blank')}
             className="apple-button-primary"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
