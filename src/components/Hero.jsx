@@ -81,7 +81,7 @@ const Hero = () => {
         : `⚠️ Din enhet behöver bättre GPU-stöd för optimal prestanda.\n\nAlternativ:\n1. Uppgradera till RTX 30/40-serie GPU\n2. Använd en annan enhet med bättre GPU\n3. Bidra till community-utveckling istället\n\nÖppna GitHub Discussions för mer info?`;
 
       if (confirm(message)) {
-        window.open('https://github.com/garageai/garageai/discussions', '_blank');
+        window.open('https://github.com/magnusfroste/garageai/discussions', '_blank');
       }
     }
   };
@@ -217,7 +217,7 @@ const Hero = () => {
           </motion.button>
 
           <motion.button
-            onClick={() => window.open('https://github.com/garageai/garageai/discussions', '_blank')}
+            onClick={() => window.open('https://github.com/magnusfroste/garageai/discussions', '_blank')}
             className="apple-button-secondary"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}

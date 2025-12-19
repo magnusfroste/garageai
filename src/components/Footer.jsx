@@ -30,6 +30,7 @@ const Footer = () => {
           <a href="https://github.com/magnusfroste/garageai" target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition">📖 Teknisk Docs</a>
           <a href="https://github.com/magnusfroste/garageai" target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition">🐙 GitHub</a>
           <a href="https://github.com/magnusfroste/garageai/discussions" target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition">💬 Diskussioner</a>
+          <a href="mailto:team@garage.ai" className="hover:text-green-400 transition">📧 Kontakt</a>
         </motion.div>
         <motion.p
           initial={{ opacity: 0 }}
