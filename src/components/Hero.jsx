@@ -74,7 +74,7 @@ const Hero = () => {
             <div className="text-center">
               <div className="text-2xl mb-1">⚡</div>
               <div className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>120 tokens/sek</div>
-              <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>per RTX 4090</div>
+              <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>per RTX 5090</div>
             </div>
             <div className="text-center">
               <div className="text-2xl mb-1">🏆</div>
