@@ -99,11 +99,20 @@ Svenska Solpaneler:
 
 ## 💻 Teknisk Implementation
 
+### Inget! Om du redan har en gaming-PC med RTX 30/40/50-serie kan du börja direkt
+Vi tillhandahåller all programvara gratis. Enda kostnaden är din elförbrukning.
+
 ### Enkelt att Komma Igång
 1. **Ladda ner boot-kit**: `curl -O https://releases.garage.ai/garage-boot-latest.iso`
 2. **Skapa USB**: Använd Rufus eller Etcher
 3. **Boot från USB**: Välj "Garage AI Inference Mode"
 4. **Automatisk setup**: Systemet konfigurerar sig själv
+
+### Investera i en AI-nod
+Du kan också investera i en dedikerad AI-nod för delning eller egen användning. Perfekt för:
+- **Delning**: Tjäna genom att dela beräkningskraft
+- **Egen användning**: Privat AI-infrastruktur
+- **Community**: Bidra till nätverkets tillväxt
 
 ### Tekniska Krav
 ```yaml
