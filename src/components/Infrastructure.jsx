@@ -31,7 +31,7 @@ const Infrastructure = () => {
     >
       <motion.h2
         variants={itemVariants}
-        className="text-4xl md:text-5xl font-bold mb-6 glow-text text-center"
+        className="apple-heading-1 mb-6 glow-text text-center"
         style={{ color: 'var(--color-primary)' }}
       >
         ⚡ Sverige's Infrastruktur Kan Göra Det – Vi Bara Behöver Tro
@@ -41,19 +41,19 @@ const Infrastructure = () => {
         variants={itemVariants}
         className="max-w-3xl mx-auto mb-12 text-center"
       >
-        <p className="text-base md:text-lg text-gray-300 mb-4 leading-relaxed">
+        <p className="apple-body mb-4 leading-relaxed">
           Medan andra länder kämpar med elbrist – vi exporterar el till Tyskland & Danmark. Medan globala AI-tjänster bygger enorma datacenter – vi har 1.7 miljoner garage som kan skapa en distribuerad, miljövänlig infrastruktur.
         </p>
-        <p className="text-base md:text-lg text-gray-300 mb-4 leading-relaxed">
+        <p className="apple-body mb-4 leading-relaxed">
           Men här är möjligheten: <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>Vår infrastruktur kan skapa nya värden lokalt.</span>
         </p>
-        <p className="text-base md:text-lg text-gray-300 mb-6 leading-relaxed">
+        <p className="apple-body mb-6 leading-relaxed">
           Svenska solpaneler kan driva svenska AI-modeller. Svensk fiber kan transportera svensk data säkert. Och svenska garage kan bli grunden för Europas mest hållbara AI-infrastruktur.
         </p>
-        <p className="text-base md:text-lg text-gray-300 mb-8 leading-relaxed">
+        <p className="apple-body mb-8 leading-relaxed">
           Vad om vi kompletterade de globala tjänsterna? Vad om <span style={{ color: 'var(--color-accent)', fontWeight: 'bold' }}>din garage blev en motor i Europas AI-infrastruktur – OCH du tjänade på det?</span>
         </p>
-        <p className="text-lg text-gray-400 font-semibold italic">
+        <p className="apple-body-large font-semibold italic text-gray-500">
           Det är inte teknisk omöjlighet. Det är en valsituation.
         </p>
       </motion.div>

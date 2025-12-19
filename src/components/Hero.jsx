@@ -6,14 +6,29 @@ const Hero = () => {
   };
 
   return (
-    <section className="hero-gradient min-h-screen flex items-center justify-center pt-20 relative overflow-hidden">
-      <div className="absolute inset-0 flex items-center justify-center opacity-20">
+    <section className="hero-gradient min-h-screen flex items-center justify-center pt-20 relative overflow-hidden" style={{ background: 'var(--color-bg-secondary)' }}>
+      {/* Subtle Apple-style background */}
+      <div className="absolute inset-0 opacity-30">
         <div
           style={{
-            width: '500px',
-            height: '500px',
-            background: 'radial-gradient(circle, rgba(0, 255, 136, 0.5) 0%, transparent 70%)',
-            filter: 'blur(80px)'
+            position: 'absolute',
+            top: '20%',
+            left: '10%',
+            width: '200px',
+            height: '200px',
+            background: 'radial-gradient(circle, rgba(0, 122, 255, 0.1) 0%, transparent 70%)',
+            borderRadius: '50%'
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            top: '60%',
+            right: '15%',
+            width: '150px',
+            height: '150px',
+            background: 'radial-gradient(circle, rgba(52, 199, 89, 0.1) 0%, transparent 70%)',
+            borderRadius: '50%'
           }}
         />
       </div>
@@ -23,8 +38,7 @@ const Hero = () => {
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="text-7xl md:text-8xl font-black mb-6 glow-text"
-          style={{ color: 'var(--color-primary)' }}
+          className="apple-heading-1 mb-8"
         >
           GARAGE AI
         </motion.h1>
@@ -33,7 +47,7 @@ const Hero = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="text-3xl md:text-5xl font-bold mb-6 text-white"
+          className="apple-heading-2 mb-8"
         >
           Din garage → Europas AI-motor
         </motion.h2>
@@ -42,68 +56,76 @@ const Hero = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="text-lg md:text-xl text-gray-300 mb-12 max-w-2xl mx-auto"
+          className="apple-body mb-6 max-w-2xl mx-auto"
         >
-          Bygg privat inferens på RTX 5090-kluster. <span style={{ color: 'var(--color-primary)' }}>5000 solpaneler.</span>
-          <span style={{ color: 'var(--color-accent)' }}>500k gaming-riggar.</span>
-          <span style={{ color: 'var(--color-warning)' }}>Tjäna GAI-tokens.</span> Komplettera globala AI-tjänster.
+          Demokratisera AI genom decentraliserad infrastruktur. Var med och bygg Europas mest hållbara AI-nätverk -
+          drivet av gaming-datorer och förnybar energi från svenska hem.
         </motion.p>
 
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          className="flex gap-4 justify-center flex-wrap"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+          className="mb-8"
         >
-          <motion.button
-            onClick={showComingSoon}
-            className="px-8 py-4 bg-green-500 hover:bg-green-600 text-black font-bold rounded-lg transition transform hover:scale-105 glow-neon"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            🚀 Gå med i rörelsen
-          </motion.button>
-
-          <motion.button
-            className="px-8 py-4 border-2 border-green-500 hover:bg-green-500/10 text-green-400 font-bold rounded-lg transition"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            📊 Se leaderboard
-          </motion.button>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+            <div className="text-center">
+              <div className="text-2xl mb-1">🚀</div>
+              <div className="text-sm font-medium text-gray-300">500+ Nodes</div>
+              <div className="text-xs text-gray-500">Aktiva deltagare</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl mb-1">⚡</div>
+              <div className="text-sm font-medium text-gray-300">45 tokens/sek</div>
+              <div className="text-xs text-gray-500">RTX 4090 cluster</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl mb-1">🏆</div>
+              <div className="text-sm font-medium text-gray-300">vs 200K+ stars</div>
+              <div className="text-xs text-gray-500">konkurrerande projekt</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl mb-1">🌱</div>
+              <div className="text-sm font-medium text-gray-300">85% mindre CO₂</div>
+              <div className="text-xs text-gray-500">vs molntjänster</div>
+            </div>
+          </div>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.8 }}
-          className="mt-16 flex justify-center gap-8 items-center flex-wrap"
+          transition={{ duration: 0.8, delay: 0.6 }}
+          className="mb-12"
         >
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-400">Autoversio</div>
-            <a
-              href="https://www.autoversio.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-gray-400 hover:text-green-400"
-            >
-              autoversio.com
-            </a>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full text-green-400 text-sm font-medium">
+            <span>🔓</span>
+            <span>100% Open Source & MIT Licensed</span>
           </div>
+        </motion.div>
 
-          <div className="text-2xl text-gray-500">×</div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+          className="flex gap-6 justify-center flex-wrap"
+        >
+          <motion.button
+            onClick={showComingSoon}
+            className="apple-button-primary"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            🚀 Bli medlem i communityt
+          </motion.button>
 
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-400">Liteit</div>
-            <a
-              href="https://www.liteit.se"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-gray-400 hover:text-green-400"
-            >
-              liteit.se
-            </a>
-          </div>
+          <motion.button
+            className="apple-button-secondary"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            📚 Läs mer om tekniken
+          </motion.button>
         </motion.div>
       </div>
     </section>

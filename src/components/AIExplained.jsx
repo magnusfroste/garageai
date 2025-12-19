@@ -27,7 +27,7 @@ const AIExplained = () => {
     >
       <motion.h2
         variants={itemVariants}
-        className="text-4xl md:text-5xl font-bold mb-12 glow-text text-center"
+        className="apple-heading-1 mb-12 glow-text text-center"
         style={{ color: 'var(--color-primary)' }}
       >
         🧠 Vad är AI-Inferens? Enkelt Förklarat.

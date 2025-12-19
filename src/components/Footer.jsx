@@ -26,10 +26,10 @@ const Footer = () => {
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.4 }}
         >
-          <a href="#" className="hover:text-green-400 transition">Docs</a>
-          <a href="#" className="hover:text-green-400 transition">GitHub</a>
-          <a href="#" className="hover:text-green-400 transition">Discord</a>
-          <a href="#" className="hover:text-green-400 transition">Privacy</a>
+          <a href="https://github.com/magnusfroste/garageai/blob/main/docs/GET_STARTED.md" target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition">🚀 Komma Igång</a>
+          <a href="https://github.com/magnusfroste/garageai" target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition">📖 Teknisk Docs</a>
+          <a href="https://github.com/magnusfroste/garageai" target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition">🐙 GitHub</a>
+          <a href="https://github.com/magnusfroste/garageai/discussions" target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition">💬 Diskussioner</a>
         </motion.div>
         <motion.p
           initial={{ opacity: 0 }}

@@ -62,7 +62,7 @@ const FAQ = () => {
     >
       <motion.h2
         variants={itemVariants}
-        className="text-4xl md:text-5xl font-bold mb-12 glow-text text-center"
+        className="apple-heading-1 mb-12 glow-text text-center"
         style={{ color: 'var(--color-primary)' }}
       >
         ❓ Vanliga Frågor
@@ -78,33 +78,14 @@ const FAQ = () => {
             <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--color-accent)' }}>
               {faq.question}
             </h3>
-            <p className="text-sm text-gray-300 leading-relaxed">
+            <p className="apple-caption leading-relaxed">
               {faq.answer}
             </p>
           </motion.div>
         ))}
       </motion.div>
 
-      <motion.div
-        variants={itemVariants}
-        className="mt-12 text-center bg-slate-950/50 border border-green-500/30 p-8 rounded"
-      >
-        <h3 className="text-xl font-bold mb-4" style={{ color: 'var(--color-primary)' }}>
-          🚀Redo att börja?
-        </h3>
-        <p className="text-sm text-gray-300 mb-6 max-w-2xl mx-auto">
-          Har du fler frågor? Kontakta oss på Discord eller maila hello@garageai.eu.
-          Vi hjälper dig gärna att komma igång!
-        </p>
-        <div className="flex gap-4 justify-center flex-wrap">
-          <button className="px-6 py-3 bg-green-500 hover:bg-green-600 text-black font-bold rounded-lg transition">
-            💬 Gå med Discord
-          </button>
-          <button className="px-6 py-3 border-2 border-green-500 hover:bg-green-500/10 text-green-400 font-bold rounded-lg transition">
-            📧 Kontakta oss
-          </button>
-        </div>
-      </motion.div>
+
     </motion.section>
   );
 };

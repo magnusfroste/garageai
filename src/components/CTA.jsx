@@ -15,24 +15,24 @@ const CTA = () => {
     >
       <div className="fact-box">
         <motion.h2
-          className="text-4xl font-bold mb-6 glow-text"
+          className="apple-heading-1 mb-6 glow-text"
           style={{ color: 'var(--color-primary)' }}
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
-          Gå med i Gräsrotsrörelsen
+          Var med och forma framtiden
         </motion.h2>
         <motion.p
-          className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto"
+          className="apple-body-large mb-8 max-w-2xl mx-auto"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.4 }}
         >
-          5000 solpaneler + 500k gaming-riggar + 1,7M garage + 84% fiber =
-          <span style={{ color: 'var(--color-accent)', fontWeight: 'bold' }}>Sveriges AI-frihet.</span>
+          Var med från början och hjälp oss bygga Europas mest hållbara AI-infrastruktur.
+          Varje garage blir en viktig del av nätverket.
         </motion.p>
         <motion.div
           className="flex gap-4 justify-center flex-wrap"
@@ -43,26 +43,23 @@ const CTA = () => {
         >
           <motion.button
             onClick={showComingSoon}
-            className="px-8 py-4 bg-green-500 hover:bg-green-600 text-black font-bold rounded-lg transition transform hover:scale-105 glow-neon"
+            className="px-8 py-4 font-bold rounded-lg transition transform hover:scale-105 glow-neon"
+            style={{ backgroundColor: 'var(--color-primary)', color: 'black' }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
             🚀 Starta Min Nod Nu
           </motion.button>
           <motion.button
-            className="px-8 py-4 border-2 border-green-500 hover:bg-green-500/10 text-green-400 font-bold rounded-lg transition"
-            whileHover={{ scale: 1.05 }}
+            onClick={() => window.open('https://github.com/garage-ai/platform', '_blank')}
+            className="px-8 py-4 border-2 font-bold rounded-lg transition hover:bg-opacity-10"
+            style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)', backgroundColor: 'transparent' }}
+            whileHover={{ scale: 1.05, backgroundColor: 'rgba(6, 182, 212, 0.1)' }}
             whileTap={{ scale: 0.95 }}
           >
-            📚 Läs Dokumentation
+            🔓 GitHub (Open Source)
           </motion.button>
-          <motion.button
-            className="px-8 py-4 border-2 border-pink-500 hover:bg-pink-500/10 text-pink-400 font-bold rounded-lg transition"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            💬 Discord Community
-          </motion.button>
+
         </motion.div>
       </div>
     </motion.section>

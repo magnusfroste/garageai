@@ -18,46 +18,35 @@ const Roadmap = () => {
 
   const roadmapItems = [
     {
-      quarter: "Q4 2024",
-      title: "Beta Launch",
+      quarter: "2025",
+      title: "Prototyping",
       items: [
-        "Första 500 noder online",
-        "Grundläggande AI-modeller (Llama, Mistral)",
-        "GAI-token ekonomi",
-        "Discord community"
+        "Teknisk research och Privat AI-tester med validering",
+        "Lokala kluster körs idag",
+        "Proof-of-concept för garage-noder",
+        "Säkerhets- och prestandatester"
       ],
       status: "current"
     },
     {
-      quarter: "Q1 2025",
-      title: "Expansion",
+      quarter: "2026",
+      title: "Launch",
       items: [
-        "10,000+ noder målet",
-        "Avancerade modeller (GPT-4 nivå)",
-        "Enterprise integration",
-        "Mobil app för nod-hantering"
+        "Första 1000 noder online",
+        "AI-modeller för svenska användare",
+        "Grundläggande token-system",
+        "Community-styrd utveckling"
       ],
       status: "upcoming"
     },
     {
-      quarter: "Q2 2025",
-      title: "Ecosystem Growth",
+      quarter: "2027",
+      title: "Scale",
       items: [
-        "AI-marknadplats för tjänster",
-        "Partner-integrationer",
-        "DeFi features för GAI-tokens",
-        "Internationell expansion"
-      ],
-      status: "future"
-    },
-    {
-      quarter: "Q3 2025",
-      title: "Scale & Sustainability",
-      items: [
-        "100,000+ noder",
-        "Klimatkompensering genom solenergi",
-        "Reglerad token ekonomi",
-        "Global datacenter konkurrens"
+        "10,000+ aktiva noder",
+        "Avancerade AI-modeller",
+        "Integration med företag",
+        "Europeisk expansion"
       ],
       status: "future"
     }
@@ -80,48 +69,45 @@ const Roadmap = () => {
       whileInView="visible"
       viewport={{ once: true }}
     >
-      <motion.h2
-        variants={itemVariants}
-        className="text-4xl md:text-5xl font-bold mb-12 glow-text text-center"
-        style={{ color: 'var(--color-primary)' }}
-      >
-        🗺️ Roadmap: Från Garage till Global Kraft
-      </motion.h2>
+        <motion.h2
+          variants={itemVariants}
+          className="apple-heading-1 mb-16 text-center"
+        >
+          Vår Vision
+        </motion.h2>
 
       <motion.div
         variants={itemVariants}
-        className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12"
+        className="grid md:grid-cols-1 lg:grid-cols-3 gap-8 mb-16"
       >
         {roadmapItems.map((phase, index) => (
           <motion.div
             key={index}
             variants={itemVariants}
-            className="fact-box relative"
-            style={{
-              borderColor: getStatusColor(phase.status),
-              borderWidth: phase.status === 'current' ? '2px' : '1px'
-            }}
+            className="apple-card relative"
           >
             {phase.status === 'current' && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <span className="bg-green-500 text-black text-xs font-bold px-3 py-1 rounded-full">
+                <span className="text-white text-xs font-bold px-3 py-1 rounded-full" style={{ backgroundColor: 'var(--color-secondary)' }}>
                   🔴 LIVE
                 </span>
               </div>
             )}
 
-            <h3 className="text-xl font-bold mb-4" style={{ color: getStatusColor(phase.status) }}>
-              {phase.quarter}
-            </h3>
-            <h4 className="text-lg font-semibold mb-4 text-white">
-              {phase.title}
-            </h4>
+            <div className="text-center mb-6">
+              <h3 className="apple-heading-2 mb-2" style={{ color: getStatusColor(phase.status) }}>
+                {phase.quarter}
+              </h3>
+              <h4 className="apple-body font-semibold">
+                {phase.title}
+              </h4>
+            </div>
 
-            <ul className="space-y-2 text-sm text-gray-300">
+            <ul className="space-y-3">
               {phase.items.map((item, itemIndex) => (
-                <li key={itemIndex} className="flex items-start gap-2">
-                  <span style={{ color: getStatusColor(phase.status) }}>•</span>
-                  <span>{item}</span>
+                <li key={itemIndex} className="flex items-start gap-3">
+                  <span className="text-lg mt-1" style={{ color: getStatusColor(phase.status) }}>•</span>
+                  <span className="apple-caption">{item}</span>
                 </li>
               ))}
             </ul>
@@ -131,43 +117,47 @@ const Roadmap = () => {
 
       <motion.div
         variants={itemVariants}
-        className="bg-gradient-to-r from-slate-950/50 to-slate-950/70 border border-green-500/30 p-8 rounded text-center"
+        className="apple-card max-w-4xl mx-auto"
       >
-        <h3 className="text-2xl font-bold mb-6 glow-text" style={{ color: 'var(--color-primary)' }}>
-          🌟 Varför delta nu?
+        <h3 className="apple-heading-2 mb-8 text-center">
+          Varför delta nu?
         </h3>
 
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid md:grid-cols-3 gap-8 mb-12">
           <div className="text-center">
-            <div className="text-3xl mb-3">🎯</div>
-            <h4 className="font-bold mb-2">Early Adopter Advantage</h4>
-            <p className="text-sm text-gray-400">Dubbla GAI-belöningar och early access till alla features</p>
+            <div className="text-4xl mb-4">🎯</div>
+            <h4 className="apple-heading-3 mb-3">Early Adopter-fördelar</h4>
+            <p className="apple-caption">Dubbla belöningar och early access till alla funktioner</p>
           </div>
           <div className="text-center">
-            <div className="text-3xl mb-3">🌱</div>
-            <h4 className="font-bold mb-2">Forma framtiden</h4>
-            <p className="text-sm text-gray-400">Din feedback formar hur Garage AI utvecklas</p>
+            <div className="text-4xl mb-4">🌱</div>
+            <h4 className="apple-heading-3 mb-3">Forma framtiden</h4>
+            <p className="apple-caption">Din feedback formar hur Garage AI utvecklas</p>
           </div>
           <div className="text-center">
-            <div className="text-3xl mb-3">🤝</div>
-            <h4 className="font-bold mb-2">Community Impact</h4>
-            <p className="text-sm text-gray-400">Var med och bygg Europas mest hållbara AI-infrastruktur</p>
+            <div className="text-4xl mb-4">🤝</div>
+            <h4 className="apple-heading-3 mb-3">Community Impact</h4>
+            <p className="apple-caption">Var med och bygg Europas mest hållbara AI-infrastruktur</p>
           </div>
         </div>
 
-        <p className="text-lg text-gray-300 mb-6">
-          Vi är precis i början av denna revolution. <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>
-          Var med från dag ett och forma framtiden för AI.
-          </span>
-        </p>
+        <div className="text-center mb-8">
+          <p className="apple-body mb-6 max-w-2xl mx-auto">
+            Vi är precis i början av denna revolution. <span style={{ color: 'var(--color-primary)', fontWeight: '600' }}>
+            Var med från dag ett och forma framtiden för AI.
+            </span>
+          </p>
+        </div>
 
-        <motion.button
-          className="px-8 py-4 bg-green-500 hover:bg-green-600 text-black font-bold rounded-lg transition transform hover:scale-105 glow-neon"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          🚀 Bli en av de första 500
-        </motion.button>
+        <div className="text-center">
+          <motion.button
+            className="apple-button-primary"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            🚀 Bli medlem i communityt
+          </motion.button>
+        </div>
       </motion.div>
     </motion.section>
   );
