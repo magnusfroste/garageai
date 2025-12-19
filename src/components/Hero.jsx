@@ -108,7 +108,7 @@ const Hero = () => {
           className="flex gap-4 justify-center flex-wrap"
         >
           <motion.button
-            onClick={() => window.open('https://github.com/magnusfroste/garageai/discussions', '_blank')}
+            onClick={() => window.open('https://github.com/magnusfroste/garageai/blob/main/docs/GET_STARTED.md', '_blank')}
             className="apple-button-primary"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
