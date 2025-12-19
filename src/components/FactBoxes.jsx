@@ -309,10 +309,6 @@ const FactBoxes = () => {
                   <span className="text-green-500">✓</span>
                   <span className="apple-caption"><span style={{ color: 'var(--color-secondary)', fontWeight: '600' }}>Bidra med färdigt kluster</span> – en dator blir en nod i systemet</span>
                 </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-lg">🎮</span>
-                  <span className="apple-caption"><span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>Månatliga gaming-turneringar</span> – bygg community och nätverk</span>
-                </li>
               </ul>
             </div>
           </div>
