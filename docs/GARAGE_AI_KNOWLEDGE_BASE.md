@@ -1,610 +1,216 @@
 # 🧠 Garage AI Knowledge Base
 
-**Version**: 1.0 | **Last Updated**: December 2025 | **Status**: Archived (Ideas preserved)
+**Version**: 2.0 | **Last Updated**: December 2025 | **Status**: Active
 
-This knowledge base contains the original comprehensive Garage AI concept, technical specifications, market analysis, and implementation details. All content has been migrated to the live website and GitHub documentation.
-
----
-
-## 📋 Table of Contents
-
-- [Executive Summary](#executive-summary)
-- [Core Concept & Value Proposition](#core-concept--value-proposition)
-- [Technical Architecture](#technical-architecture)
-- [Market Analysis & Statistics](#market-analysis--statistics)
-- [Infrastructure Analysis](#infrastructure-analysis)
-- [AI Inference Deep Dive](#ai-inference-deep-dive)
-- [Community & Monetization](#community--monetization)
-- [Strategic Partners](#strategic-partners)
-- [Implementation Roadmap](#implementation-roadmap)
-- [Risks & Challenges](#risks--challenges)
+Denna kunskapsbas innehåller teknisk dokumentation, implementation details och arkitektonisk översikt för Garage AI - ett distribuerat AI-nätverk byggt på idle gaming-datorer i svenska hem.
 
 ---
 
-## 🎯 Executive Summary
+## 📋 Innehållsförteckning
+
+- [Översikt](#översikt)
+- [Kärnkoncept](#kärnkoncept)
+- [Resursutnyttjande](#resursutnyttjande)
+- [Svensk Infrastruktur](#svensk-infrastruktur)
+- [Teknisk Implementation](#teknisk-implementation)
+- [AI-inferens](#ai-inferens)
+- [Community & Utveckling](#community--utveckling)
+- [Framtid](#framtid)
+
+---
+
+## 🎯 Översikt
 
 ### Vision
-**Garage AI**: Transforming Sweden's 1.7 million garages into a distributed AI supercomputer using idle gaming PCs, powered by renewable energy.
+**Garage AI**: Demokratisera AI genom decentraliserad infrastruktur. Var med och bygg Europas mest hållbara AI-nätverk - drivet av gaming-datorer och förnybar energi från svenska hem.
 
-### Key Metrics
-- **500,000+ Gaming PCs** available in Sweden
-- **1.7 Million Garages** potential AI nodes
-- **84% Fiber Coverage** enabling distributed computing
-- **85% CO₂ Reduction** vs centralized datacenters
-- **1.2M tokens/second** capacity from 10,000 RTX GPUs (can serve 50,000+ concurrent AI users)
+### Nyckeltal
+- **500,000+ Gaming-PCs** tillgängliga i Sverige idag
+- **1.7 Miljoner Garages** potentiella AI-noder
+- **98% Fiber-täckning** möjliggör distribuerad databehandling
+- **300,000+ Solpaneler** i svenska hem (2024)
+- **16-20 timmar/dag** står datorer ofta idle
 
-### Unique Value Proposition
-- **Privacy-First**: 100% local processing, zero data exfiltration
-- **Cost-Effective**: Utilize existing hardware + electricity only
-- **Sovereign**: Swedish infrastructure, Swedish value creation
-- **Scalable**: Linear scaling from single PC to national network
+### Unik Värdeproposition
+- **100% Lokal Kontroll** - Ingen data lämnar användarens enhet
+- **Resurseffektivitet** - Återanvändning av befintlig hårdvara
+- **Miljövänligt** - CO₂-neutral genom förnybar energi
+- **Open Source** - MIT-licensierad, community-driven
+- **Skalbar** - Från enskild dator till nationellt nätverk
 
----
+## 🔑 Kärnkoncept
 
-## 🔑 Core Concept & Value Proposition
+### Resurseffektivitet framför allt
+**Garage AI** fokuserar på smart återanvändning av hårdvara som annars står idle. Istället för att gaming-datorer samlar damm när du sover eller arbetar, kan de bidra till AI-inferens och skapa värde.
 
-### The Garage AI Revolution
-
-**Problem**: Centralized AI infrastructure (Google, Microsoft, OpenAI) processes data in cleartext, logs everything, and exports value abroad.
-
-**Solution**: Distributed AI network where Swedish garages become sovereign AI infrastructure.
-
-### Three Pillars
-
-#### 1. **Hardware Abundance**
-```
-Sweden's Gaming PC Market (2024):
-├── 500,000+ gaming PCs in use
-├── 1.7 million garages (SCB statistics)
-├── 85% of homes have garages/attached storage
-└── 60% of internet users play games on PC
-```
-
-#### 2. **Infrastructure Excellence**
-```
-Sweden's Digital Infrastructure:
-├── 98% fiber coverage (PTS 2024)
-├── 1 Gbit/s+ available in 123,000+ households
-├── 10 Gbit/s in fiber networks (gaming-ready)
-└── Lowest electricity prices in Europe (€0.04/kWh)
-```
-
-#### 3. **Renewable Energy Integration**
-```
-Solar + Gaming PC Synergy:
-├── Sweden: 300 sunny days/year
-├── Peak solar: 10-12 hours (11:00-15:00)
-├── Gaming PCs: 50-100W idle during daytime
-├── Combined: 25 MW solar + 500k idle GPUs
-└── Waste heat: Warms homes in winter
-```
+### Varför detta är unikt
+- **Ingen hårdvara-slöseri**: 500k+ gaming-PCs i Sverige står ofta 16-20 timmar/dag
+- **Snabb teknikutveckling**: Använd hårdvaran medan den är relevant istället för att den blir föråldrad
+- **Bidra med färdigt kluster**: En dator blir en nod i systemet - enkelt och tillgängligt
 
 ---
 
-## 🏗️ Technical Architecture
+## 🔄 Resursutnyttjande
 
-### Node Architecture
+### Hårdvara som Återanvänds
+```
+Svenska Gaming-PC Marknaden:
+├── 500k+ gaming-datorer finns idag
+├── 16-20 timmar/dag står de ofta idle
+├── Snabb teknikutveckling kräver utnyttjande
+└── Bidra med färdigt kluster - enkelt att komma igång
+```
 
-#### Hardware Requirements
+### Teknisk Verklighet
+- **RTX 4090**: 120 tokens/sekund kapacitet
+- **Idle-förbrukning**: 50-100W när datorn inte används
+- **Återanvändning**: Istället för slöseri - skapa AI-värde
+- **Skalbarhet**: Från enskild dator till nätverk
+
+---
+
+## 🇸🇪 Svensk Infrastruktur
+
+### Fiber-nätverk
+```
+PTS-statistik 2024:
+├── 98% fiber-täckning i Sverige
+├── 123,000+ hushåll med 1 Gbit/s+
+├── 10 Gbit/s tillgängligt på fibernät
+└── Operatörer: Telia, Telenor, Tele2, lokala nät
+```
+
+### Solpaneler & Energi
+```
+Svenska Solpaneler:
+├── 300,000+ hushåll har solpaneler (2024)
+├── 25% årlig tillväxt i solcells-installationer
+├── 10-12 timmar soltimmar/dag (maj-september)
+└── 85% av solenergin produceras av villaägare
+```
+
+### Smart Energi-synergi
+- **Dagsproduktion**: Solpaneler matar AI-noder dagtid
+- **Överskottsenergi**: AI körs på ren solenergi
+- **Lokalt producerad**: Ingen nätbelastning eller transmission
+- **CO₂-neutral**: 100% förnybar energi för AI
+
+---
+
+## 💻 Teknisk Implementation
+
+### Enkelt att Komma Igång
+1. **Ladda ner boot-kit**: `curl -O https://releases.garage.ai/garage-boot-latest.iso`
+2. **Skapa USB**: Använd Rufus eller Etcher
+3. **Boot från USB**: Välj "Garage AI Inference Mode"
+4. **Automatisk setup**: Systemet konfigurerar sig själv
+
+### Tekniska Krav
 ```yaml
-Minimum Requirements:
+Minimum:
   GPU: RTX 3060 (12GB VRAM)
   RAM: 16GB
-  Storage: 64GB free space
-  Network: 100 Mbps stable
+  Lagring: 64GB fritt utrymme
+  Nätverk: 100 Mbps stabilt
 
-Recommended:
+Rekommenderat:
   GPU: RTX 4070+ (24GB+ VRAM)
   RAM: 32GB
-  Storage: 256GB SSD
-  Network: 1 Gbps fiber
+  Lagring: 256GB SSD
+  Nätverk: 1 Gbps fiber
 ```
 
-#### Software Stack
-```
-Garage AI Node:
-├── OS: Ubuntu 22.04 LTS
-├── GPU Driver: NVIDIA 470+
-├── AI Framework: vLLM + Ray
-├── Container: Docker
-├── Orchestration: Kubernetes
-└── Monitoring: Prometheus + Grafana
-```
-
-### Distributed Computing Model
-
-#### Pipeline Parallelism
-```
-Traditional Tensor Parallelism:
-├── Model split across single GPU cores
-└── Limited to hardware boundaries
-
-Garage AI Pipeline Parallelism:
-├── Layer 1-4: Stockholm Node A
-├── Layer 5-8: Malmö Node B
-└── Layer 9-12: Gothenburg Node C
-```
-
-#### Performance Scaling
-```
-Single RTX 4090: 120 tokens/second
-Ray Cluster (3 nodes): 280 tokens/second (+133%)
-Kubernetes Overhead: +2-5% (acceptable)
-Global Network Target: 5000+ tokens/second
-```
+### Distributed AI
+- **Ray + vLLM**: Moderna AI-ramverk för distribuerad inferens
+- **Docker**: Containerisering för enkel deployment
+- **Kubernetes**: Orchestration för skalbarhet
+- **Monitoring**: Prometheus + Grafana för övervakning
 
 ---
 
-## 📊 Market Analysis & Statistics
+## 🌍 AI-inferens
 
-### Sweden's Gaming PC Market
+### Vad är AI-inferens?
+AI-inferens är processen där en tränad AI-modell genererar svar på frågor eller skapar innehåll. Istället för att skicka data till molnet (OpenAI, Google) körs allt lokalt på din hårdvara.
 
-#### SCB Statistics (2024)
-- **2.09 million small houses** (42% of households)
-- **~85% have garages/garage spaces**
-- **= 1.7+ million potential AI nodes**
-
-#### Gaming Demographics
-- **60% of internet users** play video games
-- **65% play on PC** (vs console/mobile)
-- **Annual market value**: ~1.4 billion SEK
-- **Average gaming PC**: 250-400W under load
-
-### Infrastructure Readiness
-
-#### Fiber Network Status
+### Säkerhetsjämförelse
 ```
-Sweden Fiber Coverage (PTS 2024):
-├── 98% of population within fiber reach
-├── 123,000+ households with 1 Gbit/s+
-├── 10 Gbit/s available in fiber networks
-└── Major providers: Telia, Telenor, Tele2, local networks
-```
-
-#### Electricity Advantage
-```
-Sweden Power Economics:
-├── Lowest electricity in Europe: €0.04/kWh
-├── 300 sunny days/year (solar potential)
-├── Export capacity to Germany/Denmark
-└── Gaming PC idle power: 50-100W daytime
-```
-
-### Competitive Landscape
-
-#### Primary Competitors
-```yaml
-Ollama:         50K+ stars, single-node focus
-LM Studio:      25K+ stars, GUI for local models
-Apple MLX:      15K+ stars, Apple Silicon optimized
-Exo:            5K+ stars, distributed inference
-LocalAI:        18K+ stars, OpenAI-compatible API
-Text Gen WebUI: 35K+ stars, Gradio-based interface
-```
-
-#### Garage AI Differentiation
-- **Scale**: Single PC → National network
-- **Hardware**: Consumer GPUs → Enterprise performance
-- **Economics**: Token rewards → Sustainable business
-- **Community**: Gaming culture → Natural adoption
-
----
-
-## ⚡ Infrastructure Analysis
-
-### Hyperscaler vs Garage AI Comparison
-
-#### Data Security & Privacy
-```
-Hyperscalers (OpenAI, Google, Microsoft):
-❌ HTTPS in-transit encryption only
-❌ Decryption to CLEARTEXT in TEE
-❌ Third-party access to cleartext data
-❌ Logging for training/security
-❌ €0.01-1.00 per request
+Moln-AI (OpenAI, Google):
+❌ Data skickas till externa servrar
+❌ Klartext-bearbetning i TEE
+❌ Loggning för träning/säkerhet
+❌ Kostnad per förfrågan
 
 Garage AI:
-✅ Local processing only (fiber stays local)
-✅ 100% data sovereignty
-✅ Zero third-party access
-✅ No logging, no analytics
-✅ Free (electricity cost only)
-```
-
-#### Energy Efficiency
-```
-Centralized Datacenters:
-├── 500 MW facility requirement
-├── 87% additional grid capacity needed
-├── 8-9.5% transmission losses
-└── 30 TWh annual waste
-
-Garage AI Distributed:
-├── 16 MW from 5,000 garages
-├── Zero transmission upgrades
-├── 3-5% local losses only
-└── Utilizes existing idle capacity
-```
-
-### Sweden's Infrastructure Paradox
-
-**Current State**: Sweden exports infrastructure value
-- Swedish fiber carries Google/Microsoft data
-- Swedish solar powers American companies
-- Swedish bandwidth enables global AI services
-- Result: Sweden becomes "data export nation"
-
-**Garage AI Solution**: Reclaim local value
-- Local AI processing keeps data home
-- GAI tokens reward local participants
-- Distributed power reduces grid strain
-- Community ownership of AI infrastructure
-
----
-
-## 🧠 AI Inference Deep Dive
-
-### What is AI Inference?
-
-#### The Three Components
-
-##### 1. **Model (Trained AI)**
-- Pre-trained language model from Hugging Face
-- 7-70 billion parameters (13-140GB)
-- GGUF format for efficient loading
-- Free and open source
-
-##### 2. **Prompt (User Input)**
-- User's question/text input
-- Stays 100% local (fiber connection)
-- No external data transmission
-- Private and secure
-
-##### 3. **Inference (Computation)**
-- GPU processes the model
-- Generates next tokens iteratively
-- 15-50 tokens/second on RTX 4090
-- Local processing = maximum privacy
-
-### Inference Flow Comparison
-
-#### Cloud Processing (Hyperscalers)
-```
-1. Prompt → HTTPS → USA datacenter
-2. Decrypt to CLEARTEXT ❌
-3. Process in cleartext TEE ❌
-4. Log for training/security ❌
-5. Cost: €0.01-1.00/request 💰
-```
-
-#### Garage AI Processing
-```
-1. Prompt stays local (fiber) ✅
-2. RTX processes model locally ✅
-3. Full data control ✅
-4. No logging, no analytics ✅
-5. Cost: Electricity only 💰
-```
-
-### Self-Hosted AI for Communities
-
-#### Garage as Local API Server
-- RTX cluster runs private model
-- API exposed locally on fiber network
-- Entire neighborhood gets access
-- Owner controls model, data, rules
-
-#### Community Benefits
-- **Individuals**: Connect devices to local AI
-- **Small Businesses**: Private AI for core processes
-- **Schools**: Local AI without tracking
-- **IoT**: Smart homes get AI intelligence
-
----
-
-## 👥 Community & Monetization
-
-### Stupid Simple Onboarding
-
-#### 3-Step Process
-```
-Step 1 (10 sec): Google login → Auto-detect GPU via WebGPU
-Step 2 (20 sec): Toggle "Activate node" → You're live!
-Step 3 (30 sec): "Your node #472: 2x RTX5090, 15 tokens/sec! Rank #47"
-```
-
-### GAI Token Rewards System
-
-#### Daily Operations
-```
-Run node 24h:      10 GAI/RTX-day
-Solar panels:       +20% GAI bonus
-Uptime bonus:       +10-50% based on reliability
-```
-
-#### Community Contributions
-```
-Share tutorial:     50 GAI
-Test beta jobs:     5 GAI/job
-Top 100 ranking:    Double multiplier 6 months
-```
-
-#### Token Economics
-```
-Annual Earnings (per RTX 4090):
-├── Base operation: 3,650 GAI/year
-├── Solar bonus:    +20% = 800 GAI
-├── Community:      +500 GAI
-└── Total:          ~5,000 GAI/year
-
-Exchange Rate:
-├── Initial: 1 GAI = €0.10 (conservative)
-├── Target:  1 GAI = €0.50 (network effect)
-└── Value:   €500-2,500/year per RTX
-```
-
-### Leaderboard & Competition
-```
-Top 100 Benefits:
-🥇 1st place: Double GAI multiplier (6 months)
-🥈 2nd place: 50% extra GAI (3 months)
-🥉 3rd place: Free hardware upgrade kit
-
-Categories:
-├── Most tokens generated
-├── Highest uptime percentage
-├── Best energy efficiency
-└── Community contributions
+✅ 100% lokal bearbetning
+✅ Ingen data lämnar din enhet
+✅ Ingen loggning eller analytics
+✅ Endast el-kostnad
 ```
 
 ---
 
-## 🤝 Strategic Partners
+## 👥 Community & Utveckling
 
-### Autoversio: Secure Enterprise AI
+### Open Source & Community-driven
+- **MIT-licensierad**: Fri användning och modifiering
+- **GitHub-community**: Diskussioner, issues, bidrag
+- **Svenskt fokus**: Utvecklat för svenska förhållanden
+- **Samarbeten**: Autoversio & Liteit som partners
 
-#### Core Offering
-**"Privacy & Security First AI Solutions for Swedish Companies"**
+### Komma Igång för Bidragare
+1. **Klona repo**: `git clone https://github.com/magnusfroste/garageai`
+2. **Installera beroenden**: `npm install`
+3. **Starta utveckling**: `npm run dev`
+4. **Bidra**: Dokumentation, kod, tester
 
-#### Key Capabilities
-```
-End-to-End Secure AI:
-✅ AI integrated into all processes (data intake → output)
-✅ Private AI-based ETL and data processing
-✅ AI-accelerated product development with security
-✅ Agentic AI for software development & QA
-✅ Secure AI automation of core business processes
-```
-
-#### Target Market
-- Swedish organizations where privacy/GDPR is non-negotiable
-- Financial services, healthcare, government
-- Companies handling sensitive customer data
-
-### Liteit: AI-Driven Software Development
-
-#### Core Offering
-**"AI-Driven Development – 20x Faster Application Creation"**
-
-#### Key Capabilities
-```
-Agentic AI Code Generation:
-⏱️ Applications developed ~20x faster than traditional coding
-📊 Equal or higher quality than experienced developers
-🧠 Context window evolution: Full GitHub repo understanding
-🔍 Project-wide risk assessment and security
-🛡️ AI-detected vulnerabilities with automatic remediation
-```
-
-#### Performance Claims
-```
-Reality Check:
-├── Modern AI code agents match experienced developer quality
-├── Speed difference: Factor of 20x (seconds vs days)
-├── Code is production-ready, tested, and deployable
-└── Security: Automated vulnerability detection & fixing
-```
-
-### Partnership Synergy
-
-#### Combined Value Proposition
-```
-Garage AI Community + Autoversio + Liteit = Sweden's AI Revolution
-
-Grassroots meets Enterprise:
-├── Local nodes provide distributed compute
-├── Autoversio ensures security & compliance
-├── Liteit accelerates development velocity
-└── Sweden retains value, data, and sovereignty
-```
+### Framtida Utveckling
+- **Fler GPU-modeller**: Stöd för AMD, Intel
+- **Edge computing**: Offline AI-capabilities
+- **Federated learning**: Samarbete mellan noder
+- **API-utveckling**: Lokala AI-tjänster
 
 ---
 
-## 🗺️ Implementation Roadmap
+## 🎯 Framtid
 
-### Phase 1: Proof of Concept (Q1-Q2 2025)
-```
-✅ Core distributed inference (Ray + vLLM)
-✅ Single-region Kubernetes cluster
-✅ Basic GAI token system
-✅ Community onboarding portal
-```
+### Nästa Steg
+- **Prototyping**: Testa distributed inferens med Ray + vLLM
+- **Community-building**: Skapa onboarding och dokumentation
+- **Partner-integrationer**: Samarbeta med Autoversio & Liteit
+- **Skalning**: Från proof-of-concept till nationellt nätverk
 
-### Phase 2: Regional Expansion (Q3-Q4 2025)
-```
-🔄 Multi-region Kubernetes federation
-🔄 Advanced model sharding
-🔄 Enterprise security integration
-🔄 Autoversio API integration
-```
-
-### Phase 3: National Network (2026)
-```
-🔄 10,000+ active nodes
-🔄 Full GAI token economy
-🔄 Liteit development integration
-🔄 International expansion planning
-```
-
-### Phase 4: European Leadership (2027)
-```
-🔄 100,000+ nodes across Europe
-🔄 Sovereign AI infrastructure
-🔄 Advanced federated learning
-🔄 Full ecosystem maturity
-```
+### Vision 2026
+- **10,000+ aktiva noder** i svenska hem
+- **1.2M tokens/sekund** total kapacitet
+- **50,000+ samtidiga användare** kan betjänas
+- **CO₂-neutral AI** genom solenergi-integration
 
 ---
 
-## ⚠️ Risks & Challenges
+## 📚 Referenser
 
-### Technical Risks
+### Officiella Källor
+- **SCB**: Statistik om svenska hushåll och boende
+- **PTS**: Fiber-infrastruktur och täckning
+- **Energimyndigheten**: Solenergi och förnybar energi
 
-#### Hardware Heterogeneity
-```
-Challenge: Different GPU models, memory sizes, performance
-Solution: Dynamic model sharding, performance-based routing
-Impact: Minimal - Ray handles load balancing automatically
-```
-
-#### Network Reliability
-```
-Challenge: Node disconnections, ISP issues
-Solution: Fault-tolerant architecture, automatic failover
-Impact: Low - distributed design is resilient by nature
-```
-
-#### Model Synchronization
-```
-Challenge: Keeping models updated across nodes
-Solution: CDN-based distribution, version management
-Impact: Medium - requires careful orchestration
-```
-
-### Business Risks
-
-#### User Adoption
-```
-Challenge: Convincing gamers to run 24/7 nodes
-Solution: Strong incentives, easy setup, community building
-Impact: High - network effects are critical
-```
-
-#### Energy Costs
-```
-Challenge: Electricity costs eating into profits
-Solution: Solar integration, optimal scheduling, efficiency optimization
-Impact: Medium - Swedish energy prices are advantageous
-```
-
-#### Regulatory Uncertainty
-```
-Challenge: Crypto/token regulations in Sweden/EU
-Solution: Compliance-first approach, legal consultation
-Impact: High - regulatory landscape evolving
-```
-
-### Market Risks
-
-#### Competition
-```
-Challenge: Exo, LocalAI, and other distributed solutions
-Solution: Superior performance, Swedish focus, community advantage
-Impact: Medium - first-mover advantage in Sweden
-```
-
-#### Technology Evolution
-```
-Challenge: New AI architectures, hardware advancements
-Solution: Modular design, continuous updates, partner ecosystem
-Impact: Low - adaptable architecture
-```
+### Teknisk Dokumentation
+- **NVIDIA**: GPU-prestanda och drivrutiner
+- **Ray**: Distributed computing framework
+- **vLLM**: AI-inference optimization
+- **Docker**: Containerisering och deployment
 
 ---
 
-## 🎯 Success Metrics
+## 🚀 Sammanfattning
 
-### Technical KPIs
-```
-Node Performance:
-├── Average tokens/second: 45+ per RTX 4090
-├── Uptime percentage: 95%+
-├── Energy efficiency: 85% better than cloud
-└── Latency: <500ms regional, <2s global
+Garage AI är ett praktiskt svar på AI:s centraliseringsproblem. Genom att återanvända idle gaming-hårdvara skapar vi ett distribuerat AI-nätverk som:
 
-Network Health:
-├── Active nodes: 10,000+ by end 2026
-├── Geographic coverage: 50+ cities
-├── Fault recovery: <30 seconds
-└── Security incidents: Zero
-```
+- **Skyddar integritet**: 100% lokal databehandling
+- **Optimerar resurser**: Ingen hårdvara-slöseri
+- **Främjar suveränitet**: Svensk infrastruktur, svenskt värde
+- **Skyddar miljö**: CO₂-neutral genom solenergi
+- **Bygger community**: Open source, tillgängligt för alla
 
-### Business KPIs
-```
-Economic Impact:
-├── GAI tokens created: 1M+ monthly
-├── Participant earnings: €500-2,500/year per RTX
-├── Local value creation: €50M+ annually
-└── Jobs created: 500+ FTE equivalent
-
-Community Growth:
-├── Monthly active users: 50,000+
-├── Community engagement: 80%+
-├── Partner integrations: 20+ companies
-└── Media coverage: 100+ articles
-```
-
-### Societal Impact
-```
-Swedish Sovereignty:
-├── Data localization: 100%
-├── Value retention: €100M+ annually
-├── Energy independence: 16 MW distributed
-└── Innovation leadership: European AI pioneer
-
-Environmental Impact:
-├── CO₂ reduction: 85% vs centralized
-├── Energy efficiency: 90%+ utilization
-├── Renewable integration: Solar + gaming
-└── Waste heat utilization: Home heating
-```
-
----
-
-## 📚 References & Sources
-
-### Government Statistics
-- **SCB (Statistics Sweden)**: Housing and population data
-- **PTS (Post & Telecom Authority)**: Fiber infrastructure statistics
-- **Energy Agency**: Electricity pricing and solar potential
-
-### Market Research
-- **Grand View Research**: Gaming PC market analysis
-- **Autoversio**: Enterprise AI security reports
-- **Liteit**: AI development productivity studies
-
-### Technical Documentation
-- **NVIDIA**: GPU performance specifications
-- **Kubernetes**: Orchestration best practices
-- **Ray**: Distributed computing patterns
-- **vLLM**: Inference optimization techniques
-
----
-
-## 🚀 Conclusion
-
-Garage AI represents a unique convergence of technology, economics, and national interest. By leveraging Sweden's existing infrastructure abundance - 1.7 million garages, nationwide fiber coverage, and renewable energy potential - we can create a distributed AI network that:
-
-1. **Maintains Privacy**: 100% local processing, zero data exfiltration
-2. **Creates Economic Value**: GAI tokens reward participants
-3. **Advances Technology**: Cutting-edge distributed AI research
-4. **Strengthens Sovereignty**: Swedish infrastructure, Swedish control
-5. **Protects Environment**: 85% CO₂ reduction through efficiency
-
-The combination of Autoversio's security expertise, Liteit's development acceleration, and Garage AI's distributed infrastructure creates a powerful ecosystem for Sweden's AI future.
-
-**Status**: Concept developed and validated. Ready for implementation.
-
----
-
-*Archived: December 2025 - Ideas preserved for future reference and expansion*
+**Redo att börja?** → [GET_STARTED.md](GET_STARTED.md)
