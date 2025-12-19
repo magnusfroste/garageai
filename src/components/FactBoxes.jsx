@@ -270,19 +270,19 @@ const FactBoxes = () => {
         </div>
       </motion.section>
 
-      {/* Gaming-Riggar */}
+      {/* Effektiv Resursutnyttjande */}
       <motion.section variants={itemVariants}>
         <div className="apple-card">
           <h3 className="apple-heading-2 mb-8 text-center">
-            Sveriges Outnyttjade Kraft
+            Effektiv Resursutnyttjande
           </h3>
           <p className="apple-body mb-8 text-center max-w-2xl mx-auto">
-            500k gaming-datorer står av dagtid – redo att bli AI-infrastruktur
+            Återanvändning av gaming-datorer för inferens – bättre resursutnyttjande av hårdvara som annars står still
           </p>
           <div className="grid md:grid-cols-1 gap-6">
             <div>
               <p className="apple-caption mb-4">
-                <strong>Gaming-PC Marknad Sverige</strong>{' '}
+                <strong>🔄 Hårdvara som Återanvänds</strong>{' '}
                 <a
                   href="https://www.grandviewresearch.com/horizon/outlook/gaming-pc-market/sweden"
                   target="_blank"
@@ -294,19 +294,29 @@ const FactBoxes = () => {
               </p>
               <ul className="space-y-3">
                 <li className="flex items-start gap-3">
-                  <span className="text-lg">📊</span>
-                  <span className="apple-caption">Marknad 2023: ~1,4 Mdr SEK → <span style={{ color: 'var(--color-primary)', fontWeight: '600' }}>500k+ gamingdatorer</span></span>
+                  <span className="text-green-500">✓</span>
+                  <span className="apple-caption"><span style={{ color: 'var(--color-primary)', fontWeight: '600' }}>500k+ gaming-datorer</span> finns i Sverige idag</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-lg">👥</span>
-                  <span className="apple-caption">60% av internetanvändare spelar – 65% på dator</span>
+                  <span className="text-green-500">✓</span>
+                  <span className="apple-caption"><span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>16-20 timmar/dag</span> står datorer ofta idle</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-lg">⚡</span>
-                  <span className="apple-caption">Gaming PC: 250-400W spel, <span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>50-100W idle dagtid</span></span>
+                  <span className="text-green-500">✓</span>
+                  <span className="apple-caption"><span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>Snabb teknikutveckling</span> – använd hårdvaran medan den är relevant</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-green-500">✓</span>
+                  <span className="apple-caption"><span style={{ color: 'var(--color-secondary)', fontWeight: '600' }}>Bidra med färdigt kluster</span> – en dator blir en nod i systemet</span>
                 </li>
               </ul>
             </div>
+          </div>
+          <div className="mt-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <p className="text-sm text-blue-400 text-center">
+              <strong>🎯 Smart Resursoptimering:</strong> Istället för att hårdvara blir föråldrad och obrukbar,
+              <span style={{ color: 'var(--color-primary)', fontWeight: '600' }}> används den för AI-inferens och skapar värde.</span>
+            </p>
           </div>
         </div>
       </motion.section>
