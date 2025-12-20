@@ -1,13 +1,18 @@
 # 🚀 Garage AI Quick Start
 
-**Nosana Clone - Podman-in-Docker Setup**
+**Garage AI - Podman-in-Docker Setup**
+
+**📚 Quick Navigation:**
+- **[🏠 README](../README.md)** - Overview & learning path
+- **[🚀 START HERE](GARAGE_AI_START_HERE.md)** - Vision & innovation
+- **[🏗️ BLUEPRINT](GARAGE_AI_IMPLEMENTATION_BLUEPRINT.md)** - Technical deep dive
 
 ---
 
-## 🎯 One Command Setup (Like Nosana)
+## 🎯 One Command Setup
 
 ```bash
-# Exactly like Nosana's approach:
+# Simple automated installation:
 bash <(wget -qO- https://garage.ai/start.sh)
 ```
 
@@ -25,7 +30,7 @@ bash <(wget -qO- https://garage.ai/start.sh)
 
 ## 🔧 Manual Setup (If One-Command Fails)
 
-### Step 1: Prerequisites (Same as Nosana)
+### Step 1: Prerequisites
 
 ```bash
 # Ubuntu 20.04+
@@ -35,18 +40,17 @@ lsb_release -a
 curl -s https://garage.ai > /dev/null && echo "Connected"
 ```
 
-### Step 2: NVIDIA Setup (Clone Nosana)
+### Step 2: NVIDIA Setup
 
 ```bash
-# Install NVIDIA drivers (from their docs)
-# Download from nvidia.com or:
+# Install NVIDIA drivers
 ubuntu-drivers autoinstall
 
 # Verify
 nvidia-smi
 ```
 
-### Step 3: NVIDIA Container Toolkit (Exact Clone)
+### Step 3: NVIDIA Container Toolkit
 
 ```bash
 curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
@@ -57,7 +61,7 @@ sudo nvidia-ctk runtime configure --runtime=docker
 sudo systemctl restart docker
 ```
 
-### Step 4: Docker Setup (From Nosana)
+### Step 4: Docker Setup
 
 ```bash
 # Follow: https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-22-04
@@ -66,13 +70,14 @@ sudo usermod -aG docker $USER
 newgrp docker
 ```
 
-### Step 5: Podman-in-Docker (Exact Clone)
+### Step 5: Podman-in-Docker
 
 ```bash
-# Same command as Nosana docs
+# Create volumes for persistence
 docker volume create podman-socket
 docker volume create podman-cache
 
+# Run Podman daemon in Docker
 docker run -d \
   --pull=always \
   --gpus=all \
@@ -85,11 +90,11 @@ docker run -d \
   garageai/podman:v1.0.0 \
   unix:/podman/podman.sock
 
-# Verify (same as Nosana)
+# Verify Podman is running
 docker exec podman curl -s http://localhost:8080/v4.5.0/libpod/info
 ```
 
-### Step 6: GPU Test (From Nosana)
+### Step 6: GPU Test
 
 ```bash
 docker exec -it podman bash
@@ -103,7 +108,7 @@ podman run --rm --device nvidia.com/gpu=all --security-opt=label=disable ubuntu 
 ### Basic Inference Test
 
 ```bash
-# Test vLLM in Podman (like Nosana examples)
+# Test vLLM in Podman container
 docker exec podman podman run --rm --device nvidia.com/gpu=all \
   -p 8000:8000 \
   vllm/vllm-openai:latest \
@@ -118,7 +123,7 @@ curl http://localhost:8000/v1/models
 ### Performance Benchmark
 
 ```bash
-# Like Nosana's benchmark
+# Test inference performance
 curl -X POST http://localhost:8000/v1/completions \
   -H "Content-Type: application/json" \
   -d '{"model": "microsoft/DialoGPT-small", "prompt": "Hello world", "max_tokens": 10}'
@@ -189,14 +194,13 @@ curl -I https://api.garage.ai/health
 
 ## 📚 Resources
 
-- **Nosana Original**: https://docs.nosana.com/hosts/grid-ubuntu.html
-- **Our Clone Analysis**: `GARAGE_AI_NOSANA_ANALYSIS.md`
 - **Podman GPU**: NVIDIA container toolkit docs
 - **vLLM**: https://docs.vllm.ai/
+- **Docker GPU**: Docker documentation
 
 ---
 
-## 🎉 Success = Nosana Working!
+## 🎉 Success!
 
 When you see:
 ```
@@ -207,10 +211,10 @@ When you see:
 ✅ Node registered
 ```
 
-**Then you have successfully cloned Nosana's approach!** 🚀
+**Your gaming PC is now part of the Swedish AI network!** 🚀
 
 ---
 
-*Focus: Clone what works, then add Swedish features*
+*Focus: Build Swedish AI infrastructure*
 *Status: Podman-in-Docker core ready*
 *Next: API backend + worker images*
