@@ -177,7 +177,7 @@ docker run --gpus all -p 8000:8000 garage-ai
 ### Community Events
 
 - **Månatliga Workshops**: Tekniska tutorials och Q&A
-- **Gaming-turneringar**: Tävla och tjäna extra tokens
+- **Tekniska Workshops**: Djupdyk i AI-teknik och optimering
 - **Globala Meetups**: Träffa andra contributors IRL
 
 ### Support Nivåer
