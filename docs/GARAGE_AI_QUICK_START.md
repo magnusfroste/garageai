@@ -11,8 +11,27 @@
 
 ## 🎯 One Command Setup
 
+### Option A: Complete Installation (Recommended for Beginners)
 ```bash
-# Simple automated installation:
+# Installs everything automatically: GPU drivers, Docker, Python AI environment
+curl -fsSL https://garage.ai/install-all.sh | bash
+```
+
+**What this installs:**
+- ✅ NVIDIA GPU drivers (reboot required)
+- ✅ Docker + NVIDIA Container Toolkit
+- ✅ Python AI environment (PyTorch, vLLM, etc.)
+- ✅ Garage AI repository
+
+**After installation, run:**
+```bash
+# Start your Garage AI node
+bash scripts/garage_start.sh
+```
+
+### Option B: Garage AI Only (For Advanced Users)
+```bash
+# Assumes you have GPU drivers, Docker, and Python AI environment already set up
 bash <(wget -qO- https://garage.ai/start.sh)
 ```
 
@@ -28,46 +47,63 @@ bash <(wget -qO- https://garage.ai/start.sh)
 
 ---
 
-## 🔧 Manual Setup (If One-Command Fails)
+## 🔧 Manual Setup (Advanced Users Only)
 
-### Step 1: Prerequisites
+**⚠️ Warning:** Manual setup is complex and error-prone. Use the automated script above instead!
 
+If you must do manual setup, follow these steps in order:
+
+### Prerequisites Check
 ```bash
-# Ubuntu 20.04+
+# Ubuntu 20.04+ required
 lsb_release -a
 
 # Internet connectivity
-curl -s https://garage.ai > /dev/null && echo "Connected"
+curl -s https://garage.ai > /dev/null && echo "✅ Connected"
 ```
 
-### Step 2: NVIDIA Setup
-
+### GPU Drivers (Reboot Required)
 ```bash
 # Install NVIDIA drivers
-ubuntu-drivers autoinstall
+sudo apt update
+sudo ubuntu-drivers autoinstall
 
-# Verify
+# REBOOT required after this step
+sudo reboot
+
+# After reboot, verify:
 nvidia-smi
 ```
 
-### Step 3: NVIDIA Container Toolkit
-
+### Docker Installation
 ```bash
-curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
-curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
-sudo apt-get update
-sudo apt-get install -y nvidia-container-toolkit
-sudo nvidia-ctk runtime configure --runtime=docker
-sudo systemctl restart docker
-```
+# Remove old versions
+sudo apt-get remove docker docker-engine docker.io containerd runc
 
-### Step 4: Docker Setup
+# Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
 
-```bash
-# Follow: https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-22-04
 # Enable non-root usage
 sudo usermod -aG docker $USER
-newgrp docker
+sudo systemctl enable docker
+
+# Logout/login or run: newgrp docker
+```
+
+### NVIDIA Container Toolkit
+```bash
+# Add NVIDIA repository
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+# Install toolkit
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
+
+# Configure Docker
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo systemctl restart docker
 ```
 
 ### Step 5: Podman-in-Docker
