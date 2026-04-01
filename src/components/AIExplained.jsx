@@ -127,30 +127,34 @@ const AIExplained = () => {
 
       {/* OpenClaw & local inference explosion */}
       <motion.div variants={itemVariants} className="apple-card mb-8">
-        <h3 className="apple-heading-2 mb-4 text-center">Local Inference Has Exploded</h3>
+        <h3 className="apple-heading-2 mb-4 text-center">The Catalyst: OpenClaw</h3>
         <p className="apple-body mb-8 text-center max-w-2xl mx-auto">
-          Tools like <strong>Ollama</strong> made local inference trivially easy to run.
-          The fourth wave found its infrastructure — local inference went from enthusiast
-          hobby to mainstream reality almost overnight.
+          <a href="https://openclaw.ai" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', fontWeight: 700 }}>OpenClaw</a>
+          {' '}is the viral phenomenon that crystallised the fourth wave —
+          an open-source personal AI agent that runs entirely on your own hardware,
+          integrating with WhatsApp, Telegram, iMessage and 50+ other services.
+          More downloads in its first months than Linux accumulated in 30 years.
+          Users say: <em style={{ color: 'var(--color-text-secondary)' }}>"It's running my company."</em>
         </p>
+
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           {[
             {
-              icon: '💻',
-              title: 'The Mac Mini Moment',
-              text: 'A Mac Mini M4 Pro (64GB unified memory) runs Llama 70B at ~15 tokens/sec — entirely locally. Soon there\'s one in every home, just like the router before it.',
-              color: 'var(--color-accent)'
-            },
-            {
-              icon: '🔓',
-              title: 'Open Models Everywhere',
-              text: 'Thousands of capable models are available free — Llama, Mistral, Phi, Qwen. Download and run locally. No subscription. No data sent anywhere.',
+              icon: '🔒',
+              title: 'Private by Default',
+              text: 'Data never leaves your hardware. OpenClaw runs locally — browser control, file operations, shell commands, persistent memory. Exactly what Garage AI infrastructure was built to power.',
               color: 'var(--color-primary)'
             },
             {
-              icon: '🚀',
-              title: 'Inference Demand Surge',
-              text: 'Autonomous agents need constant, fast, private inference. A single agent workflow can make hundreds of model calls per task. Local infrastructure is the only answer.',
+              icon: '🤖',
+              title: 'Truly Agentic',
+              text: 'Manages email, calendar, files and workflows autonomously. One agent, thousands of model calls per day. The inference demand is real — and it needs to be local, fast, and private.',
+              color: 'var(--color-accent)'
+            },
+            {
+              icon: '💻',
+              title: 'The Mac Mini Moment',
+              text: 'A Mac Mini M4 Pro (64GB unified memory) runs Llama 70B at ~15 tokens/sec — entirely locally. The household AI node is already here. The garage is the logical next step.',
               color: 'var(--color-warning)'
             }
           ].map((card, i) => (
@@ -161,10 +165,67 @@ const AIExplained = () => {
             </div>
           ))}
         </div>
+
+        {/* Agents in the Wild */}
+        <div className="mb-6">
+          <p className="font-semibold text-center mb-5" style={{ color: 'var(--color-text-secondary)' }}>
+            Agents in the Wild — Three Examples of the Fourth Wave
+          </p>
+          <div className="grid md:grid-cols-3 gap-4">
+            {[
+              {
+                name: 'OpenClaw',
+                url: 'https://openclaw.ai',
+                tag: 'Personal AI agent',
+                desc: 'Runs locally on your machine. Controls browser, files, calendar and 50+ integrations via WhatsApp or Telegram. Private by design — built for local inference.',
+                color: 'var(--color-primary)',
+                icon: '🦾',
+              },
+              {
+                name: 'FlowWink',
+                url: 'https://www.flowwink.com',
+                tag: 'AI-powered CMS & marketing',
+                desc: 'AI agents manage content workflows and marketing operations autonomously — reducing the manual overhead of digital publishing to near zero.',
+                color: 'var(--color-warning)',
+                icon: '✨',
+              },
+              {
+                name: 'Silicon Soap',
+                url: 'https://www.siliconsoap.com',
+                tag: 'Multi-agent debate platform',
+                desc: '2–4 AI agents (Llama, DeepSeek, Qwen, Mistral) debate any topic autonomously across multiple rounds. A live demonstration of multi-agent coordination at work.',
+                color: 'var(--color-accent)',
+                icon: '🎭',
+              },
+            ].map((ex) => (
+              <a
+                key={ex.name}
+                href={ex.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block p-5 rounded-xl transition-all"
+                style={{
+                  background: 'rgba(255,255,255,0.03)',
+                  border: `1px solid ${ex.color}22`,
+                  textDecoration: 'none',
+                }}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl">{ex.icon}</span>
+                  <span className="font-black text-sm" style={{ color: ex.color }}>{ex.name}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full ml-auto" style={{ background: `${ex.color}18`, color: ex.color }}>{ex.tag}</span>
+                </div>
+                <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{ex.desc}</p>
+              </a>
+            ))}
+          </div>
+        </div>
+
         <div className="p-4 rounded-xl text-center" style={{ background: 'rgba(0,122,255,0.07)', border: '1px solid rgba(0,122,255,0.2)' }}>
           <p className="text-sm" style={{ color: 'var(--color-accent)' }}>
-            <strong>Many enthusiasts already run private servers at home.</strong> The Garage AI initiative gives
-            this a structure, a community, and a European mission. The tech is here. The scale-up begins now.
+            <strong>These agents are running right now.</strong> Each one generates hundreds of inference calls per session.
+            As adoption scales, the demand for local, private, sovereign compute becomes existential — not optional.
+            That is what Garage AI is built for.
           </p>
         </div>
       </motion.div>
