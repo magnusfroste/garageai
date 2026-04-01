@@ -68,17 +68,17 @@ const Footer = () => {
           © 2026 Garage AI · MIT License · Made in Sweden 🇸🇪 · Built for Europe 🇪🇺
           <br />
           <span style={{ opacity: 0.5 }}>
-            Built with{' '}
+            AI inference powered by{' '}
             <a
-              href="https://claude.ai/code"
+              href="https://kilo.code"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-orange-400 transition"
               style={{ color: 'rgba(255,160,80,0.8)' }}
             >
-              Claude Code
+              Kilo Code
             </a>
-            {' '}— our AI co-worker, architect, and fact-checker.
+            {' '}— produced in our own garage on solar energy! ☀️🏠
           </span>
           <br />
           <span style={{ opacity: 0.35 }}>

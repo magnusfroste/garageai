@@ -285,3 +285,11 @@ Garage AI is a practical answer to AI's centralization problem. By reusing idle 
 - **Builds community**: Open source, accessible to all
 
 **Ready to start?** → [GET_STARTED.md](GET_STARTED.md)
+
+---
+
+## 🙏 Credits
+
+**Kilo Code** — AI inference powered by Kilo Code, produced in our own garage on solar energy! ☀️🏠
+
+*Decentralized AI, for the people, by the people.*
