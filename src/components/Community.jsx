@@ -32,8 +32,8 @@ const quotes = [
 ];
 
 const communityStats = [
-  { icon: '🖥️', value: '500+', label: 'Active Nodes' },
-  { icon: '🌍', value: '12', label: 'Countries Represented' },
+  { icon: '🖥️', value: 'Growing', label: 'Node Operators' },
+  { icon: '🌍', value: '🇸🇪→🇪🇺', label: 'Sweden First' },
   { icon: '🔓', value: 'MIT', label: 'Open Source License' },
   { icon: '⚡', value: 'Live', label: 'Prototype Running' },
 ];

@@ -202,7 +202,7 @@ const Hero = () => {
           <motion.button
             onClick={() => {
               const url = 'https://www.garageai.eu';
-              const text = encodeURIComponent('🇸🇪 Sweden just became the first country in Europe to launch a sovereign, distributed AI infrastructure initiative.\n\n€100M. 10,000 new jobs. 75 million garages across Europe ready to participate.\n\nThe prototype is already running on GitHub.\n\n#GarageAI #SovereignAI #Sweden #EuropeAI');
+              const text = encodeURIComponent('🇸🇪 Sweden just became the first country in Europe to launch a sovereign, distributed AI infrastructure initiative.\n\n€100M. 10,000 new jobs. 75 million garages across Europe ready to participate.\n\nSolar panels + EV batteries + local AI inference. The prototype is already running on GitHub.\n\n#GarageAI #SovereignAI #Sweden #EuropeAI #Ollama');
               window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, '_blank');
             }}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all"

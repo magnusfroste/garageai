@@ -129,16 +129,16 @@ const AIExplained = () => {
       <motion.div variants={itemVariants} className="apple-card mb-8">
         <h3 className="apple-heading-2 mb-4 text-center">Local Inference Has Exploded</h3>
         <p className="apple-body mb-8 text-center max-w-2xl mx-auto">
-          The release of OpenClaw a few months ago changed everything. The fourth wave found
-          its infrastructure — local inference went from enthusiast hobby to mainstream reality
-          almost overnight.
+          Tools like <strong>Ollama</strong> made local inference trivially easy to run.
+          The fourth wave found its infrastructure — local inference went from enthusiast
+          hobby to mainstream reality almost overnight.
         </p>
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           {[
             {
               icon: '💻',
               title: 'The Mac Mini Moment',
-              text: 'A modern Mac Mini M4 Pro runs 70B parameter models smoothly. Soon there\'s one in every home — just like the internet router before it.',
+              text: 'A Mac Mini M4 Pro (64GB unified memory) runs Llama 70B at ~15 tokens/sec — entirely locally. Soon there\'s one in every home, just like the router before it.',
               color: 'var(--color-accent)'
             },
             {
