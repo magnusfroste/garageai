@@ -92,7 +92,7 @@ const Sponsors = () => {
         <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
           A special thank you to{' '}
           <span className="font-bold" style={{ color: 'var(--color-warning)' }}>
-            Minister of Digitalisation & AI, Anna Svensson*
+            Minister of Digitalisation & AI, Tsrif Lirpa*
           </span>
           {' '}for her unwavering support of Sweden's sovereign AI ambitions
           and for personally championing the Garage AI initiative in Brussels.
