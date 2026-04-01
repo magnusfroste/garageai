@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Background circle -->
+  <rect width="32" height="32" rx="8" fill="#0a0a0f"/>
+
+  <!-- Garage door body -->
+  <rect x="6" y="11" width="20" height="14" rx="1.5" fill="#1a1a2e" stroke="#00d4ff" stroke-width="1"/>
+
+  <!-- Garage door panels (horizontal lines) -->
+  <line x1="7" y1="15" x2="25" y2="15" stroke="#00d4ff" stroke-width="0.6" opacity="0.5"/>
+  <line x1="7" y1="19" x2="25" y2="19" stroke="#00d4ff" stroke-width="0.6" opacity="0.5"/>
+  <line x1="7" y1="23" x2="25" y2="23" stroke="#00d4ff" stroke-width="0.6" opacity="0.5"/>
+
+  <!-- Roof / gable -->
+  <path d="M4 12 L16 5 L28 12" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- AI dot / node glow in center -->
+  <circle cx="16" cy="18" r="2.5" fill="#00ff88" opacity="0.9"/>
+  <circle cx="16" cy="18" r="4" fill="#00ff88" opacity="0.15"/>
+</svg>
