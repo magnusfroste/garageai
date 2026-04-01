@@ -14,6 +14,37 @@ const Sponsors = () => {
         Partners & Acknowledgements
       </p>
 
+      {/* Technical inspiration: Nosana */}
+      <motion.a
+        href="https://nosana.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left p-6 rounded-2xl mb-6 transition-all"
+        style={{
+          background: 'rgba(153,69,255,0.05)',
+          border: '1px solid rgba(153,69,255,0.25)',
+          textDecoration: 'none',
+        }}
+        whileHover={{ scale: 1.02, background: 'rgba(153,69,255,0.08)' }}
+      >
+        <div className="shrink-0 text-center">
+          <div className="text-3xl mb-1">🏗️</div>
+        </div>
+        <div className="flex-1">
+          <div className="flex flex-wrap items-center gap-2 mb-1 justify-center md:justify-start">
+            <span className="text-base font-black" style={{ color: 'rgba(153,69,255,0.95)' }}>Nosana</span>
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(153,69,255,0.15)', color: 'rgba(153,69,255,0.9)' }}>Technical Inspiration</span>
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Amsterdam, Netherlands</span>
+          </div>
+          <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+            Nosana pioneered the Podman-in-Docker GPU isolation pattern that powers Garage AI nodes.
+            Their open-source architecture proved that decentralized GPU networks work at scale:
+            2M+ deployments, 826,000+ AI jobs, 2,000+ nodes globally.
+            Garage AI's <code style={{ color: 'rgba(153,69,255,0.8)', fontSize: '0.7rem' }}>garage_start.sh</code> is directly inspired by their node setup.
+          </p>
+        </div>
+      </motion.a>
+
       {/* Partners */}
       <div className="grid md:grid-cols-2 gap-4 mb-6">
         {[

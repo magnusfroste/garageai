@@ -1,55 +1,42 @@
-# 🚀 Garage AI: Swedish AI Infrastructure
+# 🚀 Garage AI: Start Here
 
-**Version 2.0** | **December 2025** | **Status: Prototype Ready**
+**Version 2.1** | **April 2026** | **Status: Prototype Running**
 
 **📚 Quick Navigation:**
-- **[🏠 README](../README.md)** - GitHub overview & getting started
-- **[⚡ QUICK START](GARAGE_AI_QUICK_START.md)** - Setup your node
-- **[🏗️ BLUEPRINT](GARAGE_AI_IMPLEMENTATION_BLUEPRINT.md)** - Technical details
+- **[🏠 README](../README.md)** — GitHub overview & getting started
+- **[⚡ QUICK START](GARAGE_AI_QUICK_START.md)** — Set up your node
+- **[🏗️ BLUEPRINT](GARAGE_AI_IMPLEMENTATION_BLUEPRINT.md)** — Technical deep dive
 
 ---
 
-## 🎯 Vision: Democratize AI in Sweden
+## 🎯 Vision: Democratize AI in Europe
 
-Vi bygger **Europas första nationella AI-infrastruktur** från gaming PCs. Istället för att förlita oss på big tech cloud services, skapar vi en community-owned AI-nätverk där varje svensk kan:
+We're building **Europe's first distributed sovereign AI infrastructure** — from gaming PCs, spare hardware, and garage nodes. Instead of depending on Big Tech cloud services, we create a community-owned AI network where anyone in Europe can:
 
-- **Bidra**: Lämna GPU-kraft från sin gaming rig
-- **Använda**: Få tillgång till kraftfull AI utan kostnad
-- **Äga**: Data stannar alltid i Sverige
+- **Contribute**: Lend GPU compute from a gaming rig or dedicated node
+- **Use**: Access powerful private AI without cloud costs
+- **Own**: Data stays on your hardware, in your country
 
-**Resultat**: GPT-4 liknande AI-prestanda från svenska garage, med 100% lokal data-kontroll.
-
----
-
-## 🏗️ Vår Banbrytande Arkitektur
-
-### **Innovationer Vi Skapar:**
-
-#### 1. **Dual-Path AI System**
-- **Real-Time Chat** (<500ms): Direkt till GPUs för konversation
-- **Distributed Batch** (5sek+): Stora modeller över flera riggar
-- **Första plattformen** som gör båda på gaming hardware
-
-#### 2. **Enterprise Security på Consumer Hardware**
-- **Podman-in-Docker**: Isolering mellan AI-workloads
-- **Container isolation**: Varje jobb i separat miljö
-- **Host protection**: Gaming PC förblir orörd
-
-#### 3. **Swedish Nationwide Network**
-- **NAT-Friendly**: Fungerar bakom alla svenska routers
-- **Community Coordination**: API-baserad nod-organisation
-- **Geographic Clustering**: Regional prestanda-optimering
-
-#### 4. **Token Economics**
-- **Usage Tracking**: Via LiteLLM integration
-- **Community Rewards**: GPU-timmar = GAI tokens
-- **Scalable**: Från enkel till blockchain senare
+**Result**: GPT-4 level AI performance from European garages, with 100% local data sovereignty.
 
 ---
 
-## 🔧 Teknisk Implementation
+## 🌊 The Four Waves
 
-### **Core Stack:**
+Every major technology shift has followed the same pattern: power concentrates at the frontier, then decentralizes back to individuals.
+
+1. **Personal Computing (1980s)** — Compute left the mainframe. A PC on every desk.
+2. **The Internet (1990s–2000s)** — Information left the library. Anyone could publish and connect.
+3. **Generative AI (2022–2024)** — Creation was democratized — but sovereignty moved back to the cloud.
+4. **Autonomous Agents (2025→)** — Action is being democratized. Agents make thousands of inference calls per task. The intelligence that left the mainframe in the 1980s is now leaving the cloud — and coming back to your garage.
+
+Garage AI is infrastructure for Wave Four.
+
+---
+
+## 🏗️ Architecture
+
+### Core Stack
 ```
 User Apps → LiteLLM Proxy → Garage AI Network
     ↓              ↓              ↓
@@ -58,176 +45,133 @@ Custom Apps    Load Balancing   Multi-GPU Tensor Parallelism
 Batch Jobs     Rate Limiting    Enterprise Isolation
 ```
 
-### **Vad Gör Oss Unika:**
+### What Makes It Different
 
-| Feature | Traditionell AI | Garage AI |
-|---------|----------------|-----------|
-| **Hardware** | Datacenters ($M) | Gaming PCs (kr) |
-| **Latency** | 100-1000ms | <500ms chat |
+| Feature | Traditional AI | Garage AI |
+|---------|---------------|-----------|
+| **Hardware** | Data centers ($M) | Gaming PCs & garage nodes |
+| **Latency** | 100–1000ms | <500ms chat |
 | **Privacy** | Cloud logging | 100% local |
 | **Cost** | $/hour | Electricity only |
-| **Ownership** | Big tech | Swedish community |
-| **Scaling** | Limited | Nationwide |
+| **Ownership** | Big tech | Community-owned |
+| **Data** | Leaves your country | Stays in Europe |
 
 ---
 
-## 📊 Prestanda & Economics
+## 🔒 Security: Podman-in-Docker Isolation
 
-### **Chat Performance (Mål)**
-- **Latency**: <500ms per svar
-- **Throughput**: 100+ requests/minute
-- **Models**: GPT-4 nivå via GPU-cluster
+The core security innovation — borrowed and adapted from [Nosana](https://nosana.com)'s proven architecture — is **Podman-in-Docker**:
 
-### **Batch Performance (Mål)**
-- **Qwen3-80B**: Distribuerad över 4 GPUs
-- **Processing**: Background jobs
-- **Scalability**: Obegränsad genom community
+```
+Host System (Gaming PC / Garage Node)
+├── Docker Layer (manages Podman daemon)
+│   └── Podman Daemon (isolated runtime)
+│       ├── Inference Network (virtual LAN)
+│       │   ├── vLLM Container (port 8000 — internal only)
+│       │   ├── Worker Container
+│       │   └── Model Cache (isolated storage)
+│       └── ← Host system cannot see this layer
+└── Host Network (completely separated)
+```
 
-### **Economic Model**
-- **Cost per token**: ~$0.001 (endast el)
-- **Community incentives**: GPU-timmar = tokens
-- **Sustainable**: Miljövänlig genom gaming PC reuse
+**Why this matters**: AI workloads run in a fully isolated Podman namespace. The host gaming PC is invisible to the inference workload, and the workload is invisible to the host. Multiple tenants can share a node without seeing each other's data.
 
----
-
-## 🚀 Implementation Roadmap
-
-### **Phase 1: Prototype (December 2025) ✅**
-- ✅ **Podman-in-Docker** GPU isolation
-- ✅ **LiteLLM integration** för chat + tokens
-- ✅ **Dual-path architecture** design
-- ✅ **Swedish network** coordination
-- 🔄 **Docker images** byggs
-
-### **Phase 2: Swedish Network (Jan-Mar 2026)**
-- 🔄 **Multi-rig deployment** i garage
-- 🔄 **Geographic clustering** för Sverige
-- 🔄 **Community token system** implementation
-- 🔄 **Performance optimization**
-
-### **Phase 3: Enterprise Scale (Apr-Jun 2026)**
-- 🔄 **Advanced load balancing**
-- 🔄 **Model marketplace**
-- 🔄 **Enterprise integrations**
-- 🔄 **Full transparency** system
+This architecture was proven at scale by Nosana, which processed 826,000+ AI jobs across 2,000+ nodes globally before we built Garage AI.
 
 ---
 
-## 🎮 Getting Started (För Er Test)
+## 📊 Performance & Economics
 
-### **Prerequisites**
-- RTX 30/40 series GPU (8GB+ VRAM)
-- Ubuntu 20.04+ Linux
+### Node Performance
+- **RTX 4090**: 150–300 tokens/sec (Llama-7B)
+- **RTX 4090**: ~30 tokens/sec (Llama-70B quantized)
+- **Mac Mini M4 Pro 64GB**: ~15 tokens/sec (Llama-70B local)
+- **Cost per 1K tokens**: ~$0.001 (electricity only)
+
+### The Inference Market
+- **$106B** AI inference market (2025)
+- **$255B** projected by 2030 (CAGR 19.2%)
+- **1,000×** demand multiplier from agentic AI
+
+The market has been proven by Anthropic ($380B valuation, $19B annualized revenue) and others. Garage AI is the community alternative to centralized inference monopolies.
+
+---
+
+## 🚀 Roadmap
+
+### Phase 1: Sweden Pilot (2025–2026) ✅ Underway
+- ✅ Podman-in-Docker GPU isolation working
+- ✅ LiteLLM integration for chat + tokens
+- ✅ Dual-path architecture (chat + batch)
+- 🔄 Node operator community growing
+- 🔄 Solar + EV energy integration
+
+### Phase 2: Scandinavian Expansion (2026–2027)
+- 🔄 Multi-node geographic clustering
+- 🔄 Community token system
+- 🔄 B2B private inference offering
+- 🔄 Dashboard and monitoring
+
+### Phase 3: European Scale (2027+)
+- 🔄 Germany, Netherlands, Finland, Norway expansion
+- 🔄 10,000+ active nodes
+- 🔄 Enterprise SLA tier
+- 🔄 EU policy engagement
+
+---
+
+## 🎮 Getting Started
+
+### Prerequisites
+- RTX 30/40 series GPU (8GB+ VRAM) or Apple Silicon (32GB+ unified memory)
+- Ubuntu 20.04+ Linux (for NVIDIA nodes) or macOS (for Apple Silicon via Ollama)
 - Docker installed
 
-### **One-Command Setup**
+### One-Command Setup
 ```bash
-# Download och kör setup
 bash <(wget -qO- https://garage.ai/start.sh)
 
-# Vad händer:
-# 1. Podman-in-Docker med GPU passthrough
-# 2. Node registrering i nätverket
-# 3. Benchmark för er hardware
+# What happens:
+# 1. Podman-in-Docker with GPU passthrough
+# 2. Node registration in the network
+# 3. Hardware benchmark
 # 4. vLLM server startup
 ```
 
-### **Integration med Er LiteLLM**
+### Integration with LiteLLM
 ```yaml
-# Lägg till i er litellm/config.yaml
+# Add to litellm/config.yaml
 model_list:
   - model_name: garage-chat
     litellm_params:
       model: openai/gpt-4
-      api_base: http://er-rigg:8000
-```
-
-### **Testa Chat**
-```bash
-# Via er LiteLLM proxy
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Authorization: Bearer $API_KEY" \
-  -d '{"model": "garage-chat", "messages": [{"role": "user", "content": "Hej från svenska GPUs!"}]}'
+      api_base: http://your-node-ip:8000
 ```
 
 ---
 
-## 🛡️ Security & Privacy
+## 🛡️ Privacy & Sovereignty
 
-### **Data Sovereignty**
-- **100% Local**: Ingen data lämnar Sverige
-- **Container Isolation**: Varje workload separat
-- **Host Protection**: Gaming PC orörd
-- **Audit Logging**: Transparent användning
-
-### **Network Security**
-- **NAT-Friendly**: Fungerar bakom alla routers
-- **Encrypted Channels**: Säker kommunikation
-- **API Keys**: Per-användare autentisering
-- **Rate Limiting**: Abuse prevention
+- **100% Local**: No data leaves your hardware
+- **Container Isolation**: Each workload runs separately
+- **Host Protection**: Your PC is untouched by AI workloads
+- **NAT-Friendly**: Works behind home routers without port forwarding
+- **Swedish First**: GDPR-compliant by architecture
 
 ---
 
-## 🌍 Varför Detta Är Revolutionerande
+## 🙏 Standing on the Shoulders of Giants
 
-### **Demokratisering av AI**
-- **Tillgång**: Varje svensk med gaming PC kan bidra
-- **Kostnad**: Nästan gratis (endast elförbrukning)
-- **Ownership**: Community-owned, inte corporate
-- **Innovation**: Från garage till nationell infrastruktur
+Garage AI did not invent decentralized GPU inference. We built on what works:
 
-### **Tekniska Genombrott**
-- **Första dual-path AI** på consumer hardware
-- **Enterprise isolation** utan enterprise kostnad
-- **Real-time chat** + massive batch processing
-- **NAT-traversal** utan komplexitet
-
-### **Svensk Fördel**
-- **Data Sovereignty**: GDPR-kompatibel
-- **Renewable Energy**: Gaming PCs på solkraft
-- **Community Focus**: Lokalt byggd lösning
-- **Export Potential**: Kan skalas internationellt
+- **[Nosana](https://nosana.com)** (Amsterdam) — Pioneered the Podman-in-Docker pattern for decentralized GPU AI inference. Proven at scale: 2M+ deployments. Their architecture is the technical foundation for Garage AI's node setup.
+- **[vLLM](https://docs.vllm.ai)** — State-of-the-art inference engine
+- **[LiteLLM](https://litellm.ai)** — Load balancing and token tracking
+- **[Ollama](https://ollama.com)** — Local model serving (Apple Silicon path)
+- **Open Source AI Community** — For making models free and accessible
 
 ---
 
-## 🤝 Community & Contributing
+*Garage AI: From European garages to sovereign AI infrastructure* 🇪🇺🤖
 
-### **Join Swedish AI Network**
-1. **Setup Node**: `garage.ai/start.sh`
-2. **Earn Tokens**: Bidra GPU-timmar
-3. **Access AI**: Använd community-infrastruktur
-4. **Contribute Code**: Bygg svensk AI-framtid
-
-### **Development Areas**
-- **Model Optimization**: Quantization för gaming GPUs
-- **Network Protocols**: Effektiv multi-rig coordination
-- **Token Economics**: Community reward system
-- **Performance Tuning**: Latency optimization
-
----
-
-## 📚 Resources
-
-- **Implementation Blueprint**: `GARAGE_AI_IMPLEMENTATION_BLUEPRINT.md`
-- **Quick Start Guide**: `GARAGE_AI_QUICK_START.md`
-- **Security Deep Dive**: README.md security section
-- **API Reference**: README.md API docs
-
----
-
-## 🎉 Vision Realized
-
-Vi skapar inte bara en AI-plattform - vi bygger **Sveriges digitala infrastruktur** från grunden upp. Från gaming garage till nationell AI-kraft, ägd av folket.
-
-**🚀 Redo att revolutionera svensk AI?**
-
-```bash
-# Börja här:
-bash <(wget -qO- https://garage.ai/start.sh)
-```
-
----
-
-*Garage AI: Från svenska garage till nationell AI-infrastruktur* 🇸🇪🤖
-
-**December 2025 - Prototype Ready for Swedish Gaming Community**
+**April 2026 — Sweden Pilot Running**

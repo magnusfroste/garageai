@@ -1,165 +1,149 @@
-# 🚀 Komma Igång med Garage AI
+# 🚀 Getting Started with Garage AI
 
-Välkommen till Garage AI! Den här guiden hjälper dig att snabbt komma igång, oavsett om du är gaming-entusiast eller teknisk bidragare.
+Welcome to Garage AI! This guide helps you get up and running quickly, whether you're setting up a node or contributing to the project.
 
-## 📋 Innehåll
+## 📋 Contents
 
-- [Snabbstart för Gaming-entusiaster](#snabbstart-för-gaming-entusiaster)
-- [Teknisk Installation](#teknisk-installation)
+- [Quick Start for Node Operators](#quick-start-for-node-operators)
+- [Technical Installation](#technical-installation)
 - [Community & Support](#community--support)
-- [Bidra till Projektet](#bidra-till-projektet)
+- [Contributing](#contributing)
 
 ---
 
-## 🎮 Snabbstart för Gaming-entusiaster
+## 🖥️ Quick Start for Node Operators
 
-### Vad är Garage AI?
-Garage AI låter dig använda din gaming-dator för att bidra till ett globalt AI-nätverk när du inte spelar. Du tjänar tokens genom att "låna ut" din GPU-kraft till AI-beräkningar.
+### What is Garage AI?
+Garage AI lets you use your gaming PC or dedicated hardware to contribute to a sovereign European AI network when you're not using it. You earn tokens by lending your GPU compute to AI inference workloads.
 
-### Steg-för-steg Guide
+### Step-by-Step Guide
 
-#### 1. **Kolla Kompatibilitet**
-   - **GPU**: RTX 3060 eller bättre (NVIDIA)
-   - **RAM**: Minst 16GB
-   - **Lagring**: 64GB ledig plats för USB
-   - **Internet**: Stabil 100Mbps+ anslutning
+#### 1. **Check Compatibility**
+   - **GPU**: RTX 3060 or better (NVIDIA)
+   - **RAM**: At least 16GB
+   - **Storage**: 64GB free space
+   - **Internet**: Stable 100 Mbps+ connection
 
-#### 2. **Ladda Ner Boot Kit**
+#### 2. **One-Command Setup**
    ```bash
-   # Ladda ner från vår hemsida
-   curl -O https://releases.garage.ai/garage-boot-latest.iso
+   # Complete installation (recommended for beginners)
+   curl -fsSL https://garage.ai/install-all.sh | bash
    ```
 
-#### 3. **Skapa Bootbar USB**
-   - Använd Rufus (Windows) eller Etcher (macOS/Linux)
-   - Välj din USB-enhet (minst 64GB)
-   - Flasha ISO-filen till USB:en
+#### 3. **Start Your Node**
+   ```bash
+   bash scripts/garage_start.sh
+   ```
 
-#### 4. **Boot från USB**
-   - Starta om datorn
-   - Tryck F12/F10/Delete för boot-menu (beroende på motherboard)
-   - Välj USB-enheten
-   - Välj "Garage AI Inference Mode"
+#### 4. **What Happens Automatically**
+   - GPU drivers verified
+   - Podman-in-Docker configured for inference isolation
+   - Node identity generated (UUID-based)
+   - Node registered with the Garage AI network
+   - Hardware benchmark executed
+   - Inference worker started
 
-#### 5. **Första Körningen**
-   - Systemet konfigurerar sig automatiskt
-   - Registrerar din nod i nätverket
-   - Börjar tjäna GAI-tokens!
+### What Happens Next?
 
-#### 6. **Återvänd till Windows**
-   - Stäng av datorn
-   - Ta bort USB eller välj Windows i boot-menu
-   - Fortsätt spela som vanligt!
+- **Automatic operation**: Your machine contributes when idle
+- **Token rewards**: Earn GAI tokens for each AI task completed
+- **No lock-in**: Stop anytime, your hardware stays yours
+- **Costs**: Only electricity (roughly 50–150W per node)
 
-### Vad Händer Nu?
+### Troubleshooting
 
-- **Automatisk körning**: Datorn bidrar när du inte använder den
-- **Token-belöningar**: Tjäna GAI-tokens för varje AI-uppgift
-- **Community-rang**: Klättra på leaderboards
-- **Inga kostnader**: Endast din elförbrukning
-
-### Felsökning
-
-#### "GPU inte hittad"?
+#### "GPU not found"?
 ```bash
-# Kontrollera NVIDIA-drivers
 nvidia-smi
 ```
 
-#### "Ingen nätverksanslutning"?
+#### "No network connection"?
 ```bash
-# Testa internet
 ping 8.8.8.8
 ```
 
-#### Behöver hjälp?
-- **[Discord Community](https://discord.gg/garage-ai)** - Fråga andra användare
-- **E-post**: support@garage.ai
+#### Need help?
+- **[GitHub Discussions](https://github.com/magnusfroste/garageai/discussions)** — Ask the community
+- **Email**: powerup@garageai.eu
 
 ---
 
-## 💻 Teknisk Installation
+## 💻 Technical Installation
 
-För utvecklare och avancerade användare som vill modifiera eller bidra.
+For developers and advanced users who want to modify or contribute.
 
-### Förutsättningar
+### Prerequisites
 
-- **Ubuntu 22.04+** eller kompatibel Linux-distribution
+- **Ubuntu 22.04+** or compatible Linux distribution
 - **Python 3.9+**
-- **NVIDIA GPU** med CUDA 11.8+
+- **NVIDIA GPU** with CUDA 11.8+
 - **Git**
 
-### Klona Repository
+### Clone Repository
 
 ```bash
-git clone https://github.com/garage-ai/platform.git
-cd platform
+git clone https://github.com/magnusfroste/garageai.git
+cd garageai
 ```
 
-### Snabbinstallation
+### Quick Install
 
 ```bash
-# Installera alla beroenden
+# Install all dependencies
 ./scripts/setup.sh
 
-# Konfigurera GPU
+# Configure GPU
 ./scripts/setup_gpu.sh
 
-# Starta utvecklingsserver
+# Start development server
 npm run dev
 ```
 
-### Manuell Installation
+### Manual Installation
 
 #### 1. Python Environment
 ```bash
-# Skapa virtuell miljö
 python3 -m venv garage-env
 source garage-env/bin/activate
-
-# Installera beroenden
 pip install -r requirements.txt
 ```
 
 #### 2. AI Libraries
 ```bash
-# Installera PyTorch med CUDA
+# PyTorch with CUDA
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
-# Installera övriga AI-bibliotek
+# AI inference stack
 pip install transformers accelerate vllm ray[all] fastapi uvicorn
 ```
 
 #### 3. GPU Setup
 ```bash
-# Verifiera CUDA installation
+# Verify CUDA
 nvidia-smi
 python3 -c "import torch; print(f'CUDA: {torch.cuda.is_available()}')"
 
-# Installera vLLM
+# Install vLLM
 pip install vllm
 ```
 
-### Testa Installationen
+### Test Installation
 
 ```bash
-# Kör diagnostik
+# Run diagnostics
 python3 garage_node.py --diagnostics
 
-# Registrera test-nod
+# Register test node
 python3 garage_node.py --register --api-url http://localhost:8000
 
-# Starta övervakning
+# Start monitoring
 python3 garage_node.py --monitor
 ```
 
-### Docker Installation (Alternativ)
+### Docker Installation (Alternative)
 
 ```bash
-# Bygg container
 docker build -t garage-ai .
-
-# Kör med GPU-stöd
 docker run --gpus all -p 8000:8000 garage-ai
 ```
 
@@ -167,52 +151,45 @@ docker run --gpus all -p 8000:8000 garage-ai
 
 ## 🌍 Community & Support
 
-### Kommunikationskanaler
+### Communication Channels
 
-- **💬 [Discord](https://discord.gg/garage-ai)** - Realtidsdiskussioner, hjälp, events
-- **🐛 [GitHub Issues](https://github.com/garage-ai/platform/issues)** - Bug-rapporter, feature-förfrågningar
-- **📧 [E-post](mailto:team@garage.ai)** - Privat kommunikation
-- **🐦 [Twitter](https://twitter.com/garage_ai)** - Uppdateringar och nyheter
+- **💬 [GitHub Discussions](https://github.com/magnusfroste/garageai/discussions)** — Real-time discussion, help, events
+- **🐛 [GitHub Issues](https://github.com/magnusfroste/garageai/issues)** — Bug reports, feature requests
+- **📧 [Email](mailto:powerup@garageai.eu)** — Direct contact
 
-### Community Events
+### Support Response Times
 
-- **Månatliga Workshops**: Tekniska tutorials och Q&A
-- **Tekniska Workshops**: Djupdyk i AI-teknik och optimering
-- **Globala Meetups**: Träffa andra contributors IRL
-
-### Support Nivåer
-
-| Typ | Svarstid | Kanaler |
-|-----|----------|---------|
-| **Allmän Frågor** | 24h | Discord, GitHub |
-| **Teknisk Support** | 12h | Discord, Issues |
-| **Bug-rapporter** | 6h | GitHub Issues |
-| **Säkerhet** | 2h | security@garage.ai |
+| Type | Response Time | Channel |
+|------|--------------|---------|
+| **General Questions** | 24h | GitHub Discussions |
+| **Technical Support** | 12h | GitHub Issues |
+| **Bug Reports** | 6h | GitHub Issues |
+| **Security** | 2h | security@garageai.eu |
 
 ---
 
-## 🤝 Bidra till Projektet
+## 🤝 Contributing
 
-### Varför Bidra?
+### Why Contribute?
 
-- **Påverka framtiden**: Forma hur distribuerad AI fungerar
-- **GAI Token-belöningar**: Tjäna för kod-bidrag
-- **Community-erkännande**: Bli featured i releases
-- **Lärande**: Arbeta med cutting-edge AI-teknik
+- **Shape the future**: Influence how decentralized AI works
+- **GAI Token rewards**: Earn for code contributions
+- **Community recognition**: Featured in releases
+- **Learning**: Work with cutting-edge AI infrastructure
 
-### Enkla Första Bidrag
+### Easy First Contributions
 
-1. **🐛 Rapportera Bugs**: Beskriv tydligt vad som gick fel
-2. **💡 Förslag**: Dela idéer för förbättringar
-3. **📚 Dokumentation**: Förbättra guider och tutorials
-4. **🧪 Testning**: Hjälp testa nya features
+1. **🐛 Report Bugs**: Clearly describe what went wrong
+2. **💡 Suggestions**: Share ideas for improvements
+3. **📚 Documentation**: Improve guides and tutorials
+4. **🧪 Testing**: Help test new features
 
-### Tekniska Bidrag
+### Technical Contributions
 
-#### Kod-standarder
+#### Code Standards
 ```python
-# Följ PEP 8
-# Använd type hints
+# Follow PEP 8
+# Use type hints
 def process_inference(input_data: Dict[str, Any]) -> Dict[str, Any]:
     """Process AI inference request.
 
@@ -226,64 +203,58 @@ def process_inference(input_data: Dict[str, Any]) -> Dict[str, Any]:
 ```
 
 #### Pull Request Process
-1. **Fork** repository
-2. **Skapa branch**: `feature/din-feature` eller `fix/issue-nummer`
-3. **Commit**-meddelanden: "Add: New feature" eller "Fix: Issue description"
-4. **Test**: Alla tester måste passera
-5. **PR**: Beskrivning, screenshots, test-instruktioner
+1. **Fork** the repository
+2. **Create branch**: `feature/your-feature` or `fix/issue-number`
+3. **Commit messages**: "Add: New feature" or "Fix: Issue description"
+4. **Test**: All tests must pass
+5. **PR**: Include description, screenshots, test instructions
 
-#### Review Process
-- **Auto-checks**: Linting, testing, security scans
-- **Peer review**: Minst en maintainer review
-- **CI/CD**: Automatisk testning och deployment
+### Contribution Areas
 
-### Bidrag Områden
+#### 🔥 High Priority
+- **Node Setup UX**: Simpler onboarding for non-technical users
+- **GPU Compatibility**: Support for AMD and Intel GPUs
+- **Network Optimization**: Better latency handling
 
-#### 🔥 Hög Prioritet
-- **Boot Image Optimization**: Snabbare boot-tider
-- **GPU Compatibility**: Stöd för fler GPU-modeller
-- **Network Optimization**: Bättre latenshantering
+#### 📈 Medium Priority
+- **Web Dashboard**: Improved node management UI
+- **Model Marketplace**: Dynamic model loading
+- **Energy Monitoring**: Solar/battery integration hooks
 
-#### 📈 Medel Prioritet
-- **Mobile App**: iOS/Android companion
-- **Web Dashboard**: Förbättrad nod-hantering
-- **Model Marketplace**: Dynamisk model-loading
-
-#### 🚀 Framtid
-- **Federated Learning**: Collaborative training
-- **Multi-Modal AI**: Bild/text/video stöd
+#### 🚀 Future
+- **Federated Learning**: Collaborative model training
+- **Multi-Modal AI**: Image/text/video support
 - **Edge Computing**: Offline capabilities
 
-### Erkännande
+### Recognition
 
-Contributors nämns i:
+Contributors are credited in:
 - **Changelog**: Release notes
-- **Contributors-fil**: GitHub contributors lista
-- **Community Spotlight**: Discord announcements
-- **Token Rewards**: GAI tokens för kvalificerade bidrag
+- **Contributors file**: GitHub contributors list
+- **Token Rewards**: GAI tokens for qualifying contributions
 
 ---
 
-## 📚 Nästa Steg
+## 📚 Next Steps
 
-### För Användare
-1. **Prova det själv**: Ladda ner och testa boot-USB
-2. **Gå med i Discord**: Träffa andra användare
-3. **Dela feedback**: Hjälp förbättra upplevelsen
+### For Node Operators
+1. **Try it yourself**: Run the setup script
+2. **Join the community**: GitHub Discussions
+3. **Share feedback**: Help improve the experience
 
-### För Bidragare
-1. **Läs CONTRIBUTING.md**: Detaljerade riktlinjer
-2. **Utforska Issues**: Hitta något att arbeta med
-3. **Starta enkelt**: Dokumentation eller små bug-fixes
-4. **Fråga i Discord**: Få hjälp från communityn
+### For Contributors
+1. **Read CONTRIBUTING.md**: Detailed guidelines
+2. **Browse Issues**: Find something to work on
+3. **Start simple**: Documentation or small bug fixes
+4. **Ask questions**: Community is friendly
 
-### För Teknikintresserade
-1. **Studera arkitekturen**: Läs tekniska specifikationer
-2. **Experimentera**: Testa proof-of-concept koden
-3. **Bygg vidare**: Skapa nya features eller förbättringar
+### For the Technically Curious
+1. **Study the architecture**: Read the technical docs
+2. **Experiment**: Test proof-of-concept code
+3. **Build on it**: Create new features or improvements
 
 ---
 
-*Frågor? Besök vår [Discord](https://discord.gg/garage-ai) eller skapa ett [GitHub Discussion](https://github.com/garage-ai/platform/discussions)!*
+*Questions? Open a [GitHub Discussion](https://github.com/magnusfroste/garageai/discussions)*
 
-*Byggd med ❤️ av open source communityn*
+*Built with ❤️ by the open source community · Inspired by [Nosana](https://nosana.com)'s proven decentralized GPU architecture*

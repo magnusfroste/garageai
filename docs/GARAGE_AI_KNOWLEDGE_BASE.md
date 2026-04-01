@@ -1,277 +1,287 @@
 # 🧠 Garage AI Knowledge Base
 
-**Version**: 2.0 | **Last Updated**: December 2025 | **Status**: Active
+**Version**: 2.1 | **Last Updated**: April 2026 | **Status**: Active
 
-Denna kunskapsbas innehåller teknisk dokumentation, implementation details och arkitektonisk översikt för Garage AI - ett distribuerat AI-nätverk byggt på idle gaming-datorer i svenska hem.
-
----
-
-## 📋 Innehållsförteckning
-
-- [Översikt](#översikt)
-- [Kärnkoncept](#kärnkoncept)
-- [Resursutnyttjande](#resursutnyttjande)
-- [Svensk Infrastruktur](#svensk-infrastruktur)
-- [Teknisk Implementation](#teknisk-implementation)
-- [AI-inferens](#ai-inferens)
-- [Community & Utveckling](#community--utveckling)
-- [Framtid](#framtid)
+This knowledge base contains technical documentation, implementation details, and architectural overview for Garage AI — a distributed AI network built on idle hardware in European homes and garages.
 
 ---
 
-## 🎯 Översikt
+## 📋 Table of Contents
+
+- [Overview](#overview)
+- [Core Concepts](#core-concepts)
+- [Resource Utilization](#resource-utilization)
+- [Swedish Infrastructure](#swedish-infrastructure)
+- [Technical Implementation](#technical-implementation)
+- [AI Inference](#ai-inference)
+- [Inspiration: Nosana](#inspiration-nosana)
+- [Community & Development](#community--development)
+- [Future Vision](#future-vision)
+
+---
+
+## 🎯 Overview
 
 ### Vision
-**Garage AI**: Demokratisera AI genom decentraliserad infrastruktur. Var med och bygg Europas mest hållbara AI-nätverk - drivet av gaming-datorer och förnybar energi från svenska hem.
+**Garage AI**: Democratize AI through decentralized infrastructure. Help build Europe's most sustainable AI network — powered by idle hardware and renewable energy from homes across the continent.
 
-### Nyckeltal
-- **500,000+ Gaming-PCs** tillgängliga i Sverige idag
-- **1.7 Miljoner Garages** potentiella AI-noder
-- **98% Fiber-täckning** möjliggör distribuerad databehandling
-- **300,000+ Solpaneler** i svenska hem (2024)
-- **16-20 timmar/dag** står datorer ofta idle
+### Key Numbers
+- **75M+ Garages** across the EU as potential AI nodes
+- **1.7 Million Garages** in Sweden alone
+- **98% Fiber Coverage** enabling distributed compute in Sweden
+- **300,000+ Solar Installations** in Swedish homes (2024)
+- **1.5M+ EVs** registered in Sweden — V2H buffer potential
 
-### Unik Värdeproposition
-- **100% Lokal Kontroll** - Ingen data lämnar användarens enhet
-- **Resurseffektivitet** - Återanvändning av befintlig hårdvara
-- **Miljövänligt** - CO₂-neutral genom förnybar energi
-- **Open Source** - MIT-licensierad, community-driven
-- **Skalbar** - Från enskild dator till nationellt nätverk
+### Unique Value Proposition
+- **100% Local Control** — No data leaves the user's hardware
+- **Resource Efficiency** — Reuse existing idle hardware
+- **Environmentally Positive** — CO₂-neutral through renewable energy
+- **Open Source** — MIT licensed, community-driven
+- **Scalable** — From a single node to a national network
 
-## 🔑 Kärnkoncept
+## 🔑 Core Concepts
 
-### Resurseffektivitet framför allt
-**Garage AI** fokuserar på smart återanvändning av hårdvara som annars står idle. Istället för att gaming-datorer samlar damm när du sover eller arbetar, kan de bidra till AI-inferens och skapa värde.
+### Resource Efficiency First
+Garage AI focuses on smart reuse of hardware that would otherwise sit idle. Instead of gaming PCs collecting dust while you sleep or work, they can contribute to AI inference and generate value.
 
-### Varför detta är unikt
-- **Ingen hårdvara-slöseri**: 500k+ gaming-PCs i Sverige står ofta 16-20 timmar/dag
-- **Snabb teknikutveckling**: Använd hårdvaran medan den är relevant istället för att den blir föråldrad
-- **Bidra med färdigt kluster**: En dator blir en nod i systemet - enkelt och tillgängligt
-
----
-
-## 🔄 Resursutnyttjande
-
-### Hårdvara som Återanvänds
-```
-Svenska Gaming-PC Marknaden:
-├── 500k+ gaming-datorer finns idag
-├── 16-20 timmar/dag står de ofta idle
-├── Snabb teknikutveckling kräver utnyttjande
-└── Bidra med färdigt kluster - enkelt att komma igång
-```
-
-### Teknisk Verklighet
-- **RTX 5090**: 120 tokens/sekund kapacitet
-- **Idle-förbrukning**: 50-100W när datorn inte används
-- **Återanvändning**: Istället för slöseri - skapa AI-värde
-- **Skalbarhet**: Från enskild dator till nätverk
+### Why This Is Different
+- **No hardware waste**: Hundreds of thousands of gaming PCs in Sweden sit idle 16–20 hours/day
+- **Fast technology cycles**: Use hardware while it's relevant, not after it's obsolete
+- **Simple to join**: One computer becomes one node — easy and accessible
 
 ---
 
-## 🇸🇪 Svensk Infrastruktur
+## 🔄 Resource Utilization
 
-### Fiber-nätverk
+### Hardware Reused
 ```
-PTS-statistik 2024:
-├── 98% fiber-täckning i Sverige
-├── 123,000+ hushåll med 1 Gbit/s+
-├── 10 Gbit/s tillgängligt på fibernät
-└── Operatörer: Telia, Telenor, Tele2, lokala nät
-```
-
-### Solpaneler & Energi
-```
-Svenska Solpaneler:
-├── 300,000+ hushåll har solpaneler (2024)
-├── 25% årlig tillväxt i solcells-installationer
-├── 10-12 timmar soltimmar/dag (maj-september)
-└── 85% av solenergin produceras av villaägare
+Swedish Gaming PC Market:
+├── Hundreds of thousands of gaming PCs available
+├── 16–20 hours/day typically idle
+├── Rapid GPU improvement cycles
+└── Join as a ready-made cluster node — easy to start
 ```
 
-### Smart Energi-synergi
-- **Dagsproduktion**: Solpaneler matar AI-noder dagtid
-- **Överskottsenergi**: AI körs på ren solenergi
-- **Lokalt producerad**: Ingen nätbelastning eller transmission
-- **CO₂-neutral**: 100% förnybar energi för AI
+### Technical Reality
+- **RTX 4090**: ~120 tokens/sec for Llama-70B
+- **Mac Mini M4 Pro (64GB)**: ~15 tokens/sec for Llama-70B — entirely locally
+- **Idle draw**: 50–150W when not gaming
+- **Repurpose**: Create AI value instead of waste
+- **Scalability**: From one node to a network
 
 ---
 
-## 💻 Teknisk Implementation
+## 🇸🇪 Swedish Infrastructure
 
-### Inget! Om du redan har en gaming-PC med RTX 30/40/50-serie kan du börja direkt
-Vi tillhandahåller all programvara gratis. Enda kostnaden är din elförbrukning.
+### Fiber Network
+```
+PTS Statistics 2024:
+├── 98% fiber coverage in Sweden
+├── 123,000+ households with 1 Gbit/s+
+├── 10 Gbit/s available on fiber networks
+└── Operators: Telia, Telenor, Tele2, local ISPs
+```
 
-### Enkelt att Komma Igång
-1. **Ladda ner boot-kit**: `curl -O https://releases.garage.ai/garage-boot-latest.iso`
-2. **Skapa USB**: Använd Rufus eller Etcher
-3. **Boot från USB**: Välj "Garage AI Inference Mode"
-4. **Automatisk setup**: Systemet konfigurerar sig själv
+### Solar Panels & Energy
+```
+Swedish Solar Installations:
+├── 300,000+ households have solar panels (2024)
+├── 25% annual growth in solar installations
+├── 10–12 peak sun hours/day (May–September)
+└── 85% of solar energy produced by private homeowners
+```
 
-### Investera i en AI-nod
-Du kan också investera i en dedikerad AI-nod för delning eller egen användning. Perfekt för:
-- **Delning**: Tjäna genom att dela beräkningskraft
-- **Egen användning**: Privat AI-infrastruktur
-- **Community**: Bidra till nätverkets tillväxt
+### Smart Energy Synergy
+- **Daytime production**: Solar panels power AI nodes during the day
+- **Surplus energy**: AI runs on clean solar power
+- **Locally produced**: No grid load or transmission loss
+- **CO₂-neutral**: 100% renewable energy for AI inference
 
-### Företag & Enterprise
-Absolut! Företag kan sätta upp dedikerade noder för privat AI-inferens. Perfekt för GDPR-känsliga processer som dokumentanalys, kundsupport, eller interna AI-assistenter.
+### Energy Flow (Honest Assessment)
+| Time | Primary Source | AI Node Status |
+|------|---------------|----------------|
+| Daytime (solar) | Solar direct or via Powerwall | ✅ Runs on renewables |
+| Evening (EV home) | EV V2H discharge | ✅ Buffer available |
+| Night (base load) | Grid | ⚡ Grid electricity |
+| Weekends/WFH | Full solar + EV | ✅ Best renewable ratio |
 
-En viktig del är IP-skydd kring produkt- och mjukvaruutveckling:
-- **Säker datahantering**: Känslig information stannar inom företagets kontroll
-- **GDPR-compliance**: Ingen data lämnar lokala servrar
-- **Immaterialrätt**: Skydda företagshemligheter och innovation
-- **Intern utveckling**: AI-assistenter för kodning, design, analys
+---
 
-### Tekniska Krav
+## 💻 Technical Implementation
+
+### Getting Started
+If you already have a gaming PC with an RTX 30/40/50 series GPU, you can start immediately. All software is free. The only cost is electricity.
+
+### Simple Setup
+```bash
+# One-command installation
+bash <(wget -qO- https://garage.ai/start.sh)
+```
+
+**What happens:**
+1. GPU and Docker prerequisites checked
+2. Podman-in-Docker configured (GPU passthrough)
+3. Node identity generated (UUID-based)
+4. Node registered with Garage AI API
+5. Hardware benchmarked
+6. vLLM inference worker started
+
+### Hardware Requirements
 ```yaml
 Minimum:
   GPU: RTX 3060 (12GB VRAM)
   RAM: 16GB
-  Lagring: 64GB fritt utrymme
-  Nätverk: 100 Mbps stabilt
+  Storage: 64GB free
+  Network: 100 Mbps stable
 
-Rekommenderat:
+Recommended:
   GPU: RTX 4070+ (24GB+ VRAM)
   RAM: 32GB
-  Lagring: 256GB SSD
-  Nätverk: 1 Gbps fiber
+  Storage: 256GB SSD
+  Network: 1 Gbps fiber
 ```
 
-### Distributed AI
-- **Ray + vLLM**: Moderna AI-ramverk för distribuerad inferens
-- **Docker**: Containerisering för enkel deployment
-- **Kubernetes**: Orchestration för skalbarhet
-- **Monitoring**: Prometheus + Grafana för övervakning
+### Enterprise & Business
+Companies can set up dedicated nodes for private AI inference — ideal for GDPR-sensitive processes such as document analysis, customer support, or internal AI assistants.
+
+Key benefits for businesses:
+- **Secure data handling**: Sensitive information stays within company control
+- **GDPR compliance**: No data leaves local servers
+- **IP protection**: Protect trade secrets and innovation
+- **Internal development**: AI assistants for coding, design, analysis
 
 ---
 
-## 🌍 AI-inferens
+## 🌍 AI Inference
 
-### Vad är AI-inferens?
-AI-inferens är processen där en tränad AI-modell genererar svar på frågor eller skapar innehåll. Istället för att skicka data till molnet (OpenAI, Google) körs allt lokalt på din hårdvara.
+### What is AI Inference?
+AI inference is the process by which a trained AI model generates responses to questions or creates content. Instead of sending data to the cloud (OpenAI, Google), everything runs locally on your hardware.
 
-### Säkerhetsjämförelse
+### Security Comparison
 ```
-Moln-AI (OpenAI, Google):
-❌ Data skickas till externa servrar
-❌ Klartext-bearbetning i TEE
-❌ Loggning för träning/säkerhet
-❌ Kostnad per förfrågan
+Cloud AI (OpenAI, Google):
+❌ Data sent to external servers
+❌ Processed in distant data centers
+❌ Logging for training/safety
+❌ Cost per request
 
 Garage AI:
-✅ 100% lokal bearbetning
-✅ Ingen data lämnar din enhet
-✅ Ingen loggning eller analytics
-✅ Endast el-kostnad
+✅ 100% local processing
+✅ No data leaves your hardware
+✅ No logging or analytics
+✅ Only electricity cost
 ```
 
----
-
-## 👥 Community & Utveckling
-
-### Open Source & Community-driven
-- **MIT-licensierad**: Fri användning och modifiering
-- **GitHub-community**: Diskussioner, issues, bidrag
-- **Svenskt fokus**: Utvecklat för svenska förhållanden
-- **Samarbeten**: Autoversio & Liteit som partners
-
-### Komma Igång för Bidragare
-1. **Klona repo**: `git clone https://github.com/magnusfroste/garageai`
-2. **Installera beroenden**: `npm install`
-3. **Starta utveckling**: `npm run dev`
-4. **Bidra**: Dokumentation, kod, tester
-
-### Framtida Utveckling
-- **Fler GPU-modeller**: Stöd för AMD, Intel
-- **Edge computing**: Offline AI-capabilities
-- **Federated learning**: Samarbete mellan noder
-- **API-utveckling**: Lokala AI-tjänster
+### The Agentic Demand Surge
+Autonomous AI agents (like OpenClaw, FlowWink, Silicon Soap) make hundreds to thousands of inference calls per task. This creates exponential demand for compute that centralized cloud providers cannot serve sustainably or affordably. Local inference becomes the rational default.
 
 ---
 
-## 🎯 Framtid
+## 🙏 Inspiration: Nosana
 
-### Nästa Steg
-- **Prototyping**: Testa distributed inferens med Ray + vLLM
-- **Community-building**: Skapa onboarding och dokumentation
-- **Partner-integrationer**: Samarbeta med Autoversio & Liteit
-- **Skalning**: Från proof-of-concept till nationellt nätverk
+Garage AI's core architecture — **Podman-in-Docker GPU isolation for AI inference** — was directly inspired by [Nosana](https://nosana.com), a Dutch open-source GPU compute marketplace.
+
+### What Nosana Proved
+Nosana demonstrated at scale that:
+- Consumer and prosumer GPUs can serve real AI workloads reliably
+- Podman-in-Docker provides the right isolation layer: the host system cannot see or interfere with the inference workload
+- A pull-based job model works behind NAT without port forwarding
+- Decentralized GPU networks can process millions of AI jobs (826,000+ as of mid-2025; 2M+ deployments by August 2025)
+
+### Nosana's Architecture (What We Cloned)
+```bash
+# Nosana's proven setup command (the template for garage_start.sh)
+bash <(wget -qO- https://nosana.com/start.sh)
+
+# Their Podman-in-Docker isolation pattern:
+docker run -d --gpus=all --name podman nosana/podman:latest
+docker exec podman podman run --device nvidia.com/gpu=all vllm/vllm-openai:latest
+```
+
+This pattern ensures the AI workload runs in a fully isolated Podman namespace — the gaming PC host remains untouched and invisible to the workload.
+
+### Key Difference: Garage AI vs Nosana
+| | Nosana | Garage AI |
+|---|---|---|
+| **Chain** | Solana blockchain | Community / open |
+| **Token** | NOS (crypto) | GAI (community points) |
+| **Focus** | Global GPU marketplace | European sovereign AI |
+| **Energy** | Any source | Solar + EV priority |
+| **Governance** | Crypto DAO | Community-owned |
+| **Geography** | Global | Sweden first → EU |
+
+Nosana is a great project and a genuine pioneer. Garage AI takes the same technical foundation and applies it to European data sovereignty, renewable energy integration, and community governance — not crypto speculation.
+
+---
+
+## 👥 Community & Development
+
+### Open Source & Community-Driven
+- **MIT Licensed**: Free to use and modify
+- **GitHub Community**: Discussions, issues, contributions
+- **Partners**: Autoversio & Liteit
+- **Inspired by**: Nosana's proven architecture
+
+### Getting Started for Contributors
+1. **Clone repo**: `git clone https://github.com/magnusfroste/garageai`
+2. **Install dependencies**: `npm install`
+3. **Start development**: `npm run dev`
+4. **Contribute**: Documentation, code, tests
+
+### Future Development
+- **More GPU models**: Support for AMD, Intel
+- **Edge computing**: Offline AI capabilities
+- **Federated learning**: Collaboration between nodes
+- **API development**: Local AI services for businesses
+
+---
+
+## 🎯 Future Vision
+
+### Next Steps
+- **Prototype expansion**: More nodes, geographic clustering
+- **Community building**: Better onboarding and documentation
+- **Partner integrations**: Deeper work with Autoversio & Liteit
+- **Scaling**: From proof-of-concept to national network
 
 ### Vision 2026
-- **10,000+ aktiva noder** i svenska hem
-- **1.2M tokens/sekund** total kapacitet
-- **50,000+ samtidiga användare** kan betjänas
-- **CO₂-neutral AI** genom solenergi-integration
+- **Pilot nodes** running across Sweden
+- **Community growing** across Scandinavia
+- **B2B offering** live for early enterprise customers
+- **CO₂-neutral AI** through solar integration demonstrated
+
+### Vision 2027
+- **European expansion**: Norway, Finland, Germany, Netherlands
+- **10,000+ active nodes** across Europe
+- **Sovereign EU AI infrastructure** as a reference architecture
 
 ---
 
-## 📚 Referenser
+## 📚 References
 
-### Officiella Källor
-- **SCB**: Statistik om svenska hushåll och boende
-- **PTS**: Fiber-infrastruktur och täckning
-- **Energimyndigheten**: Solenergi och förnybar energi
+### Official Sources
+- **SCB**: Statistics on Swedish households and housing
+- **PTS**: Fiber infrastructure and coverage
+- **Energimyndigheten**: Solar energy and renewables in Sweden
+- **Eurostat**: EU housing and garage statistics
+- **IEA / ACEA**: EV adoption data
 
-### Teknisk Dokumentation
-- **NVIDIA**: GPU-prestanda och drivrutiner
-- **Ray**: Distributed computing framework
-- **vLLM**: AI-inference optimization
-- **Docker**: Containerisering och deployment
+### Technical Documentation
+- **Nosana**: [nosana.com](https://nosana.com) — Original Podman-in-Docker GPU isolation pattern
+- **vLLM**: [docs.vllm.ai](https://docs.vllm.ai) — Inference engine
+- **LiteLLM**: Load balancing and token tracking
+- **Podman**: Container isolation runtime
 
 ---
 
-## 🚀 Sammanfattning
+## 🚀 Summary
 
-Garage AI är ett praktiskt svar på AI:s centraliseringsproblem. Genom att återanvända idle gaming-hårdvara skapar vi ett distribuerat AI-nätverk som:
+Garage AI is a practical answer to AI's centralization problem. By reusing idle hardware, we build a distributed AI network that:
 
-- **Skyddar integritet**: 100% lokal databehandling
-- **Optimerar resurser**: Ingen hårdvara-slöseri
-- **Främjar suveränitet**: Svensk infrastruktur, svenskt värde
-- **Skyddar miljö**: CO₂-neutral genom solenergi
-- **Bygger community**: Open source, tillgängligt för alla
+- **Protects privacy**: 100% local data processing
+- **Optimizes resources**: No hardware waste
+- **Advances sovereignty**: Swedish and European AI infrastructure
+- **Respects the environment**: CO₂-neutral through renewables
+- **Builds community**: Open source, accessible to all
 
-## 📣 Media & Uppmärksamhet
-
-### Vad Saknas för Medial Uppmärksamhet?
-
-Nu när konceptet är känt - vad behövs för att skapa medial buzz?
-
-#### 🎬 Visuella Element
-- **Demo-video**: Visa idle gaming-PC som blir AI-nod (30 sekunder)
-- **Infografik**: Sverige-karta med 1.7M garage som potentiella noder
-- **Time-lapse**: Från idle dator till AI-inferens-output
-
-#### 📊 Konkreta Siffror & Mätvärden
-- **Prestanda-demo**: Visa tokens/sekund från olika GPU-konfigurationer
-- **CO₂-beräkningar**: Jämför vs traditionella datacenter
-- **Energibesparing**: Visa elförbrukning före/efter
-
-#### 📰 Nyhetsvinklar
-- **Svensk innovation**: "Svenska garage räddar AI från centralisering"
-- **Miljöstory**: "Gaming-PCs blir klimathjältar genom AI"
-- **Teknisk genombrott**: "Demokratisering av AI-infrastruktur"
-
-#### 🤝 Influencer & Partners
-- **Gaming-influencers**: Visa hur deras PC bidrar till AI
-- **Tech-podcaster**: Diskutera distributed computing
-- **Miljöorganisationer**: CO₂-neutral AI som hållbar innovation
-
-#### 📋 Press-kit
-- **Högupplösta bilder**: Logo, infografik, skärmdumpar
-- **Pressmeddelande**: 300-500 ord med nyhetsvärde
-- **Bakgrundsfakta**: Tekniska detaljer för journalister
-- **Citat**: Från grundare, partners, experter
-
-#### 🎯 Unika Säljargument
-- **"AI i varje garage"**: Demokratisering av teknik
-- **"CO₂-neutral genom solenergi"**: Miljöpositiv AI
-- **"Svensk suveränitet"**: Data stannar i Sverige
-- **"Från gaming till AI-revolution"**: Oväntad synergi
-
-#### 📅 Timing & Lansering
-- **Soft launch**: Teknisk demo för tech-media
-- **Main launch**: Konsument-fokuserad storytelling
-- **Follow-up**: Milestones och framsteg
-
-**Redo att börja?** → [GET_STARTED.md](GET_STARTED.md)
+**Ready to start?** → [GET_STARTED.md](GET_STARTED.md)

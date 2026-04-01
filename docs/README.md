@@ -410,14 +410,15 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-- **vLLM**: For efficient distributed inference
-- **LiteLLM**: For load balancing and token tracking
-- **Podman**: For enterprise-grade container isolation
-- **Swedish Gaming Community**: For providing the hardware foundation
-- **Open Source AI Community**: For enabling this revolution
+- **[Nosana](https://nosana.com)** (Amsterdam) — The technical foundation for Garage AI. Nosana pioneered Podman-in-Docker GPU isolation for decentralized AI inference and proved the architecture at scale: 2M+ deployments, 826,000+ AI jobs, 2,000+ nodes globally. Our `garage_start.sh` is directly inspired by their node setup pattern.
+- **[vLLM](https://docs.vllm.ai)** — High-throughput inference engine with PagedAttention and tensor parallelism
+- **[LiteLLM](https://litellm.ai)** — Load balancing, token tracking, and OpenAI-compatible proxy
+- **[Podman](https://podman.io)** — Rootless container isolation runtime
+- **[Ollama](https://ollama.com)** — Apple Silicon and CPU inference path
+- **European AI Community** — For believing that AI infrastructure should be community-owned
 
 ---
 
-*Garage AI: Building Swedish AI infrastructure from gaming garages* 🇸🇪🤖
+*Garage AI: Building European sovereign AI infrastructure from garages* 🇪🇺🤖
 
 **🚀 Ready to join? Run:** `bash <(wget -qO- https://garage.ai/start.sh)`
