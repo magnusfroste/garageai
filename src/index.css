@@ -4,94 +4,214 @@
 
 @layer base {
   :root {
-    /* Dark gaming theme with Apple-inspired colors */
-    --color-primary: #00D4FF; /* Bright cyan */
-    --color-secondary: #FF3B30; /* Apple red for accents */
-    --color-accent: #FF00AA; /* Magenta accent */
-    --color-tertiary: #00FF88; /* Bright green */
-    --color-success: #30D158; /* Apple green */
-    --color-warning: #FFD60A; /* Apple yellow */
-    --color-error: #FF453A; /* Apple red */
+    --color-primary: #00D4FF;
+    --color-secondary: #FF3B30;
+    --color-accent: #FF00AA;
+    --color-tertiary: #00FF88;
+    --color-success: #30D158;
+    --color-warning: #FFD60A;
+    --color-error: #FF453A;
 
-    /* Text colors - high contrast for dark theme */
-    --color-text-primary: #FFFFFF; /* Pure white */
-    --color-text-secondary: #EBEBF5; /* Light gray */
-    --color-text-tertiary: #C7C7CC; /* Medium gray */
-    --color-text-muted: #8E8E93; /* Darker gray */
+    --color-text-primary: #FFFFFF;
+    --color-text-secondary: #EBEBF5;
+    --color-text-tertiary: #C7C7CC;
+    --color-text-muted: #8E8E93;
 
-    /* Background colors - dark theme */
-    --color-bg-primary: #1C1C1E; /* Dark gray */
-    --color-bg-secondary: #2C2C2E; /* Medium dark */
-    --color-bg-tertiary: #3A3A3C; /* Lighter dark */
-    --color-bg-card: #2C2C2E; /* Card background */
-    --color-bg-overlay: rgba(0, 0, 0, 0.5); /* Overlay */
+    --color-bg-primary: #0d0d0f;
+    --color-bg-secondary: #141416;
+    --color-bg-tertiary: #1a1a1e;
+    --color-bg-card: rgba(255, 255, 255, 0.04);
 
-    /* Border colors */
-    --color-border: #48484A; /* Subtle border */
-    --color-border-light: #636366; /* Lighter border */
+    --color-border: rgba(255, 255, 255, 0.08);
+    --color-border-light: rgba(255, 255, 255, 0.14);
 
-    /* Shadows - dark theme compatible */
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 24px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.4);
+    --shadow-glow-cyan: 0 0 30px rgba(0, 212, 255, 0.15);
+    --shadow-glow-green: 0 0 30px rgba(0, 255, 136, 0.12);
   }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    background: #0A0A0A; /* Very dark background */
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+      'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background: #080809;
     color: var(--color-text-primary);
     overflow-x: hidden;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* ─── Noise / grain overlay ─────────────────────────────────── */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.025;
+    pointer-events: none;
+    z-index: 9998;
+    mix-blend-mode: overlay;
+  }
 }
 
+/* ─── Animations ─────────────────────────────────────────────── */
+@keyframes aurora-1 {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  33%       { transform: translate(40px, -30px) scale(1.15); }
+  66%       { transform: translate(-25px, 20px) scale(0.9); }
+}
+@keyframes aurora-2 {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  25%       { transform: translate(-35px, 25px) scale(1.1); }
+  75%       { transform: translate(30px, -15px) scale(0.95); }
+}
+@keyframes aurora-3 {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  40%       { transform: translate(20px, 30px) scale(1.08); }
+  80%       { transform: translate(-30px, -20px) scale(1.12); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes countup {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes border-spin {
+  to { --angle: 360deg; }
+}
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.2); }
+  50%       { box-shadow: 0 0 40px rgba(0, 212, 255, 0.4), 0 0 60px rgba(0, 212, 255, 0.1); }
+}
+
+/* ─── Gradient text utilities ────────────────────────────────── */
+.gradient-text-cyan {
+  background: linear-gradient(135deg, #00D4FF 0%, #00FF88 60%, #00D4FF 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.gradient-text-warm {
+  background: linear-gradient(135deg, #FFD60A 0%, #FF9F0A 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.gradient-text-pink {
+  background: linear-gradient(135deg, #FF00AA 0%, #FF453A 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.text-shimmer {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.4) 0%,
+    rgba(255,255,255,1) 30%,
+    rgba(255,255,255,0.4) 60%,
+    rgba(255,255,255,1) 90%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+}
+
+/* ─── Layout ─────────────────────────────────────────────────── */
 @layer components {
   .hero-gradient {
-    background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
+    background: #080809;
     position: relative;
     overflow: hidden;
   }
 
-  /* Apple-style subtle shadows instead of glows */
+  /* ─── Glassmorphism card ──────────────────────────────── */
   .apple-card {
-    background: var(--color-bg-primary);
-    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 20px;
     padding: 32px;
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--color-border);
-    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transition: all 0.3s ease;
+  }
+  .apple-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
   }
 
-  .apple-card:hover {
+  .fact-box {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
+  }
+  .fact-box:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
     box-shadow: var(--shadow-lg);
     transform: translateY(-2px);
   }
 
+  /* ─── Glow border card (for featured/highlighted cards) ── */
+  .glow-card-cyan {
+    position: relative;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: var(--shadow-md), var(--shadow-glow-cyan);
+    border: 1px solid rgba(0, 212, 255, 0.25);
+    transition: all 0.3s ease;
+    animation: pulse-glow 4s ease-in-out infinite;
+  }
+  .glow-card-cyan:hover {
+    box-shadow: var(--shadow-lg), 0 0 50px rgba(0, 212, 255, 0.25);
+  }
+
+  /* ─── Bento grid ──────────────────────────────────────── */
+  .bento-grid {
+    display: grid;
+    gap: 16px;
+  }
+  .bento-grid-2 { grid-template-columns: 1fr 1fr; }
+  .bento-grid-3 { grid-template-columns: 2fr 1fr 1fr; }
+
+  /* ─── Buttons ─────────────────────────────────────────── */
   .apple-button-primary {
-    background: var(--color-primary);
-    color: white;
+    background: linear-gradient(135deg, #00D4FF 0%, #0099cc 100%);
+    color: #000;
     border: none;
     border-radius: 12px;
     padding: 12px 24px;
     font-size: 17px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 4px 16px rgba(0, 212, 255, 0.3);
   }
-
   .apple-button-primary:hover {
-    background: #00A8CC;
-    box-shadow: var(--shadow-md);
+    background: linear-gradient(135deg, #33ddff 0%, #00b3e6 100%);
+    box-shadow: 0 6px 24px rgba(0, 212, 255, 0.45);
     transform: translateY(-1px);
   }
 
   .apple-button-secondary {
-    background: transparent;
+    background: rgba(0, 212, 255, 0.06);
     color: var(--color-primary);
-    border: 2px solid var(--color-primary);
+    border: 1px solid rgba(0, 212, 255, 0.3);
     border-radius: 12px;
     padding: 12px 24px;
     font-size: 17px;
@@ -99,118 +219,69 @@
     cursor: pointer;
     transition: all 0.2s ease;
   }
-
   .apple-button-secondary:hover {
-    background: var(--color-primary);
-    color: white;
+    background: rgba(0, 212, 255, 0.12);
+    border-color: rgba(0, 212, 255, 0.6);
+    transform: translateY(-1px);
   }
 
-  /* Typography - Apple style */
+  /* ─── Typography ──────────────────────────────────────── */
   .apple-heading-1 {
-    font-size: 48px;
+    font-size: clamp(36px, 5vw, 56px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    color: var(--color-text-primary);
+  }
+  .apple-heading-2 {
+    font-size: clamp(24px, 3vw, 38px);
     font-weight: 700;
-    line-height: 1.1;
+    line-height: 1.15;
     letter-spacing: -0.02em;
     color: var(--color-text-primary);
   }
-
-  .apple-heading-2 {
-    font-size: 36px;
+  .apple-heading-3 {
+    font-size: clamp(20px, 2.5vw, 28px);
     font-weight: 600;
-    line-height: 1.2;
+    line-height: 1.3;
     letter-spacing: -0.01em;
     color: var(--color-text-primary);
   }
-
-  .apple-heading-3 {
-    font-size: 28px;
-    font-weight: 600;
-    line-height: 1.3;
-    letter-spacing: -0.005em;
-    color: var(--color-text-primary);
-  }
-
   .apple-body {
     font-size: 18px;
     font-weight: 400;
-    line-height: 1.6;
-    color: var(--color-text-primary);
+    line-height: 1.7;
+    color: var(--color-text-secondary);
   }
-
   .apple-body-large {
     font-size: 20px;
     font-weight: 400;
-    line-height: 1.5;
-    color: var(--color-text-primary);
+    line-height: 1.6;
+    color: var(--color-text-secondary);
   }
-
   .apple-caption {
     font-size: 14px;
-    font-weight: 400;
-    line-height: 1.4;
-    color: var(--color-text-tertiary); /* Readable gray for dark theme */
+    line-height: 1.5;
+    color: var(--color-text-tertiary);
   }
-
   .apple-caption-small {
     font-size: 12px;
-    font-weight: 400;
-    line-height: 1.3;
-    color: var(--color-text-muted); /* Muted gray for dark theme */
+    line-height: 1.4;
+    color: var(--color-text-muted);
   }
 
-  /* Legacy support - update fact-box to use Apple styling */
-  .fact-box {
-    background: var(--color-bg-primary);
-    border: 1px solid var(--color-border);
-    border-radius: 16px;
-    padding: 32px;
-    box-shadow: var(--shadow-md);
-    transition: all 0.2s ease;
+  /* ─── Legacy glow (kept for compatibility) ────────────── */
+  .glow-text {
+    text-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
   }
-
-  .fact-box:hover {
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-2px);
+  .glow-neon {
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
   }
-
   .read-more-link {
     color: var(--color-primary);
     text-decoration: underline;
   }
-
   .read-more-link:hover {
     color: var(--color-accent);
   }
-
-  .coming-soon-tooltip {
-    position: relative;
-  }
-
-  .coming-soon-tooltip::after {
-    content: '🚀 Coming Soon';
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(255, 215, 0, 0.8);
-    color: black;
-    padding: 6px 12px;
-    border-radius: 6px;
-    white-space: nowrap;
-    font-size: 12px;
-    font-weight: bold;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    margin-bottom: 8px;
-    pointer-events: none;
-  }
-
-  .coming-soon-tooltip:hover::after {
-    opacity: 1;
-  }
-}
-
-@media (max-width: 768px) {
-  h1 { font-size: 48px !important; }
-  h2 { font-size: 32px !important; }
 }

@@ -1,60 +1,25 @@
 import { motion } from 'framer-motion';
 
 const Sponsors = () => {
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.3
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 50 },
-    visible: { opacity: 1, y: 0 }
-  };
-
   return (
     <motion.section
-      id="sponsors"
-      className="py-12 px-4 max-w-4xl mx-auto"
-      variants={containerVariants}
-      initial="hidden"
-      whileInView="visible"
+      id="partners"
+      className="py-8 px-4 max-w-4xl mx-auto"
+      initial={{ opacity: 0 }}
+      whileInView={{ opacity: 1 }}
       viewport={{ once: true }}
     >
-      <motion.div
-        variants={itemVariants}
-        className="apple-card text-center"
-      >
-        <p className="text-sm text-gray-300 mb-4">
-          <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>Tekniska partners:</span>{' '}
-          <a
-            href="https://www.autoversio.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-primary"
-            style={{ color: 'var(--color-accent)' }}
-          >
-            Autoversio
-          </a>{' '}
-          &{' '}
-          <a
-            href="https://www.liteit.se"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-primary"
-            style={{ color: 'var(--color-accent)' }}
-          >
-            Liteit
-          </a>
+      <div className="apple-card text-center">
+        <p className="text-xs mb-3" style={{ color: 'var(--color-text-muted)' }}>
+          Technical partners building the foundation
         </p>
-        <p className="text-xs text-gray-400">
-          Säker AI-infrastruktur och AI-driven utveckling
+        <p className="text-sm">
+          <a href="https://www.autoversio.com" target="_blank" rel="noopener noreferrer" className="font-semibold hover:text-primary transition" style={{ color: 'var(--color-accent)' }}>Autoversio</a>
+          <span style={{ color: 'var(--color-text-muted)' }}> — Secure AI infrastructure &nbsp;·&nbsp; </span>
+          <a href="https://www.liteit.se" target="_blank" rel="noopener noreferrer" className="font-semibold hover:text-primary transition" style={{ color: 'var(--color-accent)' }}>Liteit</a>
+          <span style={{ color: 'var(--color-text-muted)' }}> — AI-driven development</span>
         </p>
-      </motion.div>
+      </div>
     </motion.section>
   );
 };

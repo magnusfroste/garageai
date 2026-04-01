@@ -1,21 +1,28 @@
 import { motion } from 'framer-motion';
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.2 } }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 50 },
+  visible: { opacity: 1, y: 0 }
+};
+
+// EU Garage data by country (estimates based on housing stock data, Eurostat 2023)
+const euGarageData = [
+  { country: '🇩🇪 Germany',   homes: '41.5M', garages: '18M',  pct: '43%', evs: '3.5M' },
+  { country: '🇫🇷 France',    homes: '36M',   garages: '11M',  pct: '31%', evs: '1.8M' },
+  { country: '🇮🇹 Italy',     homes: '26M',   garages: '9M',   pct: '35%', evs: '0.6M' },
+  { country: '🇪🇸 Spain',     homes: '22M',   garages: '7M',   pct: '32%', evs: '0.5M' },
+  { country: '🇵🇱 Poland',    homes: '14M',   garages: '5M',   pct: '36%', evs: '0.1M' },
+  { country: '🇸🇪 Sweden',    homes: '4.8M',  garages: '1.7M', pct: '35%', evs: '1.5M' },
+  { country: '🇳🇱 Netherlands', homes: '8M',  garages: '2M',   pct: '25%', evs: '0.5M' },
+  { country: '🇧🇪 Belgium',   homes: '5.5M',  garages: '2M',   pct: '36%', evs: '0.3M' },
+];
+
 const FactBoxes = () => {
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 50 },
-    visible: { opacity: 1, y: 0 }
-  };
-
   return (
     <motion.div
       variants={containerVariants}
@@ -23,303 +30,263 @@ const FactBoxes = () => {
       whileInView="visible"
       viewport={{ once: true }}
       className="py-16 px-4 max-w-6xl mx-auto space-y-16"
+      id="eu-analysis"
     >
-      {/* Public AI Services vs Garage AI */}
-      <motion.section variants={itemVariants} id="comparison">
+
+      {/* EU Garage Analysis */}
+      <motion.section variants={itemVariants}>
         <div className="apple-card">
-          <h3 className="apple-heading-2 mb-12 text-center">
-            Public AI Services & Garage AI
+          <h3 className="apple-heading-2 mb-4 text-center">
+            Europe's Hidden Data Centers
           </h3>
           <p className="apple-body mb-8 text-center max-w-2xl mx-auto">
-            Olika verktyg för olika behov – jämför traditionella AI-tjänster med Garage AI
+            75+ million garages across the EU sit idle — waiting to become the backbone
+            of a sovereign, decentralized AI infrastructure.
           </p>
-          <div className="overflow-x-auto">
+
+          <div className="overflow-x-auto mb-8">
             <table className="w-full text-sm">
-              <tr className="border-b border-green-500/30">
-                <th className="text-left py-3 px-4" style={{ color: 'var(--color-warning)' }}>Public AI Services</th>
-                <th className="text-left py-3 px-4" style={{ color: 'var(--color-primary)' }}>Garage AI</th>
-              </tr>
-              <tr className="border-b border-green-500/30">
-                <td className="py-3 px-4">
-                  ✅ Perfekt för <span style={{ color: 'var(--color-primary)' }}>snabb prototyping & experiment</span><br />
-                  ✅ Enkelt att komma igång utan hårdvara<br />
-                  ✅ Stora modeller tillgängliga direkt<br />
-                  ✅ Betrodda av miljontals användare<br />
-                  ⚠️ Data lämnar din kontroll under bearbetning
-                  <a
-                    href="https://techcommunity.microsoft.com/blog/azureconfidentialcomputingblog/azure-ai-confidential-inferencing-technical-deep-dive/42"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="read-more-link text-xs"
-                  >
-                    {' '}[Läs mer Azure]
-                  </a>
-                </td>
-                <td className="py-3 px-4">
-                  ✅ <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>100% lokal kontroll & integritet</span><br />
-                  ✅ <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>Ingen dataström till externa servrar</span><br />
-                  ✅ Miljövänligt – använder befintlig hårdvara<br />
-                  ✅ Skalbar genom grannskapsnätverk<br />
-                  ✅ Ekonomiskt hållbart långsiktigt
-                </td>
-              </tr>
-              <tr className="border-b border-green-500/30">
-                <td className="py-3 px-4">Global infrastruktur – tillgänglig överallt</td>
-                <td className="py-3 px-4">Lokal infrastruktur – byggd på svenska förhållanden</td>
-              </tr>
-              <tr>
-                <td className="py-3 px-4">Flexibel prissättning per användning</td>
-                <td className="py-3 px-4">Kostnadseffektivt genom delad hårdvara</td>
-              </tr>
+              <thead>
+                <tr className="border-b border-green-500/30">
+                  <th className="text-left py-3 px-3" style={{ color: 'var(--color-text-muted)' }}>Country</th>
+                  <th className="text-right py-3 px-3" style={{ color: 'var(--color-text-muted)' }}>Homes</th>
+                  <th className="text-right py-3 px-3" style={{ color: 'var(--color-primary)' }}>Est. Garages</th>
+                  <th className="text-right py-3 px-3" style={{ color: 'var(--color-text-muted)' }}>Coverage</th>
+                  <th className="text-right py-3 px-3" style={{ color: 'var(--color-accent)' }}>EVs on Road</th>
+                </tr>
+              </thead>
+              <tbody>
+                {euGarageData.map((row, i) => (
+                  <tr key={i} className="border-b border-slate-800 hover:bg-white/2 transition">
+                    <td className="py-3 px-3 font-medium">{row.country}</td>
+                    <td className="py-3 px-3 text-right" style={{ color: 'var(--color-text-secondary)' }}>{row.homes}</td>
+                    <td className="py-3 px-3 text-right font-bold" style={{ color: 'var(--color-primary)' }}>{row.garages}</td>
+                    <td className="py-3 px-3 text-right" style={{ color: 'var(--color-text-muted)' }}>{row.pct}</td>
+                    <td className="py-3 px-3 text-right" style={{ color: 'var(--color-accent)' }}>{row.evs}</td>
+                  </tr>
+                ))}
+                <tr className="border-t-2 border-green-500/40">
+                  <td className="py-3 px-3 font-black" style={{ color: 'var(--color-primary)' }}>EU-27 TOTAL</td>
+                  <td className="py-3 px-3 text-right font-bold">~225M</td>
+                  <td className="py-3 px-3 text-right font-black text-lg" style={{ color: 'var(--color-primary)' }}>~75M+</td>
+                  <td className="py-3 px-3 text-right">~33%</td>
+                  <td className="py-3 px-3 text-right font-bold" style={{ color: 'var(--color-accent)' }}>~17M</td>
+                </tr>
+              </tbody>
             </table>
           </div>
+          <p className="text-xs text-center" style={{ color: 'var(--color-text-muted)' }}>
+            Sources: Eurostat Housing Statistics 2023, ACEA Electric Vehicle Report 2024. Garage estimates based on single-family home stock.
+          </p>
         </div>
       </motion.section>
 
-      {/* Sverige's Garage Statistics */}
+      {/* Why Sweden First */}
       <motion.section variants={itemVariants}>
         <div className="apple-card">
-          <h3 className="apple-heading-2 mb-8 text-center">
-            Sveriges Garage-Potential
+          <h3 className="apple-heading-2 mb-4 text-center">
+            Why Sweden Takes the Lead
           </h3>
           <p className="apple-body mb-8 text-center max-w-2xl mx-auto">
-            2+ miljoner garage väntar på att bli AI-infrastruktur
+            Sweden doesn't just have the vision — it has every infrastructure advantage needed to make this real.
           </p>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div>
-              <p className="apple-caption mb-4">
-                <strong>📊 SCB-statistik 2024</strong>{' '}
-                <a
-                  href="https://www.scb.se/hitta-statistik/sverige-i-siffror/manniskorna-i-sverige/boende-i-sverige/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  [Källa]
-                </a>
-              </p>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <span className="text-green-500">✓</span>
-                  <span className="apple-caption">2,09 miljoner småhus (42% av hushållen)</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-green-500">✓</span>
-                  <span className="apple-caption">~85% har garage/garagerum</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-green-500">✓</span>
-                  <span className="apple-caption">= <span style={{ color: 'var(--color-primary)', fontWeight: '600' }}>1,7+ miljoner potentiella AI-noder</span></span>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <p className="apple-caption mb-4">
-                <strong>🚀 Scenario: 5000 garage aktiverade</strong>
-              </p>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <span className="text-lg">🔌</span>
-                  <span className="apple-caption">5000 × 2 RTX = 10,000 GPUs</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-lg">🚀</span>
-                  <span className="apple-caption">10,000 GPUs × 120 tokens/sek = <span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>1.2M tokens/sekund kapacitet</span></span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-lg">👥</span>
-                  <span className="apple-caption">Kan serva <span style={{ color: 'var(--color-secondary)', fontWeight: '600' }}>50,000+ samtidiga AI-användare</span></span>
-                </li>
-              </ul>
-            </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                icon: '🌐',
+                title: 'World-Class Fiber',
+                stats: [
+                  '98% fiber coverage',
+                  '1–10 Gbit/s to homes',
+                  '+28% YoY in 1Gbit subscriptions',
+                  'PTS Report 2024'
+                ],
+                color: 'var(--color-primary)'
+              },
+              {
+                icon: '⚡',
+                title: 'EV Leadership',
+                stats: [
+                  '1.5M+ EVs & PHEVs on road',
+                  '50%+ of new car sales electric',
+                  'Average 60kWh battery = local storage',
+                  'V2G-ready grid infrastructure'
+                ],
+                color: 'var(--color-accent)'
+              },
+              {
+                icon: '☀️',
+                title: 'Solar Momentum',
+                stats: [
+                  '300,000+ homes with solar panels',
+                  '+25% YoY installation growth',
+                  '5GW+ total installed capacity',
+                  'Source: Energimyndigheten 2024'
+                ],
+                color: 'var(--color-warning)'
+              }
+            ].map((item, i) => (
+              <div key={i} className="p-5 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div className="text-3xl mb-3">{item.icon}</div>
+                <h4 className="font-bold mb-3" style={{ color: item.color }}>{item.title}</h4>
+                <ul className="space-y-2">
+                  {item.stats.map((s, j) => (
+                    <li key={j} className="text-xs flex gap-2" style={{ color: 'var(--color-text-secondary)' }}>
+                      <span style={{ color: item.color }}>✓</span> {s}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
       </motion.section>
 
-      {/* Fiber & Operatörer */}
+      {/* The Electricity Grid Parallel */}
       <motion.section variants={itemVariants}>
         <div className="apple-card">
-          <h3 className="apple-heading-2 mb-8 text-center">
-            Sveriges Fiber-Infrastruktur
+          <h3 className="apple-heading-2 mb-4 text-center">
+            We've Seen This Before
           </h3>
           <p className="apple-body mb-8 text-center max-w-2xl mx-auto">
-            AI-inferens kräver hög bandbredd – Sverige är redo med världsklass fiber
+            Centralization has dominated industries for decades. Then came local electricity production.
+            Computing is next — and the shift has already begun.
           </p>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div>
-              <p className="apple-caption mb-4">
-                <strong>🌐 Fiberutbyggnad 2024</strong>{' '}
-                <a
-                  href="https://via.tt.se/files/3236104/3870971/165801/sv"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  [PTS Källa]
-                </a>
-              </p>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <span className="text-green-500">✓</span>
-                  <span className="apple-caption"><span style={{ color: 'var(--color-primary)', fontWeight: '600' }}>1 Gbit/s+:</span> 123,000 abonnemang (+28% YoY)</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-green-500">✓</span>
-                  <span className="apple-caption"><span style={{ color: 'var(--color-primary)', fontWeight: '600' }}>10 Gbit/s:</span> Tillgängligt på fibernät</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-green-500">✓</span>
-                  <span className="apple-caption"><span style={{ color: 'var(--color-primary)', fontWeight: '600' }}>98%</span> av befolkningen har fiberåtkomst</span>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <p className="apple-caption mb-4">
-                <strong>🏙️ Operatörer & Stadsnät</strong>
-              </p>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <span className="text-lg">🔹</span>
-                  <span className="apple-caption"><span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>Telia:</span> 29% marknad, 1000 Mbit/s</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-lg">🔹</span>
-                  <span className="apple-caption"><span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>Telenor:</span> Stadsnät i 20+ städer</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-lg">🔹</span>
-                  <span className="apple-caption"><span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>Tele2, Com Hem:</span> Nationell täckning</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </motion.section>
 
-      {/* Solpaneler & Decentraliserad Energi */}
-      <motion.section variants={itemVariants}>
-        <div className="apple-card">
-          <h3 className="apple-heading-2 mb-8 text-center">
-            Smart Energi: Solpaneler + AI
-          </h3>
-          <p className="apple-body mb-8 text-center max-w-2xl mx-auto">
-            Solpaneler har blivit vardag i svenska hem – perfekt matchning för decentraliserad AI
-          </p>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div>
-              <p className="apple-caption mb-4">
-                <strong>☀️ Solpaneler i Sverige</strong>{' '}
-                <a
-                  href="https://www.energimyndigheten.se/statistik/solenergi/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  [Energimyndigheten]
-                </a>
-              </p>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <span className="text-green-500">✓</span>
-                  <span className="apple-caption"><span style={{ color: 'var(--color-primary)', fontWeight: '600' }}>300,000+ hushåll</span> har solpaneler (2024)</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-green-500">✓</span>
-                  <span className="apple-caption"><span style={{ color: 'var(--color-primary)', fontWeight: '600' }}>25% årlig tillväxt</span> i solcells-installationer</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-green-500">✓</span>
-                  <span className="apple-caption"><span style={{ color: 'var(--color-primary)', fontWeight: '600' }}>10-12 timmar</span> soltimmar per dag (maj-september)</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-green-500">✓</span>
-                  <span className="apple-caption"><span style={{ color: 'var(--color-primary)', fontWeight: '600' }}>85% av solenergin</span> produceras av villaägare</span>
+          <div className="grid md:grid-cols-2 gap-8 mb-8">
+            <div className="p-6 rounded-xl" style={{ background: 'rgba(255,200,0,0.06)', border: '1px solid rgba(255,200,0,0.2)' }}>
+              <h4 className="font-bold mb-4 text-lg" style={{ color: 'var(--color-warning)' }}>
+                ⚡ Electricity: The Precedent
+              </h4>
+              <ul className="space-y-3 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                <li className="flex gap-3"><span style={{ color: 'var(--color-warning)' }}>→</span> Power plants were the only source of electricity</li>
+                <li className="flex gap-3"><span style={{ color: 'var(--color-warning)' }}>→</span> Solar panels arrived — anyone could produce energy</li>
+                <li className="flex gap-3"><span style={{ color: 'var(--color-warning)' }}>→</span> Excess production feeds back into the grid</li>
+                <li className="flex gap-3"><span style={{ color: 'var(--color-warning)' }}>→</span> EVs become mobile battery storage (V2G)</li>
+                <li className="flex gap-3 font-semibold" style={{ color: 'var(--color-warning)' }}>
+                  <span>→</span> Today: 600GW solar installed in EU alone
                 </li>
               </ul>
             </div>
-            <div>
-              <p className="apple-caption mb-4">
-                <strong>🧠 Smart AI + Sol Synergi</strong>
-              </p>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <span className="text-lg">🔋</span>
-                  <span className="apple-caption"><span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>Dagsproduktion:</span> Solpaneler matar AI-noder dagtid</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-lg">♻️</span>
-                  <span className="apple-caption"><span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>Överskottsenergi:</span> AI körs på ren solenergi</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-lg">🏡</span>
-                  <span className="apple-caption"><span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>Lokalt producerad:</span> Ingen nätbelastning eller transmission</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-lg">🌱</span>
-                  <span className="apple-caption"><span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>CO₂-neutral:</span> 100% förnybar energi för AI</span>
+            <div className="p-6 rounded-xl" style={{ background: 'rgba(0,255,136,0.06)', border: '1px solid rgba(0,255,136,0.2)' }}>
+              <h4 className="font-bold mb-4 text-lg" style={{ color: 'var(--color-primary)' }}>
+                🧠 Computing: The Same Shift
+              </h4>
+              <ul className="space-y-3 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                <li className="flex gap-3"><span style={{ color: 'var(--color-primary)' }}>→</span> Hyperscale datacenters are the only source of AI compute</li>
+                <li className="flex gap-3"><span style={{ color: 'var(--color-primary)' }}>→</span> Consumer hardware (GPU/NPU) now rivals data center performance</li>
+                <li className="flex gap-3"><span style={{ color: 'var(--color-primary)' }}>→</span> Local models run privately, excess capacity shared</li>
+                <li className="flex gap-3"><span style={{ color: 'var(--color-primary)' }}>→</span> A Mac Mini in every home — the "Mac Mini moment"</li>
+                <li className="flex gap-3 font-semibold" style={{ color: 'var(--color-primary)' }}>
+                  <span>→</span> Tomorrow: your garage feeds the neighbourhood
                 </li>
               </ul>
             </div>
           </div>
-          <div className="mt-8 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
-            <p className="text-sm text-green-400 text-center">
-              <strong>🚀 Decentraliserad Revolution:</strong> Varje villaägare blir både energi- och AI-producent.
-              <span style={{ color: 'var(--color-primary)', fontWeight: '600' }}> Smart, miljövänligt och självförsörjande!</span>
+
+          <div className="p-5 rounded-xl text-center" style={{ background: 'rgba(0,122,255,0.07)', border: '1px solid rgba(0,122,255,0.2)' }}>
+            <p className="text-sm font-semibold" style={{ color: 'var(--color-accent)' }}>
+              "The technology is here. The mass scale-up of locally produced electricity is a clear example.
+              Computing — or AI inference, same thing — is following the exact same path."
             </p>
           </div>
         </div>
       </motion.section>
 
-      {/* Effektiv Resursutnyttjande */}
+      {/* EV + V2H Power — honest framing */}
       <motion.section variants={itemVariants}>
         <div className="apple-card">
-          <h3 className="apple-heading-2 mb-8 text-center">
-            Effektiv Resursutnyttjande
+          <h3 className="apple-heading-2 mb-4 text-center">
+            EV Batteries: Evening & Weekend Buffer
           </h3>
-          <p className="apple-body mb-8 text-center max-w-2xl mx-auto">
-            Återanvändning av gaming-datorer för inferens – bättre resursutnyttjande av hårdvara som annars står still
+          <p className="apple-body mb-6 text-center max-w-2xl mx-auto">
+            The honest picture: EVs are mostly away during solar peak hours on weekdays.
+            But they're home during evenings and weekends — and that's when V2H (Vehicle-to-Home)
+            adds real capacity to the stack. The <strong>home battery is the 24/7 backbone</strong>;
+            the EV is an important complement.
           </p>
-          <div className="grid md:grid-cols-1 gap-6">
+
+          <div className="grid md:grid-cols-2 gap-8 mb-6">
             <div>
-              <p className="apple-caption mb-4">
-                <strong>🔄 Hårdvara som Återanvänds</strong>{' '}
-                <a
-                  href="https://www.grandviewresearch.com/horizon/outlook/gaming-pc-market/sweden"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  [Källa]
-                </a>
-              </p>
+              <p className="font-semibold mb-4" style={{ color: 'var(--color-warning)' }}>🚗 EV Parking Reality (EU average)</p>
               <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <span className="text-green-500">✓</span>
-                  <span className="apple-caption"><span style={{ color: 'var(--color-primary)', fontWeight: '600' }}>500k+ gaming-datorer</span> finns i Sverige idag</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-green-500">✓</span>
-                  <span className="apple-caption"><span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>16-20 timmar/dag</span> står datorer ofta idle</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-green-500">✓</span>
-                  <span className="apple-caption"><span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>Snabb teknikutveckling</span> – använd hårdvaran medan den är relevant</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-green-500">✓</span>
-                  <span className="apple-caption"><span style={{ color: 'var(--color-secondary)', fontWeight: '600' }}>Bidra med färdigt kluster</span> – en dator blir en nod i systemet</span>
-                </li>
+                {[
+                  ['Car parked (all time)', '92–95% of the time¹'],
+                  ['Of that: parked at home', '~50%, mostly evenings & weekends²'],
+                  ['Of that: at workplace', '~25%'],
+                  ['Solar peak (09:00–15:00 weekdays)', 'Car typically away from home'],
+                  ['Evenings 17:00–08:00', 'Car home → V2H fully available'],
+                  ['Weekends / WFH days', 'Full solar + EV stack active'],
+                ].map(([label, value], i) => (
+                  <li key={i} className="flex justify-between text-sm border-b border-slate-800 pb-2">
+                    <span style={{ color: 'var(--color-text-secondary)' }}>{label}</span>
+                    <span className="font-bold text-right" style={{ color: 'var(--color-warning)' }}>{value}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="font-semibold mb-4" style={{ color: 'var(--color-primary)' }}>🏠 Garage Node Energy Stack</p>
+              <ul className="space-y-3">
+                {[
+                  ['Solar panels (8–12 kW)³', '40–60 kWh on a good day'],
+                  ['Home battery — PRIMARY link', 'Powers node 24/7, day & night'],
+                  ['Powerwall 3 / BYD Battery Box', '13.5–15 kWh buffer capacity'],
+                  ['EV V2H (when home, evenings)', '60–100 kWh additional buffer'],
+                  ['AI inference hardware', '300–600W continuous draw'],
+                  ['Net energy cost (solar)', 'Near zero — runs on own production'],
+                ].map(([label, value], i) => (
+                  <li key={i} className="flex justify-between text-sm border-b border-slate-800 pb-2">
+                    <span style={{ color: 'var(--color-text-secondary)' }}>{label}</span>
+                    <span className="font-bold text-right" style={{ color: 'var(--color-primary)' }}>{value}</span>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
-          <div className="mt-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-            <p className="text-sm text-blue-400 text-center">
-              <strong>🎯 Smart Resursoptimering:</strong> Istället för att hårdvara blir föråldrad och obrukbar,
-              <span style={{ color: 'var(--color-primary)', fontWeight: '600' }}> används den för AI-inferens och skapar värde.</span>
+
+          {/* EU EV scale */}
+          <div className="p-5 rounded-xl mb-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <p className="font-semibold mb-3 text-sm" style={{ color: 'var(--color-accent)' }}>🔋 EU Scale — The Potential is Still Massive</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center text-xs">
+              {[
+                ['17M EVs in EU today⁴', '= 1+ TWh theoretical storage'],
+                ['EU target: 100M EVs by 2035⁴', '= 6 TWh at 60 kWh avg'],
+                ['Sweden: 1.5M EVs⁵', '= 90 GWh potential'],
+                ['WFH rate Sweden ~35%⁶', 'boosts daytime V2H availability'],
+              ].map(([label, value], i) => (
+                <div key={i} className="p-3 rounded-lg" style={{ background: 'rgba(0,122,255,0.07)' }}>
+                  <div className="font-bold mb-1" style={{ color: 'var(--color-accent)' }}>{label}</div>
+                  <div style={{ color: 'var(--color-text-muted)' }}>{value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-4 rounded-lg text-center" style={{ background: 'rgba(52,199,89,0.08)', border: '1px solid rgba(52,199,89,0.2)' }}>
+            <p className="text-sm" style={{ color: 'var(--color-primary)' }}>
+              <strong>The stack works.</strong> Solar + home battery powers the AI node around the clock.
+              The EV adds meaningful evening and weekend capacity via V2H.
+              <strong> Locally produced. Locally consumed. Locally owned.</strong>
             </p>
+          </div>
+
+          {/* Footnotes */}
+          <div className="mt-6 pt-4 border-t border-slate-800 space-y-1">
+            {[
+              '¹ INRIX Global Traffic Scorecard; RAC Foundation: "Spaced Out" report on vehicle utilisation',
+              '² Transport for London / European Environment Agency: vehicle location studies',
+              '³ Energimyndigheten: Solar irradiation in Sweden (solenergistatistik 2024)',
+              '⁴ ACEA Electric Vehicle Report 2024; IEA Global EV Outlook 2024',
+              '⁵ Trafikanalys / BilSweden: Fordonsstatistik 2024',
+              '⁶ Eurostat: share of employees working from home, Sweden 2023',
+            ].map((note, i) => (
+              <p key={i} className="text-xs" style={{ color: 'var(--color-text-muted)', opacity: 0.55 }}>{note}</p>
+            ))}
           </div>
         </div>
       </motion.section>
+
     </motion.div>
   );
 };
