@@ -11,6 +11,39 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 }
 };
 
+const scenarios = [
+  {
+    label: '2026 Pilot',
+    flag: '🇸🇪',
+    nodes: 10000,
+    directJobs: 1000,
+    supportJobs: 150,
+    passivePerNode: 30000,
+    avgSalary: 333000,
+    color: 'var(--color-primary)',
+  },
+  {
+    label: '2027 Scale',
+    flag: '🇸🇪',
+    nodes: 100000,
+    directJobs: 3000,
+    supportJobs: 1500,
+    passivePerNode: 30000,
+    avgSalary: 333000,
+    color: 'var(--color-warning)',
+  },
+  {
+    label: '2030 Full Potential',
+    flag: '🇸🇪',
+    nodes: 1700000,
+    directJobs: 40000,
+    supportJobs: 17000,
+    passivePerNode: 30000,
+    avgSalary: 333000,
+    color: 'var(--color-accent)',
+  },
+];
+
 const footnotes = [
   '¹ MarketsandMarkets: AI Inference Market Report 2025–2030',
   '² Fortune Business Insights: Agentic AI Market Report 2026–2034',
@@ -252,6 +285,81 @@ const TokenEconomy = () => {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Sweden jobs calculator */}
+        <div className="mt-8 pt-8 border-t border-slate-800">
+          <h4 className="font-black text-lg mb-2 text-center" style={{ color: 'var(--color-primary)' }}>
+            🇸🇪 Sweden — Jobs & Income Calculator
+          </h4>
+          <p className="text-xs text-center mb-6" style={{ color: 'var(--color-text-muted)' }}>
+            Based on avg. node passive income SEK 30,000/yr · avg. net salary SEK 333,000/yr ·
+            installation 2 workers × 2 days per node.
+            Sources: shareai.now GPU income data 2026; SCB average salary Sweden 2025.
+          </p>
+
+          <div className="grid md:grid-cols-3 gap-4">
+            {scenarios.map((s) => {
+              const passiveTotal = s.nodes * s.passivePerNode;
+              const passiveJobs = Math.round(passiveTotal / s.avgSalary);
+              const totalJobs = s.directJobs + s.supportJobs + passiveJobs;
+              return (
+                <div
+                  key={s.label}
+                  className="p-5 rounded-2xl"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${s.color}30` }}
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-xl">{s.flag}</span>
+                    <span className="font-black text-sm" style={{ color: s.color }}>{s.label}</span>
+                  </div>
+
+                  <div className="space-y-2 text-xs mb-4">
+                    <div className="flex justify-between border-b border-slate-800 pb-1">
+                      <span style={{ color: 'var(--color-text-muted)' }}>Active nodes</span>
+                      <span className="font-bold" style={{ color: s.color }}>
+                        {s.nodes.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-800 pb-1">
+                      <span style={{ color: 'var(--color-text-muted)' }}>Direct install + support jobs</span>
+                      <span className="font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                        {(s.directJobs + s.supportJobs).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-800 pb-1">
+                      <span style={{ color: 'var(--color-text-muted)' }}>Passive income generated</span>
+                      <span className="font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                        SEK {(passiveTotal / 1e6).toFixed(0)}M/yr
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-800 pb-1">
+                      <span style={{ color: 'var(--color-text-muted)' }}>…in salary equivalents</span>
+                      <span className="font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                        {passiveJobs.toLocaleString()} FTE
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl text-center" style={{ background: `${s.color}12` }}>
+                    <div className="text-xs mb-1" style={{ color: s.color }}>Total job equivalent</div>
+                    <div className="text-2xl font-black" style={{ color: s.color }}>
+                      {totalJobs.toLocaleString()}
+                    </div>
+                    <div className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                      direct + passive income streams
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="text-xs text-center mt-4" style={{ color: 'var(--color-text-muted)', opacity: 0.55 }}>
+            Passive income modelled at SEK 2,500/month per node (conservative mid-range based on consumer GPU
+            rental data). "Salary equivalent" = passive income ÷ Swedish average net salary.
+            Direct jobs include solar/battery installers, electricians, IT support, and cluster management.
+          </p>
         </div>
 
         {/* Footnotes */}
