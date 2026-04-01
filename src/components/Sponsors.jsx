@@ -19,13 +19,13 @@ const Sponsors = () => {
         {[
           {
             name: 'Autoversio',
-            tagline: 'Privat AI för medvetna företag',
+            tagline: 'Private AI for conscious businesses',
             url: 'https://www.autoversio.com',
             color: 'var(--color-primary)',
           },
           {
             name: 'Liteit',
-            tagline: 'Ledarskap för agentiska medarbetare',
+            tagline: 'Leadership for agentic co-workers',
             url: 'https://www.liteit.se',
             color: 'var(--color-accent)',
           },
