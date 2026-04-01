@@ -86,14 +86,24 @@ const Roadmap = () => {
             key={index}
             variants={itemVariants}
             className="apple-card relative"
-            style={phase.status === 'current' ? { border: `1px solid ${phase.color}` } : {}}
+            style={{
+              border: phase.status === 'current'
+                ? `1px solid ${phase.color}`
+                : phase.status === 'done'
+                  ? '1px solid rgba(255,255,255,0.06)'
+                  : undefined,
+              opacity: phase.status === 'done' ? 0.65 : 1,
+            }}
           >
             <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
               <span
-                className="text-xs font-black px-3 py-1 rounded-full text-black"
-                style={{ background: phase.badgeColor }}
+                className="text-xs font-black px-3 py-1 rounded-full"
+                style={{
+                  background: phase.badgeColor,
+                  color: phase.status === 'done' ? 'rgba(255,255,255,0.8)' : '#000',
+                }}
               >
-                {phase.status === 'current' ? '🔴 ' : ''}{phase.badge}
+                {phase.status === 'current' ? '🔴 ' : phase.status === 'done' ? '✓ ' : ''}{phase.badge}
               </span>
             </div>
 
