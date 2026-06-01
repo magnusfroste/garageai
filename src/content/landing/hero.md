@@ -3,7 +3,7 @@ section: "hero"
 title: "Your Garage."
 subtitle: "Europe's AI Engine."
 description: "Sweden leads the world's first decentralized sovereign AI infrastructure initiative — powered by solar panels, EV batteries, and 1.7 million garages."
-secondaryText: "Garage AI is a concept accelerating in real time. We stand at a paradigm shift in how society functions — and the infrastructure for the next era is already sitting in your driveway."
+secondaryText: "Three nodes are already running inference in Stockholm garages. Your data stays yours. Your AI runs local. Your garage pays you back. The infrastructure for the next era isn't a billion-euro data center — it's already sitting in your driveway."
 order: 1
 ---
 

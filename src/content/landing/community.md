@@ -2,7 +2,7 @@
 section: "community"
 title: "Join the Movement"
 subtitle: "A growing community of builders, researchers, and early adopters"
-description: "Be part of Europe's sovereign AI infrastructure from day one."
+description: "Join 200+ builders discussing node configs, V2G integration, and EU policy. Be part of Europe's sovereign AI infrastructure from day one."
 order: 7
 ---
 
@@ -37,4 +37,4 @@ order: 7
 
 - **Discord URL**: https://discord.gg/garage-ai
 - **GitHub Discussions**: https://github.com/magnusfroste/garageai/discussions
-- **CTA**: "The first 1,000 node operators shape the defaults."
+- **CTA**: "The first 1,000 operators shape the protocol. Join early."
