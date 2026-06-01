@@ -34,44 +34,8 @@ const Hero = () => {
         }} />
       </div>
 
-      {/* Breaking news ticker */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="w-full z-10 overflow-hidden"
-        style={{ background: 'rgba(220,38,38,0.9)', borderBottom: '1px solid rgba(255,255,255,0.2)' }}
-      >
-        <div className="flex items-center gap-4 px-4 py-2 max-w-7xl mx-auto">
-          <span className="text-white text-xs font-black uppercase tracking-widest shrink-0 bg-red-800 px-2 py-1 rounded">
-            BREAKING
-          </span>
-          <div className="overflow-hidden whitespace-nowrap">
-            <motion.span
-              animate={{ x: ['0%', '-50%'] }}
-              transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
-              className="inline-block text-white text-xs font-medium"
-            >
-              Sweden announces €100M Sovereign AI Infrastructure Initiative &nbsp;·&nbsp; 10,000 new jobs secured &nbsp;·&nbsp; Europe's first distributed garage-based AI network &nbsp;·&nbsp; "The biggest infrastructure move since broadband" — Swedish Tech Minister &nbsp;·&nbsp; Sweden announces €100M Sovereign AI Infrastructure Initiative &nbsp;·&nbsp; 10,000 new jobs secured &nbsp;·&nbsp; Europe's first distributed garage-based AI network &nbsp;·&nbsp; "The biggest infrastructure move since broadband" — Swedish Tech Minister &nbsp;·&nbsp;
-            </motion.span>
-          </div>
-        </div>
-      </motion.div>
-
       {/* Main content */}
       <div className="relative z-10 text-center max-w-5xl mx-auto px-4 py-16">
-
-        {/* Date badge */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="flex justify-center mb-6"
-        >
-          <span className="text-xs text-gray-400 border border-gray-700 px-3 py-1 rounded-full">
-            April 1, 2026 &nbsp;·&nbsp; garageai.eu &nbsp;·&nbsp; <span style={{ color: 'var(--color-primary)' }}>Live</span>
-          </span>
-        </motion.div>
 
         <motion.h1
           initial={{ opacity: 0, y: 50 }}
@@ -82,7 +46,7 @@ const Hero = () => {
         >
           Your Garage.
           <br />
-          <span className="gradient-text-cyan">Europe's AI Engine.</span>
+          <span className="gradient-text-cyan">Europe&apos;s AI Engine.</span>
         </motion.h1>
 
         <motion.p
@@ -92,7 +56,7 @@ const Hero = () => {
           className="text-xl mb-4 max-w-3xl mx-auto leading-relaxed"
           style={{ color: 'var(--color-text-secondary)' }}
         >
-          Sweden leads the world's first decentralized sovereign AI infrastructure initiative —
+          Sweden leads the world&apos;s first decentralized sovereign AI infrastructure initiative —
           powered by solar panels, EV batteries, and 1.7 million garages.
           <br />
           <span style={{ color: 'var(--color-accent)', fontWeight: 600 }}>
@@ -120,9 +84,9 @@ const Hero = () => {
         >
           {[
             { icon: '🏠', value: '75M+', label: 'Garages in EU', accent: 'var(--color-primary)', span: false },
-            { icon: '⚡', value: '€100M', label: 'Initiative Secured', accent: 'var(--color-warning)', span: false },
-            { icon: '👷', value: '10,000', label: 'New Jobs', accent: 'var(--color-tertiary)', span: false },
-            { icon: '🛡️', value: '100%', label: 'European Sovereignty', accent: 'var(--color-accent)', span: false },
+            { icon: '⚡', value: '10 TWh', label: 'Potential Storage', accent: 'var(--color-warning)', span: false },
+            { icon: '�', value: '17M+', label: 'EVs Today', accent: 'var(--color-tertiary)', span: false },
+            { icon: '🛡️', value: '100%', label: 'Local Privacy', accent: 'var(--color-accent)', span: false },
           ].map((stat, i) => (
             <motion.div
               key={i}
@@ -202,7 +166,6 @@ const Hero = () => {
           <motion.button
             onClick={() => {
               const url = 'https://www.garageai.eu';
-              const text = encodeURIComponent('🇸🇪 Sweden just became the first country in Europe to launch a sovereign, distributed AI infrastructure initiative.\n\n€100M. 10,000 new jobs. 75 million garages across Europe ready to participate.\n\nSolar panels + EV batteries + local AI inference. The prototype is already running on GitHub.\n\n#GarageAI #SovereignAI #Sweden #EuropeAI #Ollama');
               window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, '_blank');
             }}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all"
@@ -215,9 +178,6 @@ const Hero = () => {
             </svg>
             Share on LinkedIn
           </motion.button>
-          <p className="text-xs" style={{ color: 'var(--color-text-muted)', opacity: 0.45 }}>
-            * The vision is real. The funding headline? It&apos;s April 1st — but the prototype is running.
-          </p>
         </motion.div>
       </div>
     </section>

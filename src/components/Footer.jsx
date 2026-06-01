@@ -80,10 +80,6 @@ const Footer = () => {
             </a>
             {' '}— produced in our own garage on solar energy! ☀️🏠
           </span>
-          <br />
-          <span style={{ opacity: 0.35 }}>
-            The €100M funding announcement was published on April 1, 2026. The prototype, the vision, and the community are entirely real.
-          </span>
         </motion.p>
       </div>
     </motion.footer>

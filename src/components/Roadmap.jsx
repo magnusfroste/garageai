@@ -39,7 +39,7 @@ const phases = [
       'Solar + V2G energy integration',
       'Neighbourhood sharing protocol live',
       'Community governance structure established',
-      '10,000 jobs initiative formally announced',
+      '10,000 nodes target for Sweden',
     ],
     color: 'var(--color-primary)',
   },

@@ -43,10 +43,6 @@ const faqs = [
     question: 'Where does Sweden\'s fiber advantage come in?',
     answer: 'AI inference nodes need to communicate — for coordination, for load distribution, for software updates. Sweden\'s 1–10 Gbit/s fiber coverage (98% of the population) means this coordination happens at near-zero latency without strain on the network. This is why Sweden is the ideal first market.',
   },
-  {
-    question: 'Is the €100M announcement real?',
-    answer: 'The initiative and the vision are 100% real. The prototype is running on GitHub right now. The exact funding figure? We published this on April 1st — draw your own conclusions. But a sovereign AI infrastructure initiative backed at that scale? It should happen, and we\'re making the case for it.',
-  },
 ];
 
 const FAQ = () => {
