@@ -1,0 +1,26 @@
+[
+  {
+    "icon": "🏠",
+    "value": "75M+",
+    "label": "Garages in EU",
+    "accent": "var(--color-primary)"
+  },
+  {
+    "icon": "⚡",
+    "value": "10 TWh",
+    "label": "Potential Storage",
+    "accent": "var(--color-warning)"
+  },
+  {
+    "icon": "🔋",
+    "value": "17M+",
+    "label": "EVs Today",
+    "accent": "var(--color-tertiary)"
+  },
+  {
+    "icon": "🛡️",
+    "value": "100%",
+    "label": "Local Privacy",
+    "accent": "var(--color-accent)"
+  }
+]

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 
-const Hero = () => {
+const Hero = ({ title, subtitle, description, secondaryText, stats }) => {
   return (
     <section
       className="hero-gradient min-h-screen flex flex-col items-center justify-center pt-20 relative overflow-hidden"
@@ -44,9 +44,9 @@ const Hero = () => {
           className="apple-heading-1 mb-4"
           style={{ lineHeight: 1.05 }}
         >
-          Your Garage.
+          {title}
           <br />
-          <span className="gradient-text-cyan">Europe&apos;s AI Engine.</span>
+          <span className="gradient-text-cyan">{subtitle}</span>
         </motion.h1>
 
         <motion.p
@@ -56,12 +56,7 @@ const Hero = () => {
           className="text-xl mb-4 max-w-3xl mx-auto leading-relaxed"
           style={{ color: 'var(--color-text-secondary)' }}
         >
-          Sweden leads the world&apos;s first decentralized sovereign AI infrastructure initiative —
-          powered by solar panels, EV batteries, and 1.7 million garages.
-          <br />
-          <span style={{ color: 'var(--color-accent)', fontWeight: 600 }}>
-            Europe follows. The rest of the world watches.
-          </span>
+          {description}
         </motion.p>
 
         <motion.p
@@ -71,8 +66,7 @@ const Hero = () => {
           className="text-sm mb-10 max-w-2xl mx-auto"
           style={{ color: 'var(--color-text-muted)' }}
         >
-          Garage AI is a concept accelerating in real time. We stand at a paradigm shift in how
-          society functions — and the infrastructure for the next era is already sitting in your driveway.
+          {secondaryText}
         </motion.p>
 
         {/* Bento stats grid */}
@@ -82,12 +76,7 @@ const Hero = () => {
           transition={{ duration: 0.8, delay: 0.55 }}
           className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto mb-10"
         >
-          {[
-            { icon: '🏠', value: '75M+', label: 'Garages in EU', accent: 'var(--color-primary)', span: false },
-            { icon: '⚡', value: '10 TWh', label: 'Potential Storage', accent: 'var(--color-warning)', span: false },
-            { icon: '�', value: '17M+', label: 'EVs Today', accent: 'var(--color-tertiary)', span: false },
-            { icon: '🛡️', value: '100%', label: 'Local Privacy', accent: 'var(--color-accent)', span: false },
-          ].map((stat, i) => (
+          {stats && stats.map((stat, i) => (
             <motion.div
               key={i}
               className="text-center p-5 rounded-2xl"
@@ -116,10 +105,10 @@ const Hero = () => {
           className="flex justify-center gap-3 flex-wrap mb-10"
         >
           <span className="inline-flex items-center gap-2 px-4 py-2 bg-slate-950 border border-slate-700 rounded-full text-green-400 text-sm font-medium">
-            🔓 100% Open Source · MIT License
+            100% Open Source · MIT License
           </span>
           <span className="inline-flex items-center gap-2 px-4 py-2 bg-slate-950 border border-slate-700 rounded-full text-blue-400 text-sm font-medium">
-            🇸🇪 Made in Sweden · Built for Europe
+            Made in Sweden · Built for Europe
           </span>
         </motion.div>
 
@@ -136,7 +125,7 @@ const Hero = () => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            🚀 Start My Node
+            Start My Node
           </motion.button>
           <motion.button
             onClick={() => window.open('https://github.com/magnusfroste/garageai/discussions', '_blank')}
@@ -144,7 +133,7 @@ const Hero = () => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            💬 Join the Community
+            Join the Community
           </motion.button>
           <motion.button
             onClick={() => window.open('https://github.com/magnusfroste/garageai', '_blank')}
@@ -152,7 +141,7 @@ const Hero = () => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            📚 GitHub
+            GitHub
           </motion.button>
         </motion.div>
 

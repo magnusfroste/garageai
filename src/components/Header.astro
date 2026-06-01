@@ -1,0 +1,25 @@
+---
+import HeaderReact from './HeaderReact.jsx';
+
+interface NavLink {
+  label: string;
+  sectionId: string | null;
+}
+
+interface Props {
+  logo: string;
+  ctaText: string;
+  ctaUrl: string;
+  navLinks: NavLink[];
+}
+
+const { logo, ctaText, ctaUrl, navLinks } = Astro.props;
+---
+
+<HeaderReact 
+  client:load
+  logo={logo}
+  ctaText={ctaText}
+  ctaUrl={ctaUrl}
+  navLinks={navLinks}
+/>

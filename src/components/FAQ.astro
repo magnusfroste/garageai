@@ -1,0 +1,23 @@
+---
+import FAQReact from './FAQReact.jsx';
+
+interface FAQItem {
+  question: string;
+  answer: string;
+}
+
+interface Props {
+  title: string;
+  description: string;
+  faqs: FAQItem[];
+}
+
+const { title, description, faqs } = Astro.props;
+---
+
+<FAQReact 
+  client:load
+  title={title}
+  description={description}
+  faqs={faqs}
+/>

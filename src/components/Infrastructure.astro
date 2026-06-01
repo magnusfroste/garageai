@@ -1,0 +1,34 @@
+---
+import InfrastructureReact from './InfrastructureReact.jsx';
+
+interface Layer {
+  step: string;
+  icon: string;
+  title: string;
+  subtitle: string;
+  details: string;
+  color: string;
+  footnote?: string;
+}
+
+interface Props {
+  title: string;
+  subtitle: string;
+  description: string;
+  layers: Layer[];
+  ctaText: string;
+  ctaUrl: string;
+}
+
+const { title, subtitle, description, layers, ctaText, ctaUrl } = Astro.props;
+---
+
+<InfrastructureReact 
+  client:load
+  title={title}
+  subtitle={subtitle}
+  description={description}
+  layers={layers}
+  ctaText={ctaText}
+  ctaUrl={ctaUrl}
+/>

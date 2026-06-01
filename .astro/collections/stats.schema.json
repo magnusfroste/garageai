@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "icon": {
+        "type": "string"
+      },
+      "value": {
+        "type": "string"
+      },
+      "label": {
+        "type": "string"
+      },
+      "accent": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "icon",
+      "value",
+      "label",
+      "accent"
+    ]
+  }
+}

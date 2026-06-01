@@ -1,0 +1,36 @@
+---
+import AIExplainedReact from './AIExplainedReact.jsx';
+
+interface Wave {
+  number: string;
+  era: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  icon: string;
+  color: string;
+  outcome: string;
+  highlight?: boolean;
+}
+
+interface Props {
+  title: string;
+  subtitle: string;
+  description: string;
+  waves: Wave[];
+  ctaText: string;
+  ctaUrl: string;
+}
+
+const { title, subtitle, description, waves, ctaText, ctaUrl } = Astro.props;
+---
+
+<AIExplainedReact 
+  client:load
+  title={title}
+  subtitle={subtitle}
+  description={description}
+  waves={waves}
+  ctaText={ctaText}
+  ctaUrl={ctaUrl}
+/>

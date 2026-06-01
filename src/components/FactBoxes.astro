@@ -1,0 +1,35 @@
+---
+import FactBoxesReact from './FactBoxesReact.jsx';
+
+interface CountryData {
+  country: string;
+  homes: string;
+  garages: string;
+  pct: string;
+  evs: string;
+}
+
+interface Props {
+  title: string;
+  description: string;
+  euData: CountryData[];
+  totalRow: {
+    homes: string;
+    garages: string;
+    pct: string;
+    evs: string;
+  };
+  sourceNote: string;
+}
+
+const { title, description, euData, totalRow, sourceNote } = Astro.props;
+---
+
+<FactBoxesReact 
+  client:load
+  title={title}
+  description={description}
+  euData={euData}
+  totalRow={totalRow}
+  sourceNote={sourceNote}
+/>

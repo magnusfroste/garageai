@@ -1,0 +1,35 @@
+---
+import FooterReact from './FooterReact.jsx';
+
+interface Link {
+  text: string;
+  url: string;
+  icon: string;
+}
+
+interface Partner {
+  name: string;
+  url: string;
+}
+
+interface Props {
+  tagline: string;
+  subtagline: string;
+  links: Link[];
+  partners: Partner[];
+  credits: string;
+  copyright: string;
+}
+
+const { tagline, subtagline, links, partners, credits, copyright } = Astro.props;
+---
+
+<FooterReact 
+  client:load
+  tagline={tagline}
+  subtagline={subtagline}
+  links={links}
+  partners={partners}
+  credits={credits}
+  copyright={copyright}
+/>

@@ -1,0 +1,37 @@
+---
+import RoadmapReact from './RoadmapReact.jsx';
+
+interface Phase {
+  flag: string;
+  period: string;
+  title: string;
+  badge: string;
+  badgeColor: string;
+  status: 'done' | 'current' | 'upcoming';
+  items: string[];
+  color: string;
+}
+
+interface WhyActItem {
+  icon: string;
+  title: string;
+  text: string;
+}
+
+interface Props {
+  title: string;
+  description: string;
+  phases: Phase[];
+  whyActItems: WhyActItem[];
+}
+
+const { title, description, phases, whyActItems } = Astro.props;
+---
+
+<RoadmapReact 
+  client:load
+  title={title}
+  description={description}
+  phases={phases}
+  whyActItems={whyActItems}
+/>

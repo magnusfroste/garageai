@@ -1,0 +1,29 @@
+---
+import HeroReact from './HeroReact.jsx';
+
+interface Stat {
+  icon: string;
+  value: string;
+  label: string;
+  accent: string;
+}
+
+interface Props {
+  title: string;
+  subtitle: string;
+  description: string;
+  secondaryText: string;
+  stats: Stat[];
+}
+
+const { title, subtitle, description, secondaryText, stats } = Astro.props;
+---
+
+<HeroReact 
+  client:load
+  title={title}
+  subtitle={subtitle}
+  description={description}
+  secondaryText={secondaryText}
+  stats={stats}
+/>

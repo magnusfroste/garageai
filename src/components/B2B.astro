@@ -1,0 +1,39 @@
+---
+import B2BReact from './B2BReact.jsx';
+
+interface UseCase {
+  icon: string;
+  sector: string;
+  example: string;
+}
+
+interface Props {
+  title: string;
+  subtitle: string;
+  description: string;
+  useCases: UseCase[];
+  quote: {
+    text: string;
+    author: string;
+  };
+  benefits: string[];
+  ctaText: string;
+  ctaButtonText: string;
+  ctaUrl: string;
+}
+
+const { title, subtitle, description, useCases, quote, benefits, ctaText, ctaButtonText, ctaUrl } = Astro.props;
+---
+
+<B2BReact 
+  client:load
+  title={title}
+  subtitle={subtitle}
+  description={description}
+  useCases={useCases}
+  quote={quote}
+  benefits={benefits}
+  ctaText={ctaText}
+  ctaButtonText={ctaButtonText}
+  ctaUrl={ctaUrl}
+/>

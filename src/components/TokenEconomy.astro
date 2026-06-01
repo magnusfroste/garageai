@@ -1,0 +1,33 @@
+---
+import TokenEconomyReact from './TokenEconomyReact.jsx';
+
+interface Scenario {
+  label: string;
+  flag: string;
+  nodes: number;
+  directJobs: number;
+  supportJobs: number;
+  passivePerNode: number;
+  avgSalary: number;
+  color: string;
+}
+
+interface Props {
+  title: string;
+  subtitle: string;
+  description: string;
+  scenarios: Scenario[];
+  footnotes: string[];
+}
+
+const { title, subtitle, description, scenarios, footnotes } = Astro.props;
+---
+
+<TokenEconomyReact 
+  client:load
+  title={title}
+  subtitle={subtitle}
+  description={description}
+  scenarios={scenarios}
+  footnotes={footnotes}
+/>

@@ -1,0 +1,30 @@
+---
+import CTAReact from './CTAReact.jsx';
+
+interface Button {
+  text: string;
+  url: string;
+  variant: 'primary' | 'secondary';
+}
+
+interface Props {
+  title: string;
+  subtitle: string;
+  description: string;
+  secondaryText: string;
+  icon: string;
+  buttons: Button[];
+}
+
+const { title, subtitle, description, secondaryText, icon, buttons } = Astro.props;
+---
+
+<CTAReact 
+  client:load
+  title={title}
+  subtitle={subtitle}
+  description={description}
+  secondaryText={secondaryText}
+  icon={icon}
+  buttons={buttons}
+/>

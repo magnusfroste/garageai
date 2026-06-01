@@ -1,0 +1,34 @@
+---
+import { getEntry } from 'astro:content';
+import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
+
+const heroContent = await getEntry('landing', 'hero');
+const stats = await import('../content/stats/hero-stats.json');
+---
+
+<Layout 
+  title="Garage AI — Sweden's Sovereign AI Initiative | Your Garage. Europe's AI Engine."
+  description="Sweden leads Europe's first decentralized AI infrastructure initiative. 75M garages. Solar + EV batteries + local inference."
+>
+  <Hero 
+    title={heroContent.data.title}
+    subtitle={heroContent.data.subtitle}
+    description={heroContent.data.description}
+    secondaryText={heroContent.data.secondaryText}
+    stats={stats.default}
+  />
+  
+  <!-- TODO: Migrate remaining sections -->
+  <!-- <FactBoxes /> -->
+  <!-- <AIExplained /> -->
+  <!-- <Infrastructure /> -->
+  <!-- <B2B /> -->
+  <!-- <TokenEconomy /> -->
+  <!-- <Roadmap /> -->
+  <!-- <Community /> -->
+  <!-- <FAQ /> -->
+  <!-- <Sponsors /> -->
+  <!-- <CTA /> -->
+  <!-- <Footer /> -->
+</Layout>
