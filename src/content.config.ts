@@ -27,6 +27,14 @@ const faq = defineCollection({
     title: z.string(),
     description: z.string().optional(),
     order: z.number().default(0),
+    faqs: z
+      .array(
+        z.object({
+          question: z.string(),
+          answer: z.string(),
+        })
+      )
+      .default([]),
   }),
 });
 

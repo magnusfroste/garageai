@@ -1,34 +1,57 @@
 ---
 import { getEntry } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
+import ScrollProgress from '../components/ScrollProgress.jsx';
+import Header from '../components/Header.astro';
 import Hero from '../components/Hero.astro';
+import FactBoxes from '../components/FactBoxes.astro';
+import AIExplained from '../components/AIExplained.astro';
+import Infrastructure from '../components/Infrastructure.astro';
+import B2B from '../components/B2B.astro';
+import TokenEconomy from '../components/TokenEconomy.astro';
+import Roadmap from '../components/Roadmap.astro';
+import Community from '../components/Community.astro';
+import FAQ from '../components/FAQ.astro';
+import Sponsors from '../components/Sponsors.astro';
+import CTA from '../components/CTA.astro';
+import Footer from '../components/Footer.astro';
 
 const heroContent = await getEntry('landing', 'hero');
 const stats = await import('../content/stats/hero-stats.json');
+const faqContent = await getEntry('faq', 'general');
 ---
 
-<Layout 
+<Layout
   title="Garage AI — Sweden's Sovereign AI Initiative | Your Garage. Europe's AI Engine."
   description="Sweden leads Europe's first decentralized AI infrastructure initiative. 75M garages. Solar + EV batteries + local inference."
 >
-  <Hero 
+  <ScrollProgress client:load />
+
+  <Header />
+
+  <Hero
     title={heroContent.data.title}
     subtitle={heroContent.data.subtitle}
     description={heroContent.data.description}
     secondaryText={heroContent.data.secondaryText}
     stats={stats.default}
   />
-  
-  <!-- TODO: Migrate remaining sections -->
-  <!-- <FactBoxes /> -->
-  <!-- <AIExplained /> -->
-  <!-- <Infrastructure /> -->
-  <!-- <B2B /> -->
-  <!-- <TokenEconomy /> -->
-  <!-- <Roadmap /> -->
-  <!-- <Community /> -->
-  <!-- <FAQ /> -->
-  <!-- <Sponsors /> -->
-  <!-- <CTA /> -->
-  <!-- <Footer /> -->
+
+  <FactBoxes />
+  <AIExplained />
+  <Infrastructure />
+  <B2B />
+  <TokenEconomy />
+  <Roadmap />
+  <Community />
+
+  <FAQ
+    title={faqContent.data.title}
+    description={faqContent.data.description}
+    faqs={faqContent.data.faqs}
+  />
+
+  <Sponsors />
+  <CTA />
+  <Footer />
 </Layout>
