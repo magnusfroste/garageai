@@ -22,7 +22,14 @@ const euGarageData = [
   { country: '🇧🇪 Belgium',   homes: '5.5M',  garages: '2M',   pct: '36%', evs: '0.3M' },
 ];
 
-const FactBoxes = () => {
+const FactBoxes = ({
+  title = "Europe's Hidden Data Centers",
+  description = '75+ million garages across the EU sit idle — waiting to become the backbone of a sovereign, decentralized AI infrastructure.',
+  euData,
+  totalRow = { homes: '~225M', garages: '~75M+', pct: '~33%', evs: '~17M' },
+  sourceNote = 'Sources: Eurostat Housing Statistics 2023, ACEA Electric Vehicle Report 2024. Garage estimates based on single-family home stock.',
+} = {}) => {
+  const rows = euData || euGarageData;
   return (
     <motion.div
       variants={containerVariants}
@@ -37,11 +44,10 @@ const FactBoxes = () => {
       <motion.section variants={itemVariants}>
         <div className="apple-card">
           <h3 className="apple-heading-2 mb-4 text-center">
-            Europe's Hidden Data Centers
+            {title}
           </h3>
           <p className="apple-body mb-8 text-center max-w-2xl mx-auto">
-            75+ million garages across the EU sit idle — waiting to become the backbone
-            of a sovereign, decentralized AI infrastructure.
+            {description}
           </p>
 
           <div className="overflow-x-auto mb-8">
@@ -56,7 +62,7 @@ const FactBoxes = () => {
                 </tr>
               </thead>
               <tbody>
-                {euGarageData.map((row, i) => (
+                {(rows || []).map((row, i) => (
                   <tr key={i} className="border-b border-slate-800 hover:bg-white/2 transition">
                     <td className="py-3 px-3 font-medium">{row.country}</td>
                     <td className="py-3 px-3 text-right" style={{ color: 'var(--color-text-secondary)' }}>{row.homes}</td>
@@ -67,16 +73,16 @@ const FactBoxes = () => {
                 ))}
                 <tr className="border-t-2 border-green-500/40">
                   <td className="py-3 px-3 font-black" style={{ color: 'var(--color-primary)' }}>EU-27 TOTAL</td>
-                  <td className="py-3 px-3 text-right font-bold">~225M</td>
-                  <td className="py-3 px-3 text-right font-black text-lg" style={{ color: 'var(--color-primary)' }}>~75M+</td>
-                  <td className="py-3 px-3 text-right">~33%</td>
-                  <td className="py-3 px-3 text-right font-bold" style={{ color: 'var(--color-accent)' }}>~17M</td>
+                  <td className="py-3 px-3 text-right font-bold">{totalRow.homes}</td>
+                  <td className="py-3 px-3 text-right font-black text-lg" style={{ color: 'var(--color-primary)' }}>{totalRow.garages}</td>
+                  <td className="py-3 px-3 text-right">{totalRow.pct}</td>
+                  <td className="py-3 px-3 text-right font-bold" style={{ color: 'var(--color-accent)' }}>{totalRow.evs}</td>
                 </tr>
               </tbody>
             </table>
           </div>
           <p className="text-xs text-center" style={{ color: 'var(--color-text-muted)' }}>
-            Sources: Eurostat Housing Statistics 2023, ACEA Electric Vehicle Report 2024. Garage estimates based on single-family home stock.
+            {sourceNote}
           </p>
         </div>
       </motion.section>

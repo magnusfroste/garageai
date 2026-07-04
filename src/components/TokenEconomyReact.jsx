@@ -11,7 +11,7 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 }
 };
 
-const scenarios = [
+const defaultScenarios = [
   {
     label: '2026 Pilot',
     flag: '🇸🇪',
@@ -44,7 +44,7 @@ const scenarios = [
   },
 ];
 
-const footnotes = [
+const defaultFootnotes = [
   '¹ MarketsandMarkets: AI Inference Market Report 2025–2030',
   '² Fortune Business Insights: Agentic AI Market Report 2026–2034',
   '³ Gartner, cited in Landbase: 39 Agentic AI Statistics 2026',
@@ -58,7 +58,14 @@ const footnotes = [
   '¹¹ Nvidia at GTC 2026: "Agents, inference and the new token economics"',
 ];
 
-const TokenEconomy = () => {
+const TokenEconomy = ({
+  title = 'The Inference Economy',
+  description = "AI inference is the fastest-growing compute market in history. The third wave — autonomous agents — is accelerating demand to levels that no single company can satisfy. That's where your garage comes in.",
+  scenarios,
+  footnotes,
+} = {}) => {
+  const scenarioList = scenarios || defaultScenarios;
+  const footnoteList = footnotes || defaultFootnotes;
   return (
     <motion.section
       id="token-economy"
@@ -69,12 +76,10 @@ const TokenEconomy = () => {
       viewport={{ once: true }}
     >
       <motion.h2 variants={itemVariants} className="apple-heading-1 mb-4 text-center">
-        The Inference Economy
+        {title}
       </motion.h2>
       <motion.p variants={itemVariants} className="apple-body mb-16 text-center max-w-2xl mx-auto">
-        AI inference is the fastest-growing compute market in history.
-        The third wave — autonomous agents — is accelerating demand to levels that
-        no single company can satisfy. That's where your garage comes in.
+        {description}
       </motion.p>
 
       {/* Market size */}
@@ -299,7 +304,7 @@ const TokenEconomy = () => {
           </p>
 
           <div className="grid md:grid-cols-3 gap-4">
-            {scenarios.map((s) => {
+            {(scenarioList || []).map((s) => {
               const passiveTotal = s.nodes * s.passivePerNode;
               const passiveJobs = Math.round(passiveTotal / s.avgSalary);
               const totalJobs = s.directJobs + s.supportJobs + passiveJobs;
@@ -364,7 +369,7 @@ const TokenEconomy = () => {
 
         {/* Footnotes */}
         <div className="pt-4 border-t border-slate-800 space-y-1">
-          {footnotes.map((note, i) => (
+          {(footnoteList || []).map((note, i) => (
             <p key={i} className="text-xs" style={{ color: 'var(--color-text-muted)', opacity: 0.5 }}>{note}</p>
           ))}
         </div>

@@ -58,7 +58,12 @@ const waves = [
   },
 ];
 
-const AIExplained = () => {
+const AIExplained = ({
+  title = 'Four Waves. One Direction.',
+  description = "Every wave of technological change has followed the same arc: power concentrates, then decentralizes back to individuals. We're living through the fourth — and it's bringing intelligence back home.",
+  waves: wavesProp,
+} = {}) => {
+  const waveList = wavesProp || waves;
   return (
     <motion.section
       id="three-waves"
@@ -72,20 +77,18 @@ const AIExplained = () => {
         variants={itemVariants}
         className="apple-heading-1 mb-4 text-center gradient-text-cyan"
       >
-        Four Waves. One Direction.
+        {title}
       </motion.h2>
       <motion.p
         variants={itemVariants}
         className="apple-body mb-16 text-center max-w-2xl mx-auto"
       >
-        Every wave of technological change has followed the same arc: power concentrates,
-        then decentralizes back to individuals. We're living through the fourth —
-        and it's bringing intelligence back home.
+        {description}
       </motion.p>
 
       {/* Three waves timeline */}
       <motion.div variants={itemVariants} className="space-y-6 mb-16">
-        {waves.map((wave) => (
+        {(waveList || []).map((wave) => (
           <div
             key={wave.number}
             className="apple-card relative overflow-hidden"

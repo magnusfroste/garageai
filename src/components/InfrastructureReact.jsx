@@ -56,7 +56,15 @@ const stackLayers = [
   },
 ];
 
-const Infrastructure = () => {
+const Infrastructure = ({
+  title = 'The Garage Node',
+  subtitle = 'How Your Garage Becomes an AI Data Center',
+  description = "Five layers. One garage. A complete, self-sustaining AI infrastructure node that powers your home, your neighbourhood, and Europe's sovereign AI future.",
+  layers,
+  ctaText = 'See the Setup Guide',
+  ctaUrl = 'https://github.com/magnusfroste/garageai/blob/main/docs/GET_STARTED.md',
+} = {}) => {
+  const layerList = layers || stackLayers;
   return (
     <motion.section
       id="infrastructure"
@@ -70,20 +78,19 @@ const Infrastructure = () => {
         variants={itemVariants}
         className="apple-heading-1 mb-4 text-center"
       >
-        The Garage Node
+        {title}
       </motion.h2>
       <motion.p
         variants={itemVariants}
         className="apple-body mb-16 text-center max-w-2xl mx-auto"
       >
-        Five layers. One garage. A complete, self-sustaining AI infrastructure node
-        that powers your home, your neighbourhood, and Europe's sovereign AI future.
+        {description}
       </motion.p>
 
       {/* Stack diagram */}
       <motion.div variants={itemVariants} className="mb-16">
         <div className="space-y-3 max-w-4xl mx-auto">
-          {stackLayers.map((layer, i) => (
+          {(layerList || []).map((layer, i) => (
             <div
               key={i}
               className="flex items-start gap-5 p-5 rounded-xl transition-all"

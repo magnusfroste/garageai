@@ -1,27 +1,55 @@
 ---
 section: "factboxes"
+order: 2
 title: "Europe's Hidden Data Centers"
 description: "75+ million garages across the EU sit idle — waiting to become the backbone of a sovereign, decentralized AI infrastructure."
+euData:
+  - country: "🇩🇪 Germany"
+    homes: "41.5M"
+    garages: "18M"
+    pct: "43%"
+    evs: "3.5M"
+  - country: "🇫🇷 France"
+    homes: "36M"
+    garages: "11M"
+    pct: "31%"
+    evs: "1.8M"
+  - country: "🇮🇹 Italy"
+    homes: "26M"
+    garages: "9M"
+    pct: "35%"
+    evs: "0.6M"
+  - country: "🇪🇸 Spain"
+    homes: "22M"
+    garages: "7M"
+    pct: "32%"
+    evs: "0.5M"
+  - country: "🇵🇱 Poland"
+    homes: "14M"
+    garages: "5M"
+    pct: "36%"
+    evs: "0.1M"
+  - country: "🇸🇪 Sweden"
+    homes: "4.8M"
+    garages: "1.7M"
+    pct: "35%"
+    evs: "1.5M"
+  - country: "🇳🇱 Netherlands"
+    homes: "8M"
+    garages: "2M"
+    pct: "25%"
+    evs: "0.5M"
+  - country: "🇧🇪 Belgium"
+    homes: "5.5M"
+    garages: "2M"
+    pct: "36%"
+    evs: "0.3M"
+totalRow:
+  homes: "~225M"
+  garages: "~75M+"
+  pct: "~33%"
+  evs: "~17M"
 sourceNote: "Sources: Eurostat Housing Statistics 2023, ACEA Electric Vehicle Report 2024. Garage estimates based on single-family home stock."
-order: 2
 ---
 
-## EU Garage Data by Country
-
-| Country | Homes | Est. Garages | Coverage | EVs on Road |
-|---------|-------|--------------|----------|-------------|
-| 🇩🇪 Germany | 41.5M | 18M | 43% | 3.5M |
-| 🇫🇷 France | 36M | 11M | 31% | 1.8M |
-| 🇮🇹 Italy | 26M | 9M | 35% | 0.6M |
-| 🇪🇸 Spain | 22M | 7M | 32% | 0.5M |
-| 🇵🇱 Poland | 14M | 5M | 36% | 0.1M |
-| 🇸🇪 Sweden | 4.8M | 1.7M | 35% | 1.5M |
-| 🇳🇱 Netherlands | 8M | 2M | 25% | 0.5M |
-| 🇧🇪 Belgium | 5.5M | 2M | 36% | 0.3M |
-
-## EU-27 Total
-
-- Homes: ~225M
-- Est. Garages: ~75M+
-- Coverage: ~33%
-- EVs on Road: ~17M
+Content for this section is defined in the frontmatter above.

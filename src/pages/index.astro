@@ -16,9 +16,21 @@ import Sponsors from '../components/Sponsors.astro';
 import CTA from '../components/CTA.astro';
 import Footer from '../components/Footer.astro';
 
-const heroContent = await getEntry('landing', 'hero');
+// All content is authored in src/content/landing/*.md and src/content/faq/*.md.
+const header = await getEntry('landing', 'header');
+const hero = await getEntry('landing', 'hero');
+const factboxes = await getEntry('landing', 'factboxes');
+const aiExplained = await getEntry('landing', 'ai-explained');
+const infrastructure = await getEntry('landing', 'infrastructure');
+const b2b = await getEntry('landing', 'b2b');
+const tokenEconomy = await getEntry('landing', 'token-economy');
+const roadmap = await getEntry('landing', 'roadmap');
+const community = await getEntry('landing', 'community');
+const sponsors = await getEntry('landing', 'sponsors');
+const cta = await getEntry('landing', 'cta');
+const footer = await getEntry('landing', 'footer');
+const faq = await getEntry('faq', 'general');
 const stats = await import('../content/stats/hero-stats.json');
-const faqContent = await getEntry('faq', 'general');
 ---
 
 <Layout
@@ -27,31 +39,19 @@ const faqContent = await getEntry('faq', 'general');
 >
   <ScrollProgress client:load />
 
-  <Header />
+  <Header {...header.data} />
 
-  <Hero
-    title={heroContent.data.title}
-    subtitle={heroContent.data.subtitle}
-    description={heroContent.data.description}
-    secondaryText={heroContent.data.secondaryText}
-    stats={stats.default}
-  />
+  <Hero {...hero.data} stats={stats.default} />
 
-  <FactBoxes />
-  <AIExplained />
-  <Infrastructure />
-  <B2B />
-  <TokenEconomy />
-  <Roadmap />
-  <Community />
-
-  <FAQ
-    title={faqContent.data.title}
-    description={faqContent.data.description}
-    faqs={faqContent.data.faqs}
-  />
-
-  <Sponsors />
-  <CTA />
-  <Footer />
+  <FactBoxes {...factboxes.data} />
+  <AIExplained {...aiExplained.data} />
+  <Infrastructure {...infrastructure.data} />
+  <B2B {...b2b.data} />
+  <TokenEconomy {...tokenEconomy.data} />
+  <Roadmap {...roadmap.data} />
+  <Community {...community.data} />
+  <FAQ {...faq.data} />
+  <Sponsors {...sponsors.data} />
+  <CTA {...cta.data} />
+  <Footer {...footer.data} />
 </Layout>

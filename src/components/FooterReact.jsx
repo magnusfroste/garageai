@@ -1,6 +1,27 @@
 import { motion } from 'framer-motion';
 
-const Footer = () => {
+const defaultTagline = '🌍 Garage AI — Sovereign AI infrastructure for Europe. Built in Sweden.';
+const defaultSubtagline = 'Decentralize compute. Reclaim sovereignty. Power it with the sun.';
+const defaultLinks = [
+  { icon: '🚀', text: 'Get Started', url: 'https://github.com/magnusfroste/garageai/blob/main/docs/GET_STARTED.md' },
+  { icon: '📖', text: 'Docs', url: 'https://github.com/magnusfroste/garageai/blob/main/docs/GARAGE_AI_KNOWLEDGE_BASE.md' },
+  { icon: '🐙', text: 'GitHub', url: 'https://github.com/magnusfroste/garageai' },
+  { icon: '💬', text: 'Discussions', url: 'https://github.com/magnusfroste/garageai/discussions' },
+  { icon: '📧', text: 'powerup@garageai.eu', url: 'mailto:powerup@garageai.eu' },
+];
+const defaultPartners = [
+  { name: 'Autoversio', url: 'https://www.autoversio.com' },
+  { name: 'Liteit', url: 'https://www.liteit.se' },
+];
+const defaultCopyright = '© 2026 Garage AI · MIT License · Made in Sweden 🇸🇪 · Built for Europe 🇪🇺';
+
+const Footer = ({
+  tagline = defaultTagline,
+  subtagline = defaultSubtagline,
+  links = defaultLinks,
+  partners = defaultPartners,
+  copyright = defaultCopyright,
+}) => {
   return (
     <motion.footer
       className="py-12 px-4 border-t mt-20 text-center text-sm"
@@ -19,7 +40,7 @@ const Footer = () => {
           viewport={{ once: true }}
           transition={{ delay: 0.2 }}
         >
-          🌍 Garage AI — Sovereign AI infrastructure for Europe. Built in Sweden.
+          {tagline}
         </motion.p>
         <motion.p
           className="mb-6 text-xs max-w-xl mx-auto"
@@ -28,7 +49,7 @@ const Footer = () => {
           viewport={{ once: true }}
           transition={{ delay: 0.3 }}
         >
-          Decentralize compute. Reclaim sovereignty. Power it with the sun.
+          {subtagline}
         </motion.p>
 
         <motion.div
@@ -38,11 +59,19 @@ const Footer = () => {
           viewport={{ once: true }}
           transition={{ delay: 0.4 }}
         >
-          <a href="https://github.com/magnusfroste/garageai/blob/main/docs/GET_STARTED.md" target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition">🚀 Get Started</a>
-          <a href="https://github.com/magnusfroste/garageai/blob/main/docs/GARAGE_AI_KNOWLEDGE_BASE.md" target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition">📖 Docs</a>
-          <a href="https://github.com/magnusfroste/garageai" target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition">🐙 GitHub</a>
-          <a href="https://github.com/magnusfroste/garageai/discussions" target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition">💬 Discussions</a>
-          <a href="mailto:powerup@garageai.eu" className="hover:text-green-400 transition">📧 powerup@garageai.eu</a>
+          {(links || []).map((link) => {
+            const isMailto = (link.url || '').startsWith('mailto:');
+            return (
+              <a
+                key={link.url}
+                href={link.url}
+                {...(isMailto ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+                className="hover:text-green-400 transition"
+              >
+                {link.icon} {link.text}
+              </a>
+            );
+          })}
         </motion.div>
 
         <motion.div
@@ -53,9 +82,22 @@ const Footer = () => {
           transition={{ delay: 0.5 }}
         >
           <span style={{ color: 'var(--color-text-muted)' }}>Technical partners: </span>
-          <a href="https://www.autoversio.com" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition" style={{ color: 'var(--color-accent)' }}>Autoversio</a>
-          <span style={{ color: 'var(--color-text-muted)' }}> & </span>
-          <a href="https://www.liteit.se" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition" style={{ color: 'var(--color-accent)' }}>Liteit</a>
+          {(partners || []).map((partner, index) => (
+            <span key={partner.url}>
+              <a
+                href={partner.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-cyan-400 transition"
+                style={{ color: 'var(--color-accent)' }}
+              >
+                {partner.name}
+              </a>
+              {index < (partners || []).length - 1 && (
+                <span style={{ color: 'var(--color-text-muted)' }}> & </span>
+              )}
+            </span>
+          ))}
         </motion.div>
 
         <motion.p
@@ -65,7 +107,7 @@ const Footer = () => {
           transition={{ delay: 0.6 }}
           className="text-xs"
         >
-          © 2026 Garage AI · MIT License · Made in Sweden 🇸🇪 · Built for Europe 🇪🇺
+          {copyright}
           <br />
           <span style={{ opacity: 0.5 }}>
             AI inference powered by{' '}

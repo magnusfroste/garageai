@@ -10,7 +10,7 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 }
 };
 
-const useCases = [
+const defaultUseCases = [
   {
     icon: '🏥',
     sector: 'Healthcare',
@@ -43,7 +43,12 @@ const useCases = [
   },
 ];
 
-const B2B = () => {
+const B2B = ({
+  title = 'For Business',
+  description = 'When collective inference capacity exists locally, businesses gain something hyperscalers can never offer: sovereignty, privacy, and a provably smaller carbon footprint — all on shared infrastructure.',
+  useCases,
+} = {}) => {
+  const useCaseList = useCases || defaultUseCases;
   return (
     <motion.section
       id="for-business"
@@ -54,7 +59,7 @@ const B2B = () => {
       viewport={{ once: true }}
     >
       <motion.h2 variants={itemVariants} className="apple-heading-1 mb-4 text-center">
-        For Business
+        {title}
       </motion.h2>
       <motion.p variants={itemVariants} className="apple-body mb-16 text-center max-w-2xl mx-auto">
         When collective inference capacity exists locally, businesses gain something hyperscalers
@@ -169,7 +174,7 @@ const B2B = () => {
           or sustainability targets is a natural fit for locally produced AI inference.
         </p>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {useCases.map((uc, i) => (
+          {(useCaseList || []).map((uc, i) => (
             <div
               key={i}
               className="p-5 rounded-xl"
