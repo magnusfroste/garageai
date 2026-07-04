@@ -26,10 +26,18 @@ const defaultPartners = [
   },
 ];
 
+const defaultMinister = {
+  intro: 'A special thank you to',
+  name: 'Minister of Digitalisation & AI, Tsrif Lirpa*',
+  rest: "for her unwavering support of Sweden's sovereign AI ambitions and for personally championing the Garage AI initiative in Brussels.",
+  note: '* Fictional. Published April 1, 2026. Any resemblance to actual ministers is purely aspirational.',
+};
+
 const Sponsors = ({
   title = 'Partners & Acknowledgements',
   technicalPartner = defaultTechnicalPartner,
   partners = defaultPartners,
+  minister = defaultMinister,
 }) => {
   return (
     <motion.section
@@ -107,15 +115,14 @@ const Sponsors = ({
         transition={{ delay: 0.3 }}
       >
         <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-          A special thank you to{' '}
+          {minister.intro}{' '}
           <span className="font-bold" style={{ color: 'var(--color-warning)' }}>
-            Minister of Digitalisation & AI, Tsrif Lirpa*
+            {minister.name}
           </span>
-          {' '}for her unwavering support of Sweden's sovereign AI ambitions
-          and for personally championing the Garage AI initiative in Brussels.
+          {' '}{minister.rest}
         </p>
         <p className="text-xs mt-3" style={{ color: 'var(--color-text-muted)', opacity: 0.5 }}>
-          * Fictional. Published April 1, 2026. Any resemblance to actual ministers is purely aspirational.
+          {minister.note}
         </p>
       </motion.div>
     </motion.section>

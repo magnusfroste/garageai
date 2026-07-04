@@ -33,6 +33,16 @@ stats:
 discordUrl: "https://discord.gg/garage-ai"
 githubDiscussionsUrl: "https://github.com/magnusfroste/garageai/discussions"
 ctaText: "The first 1,000 operators shape the protocol. Join early."
+buildItems:
+  - "Set up a garage node (docs on GitHub)"
+  - "Contribute to the open-source inference cluster"
+  - "Test V2G and solar integration"
+  - "Document your setup for others"
+spreadItems:
+  - "Share this initiative with your municipality"
+  - "Talk to local energy companies about V2G"
+  - "Connect with EU policy makers"
+  - "Tell your neighbours what's possible"
 ---
 
 Content for this section is defined in the frontmatter above.

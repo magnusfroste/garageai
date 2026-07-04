@@ -11,24 +11,46 @@ interface Layer {
   footnote?: string;
 }
 
+interface EnergyFlowRow {
+  time: string;
+  flow: string;
+  note: string;
+  ok?: boolean;
+}
+
+interface LocalBenefit {
+  icon: string;
+  title: string;
+  points: string[];
+  color: string;
+}
+
 interface Props {
   title: string;
   subtitle: string;
   description: string;
   layers: Layer[];
+  energyFlow: EnergyFlowRow[];
+  localBenefits: LocalBenefit[];
+  homeFirst: string[];
+  neighbourhoodSurplus: string[];
   ctaText: string;
   ctaUrl: string;
 }
 
-const { title, subtitle, description, layers, ctaText, ctaUrl } = Astro.props;
+const { title, subtitle, description, layers, energyFlow, localBenefits, homeFirst, neighbourhoodSurplus, ctaText, ctaUrl } = Astro.props;
 ---
 
-<InfrastructureReact 
+<InfrastructureReact
   client:load
   title={title}
   subtitle={subtitle}
   description={description}
   layers={layers}
+  energyFlow={energyFlow}
+  localBenefits={localBenefits}
+  homeFirst={homeFirst}
+  neighbourhoodSurplus={neighbourhoodSurplus}
   ctaText={ctaText}
   ctaUrl={ctaUrl}
 />

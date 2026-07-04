@@ -43,6 +43,8 @@ const Community = ({
   description = "Builders, researchers, energy enthusiasts, and AI practitioners — united around a shared conviction that Europe's AI future should be local, sovereign, and community-owned.",
   quotes: quotesProp,
   stats,
+  buildItems = ['Set up a garage node (docs on GitHub)', 'Contribute to the open-source inference cluster', 'Test V2G and solar integration', 'Document your setup for others'],
+  spreadItems = ['Share this initiative with your municipality', 'Talk to local energy companies about V2G', 'Connect with EU policy makers', 'Tell your neighbours what\'s possible'],
 } = {}) => {
   const quoteList = quotesProp || quotes;
   const statList = stats || communityStats;
@@ -115,7 +117,7 @@ const Community = ({
             🛠️ Build & Contribute
           </h4>
           <ul className="space-y-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-            {['Set up a garage node (docs on GitHub)', 'Contribute to the open-source inference cluster', 'Test V2G and solar integration', 'Document your setup for others'].map((item, i) => (
+            {(buildItems || []).map((item, i) => (
               <li key={i} className="flex gap-2"><span style={{ color: 'var(--color-primary)' }}>→</span>{item}</li>
             ))}
           </ul>
@@ -125,7 +127,7 @@ const Community = ({
             🌍 Spread the Vision
           </h4>
           <ul className="space-y-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-            {['Share this initiative with your municipality', 'Talk to local energy companies about V2G', 'Connect with EU policy makers', 'Tell your neighbours what\'s possible'].map((item, i) => (
+            {(spreadItems || []).map((item, i) => (
               <li key={i} className="flex gap-2"><span style={{ color: 'var(--color-accent)' }}>→</span>{item}</li>
             ))}
           </ul>

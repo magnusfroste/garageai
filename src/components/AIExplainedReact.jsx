@@ -58,12 +58,75 @@ const waves = [
   },
 ];
 
+const openClawCardsDefault = [
+  {
+    icon: '🔒',
+    title: 'Private by Default',
+    text: 'Data never leaves your hardware. OpenClaw runs locally — browser control, file operations, shell commands, persistent memory. Exactly what Garage AI infrastructure was built to power.',
+    color: 'var(--color-primary)'
+  },
+  {
+    icon: '🤖',
+    title: 'Truly Agentic',
+    text: 'Manages email, calendar, files and workflows autonomously. One agent, thousands of model calls per day. The inference demand is real — and it needs to be local, fast, and private.',
+    color: 'var(--color-accent)'
+  },
+  {
+    icon: '💻',
+    title: 'The Mac Mini Moment',
+    text: 'A Mac Mini M4 Pro (64GB unified memory) runs Llama 70B at ~15 tokens/sec — entirely locally. The household AI node is already here. The garage is the logical next step.',
+    color: 'var(--color-warning)'
+  }
+];
+
+const agentsInWildDefault = [
+  {
+    name: 'OpenClaw',
+    url: 'https://openclaw.ai',
+    tag: 'Personal AI agent',
+    desc: 'Runs locally on your machine. Controls browser, files, calendar and 50+ integrations via WhatsApp or Telegram. Private by design — built for local inference.',
+    color: 'var(--color-primary)',
+    icon: '🦾',
+  },
+  {
+    name: 'FlowWink',
+    url: 'https://www.flowwink.com',
+    tag: 'AI-powered CMS & marketing',
+    desc: 'AI agents manage content workflows and marketing operations autonomously — reducing the manual overhead of digital publishing to near zero.',
+    color: 'var(--color-warning)',
+    icon: '✨',
+  },
+  {
+    name: 'Silicon Soap',
+    url: 'https://www.siliconsoap.com',
+    tag: 'Multi-agent debate platform',
+    desc: '2–4 AI agents (Llama, DeepSeek, Qwen, Mistral) debate any topic autonomously across multiple rounds. A live demonstration of multi-agent coordination at work.',
+    color: 'var(--color-accent)',
+    icon: '🎭',
+  },
+];
+
+const homeStackDefault = [
+  { system: 'Security & cameras', benefit: 'Local AI processes, zero cloud' },
+  { system: 'Fire & smoke detection', benefit: 'Real-time local response' },
+  { system: 'Heating & ventilation', benefit: 'AI-optimized for summer/winter' },
+  { system: 'Garden & irrigation', benefit: 'Weather-aware, fully automated' },
+  { system: 'Kitchen appliances', benefit: 'Connected to same local gateway' },
+  { system: 'EV charging', benefit: 'Smart scheduling via V2G' },
+];
+
 const AIExplained = ({
   title = 'Four Waves. One Direction.',
   description = "Every wave of technological change has followed the same arc: power concentrates, then decentralizes back to individuals. We're living through the fourth — and it's bringing intelligence back home.",
   waves: wavesProp,
+  openClawCards,
+  agentsInWild,
+  homeStack,
 } = {}) => {
   const waveList = wavesProp || waves;
+  const openClawCardList = openClawCards || openClawCardsDefault;
+  const agentsInWildList = agentsInWild || agentsInWildDefault;
+  const homeStackList = homeStack || homeStackDefault;
   return (
     <motion.section
       id="three-waves"
@@ -141,26 +204,7 @@ const AIExplained = ({
         </p>
 
         <div className="grid md:grid-cols-3 gap-6 mb-8">
-          {[
-            {
-              icon: '🔒',
-              title: 'Private by Default',
-              text: 'Data never leaves your hardware. OpenClaw runs locally — browser control, file operations, shell commands, persistent memory. Exactly what Garage AI infrastructure was built to power.',
-              color: 'var(--color-primary)'
-            },
-            {
-              icon: '🤖',
-              title: 'Truly Agentic',
-              text: 'Manages email, calendar, files and workflows autonomously. One agent, thousands of model calls per day. The inference demand is real — and it needs to be local, fast, and private.',
-              color: 'var(--color-accent)'
-            },
-            {
-              icon: '💻',
-              title: 'The Mac Mini Moment',
-              text: 'A Mac Mini M4 Pro (64GB unified memory) runs Llama 70B at ~15 tokens/sec — entirely locally. The household AI node is already here. The garage is the logical next step.',
-              color: 'var(--color-warning)'
-            }
-          ].map((card, i) => (
+          {(openClawCardList || []).map((card, i) => (
             <div key={i} className="p-5 rounded-xl text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <div className="text-4xl mb-3">{card.icon}</div>
               <h4 className="font-bold mb-2" style={{ color: card.color }}>{card.title}</h4>
@@ -175,32 +219,7 @@ const AIExplained = ({
             Agents in the Wild — Three Examples of the Fourth Wave
           </p>
           <div className="grid md:grid-cols-3 gap-4">
-            {[
-              {
-                name: 'OpenClaw',
-                url: 'https://openclaw.ai',
-                tag: 'Personal AI agent',
-                desc: 'Runs locally on your machine. Controls browser, files, calendar and 50+ integrations via WhatsApp or Telegram. Private by design — built for local inference.',
-                color: 'var(--color-primary)',
-                icon: '🦾',
-              },
-              {
-                name: 'FlowWink',
-                url: 'https://www.flowwink.com',
-                tag: 'AI-powered CMS & marketing',
-                desc: 'AI agents manage content workflows and marketing operations autonomously — reducing the manual overhead of digital publishing to near zero.',
-                color: 'var(--color-warning)',
-                icon: '✨',
-              },
-              {
-                name: 'Silicon Soap',
-                url: 'https://www.siliconsoap.com',
-                tag: 'Multi-agent debate platform',
-                desc: '2–4 AI agents (Llama, DeepSeek, Qwen, Mistral) debate any topic autonomously across multiple rounds. A live demonstration of multi-agent coordination at work.',
-                color: 'var(--color-accent)',
-                icon: '🎭',
-              },
-            ].map((ex) => (
+            {(agentsInWildList || []).map((ex) => (
               <a
                 key={ex.name}
                 href={ex.url}
@@ -244,14 +263,7 @@ const AIExplained = ({
           <div>
             <p className="font-semibold mb-4" style={{ color: 'var(--color-primary)' }}>🏠 The Integrated Home Stack</p>
             <ul className="space-y-3">
-              {[
-                ['Security & cameras', 'Local AI processes, zero cloud'],
-                ['Fire & smoke detection', 'Real-time local response'],
-                ['Heating & ventilation', 'AI-optimized for summer/winter'],
-                ['Garden & irrigation', 'Weather-aware, fully automated'],
-                ['Kitchen appliances', 'Connected to same local gateway'],
-                ['EV charging', 'Smart scheduling via V2G'],
-              ].map(([system, benefit], i) => (
+              {(homeStackList || []).map(({ system, benefit }, i) => (
                 <li key={i} className="flex justify-between text-sm border-b border-slate-800 pb-2">
                   <span style={{ color: 'var(--color-text-secondary)' }}>{system}</span>
                   <span className="text-xs font-medium" style={{ color: 'var(--color-primary)' }}>{benefit}</span>

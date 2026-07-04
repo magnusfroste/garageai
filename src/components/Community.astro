@@ -23,12 +23,14 @@ interface Props {
   discordUrl: string;
   githubDiscussionsUrl: string;
   ctaText: string;
+  buildItems: string[];
+  spreadItems: string[];
 }
 
-const { title, subtitle, description, quotes, stats, discordUrl, githubDiscussionsUrl, ctaText } = Astro.props;
+const { title, subtitle, description, quotes, stats, discordUrl, githubDiscussionsUrl, ctaText, buildItems, spreadItems } = Astro.props;
 ---
 
-<CommunityReact 
+<CommunityReact
   client:load
   title={title}
   subtitle={subtitle}
@@ -38,4 +40,6 @@ const { title, subtitle, description, quotes, stats, discordUrl, githubDiscussio
   discordUrl={discordUrl}
   githubDiscussionsUrl={githubDiscussionsUrl}
   ctaText={ctaText}
+  buildItems={buildItems}
+  spreadItems={spreadItems}
 />

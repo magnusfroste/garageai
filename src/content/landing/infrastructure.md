@@ -38,6 +38,64 @@ layers:
     subtitle: "Distribution"
     details: "Sweden's 1–10 Gbit/s fiber network connects your node to neighbours, local businesses, and the broader Garage AI mesh. Inference stays local — bandwidth is just for coordination."
     color: "rgba(0,122,255,0.9)"
+energyFlow:
+  - time: "Daytime (solar peak)"
+    flow: "Solar → Home use + Powerwall charge + AI node direct"
+    note: "Car typically away — EV not in the loop"
+    ok: true
+  - time: "Daytime (overcast)"
+    flow: "Powerwall → AI node"
+    note: "Node runs uninterrupted from stored energy"
+    ok: true
+  - time: "Evening (car home)"
+    flow: "EV V2H → Home use + AI node buffer"
+    note: "EV discharges to home via V2H overnight"
+    ok: true
+  - time: "Weekends / WFH days"
+    flow: "Solar → Powerwall + EV charge + AI node"
+    note: "Car at home: full stack active simultaneously"
+    ok: true
+  - time: "Deep winter nights"
+    flow: "Powerwall + EV V2H + grid backup"
+    note: "Grid as fallback — node stays online"
+    ok: true
+localBenefits:
+  - icon: "⚡"
+    title: "Latency"
+    points:
+      - "Local inference: &lt;1ms roundtrip"
+      - "Cloud inference: 50–300ms"
+      - "For real-time agents: local wins"
+      - "No transatlantic bottleneck"
+    color: "var(--color-warning)"
+  - icon: "🌱"
+    title: "Carbon & Cost"
+    points:
+      - "Runs on own solar energy"
+      - "No data center cooling overhead"
+      - "85%+ less transmission loss"
+      - "Near-zero marginal cost"
+    color: "var(--color-primary)"
+  - icon: "🛡️"
+    title: "Sovereignty"
+    points:
+      - "Data never leaves the garage"
+      - "No US Cloud Act exposure"
+      - "GDPR compliance by design"
+      - "Operational during outages"
+    color: "var(--color-accent)"
+homeFirst:
+  - "Security cameras (local face detection)"
+  - "Smart heating (AI-optimized schedules)"
+  - "Garden automation (weather + soil sensors)"
+  - "Kitchen assistant (offline voice)"
+  - "Energy management (solar + EV + grid)"
+neighbourhoodSurplus:
+  - "Local bakery: AI for inventory & ordering"
+  - "Dentist clinic: private document analysis"
+  - "School: AI tutor with no tracking"
+  - "Neighbours: shared private assistant"
+  - "Local business: AI without Big Tech dependency"
 ctaText: "See the Setup Guide"
 ctaUrl: "https://github.com/magnusfroste/garageai/blob/main/docs/GET_STARTED.md"
 ---

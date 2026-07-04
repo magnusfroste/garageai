@@ -12,22 +12,60 @@ interface Scenario {
   color: string;
 }
 
+interface MarketStat {
+  num: number;
+  prefix: string;
+  suffix: string;
+  label: string;
+  sub: string;
+  color: string;
+}
+
+interface LabelValue {
+  label: string;
+  value: string;
+}
+
+interface Job {
+  role: string;
+  est: string;
+  icon: string;
+}
+
+interface PassivePhase {
+  phase: string;
+  desc: string;
+  color: string;
+}
+
 interface Props {
   title: string;
   subtitle: string;
   description: string;
   scenarios: Scenario[];
   footnotes: string[];
+  marketStats: MarketStat[];
+  whyAgents: string[];
+  agenticMarket: LabelValue[];
+  anthropicNumbers: LabelValue[];
+  jobsCreated: Job[];
+  passiveIncome: PassivePhase[];
 }
 
-const { title, subtitle, description, scenarios, footnotes } = Astro.props;
+const { title, subtitle, description, scenarios, footnotes, marketStats, whyAgents, agenticMarket, anthropicNumbers, jobsCreated, passiveIncome } = Astro.props;
 ---
 
-<TokenEconomyReact 
+<TokenEconomyReact
   client:load
   title={title}
   subtitle={subtitle}
   description={description}
   scenarios={scenarios}
   footnotes={footnotes}
+  marketStats={marketStats}
+  whyAgents={whyAgents}
+  agenticMarket={agenticMarket}
+  anthropicNumbers={anthropicNumbers}
+  jobsCreated={jobsCreated}
+  passiveIncome={passiveIncome}
 />

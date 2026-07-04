@@ -13,24 +13,51 @@ interface Wave {
   highlight?: boolean;
 }
 
+interface OpenClawCard {
+  icon: string;
+  title: string;
+  text: string;
+  color: string;
+}
+
+interface AgentInWild {
+  name: string;
+  url: string;
+  tag: string;
+  desc: string;
+  color: string;
+  icon: string;
+}
+
+interface HomeStackItem {
+  system: string;
+  benefit: string;
+}
+
 interface Props {
   title: string;
   subtitle: string;
   description: string;
   waves: Wave[];
+  openClawCards: OpenClawCard[];
+  agentsInWild: AgentInWild[];
+  homeStack: HomeStackItem[];
   ctaText: string;
   ctaUrl: string;
 }
 
-const { title, subtitle, description, waves, ctaText, ctaUrl } = Astro.props;
+const { title, subtitle, description, waves, openClawCards, agentsInWild, homeStack, ctaText, ctaUrl } = Astro.props;
 ---
 
-<AIExplainedReact 
+<AIExplainedReact
   client:load
   title={title}
   subtitle={subtitle}
   description={description}
   waves={waves}
+  openClawCards={openClawCards}
+  agentsInWild={agentsInWild}
+  homeStack={homeStack}
   ctaText={ctaText}
   ctaUrl={ctaUrl}
 />
