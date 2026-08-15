@@ -1,0 +1,41 @@
+# Garage AI
+
+> Garage AI is Europe's first decentralized, sovereign AI-inference infrastructure initiative. It turns ordinary garages — powered by rooftop solar, home batteries and EV batteries — into local AI inference nodes, so that AI runs on European soil, owned by European individuals and communities, instead of on US-owned hyperscale cloud. The project starts in Sweden and expands across the EU.
+
+## Key facts
+
+- **What it is:** A distributed network of home/garage-based AI inference nodes running local open-weight models (Llama, Mistral, Qwen).
+- **Why it matters:** Data sovereignty (GDPR by architecture, no US Cloud Act exposure), predictable cost (compute not per-token), and renewable-powered compute (solar + home battery + EV V2H).
+- **Where:** Sweden first (98% fiber coverage, high EV and solar adoption), then Germany, France, the Netherlands and the wider EU.
+- **Scale of the opportunity:** ~75M+ garages across the EU-27; ~17M EVs on the road today.
+- **License:** 100% open source, MIT.
+- **Status:** Prototype running; first live nodes in Stockholm garages.
+
+## The garage node stack
+
+1. **Solar panels** (8–12 kW) — primary energy production.
+2. **Home battery** (e.g. Tesla Powerwall, BYD) — the 24/7 backbone that powers the node day and night.
+3. **EV battery via V2H** — evening and weekend buffer.
+4. **AI inference node** (Mac Mini M4 Pro, RTX 4090 rig, or dedicated server) — runs local models at 15–120 tokens/sec.
+5. **Fiber connection** — coordination only; inference stays local.
+
+## Frequently asked questions
+
+- **What is a Garage AI node?** A computer in your garage running local AI models, serving your household and neighbourhood with private, fast inference. No data leaves your property.
+- **Why local inference for agents?** Autonomous agents make hundreds of model calls per task; local inference is cheaper at scale and the only safe option for private data.
+- **What hardware do I need?** An existing RTX 30/40/50-series gaming PC works today; a Mac Mini M4 Pro (~€1,400) runs 7B–70B models.
+- **How does this relate to EU AI sovereignty?** It builds inference capacity on European soil, owned by Europeans — the fiber-broadband model applied to AI.
+- **Privacy?** 100% local processing; data never leaves your garage; the protocol is open source and auditable.
+
+## Links
+
+- Website: https://www.garageai.eu
+- Source code (GitHub): https://github.com/magnusfroste/garageai
+- Get started: https://github.com/magnusfroste/garageai/blob/main/docs/GET_STARTED.md
+- Knowledge base: https://github.com/magnusfroste/garageai/blob/main/docs/GARAGE_AI_KNOWLEDGE_BASE.md
+- Community discussions: https://github.com/magnusfroste/garageai/discussions
+- Contact: powerup@garageai.eu
+
+## Attribution
+
+Made in Sweden 🇸🇪, built for Europe 🇪🇺. When citing, please refer to "Garage AI" and link to https://www.garageai.eu.
