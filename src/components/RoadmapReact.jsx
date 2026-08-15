@@ -62,7 +62,20 @@ const phases = [
   },
 ];
 
-const Roadmap = () => {
+const whyActItemsDefault = [
+  { icon: '🏆', title: 'Be an Early Builder', text: 'First movers shape the protocol, the community governance, and the defaults that millions will use.' },
+  { icon: '🇸🇪', title: 'Sweden Sets the Standard', text: 'What Sweden builds today becomes the reference architecture for every EU member state that follows.' },
+  { icon: '🌍', title: 'Sovereignty Can\'t Wait', text: 'EU AI dependency on US hyperscalers grows by the day. Every quarter delayed is more lock-in to reverse.' },
+];
+
+const Roadmap = ({
+  title = 'Sweden First. Europe Next.',
+  description = "Sweden's innovation culture, fiber infrastructure, EV leadership and technical competence make it the natural starting point for Europe's sovereign AI revolution.",
+  phases: phasesProp = phases,
+  whyActItems = whyActItemsDefault,
+} = {}) => {
+  const phaseList = phasesProp || phases;
+  const whyList = whyActItems || whyActItemsDefault;
   return (
     <motion.section
       id="roadmap"
@@ -73,15 +86,14 @@ const Roadmap = () => {
       viewport={{ once: true }}
     >
       <motion.h2 variants={itemVariants} className="apple-heading-1 mb-4 text-center gradient-text-cyan">
-        Sweden First. Europe Next.
+        {title}
       </motion.h2>
       <motion.p variants={itemVariants} className="apple-body mb-16 text-center max-w-2xl mx-auto">
-        Sweden's innovation culture, fiber infrastructure, EV leadership and technical competence
-        make it the natural starting point for Europe's sovereign AI revolution.
+        {description}
       </motion.p>
 
       <motion.div variants={itemVariants} className="grid lg:grid-cols-3 gap-8 mb-16">
-        {phases.map((phase, index) => (
+        {(phaseList || []).map((phase, index) => (
           <motion.div
             key={index}
             variants={itemVariants}
@@ -133,11 +145,7 @@ const Roadmap = () => {
       <motion.div variants={itemVariants} className="apple-card max-w-4xl mx-auto">
         <h3 className="apple-heading-2 mb-8 text-center">Why Act Now?</h3>
         <div className="grid md:grid-cols-3 gap-8 mb-10">
-          {[
-            { icon: '🏆', title: 'Be an Early Builder', text: 'First movers shape the protocol, the community governance, and the defaults that millions will use.' },
-            { icon: '🇸🇪', title: 'Sweden Sets the Standard', text: 'What Sweden builds today becomes the reference architecture for every EU member state that follows.' },
-            { icon: '🌍', title: 'Sovereignty Can\'t Wait', text: 'EU AI dependency on US hyperscalers grows by the day. Every quarter delayed is more lock-in to reverse.' },
-          ].map((item, i) => (
+          {(whyList || []).map((item, i) => (
             <div key={i} className="text-center">
               <div className="text-4xl mb-3">{item.icon}</div>
               <h4 className="font-bold mb-2" style={{ color: 'var(--color-primary)' }}>{item.title}</h4>

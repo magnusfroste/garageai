@@ -38,7 +38,17 @@ const communityStats = [
   { icon: '⚡', value: 'Live', label: 'Prototype Running' },
 ];
 
-const Community = () => {
+const Community = ({
+  title = 'The Community',
+  description = "Builders, researchers, energy enthusiasts, and AI practitioners — united around a shared conviction that Europe's AI future should be local, sovereign, and community-owned.",
+  quotes: quotesProp,
+  stats,
+  buildItems = ['Set up a garage node (docs on GitHub)', 'Contribute to the open-source inference cluster', 'Test V2G and solar integration', 'Document your setup for others'],
+  spreadItems = ['Share this initiative with your municipality', 'Talk to local energy companies about V2G', 'Connect with EU policy makers', 'Tell your neighbours what\'s possible'],
+} = {}) => {
+  const quoteList = quotesProp || quotes;
+  const statList = stats || communityStats;
+
   return (
     <motion.section
       id="community"
@@ -53,19 +63,18 @@ const Community = () => {
         className="apple-heading-1 mb-4 text-center"
         style={{ color: 'var(--color-primary)' }}
       >
-        The Community
+        {title}
       </motion.h2>
       <motion.p
         variants={itemVariants}
         className="apple-body mb-12 text-center max-w-2xl mx-auto"
       >
-        Builders, researchers, energy enthusiasts, and AI practitioners — united around a shared
-        conviction that Europe's AI future should be local, sovereign, and community-owned.
+        {description}
       </motion.p>
 
       {/* Stats */}
       <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
-        {communityStats.map((stat, i) => (
+        {(statList || []).map((stat, i) => (
           <motion.div
             key={i}
             variants={itemVariants}
@@ -82,7 +91,7 @@ const Community = () => {
 
       {/* Quotes */}
       <motion.div variants={itemVariants} className="grid md:grid-cols-3 gap-6 mb-16">
-        {quotes.map((q, i) => (
+        {(quoteList || []).map((q, i) => (
           <motion.div
             key={i}
             variants={itemVariants}
@@ -108,7 +117,7 @@ const Community = () => {
             🛠️ Build & Contribute
           </h4>
           <ul className="space-y-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-            {['Set up a garage node (docs on GitHub)', 'Contribute to the open-source inference cluster', 'Test V2G and solar integration', 'Document your setup for others'].map((item, i) => (
+            {(buildItems || []).map((item, i) => (
               <li key={i} className="flex gap-2"><span style={{ color: 'var(--color-primary)' }}>→</span>{item}</li>
             ))}
           </ul>
@@ -118,7 +127,7 @@ const Community = () => {
             🌍 Spread the Vision
           </h4>
           <ul className="space-y-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-            {['Share this initiative with your municipality', 'Talk to local energy companies about V2G', 'Connect with EU policy makers', 'Tell your neighbours what\'s possible'].map((item, i) => (
+            {(spreadItems || []).map((item, i) => (
               <li key={i} className="flex gap-2"><span style={{ color: 'var(--color-accent)' }}>→</span>{item}</li>
             ))}
           </ul>

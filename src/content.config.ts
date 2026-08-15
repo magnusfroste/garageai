@@ -6,15 +6,20 @@ const landing = defineCollection({
     pattern: '*.md',
     base: './src/content/landing',
   }),
-  schema: z.object({
-    section: z.string(),
-    title: z.string(),
-    subtitle: z.string().optional(),
-    description: z.string().optional(),
-    secondaryText: z.string().optional(),
-    icon: z.string().optional(),
-    order: z.number().default(0),
-  }),
+  // Each section carries its own structured data in frontmatter (waves,
+  // layers, useCases, scenarios, phases, buttons, …). Only the shared fields
+  // are validated; section-specific fields pass through to entry.data.
+  schema: z
+    .object({
+      section: z.string(),
+      title: z.string(),
+      subtitle: z.string().optional(),
+      description: z.string().optional(),
+      secondaryText: z.string().optional(),
+      icon: z.string().optional(),
+      order: z.number().default(0),
+    })
+    .passthrough(),
 });
 
 const faq = defineCollection({
@@ -27,6 +32,14 @@ const faq = defineCollection({
     title: z.string(),
     description: z.string().optional(),
     order: z.number().default(0),
+    faqs: z
+      .array(
+        z.object({
+          question: z.string(),
+          answer: z.string(),
+        })
+      )
+      .default([]),
   }),
 });
 

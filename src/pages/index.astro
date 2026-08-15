@@ -1,34 +1,57 @@
 ---
 import { getEntry } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
+import ScrollProgress from '../components/ScrollProgress.jsx';
+import Header from '../components/Header.astro';
 import Hero from '../components/Hero.astro';
+import FactBoxes from '../components/FactBoxes.astro';
+import AIExplained from '../components/AIExplained.astro';
+import Infrastructure from '../components/Infrastructure.astro';
+import B2B from '../components/B2B.astro';
+import TokenEconomy from '../components/TokenEconomy.astro';
+import Roadmap from '../components/Roadmap.astro';
+import Community from '../components/Community.astro';
+import FAQ from '../components/FAQ.astro';
+import Sponsors from '../components/Sponsors.astro';
+import CTA from '../components/CTA.astro';
+import Footer from '../components/Footer.astro';
 
-const heroContent = await getEntry('landing', 'hero');
+// All content is authored in src/content/landing/*.md and src/content/faq/*.md.
+const header = await getEntry('landing', 'header');
+const hero = await getEntry('landing', 'hero');
+const factboxes = await getEntry('landing', 'factboxes');
+const aiExplained = await getEntry('landing', 'ai-explained');
+const infrastructure = await getEntry('landing', 'infrastructure');
+const b2b = await getEntry('landing', 'b2b');
+const tokenEconomy = await getEntry('landing', 'token-economy');
+const roadmap = await getEntry('landing', 'roadmap');
+const community = await getEntry('landing', 'community');
+const sponsors = await getEntry('landing', 'sponsors');
+const cta = await getEntry('landing', 'cta');
+const footer = await getEntry('landing', 'footer');
+const faq = await getEntry('faq', 'general');
 const stats = await import('../content/stats/hero-stats.json');
 ---
 
-<Layout 
+<Layout
   title="Garage AI — Sweden's Sovereign AI Initiative | Your Garage. Europe's AI Engine."
   description="Sweden leads Europe's first decentralized AI infrastructure initiative. 75M garages. Solar + EV batteries + local inference."
 >
-  <Hero 
-    title={heroContent.data.title}
-    subtitle={heroContent.data.subtitle}
-    description={heroContent.data.description}
-    secondaryText={heroContent.data.secondaryText}
-    stats={stats.default}
-  />
-  
-  <!-- TODO: Migrate remaining sections -->
-  <!-- <FactBoxes /> -->
-  <!-- <AIExplained /> -->
-  <!-- <Infrastructure /> -->
-  <!-- <B2B /> -->
-  <!-- <TokenEconomy /> -->
-  <!-- <Roadmap /> -->
-  <!-- <Community /> -->
-  <!-- <FAQ /> -->
-  <!-- <Sponsors /> -->
-  <!-- <CTA /> -->
-  <!-- <Footer /> -->
+  <ScrollProgress client:load />
+
+  <Header {...header.data} />
+
+  <Hero {...hero.data} stats={stats.default} />
+
+  <FactBoxes {...factboxes.data} />
+  <AIExplained {...aiExplained.data} />
+  <Infrastructure {...infrastructure.data} />
+  <B2B {...b2b.data} />
+  <TokenEconomy {...tokenEconomy.data} />
+  <Roadmap {...roadmap.data} />
+  <Community {...community.data} />
+  <FAQ {...faq.data} />
+  <Sponsors {...sponsors.data} />
+  <CTA {...cta.data} />
+  <Footer {...footer.data} />
 </Layout>

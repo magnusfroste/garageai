@@ -18,18 +18,27 @@ interface Partner {
   color: string;
 }
 
+interface Minister {
+  intro: string;
+  name: string;
+  rest: string;
+  note: string;
+}
+
 interface Props {
   title: string;
   technicalPartner: TechnicalPartner;
   partners: Partner[];
+  minister: Minister;
 }
 
-const { title, technicalPartner, partners } = Astro.props;
+const { title, technicalPartner, partners, minister } = Astro.props;
 ---
 
-<SponsorsReact 
+<SponsorsReact
   client:load
   title={title}
   technicalPartner={technicalPartner}
   partners={partners}
+  minister={minister}
 />

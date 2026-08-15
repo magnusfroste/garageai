@@ -1,51 +1,90 @@
 ---
 section: "ai-explained"
-title: "The Four Waves of Intelligence"
-subtitle: "Understanding AI Through the Lens of Technology History"
-description: "Every technological revolution follows a pattern: it centralizes, then it decentralizes. The power always ends up where it belongs — with people."
 order: 3
+title: "Four Waves. One Direction."
+subtitle: "Understanding AI Through the Lens of Technology History"
+description: "Every wave of technological change has followed the same arc: power concentrates, then decentralizes back to individuals. We're living through the fourth — and it's bringing intelligence back home."
+waves:
+  - number: "01"
+    era: "1980s"
+    title: "Personal Computing"
+    subtitle: "The First Wave"
+    description: "Compute power left the mainframe. Bill Gates, Steve Jobs, and a generation of builders put a computer on every desk and in every home. Processing power was no longer the exclusive domain of corporations and governments — it belonged to individuals. The pattern was set: centralized technology decentralizes, and the world changes."
+    icon: "🖥️"
+    color: "rgba(120,120,255,0.9)"
+    outcome: "Every desk got a computer. Computing power became personal."
+  - number: "02"
+    era: "1990s – 2000s"
+    title: "The Internet"
+    subtitle: "The Second Wave"
+    description: "Information left the library and became borderless. Anyone could publish, connect, and trade. The infrastructure was centralized — servers, ISPs, data centers — but the value flowed to billions of individuals. E-commerce, social media, and open knowledge followed. A new layer on top of the previous wave."
+    icon: "🌐"
+    color: "var(--color-accent)"
+    outcome: "Every home got connected. Knowledge and commerce became global."
+  - number: "03"
+    era: "2022 – 2024"
+    title: "Generative AI"
+    subtitle: "The Third Wave"
+    description: "Creation was democratized. Anyone could generate text, images, code and analysis at scale. But this wave re-centralized what computing had decentralized: the most capable AI ran exclusively on hyperscaler infrastructure — OpenAI, Anthropic, Google. Powerful, transformative, and controlled by a handful of companies."
+    icon: "✨"
+    color: "var(--color-warning)"
+    outcome: "Creation became accessible. But sovereignty moved back to the cloud."
+  - number: "04"
+    era: "2025 →"
+    title: "Autonomous Agents"
+    subtitle: "The Fourth Wave — Happening Now"
+    description: "Action is being democratized. AI agents plan, decide, and execute autonomously — making thousands of model calls per task. Demand for inference is exploding at a pace no centralised infrastructure can sustainably serve. The key insight: agents running on private, local models unlock true autonomy. The intelligence that left the mainframe in the 1980s is now leaving the cloud — and coming back to your garage."
+    icon: "🤖"
+    color: "var(--color-primary)"
+    outcome: "Action becomes autonomous. Intelligence comes home."
+    highlight: true
+openClawCards:
+  - icon: "🔒"
+    title: "Private by Default"
+    text: "Data never leaves your hardware. OpenClaw runs locally — browser control, file operations, shell commands, persistent memory. Exactly what Garage AI infrastructure was built to power."
+    color: "var(--color-primary)"
+  - icon: "🤖"
+    title: "Truly Agentic"
+    text: "Manages email, calendar, files and workflows autonomously. One agent, thousands of model calls per day. The inference demand is real — and it needs to be local, fast, and private."
+    color: "var(--color-accent)"
+  - icon: "💻"
+    title: "The Mac Mini Moment"
+    text: "A Mac Mini M4 Pro (64GB unified memory) runs Llama 70B at ~15 tokens/sec — entirely locally. The household AI node is already here. The garage is the logical next step."
+    color: "var(--color-warning)"
+agentsInWild:
+  - name: "OpenClaw"
+    url: "https://openclaw.ai"
+    tag: "Personal AI agent"
+    desc: "Runs locally on your machine. Controls browser, files, calendar and 50+ integrations via WhatsApp or Telegram. Private by design — built for local inference."
+    color: "var(--color-primary)"
+    icon: "🦾"
+  - name: "FlowWink"
+    url: "https://www.flowwink.com"
+    tag: "AI-powered CMS & marketing"
+    desc: "AI agents manage content workflows and marketing operations autonomously — reducing the manual overhead of digital publishing to near zero."
+    color: "var(--color-warning)"
+    icon: "✨"
+  - name: "Silicon Soap"
+    url: "https://www.siliconsoap.com"
+    tag: "Multi-agent debate platform"
+    desc: "2–4 AI agents (Llama, DeepSeek, Qwen, Mistral) debate any topic autonomously across multiple rounds. A live demonstration of multi-agent coordination at work."
+    color: "var(--color-accent)"
+    icon: "🎭"
+homeStack:
+  - system: "Security & cameras"
+    benefit: "Local AI processes, zero cloud"
+  - system: "Fire & smoke detection"
+    benefit: "Real-time local response"
+  - system: "Heating & ventilation"
+    benefit: "AI-optimized for summer/winter"
+  - system: "Garden & irrigation"
+    benefit: "Weather-aware, fully automated"
+  - system: "Kitchen appliances"
+    benefit: "Connected to same local gateway"
+  - system: "EV charging"
+    benefit: "Smart scheduling via V2G"
+ctaText: "Read the Full Vision"
+ctaUrl: "https://github.com/magnusfroste/garageai/blob/main/docs/GARAGE_AI_START_HERE.md"
 ---
 
-## Waves
-
-### Wave 1: Personal Computing (1980s)
-- **Era**: 1980s
-- **Title**: Personal Computing
-- **Subtitle**: The First Wave
-- **Icon**: 🖥️
-- **Color**: rgba(120,120,255,0.9)
-- **Description**: Compute power left the mainframe. Bill Gates, Steve Jobs, and a generation of builders put a computer on every desk and in every home. Processing power was no longer the exclusive domain of corporations and governments — it belonged to individuals. The pattern was set: centralized technology decentralizes, and the world changes.
-- **Outcome**: Every desk got a computer. Computing power became personal.
-
-### Wave 2: The Internet (1990s – 2000s)
-- **Era**: 1990s – 2000s
-- **Title**: The Internet
-- **Subtitle**: The Second Wave
-- **Icon**: 🌐
-- **Color**: var(--color-accent)
-- **Description**: Information left the library and became borderless. Anyone could publish, connect, and trade. The infrastructure was centralized — servers, ISPs, data centers — but the value flowed to billions of individuals. E-commerce, social media, and open knowledge followed. A new layer on top of the previous wave.
-- **Outcome**: Every home got connected. Knowledge and commerce became global.
-
-### Wave 3: Generative AI (2022 – 2024)
-- **Era**: 2022 – 2024
-- **Title**: Generative AI
-- **Subtitle**: The Third Wave
-- **Icon**: ✨
-- **Color**: var(--color-warning)
-- **Description**: Creation was democratized. Anyone could generate text, images, code and analysis at scale. But this wave re-centralized what computing had decentralized: the most capable AI ran exclusively on hyperscaler infrastructure — OpenAI, Anthropic, Google. Powerful, transformative, and controlled by a handful of companies.
-- **Outcome**: Creation became accessible. But sovereignty moved back to the cloud.
-
-### Wave 4: Autonomous Agents (2025 →)
-- **Era**: 2025 →
-- **Title**: Autonomous Agents
-- **Subtitle**: The Fourth Wave — Happening Now
-- **Icon**: 🤖
-- **Color**: var(--color-primary)
-- **Highlight**: true
-- **Description**: Action is being democratized. AI agents plan, decide, and execute autonomously — making thousands of model calls per task. Demand for inference is exploding at a pace no centralised infrastructure can sustainably serve. The key insight: agents running on private, local models unlock true autonomy. The intelligence that left the mainframe in the 1980s is now leaving the cloud — and coming back to your garage.
-- **Outcome**: Action becomes autonomous. Intelligence comes home.
-
-## CTA
-
-- **Text**: "Understanding the waves helps us see where we're going."
-- **Button**: "Read the Full Vision" → https://github.com/magnusfroste/garageai/blob/main/docs/GARAGE_AI_START_HERE.md
+Content for this section is defined in the frontmatter above.

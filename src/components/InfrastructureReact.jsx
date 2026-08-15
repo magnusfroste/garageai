@@ -56,7 +56,79 @@ const stackLayers = [
   },
 ];
 
-const Infrastructure = () => {
+const defaultEnergyFlow = [
+  { time: 'Daytime (solar peak)', flow: 'Solar → Home use + Powerwall charge + AI node direct', note: 'Car typically away — EV not in the loop', ok: true },
+  { time: 'Daytime (overcast)', flow: 'Powerwall → AI node', note: 'Node runs uninterrupted from stored energy', ok: true },
+  { time: 'Evening (car home)', flow: 'EV V2H → Home use + AI node buffer', note: 'EV discharges to home via V2H overnight', ok: true },
+  { time: 'Weekends / WFH days', flow: 'Solar → Powerwall + EV charge + AI node', note: 'Car at home: full stack active simultaneously', ok: true },
+  { time: 'Deep winter nights', flow: 'Powerwall + EV V2H + grid backup', note: 'Grid as fallback — node stays online', ok: true },
+];
+
+const defaultLocalBenefits = [
+  {
+    icon: '⚡',
+    title: 'Latency',
+    points: [
+      'Local inference: &lt;1ms roundtrip',
+      'Cloud inference: 50–300ms',
+      'For real-time agents: local wins',
+      'No transatlantic bottleneck',
+    ],
+    color: 'var(--color-warning)'
+  },
+  {
+    icon: '🌱',
+    title: 'Carbon & Cost',
+    points: [
+      'Runs on own solar energy',
+      'No data center cooling overhead',
+      '85%+ less transmission loss',
+      'Near-zero marginal cost',
+    ],
+    color: 'var(--color-primary)'
+  },
+  {
+    icon: '🛡️',
+    title: 'Sovereignty',
+    points: [
+      'Data never leaves the garage',
+      'No US Cloud Act exposure',
+      'GDPR compliance by design',
+      'Operational during outages',
+    ],
+    color: 'var(--color-accent)'
+  },
+];
+
+const defaultHomeFirst = [
+  'Security cameras (local face detection)',
+  'Smart heating (AI-optimized schedules)',
+  'Garden automation (weather + soil sensors)',
+  'Kitchen assistant (offline voice)',
+  'Energy management (solar + EV + grid)',
+];
+
+const defaultNeighbourhoodSurplus = [
+  'Local bakery: AI for inventory & ordering',
+  'Dentist clinic: private document analysis',
+  'School: AI tutor with no tracking',
+  'Neighbours: shared private assistant',
+  'Local business: AI without Big Tech dependency',
+];
+
+const Infrastructure = ({
+  title = 'The Garage Node',
+  subtitle = 'How Your Garage Becomes an AI Data Center',
+  description = "Five layers. One garage. A complete, self-sustaining AI infrastructure node that powers your home, your neighbourhood, and Europe's sovereign AI future.",
+  layers,
+  energyFlow = defaultEnergyFlow,
+  localBenefits = defaultLocalBenefits,
+  homeFirst = defaultHomeFirst,
+  neighbourhoodSurplus = defaultNeighbourhoodSurplus,
+  ctaText = 'See the Setup Guide',
+  ctaUrl = 'https://github.com/magnusfroste/garageai/blob/main/docs/GET_STARTED.md',
+} = {}) => {
+  const layerList = layers || stackLayers;
   return (
     <motion.section
       id="infrastructure"
@@ -70,20 +142,19 @@ const Infrastructure = () => {
         variants={itemVariants}
         className="apple-heading-1 mb-4 text-center"
       >
-        The Garage Node
+        {title}
       </motion.h2>
       <motion.p
         variants={itemVariants}
         className="apple-body mb-16 text-center max-w-2xl mx-auto"
       >
-        Five layers. One garage. A complete, self-sustaining AI infrastructure node
-        that powers your home, your neighbourhood, and Europe's sovereign AI future.
+        {description}
       </motion.p>
 
       {/* Stack diagram */}
       <motion.div variants={itemVariants} className="mb-16">
         <div className="space-y-3 max-w-4xl mx-auto">
-          {stackLayers.map((layer, i) => (
+          {(layerList || []).map((layer, i) => (
             <div
               key={i}
               className="flex items-start gap-5 p-5 rounded-xl transition-all"
@@ -123,13 +194,7 @@ const Infrastructure = () => {
         </p>
         <div className="overflow-x-auto">
           <div className="min-w-[560px] space-y-3 max-w-2xl mx-auto text-sm">
-            {[
-              { time: 'Daytime (solar peak)', flow: 'Solar → Home use + Powerwall charge + AI node direct', note: 'Car typically away — EV not in the loop', ok: true },
-              { time: 'Daytime (overcast)', flow: 'Powerwall → AI node', note: 'Node runs uninterrupted from stored energy', ok: true },
-              { time: 'Evening (car home)', flow: 'EV V2H → Home use + AI node buffer', note: 'EV discharges to home via V2H overnight', ok: true },
-              { time: 'Weekends / WFH days', flow: 'Solar → Powerwall + EV charge + AI node', note: 'Car at home: full stack active simultaneously', ok: true },
-              { time: 'Deep winter nights', flow: 'Powerwall + EV V2H + grid backup', note: 'Grid as fallback — node stays online', ok: true },
-            ].map((row, i) => (
+            {(energyFlow || []).map((row, i) => (
               <div key={i} className="flex flex-col sm:flex-row gap-2 p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
                 <span className="shrink-0 text-xs font-bold w-44" style={{ color: 'var(--color-warning)' }}>{row.time}</span>
                 <span className="flex-1 font-medium" style={{ color: 'var(--color-primary)' }}>{row.flow}</span>
@@ -155,41 +220,7 @@ const Infrastructure = () => {
           carbon, stronger community resilience — and the value stays in the region.
         </p>
         <div className="grid md:grid-cols-3 gap-6">
-          {[
-            {
-              icon: '⚡',
-              title: 'Latency',
-              points: [
-                'Local inference: &lt;1ms roundtrip',
-                'Cloud inference: 50–300ms',
-                'For real-time agents: local wins',
-                'No transatlantic bottleneck',
-              ],
-              color: 'var(--color-warning)'
-            },
-            {
-              icon: '🌱',
-              title: 'Carbon & Cost',
-              points: [
-                'Runs on own solar energy',
-                'No data center cooling overhead',
-                '85%+ less transmission loss',
-                'Near-zero marginal cost',
-              ],
-              color: 'var(--color-primary)'
-            },
-            {
-              icon: '🛡️',
-              title: 'Sovereignty',
-              points: [
-                'Data never leaves the garage',
-                'No US Cloud Act exposure',
-                'GDPR compliance by design',
-                'Operational during outages',
-              ],
-              color: 'var(--color-accent)'
-            },
-          ].map((col, i) => (
+          {(localBenefits || []).map((col, i) => (
             <div key={i} className="p-5 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <div className="text-3xl mb-2">{col.icon}</div>
               <h4 className="font-bold mb-3" style={{ color: col.color }}>{col.title}</h4>
@@ -217,7 +248,7 @@ const Infrastructure = () => {
           <div className="p-6 rounded-xl" style={{ background: 'rgba(0,255,136,0.05)', border: '1px solid rgba(0,255,136,0.2)' }}>
             <p className="font-semibold mb-4" style={{ color: 'var(--color-primary)' }}>🏠 Home First</p>
             <ul className="space-y-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-              {['Security cameras (local face detection)', 'Smart heating (AI-optimized schedules)', 'Garden automation (weather + soil sensors)', 'Kitchen assistant (offline voice)', 'Energy management (solar + EV + grid)'].map((item, i) => (
+              {(homeFirst || []).map((item, i) => (
                 <li key={i} className="flex gap-2"><span style={{ color: 'var(--color-primary)' }}>→</span>{item}</li>
               ))}
             </ul>
@@ -225,7 +256,7 @@ const Infrastructure = () => {
           <div className="p-6 rounded-xl" style={{ background: 'rgba(0,122,255,0.05)', border: '1px solid rgba(0,122,255,0.2)' }}>
             <p className="font-semibold mb-4" style={{ color: 'var(--color-accent)' }}>🏘️ Neighbourhood Surplus</p>
             <ul className="space-y-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-              {['Local bakery: AI for inventory & ordering', 'Dentist clinic: private document analysis', 'School: AI tutor with no tracking', 'Neighbours: shared private assistant', 'Local business: AI without Big Tech dependency'].map((item, i) => (
+              {(neighbourhoodSurplus || []).map((item, i) => (
                 <li key={i} className="flex gap-2"><span style={{ color: 'var(--color-accent)' }}>→</span>{item}</li>
               ))}
             </ul>

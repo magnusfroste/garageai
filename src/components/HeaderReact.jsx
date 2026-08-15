@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 
-const Header = () => {
+const Header = ({ logo = '🏠 GARAGE AI', ctaText = 'Join the Movement', ctaUrl = 'https://github.com/magnusfroste/garageai/discussions', navLinks = [] } = {}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const scrollToSection = (sectionId) => {
@@ -12,16 +12,26 @@ const Header = () => {
     }
   };
 
-  const navLinks = [
-    { label: 'Home', action: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
-    { label: 'EU Analysis', action: () => scrollToSection('eu-analysis') },
-    { label: 'The Vision', action: () => scrollToSection('three-waves') },
-    { label: 'The Garage Node', action: () => scrollToSection('infrastructure') },
-    { label: 'For Business', action: () => scrollToSection('for-business') },
-    { label: 'Economy', action: () => scrollToSection('token-economy') },
-    { label: 'Roadmap', action: () => scrollToSection('roadmap') },
-    { label: 'FAQ', action: () => scrollToSection('faq') },
+  const defaultNavLinks = [
+    { label: 'Home', sectionId: null },
+    { label: 'EU Analysis', sectionId: 'eu-analysis' },
+    { label: 'The Vision', sectionId: 'three-waves' },
+    { label: 'The Garage Node', sectionId: 'infrastructure' },
+    { label: 'For Business', sectionId: 'for-business' },
+    { label: 'Economy', sectionId: 'token-economy' },
+    { label: 'Roadmap', sectionId: 'roadmap' },
+    { label: 'FAQ', sectionId: 'faq' },
   ];
+
+  const links = navLinks.length > 0 ? navLinks : defaultNavLinks;
+
+  const handleNavClick = (sectionId) => {
+    if (sectionId === null) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      scrollToSection(sectionId);
+    }
+  };
 
   return (
     <motion.nav
@@ -42,15 +52,15 @@ const Header = () => {
           whileHover={{ scale: 1.05 }}
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         >
-          🏠 GARAGE AI
+          {logo}
         </motion.div>
 
         {/* Desktop Menu */}
         <div className="hidden md:flex gap-6 text-sm">
-          {navLinks.map((link) => (
+          {links.map((link) => (
             <button
               key={link.label}
-              onClick={link.action}
+              onClick={() => handleNavClick(link.sectionId)}
               className="hover:text-cyan-400 transition"
               style={{ color: 'var(--color-text-secondary)' }}
             >
@@ -72,12 +82,12 @@ const Header = () => {
         </button>
 
         <motion.button
-          onClick={() => window.open('https://github.com/magnusfroste/garageai/discussions', '_blank')}
+          onClick={() => window.open(ctaUrl, '_blank')}
           className="apple-button-primary px-4 py-2 text-sm hidden md:block"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          Join the Movement
+          {ctaText}
         </motion.button>
       </div>
 
@@ -94,10 +104,10 @@ const Header = () => {
           }}
         >
           <div className="px-4 py-4 space-y-2">
-            {navLinks.map((link) => (
+            {links.map((link) => (
               <button
                 key={link.label}
-                onClick={link.action}
+                onClick={() => handleNavClick(link.sectionId)}
                 className="block w-full text-left py-2 hover:text-cyan-400 transition"
                 style={{ color: 'var(--color-text-secondary)' }}
               >

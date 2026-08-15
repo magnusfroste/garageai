@@ -7,11 +7,27 @@ interface UseCase {
   example: string;
 }
 
+interface VpsMapping {
+  from: string;
+  to: string;
+}
+
+interface BenefitColumn {
+  icon: string;
+  title: string;
+  color: string;
+  bg: string;
+  border: string;
+  points: string[];
+}
+
 interface Props {
   title: string;
   subtitle: string;
   description: string;
   useCases: UseCase[];
+  vpsMapping: VpsMapping[];
+  benefitColumns: BenefitColumn[];
   quote: {
     text: string;
     author: string;
@@ -22,15 +38,17 @@ interface Props {
   ctaUrl: string;
 }
 
-const { title, subtitle, description, useCases, quote, benefits, ctaText, ctaButtonText, ctaUrl } = Astro.props;
+const { title, subtitle, description, useCases, vpsMapping, benefitColumns, quote, benefits, ctaText, ctaButtonText, ctaUrl } = Astro.props;
 ---
 
-<B2BReact 
+<B2BReact
   client:load
   title={title}
   subtitle={subtitle}
   description={description}
   useCases={useCases}
+  vpsMapping={vpsMapping}
+  benefitColumns={benefitColumns}
   quote={quote}
   benefits={benefits}
   ctaText={ctaText}

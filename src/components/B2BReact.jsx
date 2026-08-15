@@ -10,7 +10,7 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 }
 };
 
-const useCases = [
+const defaultUseCases = [
   {
     icon: '🏥',
     sector: 'Healthcare',
@@ -43,7 +43,67 @@ const useCases = [
   },
 ];
 
-const B2B = () => {
+const defaultVpsMapping = [
+  { from: 'Virtual machine', to: 'Inference container' },
+  { from: 'Shared CPU/RAM', to: 'Shared GPU cluster' },
+  { from: 'Isolated OS', to: 'Isolated model runtime' },
+  { from: 'Your data = yours', to: 'Your prompts = yours' },
+  { from: 'Any OS/software', to: 'Any model (open or private)' },
+];
+
+const defaultBenefitColumns = [
+  {
+    icon: '🌱',
+    title: 'Reduced Carbon Footprint',
+    color: 'var(--color-primary)',
+    bg: 'rgba(0,255,136,0.05)',
+    border: 'rgba(0,255,136,0.2)',
+    points: [
+      'Inference runs on solar + V2G — renewable by default',
+      'No long-haul data transmission, no cooling overhead',
+      '85%+ less energy loss vs centralised data centers',
+      'Reportable in ESG disclosures (Scope 2 & 3 reduction)',
+      'Certified locally produced energy source',
+    ],
+  },
+  {
+    icon: '🔒',
+    title: 'Private Models on Shared Infrastructure',
+    color: 'var(--color-accent)',
+    bg: 'rgba(0,122,255,0.05)',
+    border: 'rgba(0,122,255,0.2)',
+    points: [
+      'Deploy proprietary fine-tuned models — not shared',
+      'Run open-weight models (Llama, Mistral, Qwen, etc.)',
+      'Isolated runtime: no cross-tenant model contamination',
+      'Model weights stay on your dedicated slice',
+      'Audit logs you control, not your vendor',
+    ],
+  },
+  {
+    icon: '🛡️',
+    title: 'Compliance by Design',
+    color: 'var(--color-warning)',
+    bg: 'rgba(255,214,10,0.05)',
+    border: 'rgba(255,214,10,0.2)',
+    points: [
+      'Data never crosses national or EU borders',
+      'No US Cloud Act exposure — no American jurisdiction',
+      'EU AI Act compliant architecture from day one',
+      'GDPR: data minimisation enforced at infrastructure level',
+      'No vendor lock-in, no pricing surprises',
+    ],
+  },
+];
+
+const B2B = ({
+  title = 'For Business',
+  description = 'When collective inference capacity exists locally, businesses gain something hyperscalers can never offer: sovereignty, privacy, and a provably smaller carbon footprint — all on shared infrastructure.',
+  useCases,
+  vpsMapping = defaultVpsMapping,
+  benefitColumns = defaultBenefitColumns,
+} = {}) => {
+  const useCaseList = useCases || defaultUseCases;
   return (
     <motion.section
       id="for-business"
@@ -54,7 +114,7 @@ const B2B = () => {
       viewport={{ once: true }}
     >
       <motion.h2 variants={itemVariants} className="apple-heading-1 mb-4 text-center">
-        For Business
+        {title}
       </motion.h2>
       <motion.p variants={itemVariants} className="apple-body mb-16 text-center max-w-2xl mx-auto">
         When collective inference capacity exists locally, businesses gain something hyperscalers
@@ -83,13 +143,7 @@ const B2B = () => {
           <div className="shrink-0 md:w-64">
             <div className="p-5 rounded-xl" style={{ background: 'rgba(0,122,255,0.07)', border: '1px solid rgba(0,122,255,0.2)' }}>
               <p className="text-xs font-black mb-4" style={{ color: 'var(--color-accent)' }}>VPS → AI Inference Mapping</p>
-              {[
-                ['Virtual machine', 'Inference container'],
-                ['Shared CPU/RAM', 'Shared GPU cluster'],
-                ['Isolated OS', 'Isolated model runtime'],
-                ['Your data = yours', 'Your prompts = yours'],
-                ['Any OS/software', 'Any model (open or private)'],
-              ].map(([from, to], i) => (
+              {(vpsMapping || []).map(({ from, to }, i) => (
                 <div key={i} className="flex items-center gap-2 text-xs mb-2" style={{ color: 'var(--color-text-secondary)' }}>
                   <span className="flex-1 text-right" style={{ color: 'var(--color-text-muted)' }}>{from}</span>
                   <span style={{ color: 'var(--color-accent)' }}>→</span>
@@ -103,50 +157,7 @@ const B2B = () => {
 
       {/* Three business benefits */}
       <motion.div variants={itemVariants} className="grid md:grid-cols-3 gap-6 mb-10">
-        {[
-          {
-            icon: '🌱',
-            title: 'Reduced Carbon Footprint',
-            color: 'var(--color-primary)',
-            bg: 'rgba(0,255,136,0.05)',
-            border: 'rgba(0,255,136,0.2)',
-            points: [
-              'Inference runs on solar + V2G — renewable by default',
-              'No long-haul data transmission, no cooling overhead',
-              '85%+ less energy loss vs centralised data centers',
-              'Reportable in ESG disclosures (Scope 2 & 3 reduction)',
-              'Certified locally produced energy source',
-            ],
-          },
-          {
-            icon: '🔒',
-            title: 'Private Models on Shared Infrastructure',
-            color: 'var(--color-accent)',
-            bg: 'rgba(0,122,255,0.05)',
-            border: 'rgba(0,122,255,0.2)',
-            points: [
-              'Deploy proprietary fine-tuned models — not shared',
-              'Run open-weight models (Llama, Mistral, Qwen, etc.)',
-              'Isolated runtime: no cross-tenant model contamination',
-              'Model weights stay on your dedicated slice',
-              'Audit logs you control, not your vendor',
-            ],
-          },
-          {
-            icon: '🛡️',
-            title: 'Compliance by Design',
-            color: 'var(--color-warning)',
-            bg: 'rgba(255,214,10,0.05)',
-            border: 'rgba(255,214,10,0.2)',
-            points: [
-              'Data never crosses national or EU borders',
-              'No US Cloud Act exposure — no American jurisdiction',
-              'EU AI Act compliant architecture from day one',
-              'GDPR: data minimisation enforced at infrastructure level',
-              'No vendor lock-in, no pricing surprises',
-            ],
-          },
-        ].map((col, i) => (
+        {(benefitColumns || []).map((col, i) => (
           <div key={i} className="p-6 rounded-xl" style={{ background: col.bg, border: `1px solid ${col.border}` }}>
             <div className="text-3xl mb-3">{col.icon}</div>
             <h4 className="font-bold mb-4" style={{ color: col.color }}>{col.title}</h4>
@@ -169,7 +180,7 @@ const B2B = () => {
           or sustainability targets is a natural fit for locally produced AI inference.
         </p>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {useCases.map((uc, i) => (
+          {(useCaseList || []).map((uc, i) => (
             <div
               key={i}
               className="p-5 rounded-xl"
