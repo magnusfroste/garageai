@@ -31,12 +31,28 @@ const cta = await getEntry('landing', 'cta');
 const footer = await getEntry('landing', 'footer');
 const faq = await getEntry('faq', 'general');
 const stats = await import('../content/stats/hero-stats.json');
+
+// FAQPage structured data (Answer Engine Optimization) — generated from the
+// same markdown the FAQ section renders, so it never drifts out of sync.
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: (faq.data.faqs ?? []).map((item) => ({
+    '@type': 'Question',
+    name: item.question,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: item.answer,
+    },
+  })),
+};
 ---
 
 <Layout
   title="Garage AI — Sweden's Sovereign AI Initiative | Your Garage. Europe's AI Engine."
   description="Sweden leads Europe's first decentralized AI infrastructure initiative. 75M garages. Solar + EV batteries + local inference."
 >
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(faqSchema)} />
   <ScrollProgress client:load />
 
   <Header {...header.data} />
