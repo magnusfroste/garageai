@@ -43,7 +43,7 @@ const stackLayers = [
     icon: '🖥️',
     title: 'AI Inference Node',
     subtitle: 'The Computing Layer',
-    details: 'A Mac Mini M4 Pro, RTX 4090 rig, or purpose-built inference server in your garage. Runs local models (Llama, Mistral, Qwen) at 15–120 tokens/sec. Consumes 300–600W.',
+    details: 'A Mac Mini M4 Pro, RTX 4090/5090 rig, or purpose-built inference server in your garage. Runs local models (Llama, Mistral, Qwen) at 15–120 tokens/sec. Consumes 300–600W.',
     color: 'var(--color-primary)',
   },
   {
