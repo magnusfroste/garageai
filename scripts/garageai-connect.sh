@@ -1,0 +1,233 @@
+#!/usr/bin/env bash
+# garageai-connect.sh — connect a garage inference node to the GarageAI mesh.
+#
+# Run this on the machine in your garage that serves models. It:
+#   1. installs the NetBird client if it is missing (open source, NetBird GmbH, Berlin)
+#   2. joins the private GarageAI WireGuard mesh using your setup key
+#   3. checks that your inference runtime answers an OpenAI-compatible API
+#      (Ollama, LM Studio, llama.cpp, vLLM, Paddock, Unsloth, ...)
+#   4. checks that the runtime is reachable on this node's mesh IP
+#   5. lists the models you offer and registers the node with GarageAI
+#      (or prints the details for manual registration)
+#
+# Your runtime is never exposed to the public internet: only the GarageAI
+# gateway can reach it, over the encrypted mesh. This script never needs the
+# gateway's LiteLLM master key.
+#
+# Usage:
+#   ./garageai-connect.sh --setup-key KEY --management-url https://netbird.example.eu \
+#       [--runtime ollama|lmstudio|llamacpp|vllm|paddock|unsloth|other] [--port PORT] \
+#       [--name NODE_NAME] [--register-url URL --register-token TOKEN] [--skip-install] [--yes]
+#
+# Every option can also be given as an environment variable:
+#   GARAGEAI_SETUP_KEY, GARAGEAI_MANAGEMENT_URL, GARAGEAI_RUNTIME, GARAGEAI_PORT,
+#   GARAGEAI_NODE_NAME, GARAGEAI_REGISTER_URL, GARAGEAI_REGISTER_TOKEN
+#
+# Supported: Linux and macOS. (Windows: install NetBird from netbird.io and run the
+# same steps manually for now.)
+
+set -euo pipefail
+
+SETUP_KEY="${GARAGEAI_SETUP_KEY:-}"
+MANAGEMENT_URL="${GARAGEAI_MANAGEMENT_URL:-}"
+RUNTIME="${GARAGEAI_RUNTIME:-ollama}"
+PORT="${GARAGEAI_PORT:-}"
+NODE_NAME="${GARAGEAI_NODE_NAME:-$(hostname -s 2>/dev/null || hostname)}"
+REGISTER_URL="${GARAGEAI_REGISTER_URL:-}"
+REGISTER_TOKEN="${GARAGEAI_REGISTER_TOKEN:-}"
+SKIP_INSTALL=0
+ASSUME_YES=0
+MESH_WAIT_SECONDS="${GARAGEAI_MESH_WAIT_SECONDS:-30}"
+
+bold() { printf '\033[1m%s\033[0m\n' "$*"; }
+info() { printf '  %s\n' "$*"; }
+ok()   { printf '  \033[32m✓\033[0m %s\n' "$*"; }
+warn() { printf '  \033[33m!\033[0m %s\n' "$*" >&2; }
+die()  { printf '  \033[31m✗\033[0m %s\n' "$*" >&2; exit 1; }
+
+usage() { sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --setup-key)      SETUP_KEY="${2:-}"; shift 2 ;;
+    --management-url) MANAGEMENT_URL="${2:-}"; shift 2 ;;
+    --runtime)        RUNTIME="${2:-}"; shift 2 ;;
+    --port)           PORT="${2:-}"; shift 2 ;;
+    --name)           NODE_NAME="${2:-}"; shift 2 ;;
+    --register-url)   REGISTER_URL="${2:-}"; shift 2 ;;
+    --register-token) REGISTER_TOKEN="${2:-}"; shift 2 ;;
+    --skip-install)   SKIP_INSTALL=1; shift ;;
+    --yes|-y)         ASSUME_YES=1; shift ;;
+    -h|--help)        usage 0 ;;
+    *) warn "Unknown option: $1"; usage 1 ;;
+  esac
+done
+
+default_port() {
+  case "$1" in
+    ollama)   echo 11434 ;;
+    lmstudio) echo 1234 ;;
+    llamacpp) echo 8080 ;;
+    vllm)     echo 8000 ;;
+    *)        echo "" ;;
+  esac
+}
+
+case "$RUNTIME" in
+  ollama|lmstudio|llamacpp|vllm|paddock|unsloth|other) ;;
+  *) die "Unknown runtime '$RUNTIME' (use ollama, lmstudio, llamacpp, vllm, paddock, unsloth or other)" ;;
+esac
+
+[ -n "$PORT" ] || PORT="$(default_port "$RUNTIME")"
+[ -n "$PORT" ] || die "Runtime '$RUNTIME' has no default port — pass --port with the port its OpenAI-compatible server listens on."
+case "$PORT" in *[!0-9]*|'') die "Invalid port: $PORT" ;; esac
+
+# Print how to start a runtime so that the mesh can reach it.
+runtime_hint() {
+  local bind="$1"
+  case "$RUNTIME" in
+    ollama)
+      info "Ollama listens on 127.0.0.1 by default. Start it bound to the mesh:"
+      info "    OLLAMA_HOST=${bind}:${PORT} ollama serve"
+      info "  On Linux with the systemd service: sudo systemctl edit ollama, add"
+      info "    [Service]"
+      info "    Environment=\"OLLAMA_HOST=${bind}:${PORT}\""
+      info "  then: sudo systemctl restart ollama" ;;
+    lmstudio)
+      info "LM Studio: Developer tab → start the server on port ${PORT} and enable"
+      info "  \"Serve on Local Network\" so it is not bound to 127.0.0.1 only." ;;
+    llamacpp)
+      info "llama.cpp:"
+      info "    llama-server -m /path/to/model.gguf --host ${bind} --port ${PORT}" ;;
+    vllm)
+      info "vLLM:"
+      info "    vllm serve <model> --host ${bind} --port ${PORT}" ;;
+    paddock|unsloth|other)
+      info "Start the ${RUNTIME} OpenAI-compatible server on port ${PORT}, bound to"
+      info "  ${bind} instead of 127.0.0.1 (see its documentation for the bind option)." ;;
+  esac
+}
+
+as_root() {
+  if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo "$@"; fi
+}
+
+confirm() {
+  [ "$ASSUME_YES" -eq 1 ] && return 0
+  printf '  %s [y/N] ' "$1"
+  local answer=""
+  read -r answer || true
+  case "$answer" in y|Y|yes|YES) return 0 ;; *) return 1 ;; esac
+}
+
+http_models() {
+  # Prints one model id per line, or fails if no OpenAI-compatible API answers.
+  curl -fsS --max-time 5 "http://$1:${PORT}/v1/models" | jq -er '.data[].id'
+}
+
+mesh_ip() {
+  local ip=""
+  ip="$(netbird status --json 2>/dev/null | jq -r '.netbirdIp // empty' 2>/dev/null || true)"
+  if [ -z "$ip" ]; then
+    ip="$(netbird status 2>/dev/null | awk -F': *' '/NetBird IP/ {print $2; exit}' || true)"
+  fi
+  printf '%s' "${ip%%/*}"
+}
+
+bold "GarageAI node connect — ${NODE_NAME}"
+echo
+
+# 0. Prerequisites
+for tool in curl jq; do
+  command -v "$tool" >/dev/null 2>&1 || die "'$tool' is required (e.g. 'sudo apt install $tool' or 'brew install $tool')."
+done
+
+# 1. NetBird client
+bold "1/5  NetBird client"
+if command -v netbird >/dev/null 2>&1; then
+  ok "netbird is installed ($(netbird version 2>/dev/null || echo 'unknown version'))"
+elif [ "$SKIP_INSTALL" -eq 1 ]; then
+  die "netbird is not installed and --skip-install was given."
+else
+  info "NetBird is not installed. It will be installed from https://pkgs.netbird.io/install.sh"
+  confirm "Install NetBird now?" || die "Aborted. Install NetBird yourself (https://netbird.io) and re-run."
+  curl -fsSL https://pkgs.netbird.io/install.sh | sh
+  command -v netbird >/dev/null 2>&1 || die "NetBird installation did not put 'netbird' on PATH."
+  ok "netbird installed"
+fi
+echo
+
+# 2. Join the mesh
+bold "2/5  Join the GarageAI mesh"
+MESH_IP="$(mesh_ip)"
+if [ -n "$MESH_IP" ] && [ -z "$SETUP_KEY" ]; then
+  ok "Already on the mesh (no setup key given, keeping the current connection)"
+else
+  [ -n "$SETUP_KEY" ] || die "No setup key. Pass --setup-key (you get one from GarageAI)."
+  [ -n "$MANAGEMENT_URL" ] || die "No management URL. Pass --management-url (you get it from GarageAI)."
+  # The setup key goes in the environment, not on the command line, so it does
+  # not show up in the process list.
+  as_root env NB_SETUP_KEY="$SETUP_KEY" netbird up --management-url "$MANAGEMENT_URL" >/dev/null
+  waited=0
+  MESH_IP="$(mesh_ip)"
+  while [ -z "$MESH_IP" ] && [ "$waited" -lt "$MESH_WAIT_SECONDS" ]; do
+    sleep 1; waited=$((waited + 1)); MESH_IP="$(mesh_ip)"
+  done
+fi
+[ -n "$MESH_IP" ] || die "Could not get a mesh IP. Check 'netbird status' and that the setup key is valid."
+ok "Mesh IP: ${MESH_IP}"
+echo
+
+# 3. Local runtime
+bold "3/5  Inference runtime (${RUNTIME}, port ${PORT})"
+if LOCAL_MODELS="$(http_models 127.0.0.1)"; then
+  ok "OpenAI-compatible API answers on 127.0.0.1:${PORT}"
+elif LOCAL_MODELS="$(http_models "$MESH_IP")"; then
+  ok "OpenAI-compatible API answers on ${MESH_IP}:${PORT}"
+else
+  warn "No OpenAI-compatible API answered on port ${PORT}."
+  runtime_hint "$MESH_IP"
+  die "Start your runtime and run this script again."
+fi
+[ -n "$LOCAL_MODELS" ] || die "The runtime answered but lists no models. Load or pull a model first."
+echo
+
+# 4. Reachable over the mesh
+bold "4/5  Reachable over the mesh"
+if MODELS="$(http_models "$MESH_IP")"; then
+  ok "Reachable on ${MESH_IP}:${PORT}"
+else
+  warn "The runtime only listens on 127.0.0.1, so the gateway cannot reach it."
+  runtime_hint "$MESH_IP"
+  info "Binding to the mesh IP (${MESH_IP}) keeps the runtime off your home LAN."
+  info "Binding to 0.0.0.0 also works, but then anything on your LAN can reach it too."
+  die "Restart the runtime bound to the mesh and run this script again."
+fi
+echo "$MODELS" | while IFS= read -r m; do info "model: $m"; done
+echo
+
+# 5. Register
+bold "5/5  Register with GarageAI"
+MODELS_JSON="$(printf '%s\n' "$MODELS" | jq -R . | jq -sc .)"
+PAYLOAD="$(jq -nc \
+  --arg name "$NODE_NAME" --arg mesh_ip "$MESH_IP" --argjson port "$PORT" \
+  --arg runtime "$RUNTIME" --argjson models "$MODELS_JSON" \
+  '{name: $name, mesh_ip: $mesh_ip, port: $port, runtime: $runtime, models: $models}')"
+
+if [ -n "$REGISTER_URL" ]; then
+  [ -n "$REGISTER_TOKEN" ] || die "--register-url given without --register-token."
+  curl -fsS --max-time 15 -X POST "$REGISTER_URL" \
+    -H "Authorization: Bearer ${REGISTER_TOKEN}" \
+    -H "Content-Type: application/json" \
+    -d "$PAYLOAD" >/dev/null || die "Registration request to ${REGISTER_URL} failed."
+  ok "Node registered — your garage is live on GarageAI."
+else
+  info "No --register-url given. Send these details to GarageAI to activate the node:"
+  echo
+  echo "$PAYLOAD" | jq .
+  echo
+  info "Admin command (run by GarageAI on the gateway):"
+  # Word-splitting is intended: one argument per model id.
+  # shellcheck disable=SC2086,SC2116
+  info "  infra/gateway/register-node.sh add ${NODE_NAME} ${MESH_IP} ${PORT} $(echo $MODELS)"
+fi
