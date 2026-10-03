@@ -1,0 +1,19 @@
+# LiteLLM configuration for the GarageAI gateway.
+#
+# There is no model_list here on purpose: garage models are added and removed at
+# runtime by infra/gateway/register-node.sh (STORE_MODEL_IN_DB=True).
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+
+litellm_settings:
+  drop_params: true        # ignore OpenAI params a garage runtime doesn't support
+  request_timeout: 600     # long generations on consumer GPUs
+
+# Residential nodes drop out more often than datacenter ones: retry on another
+# garage in the pool and take a failing garage out of rotation quickly.
+router_settings:
+  routing_strategy: latency-based-routing
+  num_retries: 2
+  allowed_fails: 2
+  cooldown_time: 60

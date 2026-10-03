@@ -1,0 +1,68 @@
+# LiteLLM gateway for GarageAI.
+#
+# Runs on the same VPS as the NetBird stack and is published through NetBird's
+# built-in Traefik (entrypoint "websecure", cert resolver "letsencrypt"), so the
+# VPS has a single reverse proxy and a single set of certificates.
+#
+# Start the NetBird stack first: this file joins its Docker network.
+#   cp .env.example .env   # then fill in the values
+#   docker compose up -d
+
+name: garageai-litellm
+
+services:
+  litellm:
+    image: ghcr.io/berriai/litellm:${LITELLM_VERSION:-v1.103.2}
+    restart: unless-stopped
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    environment:
+      DATABASE_URL: postgresql://litellm:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/litellm
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:?set LITELLM_MASTER_KEY in .env}
+      LITELLM_SALT_KEY: ${LITELLM_SALT_KEY:?set LITELLM_SALT_KEY in .env}
+      # Lets register-node.sh add and remove garage models at runtime.
+      STORE_MODEL_IN_DB: "True"
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal, netbird]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${NETBIRD_NETWORK:?set NETBIRD_NETWORK in .env}
+      - traefik.http.routers.litellm.rule=Host(`${LITELLM_DOMAIN:?set LITELLM_DOMAIN in .env}`)
+      - traefik.http.routers.litellm.entrypoints=websecure
+      - traefik.http.routers.litellm.tls=true
+      - traefik.http.routers.litellm.tls.certresolver=letsencrypt
+      - traefik.http.services.litellm.loadbalancer.server.port=4000
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: litellm
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: litellm
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Not on the netbird network and no published port: only LiteLLM reaches it.
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U litellm -d litellm"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+networks:
+  internal: {}
+  netbird:
+    name: ${NETBIRD_NETWORK:?set NETBIRD_NETWORK in .env}
+    external: true
+
+volumes:
+  pgdata:
