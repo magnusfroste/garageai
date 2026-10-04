@@ -16,6 +16,9 @@
 #   LITELLM_URL         Gateway base URL, e.g. https://llm.example.eu
 #   LITELLM_MASTER_KEY  LiteLLM master key (keep it on the gateway side only)
 #   POOL                1 (default) to also register the shared pool entry, 0 to skip
+#   NODE_API_KEY        API key the garage runtime requires (e.g. vLLM --api-key).
+#                       Stored encrypted in LiteLLM, never sent to buyers. Defaults to
+#                       a placeholder for runtimes without auth, such as Ollama.
 #
 # LiteLLM must run with STORE_MODEL_IN_DB=True so models can be changed at runtime.
 
@@ -24,9 +27,10 @@ set -euo pipefail
 : "${LITELLM_URL:?Set LITELLM_URL, e.g. https://llm.example.eu}"
 : "${LITELLM_MASTER_KEY:?Set LITELLM_MASTER_KEY}"
 POOL="${POOL:-1}"
+NODE_API_KEY="${NODE_API_KEY:-garage-node}"
 LITELLM_URL="${LITELLM_URL%/}"
 
-usage() { sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 api() {
   # api METHOD PATH [JSON]
@@ -57,8 +61,9 @@ add_deployment() {
     --arg model "openai/${model}" \
     --arg api_base "http://${ip}:${port}/v1" \
     --arg id "$id" \
+    --arg api_key "$NODE_API_KEY" \
     '{model_name: $model_name,
-      litellm_params: {model: $model, api_base: $api_base, api_key: "garage-node"},
+      litellm_params: {model: $model, api_base: $api_base, api_key: $api_key},
       model_info: {id: $id}}')"
   # Re-registering after a node changes IP: drop the old entry first.
   api POST /model/delete "$(jq -nc --arg id "$id" '{id: $id}')" >/dev/null 2>&1 || true
