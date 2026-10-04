@@ -17,11 +17,16 @@
 # Usage:
 #   ./garageai-connect.sh --setup-key KEY --management-url https://netbird.example.eu \
 #       [--runtime ollama|lmstudio|llamacpp|vllm|paddock|unsloth|other] [--port PORT] \
-#       [--name NODE_NAME] [--register-url URL --register-token TOKEN] [--skip-install] [--yes]
+#       [--name NODE_NAME] [--runtime-api-key KEY] [--register-url URL --register-token TOKEN] \
+#       [--skip-install] [--yes]
+#
+# --runtime-api-key is for runtimes started with an API key (e.g. vLLM --api-key). It is
+# used to query the runtime and is sent to GarageAI with the registration, so the gateway
+# can call the runtime. It is never shown to buyers.
 #
 # Every option can also be given as an environment variable:
 #   GARAGEAI_SETUP_KEY, GARAGEAI_MANAGEMENT_URL, GARAGEAI_RUNTIME, GARAGEAI_PORT,
-#   GARAGEAI_NODE_NAME, GARAGEAI_REGISTER_URL, GARAGEAI_REGISTER_TOKEN
+#   GARAGEAI_NODE_NAME, GARAGEAI_RUNTIME_API_KEY, GARAGEAI_REGISTER_URL, GARAGEAI_REGISTER_TOKEN
 #
 # Supported: Linux and macOS. (Windows: install NetBird from netbird.io and run the
 # same steps manually for now.)
@@ -33,6 +38,7 @@ MANAGEMENT_URL="${GARAGEAI_MANAGEMENT_URL:-}"
 RUNTIME="${GARAGEAI_RUNTIME:-ollama}"
 PORT="${GARAGEAI_PORT:-}"
 NODE_NAME="${GARAGEAI_NODE_NAME:-$(hostname -s 2>/dev/null || hostname)}"
+RUNTIME_API_KEY="${GARAGEAI_RUNTIME_API_KEY:-}"
 REGISTER_URL="${GARAGEAI_REGISTER_URL:-}"
 REGISTER_TOKEN="${GARAGEAI_REGISTER_TOKEN:-}"
 SKIP_INSTALL=0
@@ -45,7 +51,7 @@ ok()   { printf '  \033[32m✓\033[0m %s\n' "$*"; }
 warn() { printf '  \033[33m!\033[0m %s\n' "$*" >&2; }
 die()  { printf '  \033[31m✗\033[0m %s\n' "$*" >&2; exit 1; }
 
-usage() { sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,32p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -54,6 +60,7 @@ while [ $# -gt 0 ]; do
     --runtime)        RUNTIME="${2:-}"; shift 2 ;;
     --port)           PORT="${2:-}"; shift 2 ;;
     --name)           NODE_NAME="${2:-}"; shift 2 ;;
+    --runtime-api-key) RUNTIME_API_KEY="${2:-}"; shift 2 ;;
     --register-url)   REGISTER_URL="${2:-}"; shift 2 ;;
     --register-token) REGISTER_TOKEN="${2:-}"; shift 2 ;;
     --skip-install)   SKIP_INSTALL=1; shift ;;
@@ -122,7 +129,9 @@ confirm() {
 
 http_models() {
   # Prints one model id per line, or fails if no OpenAI-compatible API answers.
-  curl -fsS --max-time 5 "http://$1:${PORT}/v1/models" | jq -er '.data[].id'
+  local auth=()
+  [ -n "$RUNTIME_API_KEY" ] && auth=(-H "Authorization: Bearer ${RUNTIME_API_KEY}")
+  curl -fsS --max-time 5 ${auth[@]+"${auth[@]}"} "http://$1:${PORT}/v1/models" | jq -er '.data[].id'
 }
 
 mesh_ip() {
@@ -211,8 +220,9 @@ bold "5/5  Register with GarageAI"
 MODELS_JSON="$(printf '%s\n' "$MODELS" | jq -R . | jq -sc .)"
 PAYLOAD="$(jq -nc \
   --arg name "$NODE_NAME" --arg mesh_ip "$MESH_IP" --argjson port "$PORT" \
-  --arg runtime "$RUNTIME" --argjson models "$MODELS_JSON" \
-  '{name: $name, mesh_ip: $mesh_ip, port: $port, runtime: $runtime, models: $models}')"
+  --arg runtime "$RUNTIME" --argjson models "$MODELS_JSON" --arg runtime_api_key "$RUNTIME_API_KEY" \
+  '{name: $name, mesh_ip: $mesh_ip, port: $port, runtime: $runtime, models: $models}
+   + (if $runtime_api_key != "" then {runtime_api_key: $runtime_api_key} else {} end)')"
 
 if [ -n "$REGISTER_URL" ]; then
   [ -n "$REGISTER_TOKEN" ] || die "--register-url given without --register-token."
@@ -224,10 +234,12 @@ if [ -n "$REGISTER_URL" ]; then
 else
   info "No --register-url given. Send these details to GarageAI to activate the node:"
   echo
-  echo "$PAYLOAD" | jq .
+  echo "$PAYLOAD" | jq 'del(.runtime_api_key)'
   echo
   info "Admin command (run by GarageAI on the gateway):"
+  key_hint=""
+  [ -n "$RUNTIME_API_KEY" ] && key_hint="NODE_API_KEY=<runtime API key> "
   # Word-splitting is intended: one argument per model id.
   # shellcheck disable=SC2086,SC2116
-  info "  infra/gateway/register-node.sh add ${NODE_NAME} ${MESH_IP} ${PORT} $(echo $MODELS)"
+  info "  ${key_hint}infra/gateway/register-node.sh add ${NODE_NAME} ${MESH_IP} ${PORT} $(echo $MODELS)"
 fi

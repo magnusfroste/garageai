@@ -142,6 +142,13 @@ infra/gateway/register-node.sh list
 infra/gateway/register-node.sh remove garage-lund qwen3:32b     # when they stop sharing
 ```
 
+If the runtime requires an API key (for example vLLM started with `--api-key`), pass it in
+`NODE_API_KEY`. LiteLLM stores it encrypted and buyers never see it:
+
+```bash
+NODE_API_KEY=sk-... infra/gateway/register-node.sh add garage-lund 100.92.1.7 8000 glm-5.3-flash
+```
+
 First end-to-end test:
 
 ```bash
