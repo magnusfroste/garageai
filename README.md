@@ -12,24 +12,30 @@ GarageAI is a marketplace for local AI inference. Garage owners offer GPUs they 
 
 ## How it works
 
+Two sides, one marketplace. One account can do both, and can own several garages.
+
 ```
-Buyers ──HTTPS──▶ LiteLLM gateway (EU VPS) ──private WireGuard mesh──▶ garages
-                  one OpenAI-compatible API                            Ollama · LM Studio · llama.cpp · vLLM · …
-```
-
-- **The mesh** — every garage joins a private WireGuard mesh run on self-hosted [NetBird](https://netbird.io). Garages open no inbound ports and are never exposed to the public internet.
-- **The gateway** — [LiteLLM](https://github.com/BerriAI/litellm) on an EU VPS is the API buyers call. It routes each request over the mesh to a garage, counts tokens per key and model, and handles retries and failover.
-- **The garage** — operators keep their own macOS or Linux machine and whichever runtime they like. A heartbeat reports the models currently loaded, so what GarageAI sells follows what the garage runs.
-
-## Connect a garage
-
-Sign up as an operator at [app.garageai.eu](https://app.garageai.eu/auth?intent=operator) to get a setup key, then on the machine that serves your models:
-
-```bash
-./scripts/garageai-connect.sh --setup-key <KEY> --management-url <URL> --runtime ollama
+Buyers ──HTTPS──▶ LiteLLM gateway (EU) ──private WireGuard mesh──▶ garages
+                  llm.garageai.eu/v1                                Ollama · LM Studio · llama.cpp · vLLM · SGLang · Paddock
 ```
 
-The script installs the NetBird client, joins the mesh, checks that your runtime answers on its mesh IP, registers the models you offer, and installs the heartbeat. Run it with `--help` for every option.
+### Use AI
+
+1. **Sign up and add credits** at [app.garageai.eu](https://app.garageai.eu/auth?intent=buyer) — prepaid, pay per token, no subscription.
+2. **Create an API key.** The API at `https://llm.garageai.eu/v1` is OpenAI-compatible: change the base URL and the OpenAI SDKs, agents and coding tools just work.
+3. **Pick a model and how to buy it** — **Pool** (cheaper, load-balanced across every garage offering that model, with automatic failover) or a **Specific garage** (a named garage, for example when location matters).
+
+### Offer your GPU
+
+1. **Start the "Offer your GPU" wizard** at [app.garageai.eu](https://app.garageai.eu/auth?intent=operator) — macOS or Linux (Windows coming soon) with Ollama, LM Studio, llama.cpp, vLLM, SGLang or Paddock (beta).
+2. **Run one command.** [`scripts/garageai-connect.sh`](scripts/garageai-connect.sh) installs the [NetBird](https://netbird.io) client, joins your machine to the encrypted mesh, registers your models and installs a heartbeat that keeps the offered models in sync. No inbound ports are opened.
+3. **Pass the acceptance test.** Every model is tested through the gateway with a real streamed request — time-to-first-token and tokens per second are measured before it can be sold.
+4. **Go live and earn** the token price buyers pay for every request your garage serves. No platform fee during launch.
+
+### Under the hood
+
+- **The mesh** — self-hosted NetBird gives every garage a private WireGuard connection to the gateway. Garages are never exposed to the public internet.
+- **The gateway** — [LiteLLM](https://github.com/BerriAI/litellm) on an EU VPS routes each request over the mesh, counts tokens per key and model, and handles retries and failover. Setup: [`infra/gateway/`](infra/gateway/README.md).
 
 ## Repository
 
