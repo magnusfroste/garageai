@@ -10,12 +10,17 @@ general_settings:
 
 litellm_settings:
   drop_params: true        # ignore OpenAI params a garage runtime doesn't support
-  request_timeout: 600     # long generations on consumer GPUs
+  request_timeout: 300     # longest wait for a non-streamed reply (read timeout)
 
 # Residential nodes drop out more often than datacenter ones: retry on another
 # garage in the pool and take a failing garage out of rotation quickly.
 router_settings:
   routing_strategy: latency-based-routing
-  num_retries: 2
+  # Streaming: give up when a garage sends nothing for 120 s (time between chunks,
+  # so long answers are not cut; long enough for a cold model to load).
+  stream_timeout: 120
+  # One retry: with a single garage per model a second retry only hits the same
+  # dead garage again and keeps the buyer waiting.
+  num_retries: 1
   allowed_fails: 2
   cooldown_time: 60
