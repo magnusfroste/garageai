@@ -175,8 +175,10 @@ else
   [ -n "$SETUP_KEY" ] || die "No setup key. Pass --setup-key (you get one from GarageAI)."
   [ -n "$MANAGEMENT_URL" ] || die "No management URL. Pass --management-url (you get it from GarageAI)."
   # The setup key goes in the environment, not on the command line, so it does
-  # not show up in the process list.
-  as_root env NB_SETUP_KEY="$SETUP_KEY" netbird up --management-url "$MANAGEMENT_URL" >/dev/null
+  # not show up in the process list. The peer is named after the node, so the
+  # gateway sees "garage-lund" rather than the machine's hostname.
+  as_root env NB_SETUP_KEY="$SETUP_KEY" netbird up --management-url "$MANAGEMENT_URL" \
+    --hostname "$NODE_NAME" >/dev/null
   waited=0
   MESH_IP="$(mesh_ip)"
   while [ -z "$MESH_IP" ] && [ "$waited" -lt "$MESH_WAIT_SECONDS" ]; do
