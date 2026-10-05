@@ -9,7 +9,7 @@ faqs:
   - question: "What hardware do I need to offer my GPU?"
     answer: "A machine that can run an open model with acceptable speed: typically a Mac with Apple silicon or a Linux machine with a capable GPU. There is no fixed minimum spec. Every model has to pass an automated acceptance test through the gateway, which measures time-to-first-token and tokens per second, before it can be sold."
   - question: "Which operating systems and runtimes are supported?"
-    answer: "macOS and Linux. Windows is not supported yet. Supported runtimes are Ollama, LM Studio, llama.cpp and vLLM. You keep your own OS and runtime; the onboarding wizard shows how to prepare the runtime, and one command installs the NetBird client, joins the encrypted mesh and registers your models."
+    answer: "macOS and Linux. Windows is not supported yet. Supported runtimes are Ollama, LM Studio, llama.cpp, vLLM, SGLang and Paddock (beta). Unsloth, MLX on Apple Silicon and Lemonade on AMD also work. You keep your own OS and runtime; the onboarding wizard shows how to prepare the runtime, and one command installs the NetBird client, joins the encrypted mesh and registers your models."
   - question: "Do I need to open ports on my router?"
     answer: "No. Your machine joins a WireGuard mesh (self-hosted NetBird) with an outgoing connection. You open no inbound ports, garages cannot reach each other, and only the GarageAI gateway can reach your runtime."
   - question: "Is my data safe?"

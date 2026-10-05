@@ -9,7 +9,7 @@ layers:
     icon: "🖥️"
     title: "Your machine and your runtime"
     subtitle: "Operator side"
-    details: "Your own macOS or Linux machine with Ollama, LM Studio, llama.cpp or vLLM. GarageAI doesn't replace your OS and doesn't need a special image. It talks to the runtime's OpenAI-compatible endpoint."
+    details: "Your own macOS or Linux machine with Ollama, LM Studio, llama.cpp, vLLM, SGLang or Paddock (beta). GarageAI doesn't replace your OS and doesn't need a special image. It talks to the runtime's OpenAI-compatible endpoint."
     color: "var(--color-primary)"
   - step: "02"
     icon: "🔐"

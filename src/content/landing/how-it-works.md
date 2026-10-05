@@ -26,7 +26,7 @@ tracks:
     color: "var(--color-primary)"
     steps:
       - title: "Start the “Offer your GPU” wizard"
-        text: "Sign up and pick your OS (macOS or Linux; Windows is not supported yet) and your runtime: Ollama, LM Studio, llama.cpp or vLLM. The wizard shows how to prepare it."
+        text: "Sign up and pick your OS (macOS or Linux; Windows is not supported yet) and your runtime: Ollama, LM Studio, llama.cpp, vLLM, SGLang or Paddock (beta). The wizard shows how to prepare it."
       - title: "Run one command"
         text: "It installs the NetBird client, joins your machine to the encrypted GarageAI mesh and registers your models. You don't open any inbound ports."
       - title: "Pass the acceptance test"
