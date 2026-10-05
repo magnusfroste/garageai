@@ -4,19 +4,20 @@
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 SCRIPT=./garageai-connect.sh
-PORT=18000
+# A free port, so the test does not depend on what the machine already runs.
+PORT="$(python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')"
 fails=0
 check() { # check "name" "expected text" "actual output"
   if printf '%s' "$3" | grep -qF -- "$2"; then printf '  ok    %s\n' "$1"
   else printf '  FAIL  %s\n        expected: %s\n        got:\n' "$1" "$2"; printf '%s\n' "$3" | sed 's/^/          /'; fails=$((fails + 1)); fi
 }
 start_runtime() {
-  python3 tests/fake_runtime.py "$1" & RT=$!
+  python3 tests/fake_runtime.py "$1" "$PORT" 2>/tmp/fake_runtime.err & RT=$!
   for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
     curl -fsS --max-time 1 "http://127.0.0.1:$PORT/v1/models" >/dev/null 2>&1 && return 0
     sleep 0.5
   done
-  echo "  FAIL  fake runtime did not start on $1:$PORT"; fails=$((fails + 1))
+  echo "  FAIL  fake runtime did not start on $1:$PORT"; sed 's/^/          /' /tmp/fake_runtime.err; fails=$((fails + 1))
 }
 stop_runtime() { kill "$RT" 2>/dev/null; wait "$RT" 2>/dev/null; }
 
