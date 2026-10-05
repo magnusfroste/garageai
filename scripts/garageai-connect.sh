@@ -289,6 +289,15 @@ UNIT
   esac
 }
 
+listen_addrs() {
+  # Local addresses the runtime listens on for $PORT, one per line ("*" = all).
+  if command -v ss >/dev/null 2>&1; then
+    ss -ltnH "sport = :${PORT}" 2>/dev/null | awk '{print $4}' | sed 's/:[0-9]*$//; s/%.*//' | sort -u
+  elif command -v lsof >/dev/null 2>&1; then
+    lsof -nP -iTCP:"${PORT}" -sTCP:LISTEN 2>/dev/null | awk 'NR > 1 {print $9}' | sed 's/:[0-9]*$//' | sort -u
+  fi
+}
+
 mesh_ip() {
   local ip=""
   ip="$(netbird status --json 2>/dev/null | jq -r '.netbirdIp // empty' 2>/dev/null || true)"
@@ -365,15 +374,27 @@ fi
 echo
 
 # 4. Reachable over the mesh
+# NetBird filters a node's traffic to its own mesh IP, so on many systems (macOS in
+# particular) we cannot test the mesh path from here. Try it, and otherwise check which
+# address the runtime listens on; the gateway's acceptance test then proves the path.
 bold "4/5  Reachable over the mesh"
-if MODELS="$(http_models "$MESH_IP")"; then
+PROBE_HOST="$MESH_IP"
+if MODELS="$(http_models "$MESH_IP" 2>/dev/null)"; then
   ok "Reachable on ${MESH_IP}:${PORT}"
 else
-  warn "The runtime only listens on 127.0.0.1, so the gateway cannot reach it."
-  runtime_hint "$MESH_IP"
-  info "Binding to the mesh IP (${MESH_IP}) keeps the runtime off your home LAN."
-  info "Binding to 0.0.0.0 also works, but then anything on your LAN can reach it too."
-  die "Restart the runtime bound to the mesh and run this script again."
+  LISTEN="$(listen_addrs)"
+  if printf '%s\n' "$LISTEN" | grep -qxE "\\*|0\\.0\\.0\\.0|\\[::\\]|::|${MESH_IP//./\\.}"; then
+    PROBE_HOST=127.0.0.1
+    printf '%s\n' "$LISTEN" | grep -qx "$MESH_IP" && PROBE_HOST="$MESH_IP"
+    MODELS="$(http_models "$PROBE_HOST")" || die "The runtime stopped answering on ${PROBE_HOST}:${PORT}."
+    ok "Listening on $(printf '%s' "$LISTEN" | tr '\n' ' ')(port ${PORT}); the gateway verifies the mesh path next"
+  else
+    warn "The runtime only listens on ${LISTEN:-127.0.0.1}, so the gateway cannot reach it."
+    runtime_hint "0.0.0.0"
+    info "0.0.0.0 makes it reachable over the mesh. Devices on your own LAN can reach it too;"
+    info "  nothing on the internet can, unless your router forwards port ${PORT}."
+    die "Restart the runtime bound to the mesh and run this script again."
+  fi
 fi
 echo "$MODELS" | while IFS= read -r m; do info "model: $m"; done
 
@@ -382,7 +403,7 @@ FIRST_MODEL="$(printf '%s\n' "$MODELS" | head -n 1)"
 usage_auth=()
 [ -n "$RUNTIME_API_KEY" ] && usage_auth=(-H "Authorization: Bearer ${RUNTIME_API_KEY}")
 if curl -fsS -N --max-time 120 ${usage_auth[@]+"${usage_auth[@]}"} \
-     -H "Content-Type: application/json" "http://${MESH_IP}:${PORT}/v1/chat/completions" \
+     -H "Content-Type: application/json" "http://${PROBE_HOST}:${PORT}/v1/chat/completions" \
      -d "$(jq -nc --arg m "$FIRST_MODEL" '{model: $m, max_tokens: 1, stream: true,
            stream_options: {include_usage: true}, messages: [{role: "user", content: "hi"}]}')" \
      2>/dev/null | grep -q '"usage" *: *{'; then
