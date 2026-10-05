@@ -204,6 +204,27 @@ request carries the master key, and returns 403 otherwise. Buyer keys therefore 
 `/model/info` (garage addresses) or call `/health` (real inference on every garage).
 After rotating the master key, recreate the container (`docker compose up -d`) so the rule follows.
 
+## Garage health checks (levels 1 and 2)
+
+`health/garageai-health.py` (installed to `/usr/local/bin/garageai-health`, run every minute by
+`garageai-health.timer`) checks every garage from the gateway, which is the only place that can
+reach the mesh:
+
+| Level | Check | Cost |
+|---|---|---|
+| 1. Tunnel | NetBird peer connected to the management server | none |
+| 2. Runtime | `GET /v1/models` on the garage's runtime over the mesh (5 s timeout) | none, no generation |
+| 3. Model | Acceptance test and hourly probe, run by the portal through LiteLLM | GPU time |
+
+It fetches its targets from the portal (`/functions/v1/gateway-targets`) and reports to
+`/functions/v1/gateway-health-report`, authenticating with the LiteLLM master key. Until those
+endpoints exist it reads `/etc/garageai/health-targets.json` and only writes
+`/var/lib/garageai-health/last.json`. Config: `/etc/garageai/gateway-health.env` (root, 0600).
+
+The portal uses levels 1 and 2 to delist and relist within a minute without any token: relisting
+needs only the stored runtime key and the garage's offered models. Level 3 sets the grade and
+removes a model only after repeated real failures.
+
 ## Backups
 
 `backup/garageai-backup` (installed to `/usr/local/sbin`, run nightly by `garageai-backup.timer`)

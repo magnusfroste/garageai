@@ -1,0 +1,8 @@
+[Unit]
+Description=GarageAI garage health checks (tunnel and runtime)
+After=network-online.target netbird.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/garageai/gateway-health.env
+ExecStart=/usr/local/bin/garageai-health
