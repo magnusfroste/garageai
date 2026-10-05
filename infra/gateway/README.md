@@ -194,6 +194,23 @@ LiteLLM's spend tracking per key and model is the basis for operator payouts.
 - **Scale out later:** the same files move unchanged to a bigger VPS, or LiteLLM and NetBird can
   be split onto separate machines.
 
+## Locked-down admin API
+
+Traefik only exposes the LLM API publicly (`/v1/chat/completions`, `/v1/completions`,
+`/v1/embeddings`, `/v1/models`, `/v1/messages`, `/v1/responses`, the non-`/v1` aliases and
+`/health/liveliness|readiness`), rate limited per client IP. Every other route (admin UI, `/sso`,
+`/openapi.json`, `/model/*`, `/key/*`, `/user/*`, `/spend/*`, `/health`) is only routed when the
+request carries the master key, and returns 403 otherwise. Buyer keys therefore cannot read
+`/model/info` (garage addresses) or call `/health` (real inference on every garage).
+After rotating the master key, recreate the container (`docker compose up -d`) so the rule follows.
+
+## Backups
+
+`backup/garageai-backup` (installed to `/usr/local/sbin`, run nightly by `garageai-backup.timer`)
+writes the LiteLLM database, `.env`, NetBird `config.yaml`, the NetBird data volume and the
+certificates to `/var/backups/garageai`, keeping 7 days. This only protects against corruption
+and mistakes: copy the archives off-site (encrypted) as well.
+
 ## Security notes
 
 - The LiteLLM master key stays on the gateway side. Garage nodes never see it, and
