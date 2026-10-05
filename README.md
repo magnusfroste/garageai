@@ -55,6 +55,8 @@ npm run dev     # the site on localhost
 
 Contributions are welcome — see [CONTRIBUTING.md](docs/CONTRIBUTING.md). To report a vulnerability, see [SECURITY.md](docs/SECURITY.md).
 
+Offering your GPU? [Security for garage owners](docs/garage-security.md) explains in plain words what the connect script installs and who can reach your machine.
+
 ## License
 
 MIT — open source, made in Sweden, built for Europe.
