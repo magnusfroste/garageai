@@ -127,7 +127,11 @@ runtime_hint() {
       info "    Environment=\"OLLAMA_NUM_PARALLEL=4\""
       info "  then: sudo systemctl restart ollama"
       info "  On macOS: run this script again and accept the offer to make it permanent, or:"
-      info "    launchctl setenv OLLAMA_HOST ${bind}:${PORT}   (then quit and reopen the Ollama app)"
+      info "    launchctl setenv OLLAMA_HOST ${bind}:${PORT}"
+      info "  then restart Ollama: Ollama app → quit from the menu bar and open it again;"
+      info "  Homebrew → brew services restart ollama"
+      info "  (Install: macOS → the Ollama app from ollama.com/download, or brew install ollama;"
+      info "   Linux → curl -fsSL https://ollama.com/install.sh | sh)"
       info "  Ollama has no API key; only the gateway can reach it over the mesh." ;;
     lmstudio)
       info "LM Studio: Developer tab → start the server on port ${PORT} and enable"
@@ -440,7 +444,12 @@ else
     if [ "$RUNTIME" = ollama ] && [ "$(uname -s)" = Darwin ] && [ "$(id -u)" -ne 0 ] &&
        confirm "Make Ollama listen on the network permanently (a small login item that sets OLLAMA_HOST)?"; then
       install_ollama_env_agent
-      ok "Done. Quit Ollama from the menu bar, open it again, then run this script again."
+      ok "Done. Now restart Ollama so it picks this up, then run this script again:"
+      if command -v brew >/dev/null 2>&1 && brew services list 2>/dev/null | grep -q '^ollama '; then
+        info "  brew services restart ollama"
+      else
+        info "  quit Ollama from the menu bar and open it again"
+      fi
       exit 0
     fi
     runtime_hint "0.0.0.0"
