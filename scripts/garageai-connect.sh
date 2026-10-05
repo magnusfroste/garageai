@@ -19,7 +19,8 @@
 #
 # Usage:
 #   ./garageai-connect.sh --setup-key KEY --management-url https://netbird.example.eu \
-#       [--runtime ollama|lmstudio|llamacpp|vllm|paddock|unsloth|other] [--port PORT] \
+#       [--runtime ollama|lmstudio|llamacpp|vllm|sglang|paddock|unsloth|mlx|lemonade|other] \
+#       [--port PORT] \
 #       [--name NODE_NAME] [--runtime-api-key KEY] [--register-url URL --register-token TOKEN] \
 #       [--skip-install] [--no-heartbeat] [--yes]
 #   ./garageai-connect.sh --remove-heartbeat
@@ -57,7 +58,7 @@ ok()   { printf '  \033[32m✓\033[0m %s\n' "$*"; }
 warn() { printf '  \033[33m!\033[0m %s\n' "$*" >&2; }
 die()  { printf '  \033[31m✗\033[0m %s\n' "$*" >&2; exit 1; }
 
-usage() { sed -n '2,36p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,37p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -84,14 +85,24 @@ default_port() {
     lmstudio) echo 1234 ;;
     llamacpp) echo 8080 ;;
     vllm)     echo 8000 ;;
+    sglang)   echo 30000 ;;
+    paddock)  echo 11540 ;;
+    unsloth)  echo 8888 ;;
+    mlx)      echo 8080 ;;
+    lemonade) echo 13305 ;;
     *)        echo "" ;;
   esac
 }
 
 case "$RUNTIME" in
-  ollama|lmstudio|llamacpp|vllm|paddock|unsloth|other) ;;
-  *) die "Unknown runtime '$RUNTIME' (use ollama, lmstudio, llamacpp, vllm, paddock, unsloth or other)" ;;
+  ollama|lmstudio|llamacpp|vllm|sglang|paddock|unsloth|mlx|lemonade|other) ;;
+  *) die "Unknown runtime '$RUNTIME' (use ollama, lmstudio, llamacpp, vllm, sglang, paddock, unsloth, mlx, lemonade or other)" ;;
 esac
+
+# Paddock creates and requires an API key whenever it listens beyond localhost.
+if [ "$RUNTIME" = paddock ] && [ -z "$RUNTIME_API_KEY" ]; then
+  die "Paddock requires an API key on network binds. Pass the same key with --runtime-api-key."
+fi
 
 [ -n "$PORT" ] || PORT="$(default_port "$RUNTIME")"
 [ -n "$PORT" ] || die "Runtime '$RUNTIME' has no default port — pass --port with the port its OpenAI-compatible server listens on."
@@ -103,23 +114,48 @@ runtime_hint() {
   case "$RUNTIME" in
     ollama)
       info "Ollama listens on 127.0.0.1 by default. Start it bound to the mesh:"
-      info "    OLLAMA_HOST=${bind}:${PORT} ollama serve"
+      info "    OLLAMA_HOST=${bind}:${PORT} OLLAMA_NUM_PARALLEL=4 ollama serve"
       info "  On Linux with the systemd service: sudo systemctl edit ollama, add"
       info "    [Service]"
       info "    Environment=\"OLLAMA_HOST=${bind}:${PORT}\""
-      info "  then: sudo systemctl restart ollama" ;;
+      info "    Environment=\"OLLAMA_NUM_PARALLEL=4\""
+      info "  then: sudo systemctl restart ollama"
+      info "  On macOS: launchctl setenv OLLAMA_HOST ${bind}:${PORT}, then restart the Ollama app."
+      info "  Ollama has no API key; only the gateway can reach it over the mesh." ;;
     lmstudio)
       info "LM Studio: Developer tab → start the server on port ${PORT} and enable"
-      info "  \"Serve on Local Network\" so it is not bound to 127.0.0.1 only." ;;
+      info "  \"Serve on Local Network\" so it is not bound to 127.0.0.1 only."
+      info "  Headless: lms server start --bind ${bind} --port ${PORT}"
+      info "  Optional: Settings → Require Authentication, then pass --runtime-api-key." ;;
     llamacpp)
       info "llama.cpp:"
-      info "    llama-server -m /path/to/model.gguf --host ${bind} --port ${PORT}" ;;
+      info "    llama-server -m /path/to/model.gguf --host ${bind} --port ${PORT} -np 4 --jinja [--api-key KEY]" ;;
     vllm)
       info "vLLM:"
-      info "    vllm serve <model> --host ${bind} --port ${PORT}" ;;
-    paddock|unsloth|other)
-      info "Start the ${RUNTIME} OpenAI-compatible server on port ${PORT}, bound to"
-      info "  ${bind} instead of 127.0.0.1 (see its documentation for the bind option)." ;;
+      info "    vllm serve <model> --host ${bind} --port ${PORT} [--api-key KEY] [--served-model-name NAME]" ;;
+    sglang)
+      info "SGLang:"
+      info "    python -m sglang.launch_server --model-path <model> --host ${bind} --port ${PORT} [--api-key KEY]" ;;
+    paddock)
+      info "Paddock (beta):"
+      info "    paddock-runner --model /path/to/model.gguf --host ${bind} --port ${PORT} --api-key KEY"
+      info "  Pass the same key here with --runtime-api-key." ;;
+    unsloth)
+      info "Unsloth:"
+      info "    unsloth run --model <repo>:<quant> -H ${bind} -p ${PORT} --disable-tools"
+      info "  Create an API key in Settings → API and pass it with --runtime-api-key."
+      info "  Or export the model to GGUF and serve it with --runtime llamacpp or ollama." ;;
+    mlx)
+      info "MLX (Apple Silicon):"
+      info "    mlx_lm.server --model <model> --host ${bind} --port ${PORT}"
+      info "  mlx-lm has no API key; only the gateway can reach it over the mesh." ;;
+    lemonade)
+      info "Lemonade (AMD):"
+      info "    LEMONADE_API_KEY=KEY lemond --host ${bind} --port ${PORT}"
+      info "  Pass the same key with --runtime-api-key." ;;
+    other)
+      info "Start your OpenAI-compatible server on port ${PORT}, bound to ${bind} instead of"
+      info "  127.0.0.1 (see its documentation). It must serve /v1/models and /v1/chat/completions." ;;
   esac
 }
 
@@ -340,6 +376,21 @@ else
   die "Restart the runtime bound to the mesh and run this script again."
 fi
 echo "$MODELS" | while IFS= read -r m; do info "model: $m"; done
+
+# Buyers pay per token, so the runtime must report usage in streamed replies.
+FIRST_MODEL="$(printf '%s\n' "$MODELS" | head -n 1)"
+usage_auth=()
+[ -n "$RUNTIME_API_KEY" ] && usage_auth=(-H "Authorization: Bearer ${RUNTIME_API_KEY}")
+if curl -fsS -N --max-time 120 ${usage_auth[@]+"${usage_auth[@]}"} \
+     -H "Content-Type: application/json" "http://${MESH_IP}:${PORT}/v1/chat/completions" \
+     -d "$(jq -nc --arg m "$FIRST_MODEL" '{model: $m, max_tokens: 1, stream: true,
+           stream_options: {include_usage: true}, messages: [{role: "user", content: "hi"}]}')" \
+     2>/dev/null | grep -q '"usage" *: *{'; then
+  ok "Token usage is reported (needed for per-token billing)"
+else
+  warn "No token usage in the streamed reply from ${FIRST_MODEL}. Billing may be incomplete;"
+  warn "  check that the runtime supports stream_options.include_usage."
+fi
 echo
 
 # 5. Register
