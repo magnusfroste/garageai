@@ -22,7 +22,7 @@
 #       [--runtime ollama|lmstudio|llamacpp|vllm|sglang|paddock|unsloth|mlx|lemonade|other] \
 #       [--port PORT] \
 #       [--name NODE_NAME] [--runtime-api-key KEY] [--register-url URL --register-token TOKEN] \
-#       [--skip-install] [--no-heartbeat] [--yes]
+#       [--models MODEL[,MODEL...]] [--skip-install] [--no-heartbeat] [--yes]
 #   ./garageai-connect.sh --remove-heartbeat
 #
 # --runtime-api-key is for runtimes started with an API key (e.g. vLLM --api-key). It is
@@ -31,7 +31,11 @@
 #
 # Every option can also be given as an environment variable:
 #   GARAGEAI_SETUP_KEY, GARAGEAI_MANAGEMENT_URL, GARAGEAI_RUNTIME, GARAGEAI_PORT,
-#   GARAGEAI_NODE_NAME, GARAGEAI_RUNTIME_API_KEY, GARAGEAI_REGISTER_URL, GARAGEAI_REGISTER_TOKEN
+#   GARAGEAI_NODE_NAME, GARAGEAI_RUNTIME_API_KEY, GARAGEAI_REGISTER_URL, GARAGEAI_REGISTER_TOKEN,
+#   GARAGEAI_MODELS
+#
+# --models limits what you offer to the listed model ids (comma-separated). Without it every
+# chat model the runtime lists is offered; embedding and reranker models are skipped.
 #
 # Supported: Linux and macOS. (Windows: install NetBird from netbird.io and run the
 # same steps manually for now.)
@@ -44,6 +48,7 @@ RUNTIME="${GARAGEAI_RUNTIME:-ollama}"
 PORT="${GARAGEAI_PORT:-}"
 NODE_NAME="${GARAGEAI_NODE_NAME:-$(hostname -s 2>/dev/null || hostname)}"
 RUNTIME_API_KEY="${GARAGEAI_RUNTIME_API_KEY:-}"
+OFFER_MODELS="${GARAGEAI_MODELS:-}"
 REGISTER_URL="${GARAGEAI_REGISTER_URL:-}"
 REGISTER_TOKEN="${GARAGEAI_REGISTER_TOKEN:-}"
 SKIP_INSTALL=0
@@ -58,7 +63,7 @@ ok()   { printf '  \033[32m✓\033[0m %s\n' "$*"; }
 warn() { printf '  \033[33m!\033[0m %s\n' "$*" >&2; }
 die()  { printf '  \033[31m✗\033[0m %s\n' "$*" >&2; exit 1; }
 
-usage() { sed -n '2,37p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,41p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -68,6 +73,7 @@ while [ $# -gt 0 ]; do
     --port)           PORT="${2:-}"; shift 2 ;;
     --name)           NODE_NAME="${2:-}"; shift 2 ;;
     --runtime-api-key) RUNTIME_API_KEY="${2:-}"; shift 2 ;;
+    --models)         OFFER_MODELS="${2:-}"; shift 2 ;;
     --register-url)   REGISTER_URL="${2:-}"; shift 2 ;;
     --register-token) REGISTER_TOKEN="${2:-}"; shift 2 ;;
     --skip-install)   SKIP_INSTALL=1; shift ;;
@@ -120,7 +126,8 @@ runtime_hint() {
       info "    Environment=\"OLLAMA_HOST=${bind}:${PORT}\""
       info "    Environment=\"OLLAMA_NUM_PARALLEL=4\""
       info "  then: sudo systemctl restart ollama"
-      info "  On macOS: launchctl setenv OLLAMA_HOST ${bind}:${PORT}, then restart the Ollama app."
+      info "  On macOS: run this script again and accept the offer to make it permanent, or:"
+      info "    launchctl setenv OLLAMA_HOST ${bind}:${PORT}   (then quit and reopen the Ollama app)"
       info "  Ollama has no API key; only the gateway can reach it over the mesh." ;;
     lmstudio)
       info "LM Studio: Developer tab → start the server on port ${PORT} and enable"
@@ -209,6 +216,7 @@ install_heartbeat() {
     printf 'GARAGEAI_PORT=%q\n' "$PORT"
     printf 'GARAGEAI_RUNTIME_API_KEY=%q\n' "$RUNTIME_API_KEY"
     printf 'GARAGEAI_MESH_IP=%q\n' "$MESH_IP"
+    printf 'GARAGEAI_MODELS=%q\n' "$OFFER_MODELS"
   } | as_root tee "$HEARTBEAT_CONF" >/dev/null
 
   as_root tee "$HEARTBEAT_BIN" >/dev/null <<'HEARTBEAT'
@@ -227,7 +235,8 @@ models='[]'
 for host in 127.0.0.1 "${GARAGEAI_MESH_IP:-}"; do
   [ -n "$host" ] || continue
   if out="$(curl -fsS --max-time 5 ${auth[@]+"${auth[@]}"} "http://${host}:${GARAGEAI_PORT}/v1/models" 2>/dev/null)" &&
-     list="$(printf '%s' "$out" | jq -ec '[.data[].id]' 2>/dev/null)"; then
+     list="$(printf '%s' "$out" | jq -ec --arg allow "${GARAGEAI_MODELS:-}" \
+       '[.data[].id] | if $allow != "" then map(select(. as $m | ($allow | split(",") | map(gsub("^ +| +$";"")) | index($m)))) else map(select(test("embed|bge-|bge:|e5-|minilm|rerank|colbert|gte-"; "i") | not)) end' 2>/dev/null)"; then
     models="$list"; break
   fi
 done
@@ -296,6 +305,44 @@ listen_addrs() {
   elif command -v lsof >/dev/null 2>&1; then
     lsof -nP -iTCP:"${PORT}" -sTCP:LISTEN 2>/dev/null | awk 'NR > 1 {print $9}' | sed 's/:[0-9]*$//' | sort -u
   fi
+}
+
+# Model ids that are embedding or reranker models: not sold as chat models.
+NON_CHAT_RE='embed|bge-|bge:|e5-|minilm|rerank|colbert|gte-'
+
+select_models() {
+  # Reads model ids on stdin, prints the ones to offer.
+  if [ -n "$OFFER_MODELS" ]; then
+    local all; all="$(cat)"
+    printf '%s\n' "$OFFER_MODELS" | tr ',' '\n' | sed 's/^ *//; s/ *$//' | while IFS= read -r want; do
+      [ -n "$want" ] || continue
+      if printf '%s\n' "$all" | grep -qxF -- "$want"; then printf '%s\n' "$want"
+      else warn "--models: '${want}' is not served by the runtime; skipped"; fi
+    done
+  else
+    grep -viE "$NON_CHAT_RE" || true
+  fi
+}
+
+install_ollama_env_agent() {
+  # macOS: make OLLAMA_HOST survive logout and reboot. The Ollama app reads it at start.
+  local plist="$HOME/Library/LaunchAgents/eu.garageai.ollama-host.plist"
+  mkdir -p "$HOME/Library/LaunchAgents"
+  cat > "$plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>eu.garageai.ollama-host</string>
+  <key>ProgramArguments</key>
+  <array><string>/bin/launchctl</string><string>setenv</string><string>OLLAMA_HOST</string><string>0.0.0.0:${PORT}</string></array>
+  <key>RunAtLoad</key><true/>
+</dict>
+</plist>
+PLIST
+  launchctl bootout "gui/$(id -u)" "$plist" 2>/dev/null || true
+  launchctl bootstrap "gui/$(id -u)" "$plist" 2>/dev/null || launchctl load "$plist"
+  launchctl setenv OLLAMA_HOST "0.0.0.0:${PORT}"
 }
 
 mesh_ip() {
@@ -390,13 +437,27 @@ else
     ok "Listening on $(printf '%s' "$LISTEN" | tr '\n' ' ')(port ${PORT}); the gateway verifies the mesh path next"
   else
     warn "The runtime only listens on ${LISTEN:-127.0.0.1}, so the gateway cannot reach it."
+    if [ "$RUNTIME" = ollama ] && [ "$(uname -s)" = Darwin ] && [ "$(id -u)" -ne 0 ] &&
+       confirm "Make Ollama listen on the network permanently (a small login item that sets OLLAMA_HOST)?"; then
+      install_ollama_env_agent
+      ok "Done. Quit Ollama from the menu bar, open it again, then run this script again."
+      exit 0
+    fi
     runtime_hint "0.0.0.0"
     info "0.0.0.0 makes it reachable over the mesh. Devices on your own LAN can reach it too;"
     info "  nothing on the internet can, unless your router forwards port ${PORT}."
     die "Restart the runtime bound to the mesh and run this script again."
   fi
 fi
-echo "$MODELS" | while IFS= read -r m; do info "model: $m"; done
+ALL_MODELS="$MODELS"
+MODELS="$(printf '%s\n' "$ALL_MODELS" | select_models)"
+printf '%s\n' "$ALL_MODELS" | while IFS= read -r m; do
+  [ -n "$m" ] || continue
+  if printf '%s\n' "$MODELS" | grep -qxF -- "$m"; then info "model: $m"
+  elif [ -z "$OFFER_MODELS" ]; then info "model: $m (skipped: embedding/reranker model)"
+  else info "model: $m (not offered)"; fi
+done
+[ -n "$MODELS" ] || die "No chat model to offer. Load one in ${RUNTIME} (or check --models) and run this script again."
 
 # Buyers pay per token, so the runtime must report usage in streamed replies.
 FIRST_MODEL="$(printf '%s\n' "$MODELS" | head -n 1)"
