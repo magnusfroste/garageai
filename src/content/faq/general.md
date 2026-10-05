@@ -13,7 +13,7 @@ faqs:
   - question: "Do I need to open ports on my router?"
     answer: "No. Your machine joins a WireGuard mesh (self-hosted NetBird) with an outgoing connection. You open no inbound ports, garages cannot reach each other, and only the GarageAI gateway can reach your runtime."
   - question: "Is my data safe?"
-    answer: "Traffic is encrypted end to end in transit over the WireGuard mesh, and the gateway runs on an EU VPS (Hetzner, Helsinki). But prompts are processed on the operator's machine, and operators are not yet formally verified. Verified garages and data-processing agreements are planned before we sell to buyers with sensitive data. Until then, don't send sensitive or personal data through the marketplace."
+    answer: "Traffic is encrypted in transit: TLS from you to our gateway on an EU VPS (Hetzner, Helsinki), and WireGuard from the gateway to the garage. The gateway does not store your prompts or responses. The prompt itself is processed in plain text on the operator's machine, and operators are not yet formally verified. Verified garages and data-processing agreements are planned before we sell to buyers with sensitive data. Until then, don't send sensitive or personal data through the marketplace."
   - question: "How do operators get paid?"
     answer: "You earn the token price buyers pay for requests your garage serves, and there is no platform fee during launch (a platform fee will come later). Earnings are tracked per token. The wallet and payouts are being built and are coming next."
   - question: "What does it cost to use?"
