@@ -13,8 +13,8 @@
   },
   {
     "icon": "🧩",
-    "value": "4 runtimes",
-    "label": "Ollama · LM Studio · llama.cpp · vLLM",
+    "value": "6 runtimes",
+    "label": "Ollama · LM Studio · llama.cpp · vLLM · SGLang · Paddock",
     "accent": "var(--color-tertiary)"
   },
   {
