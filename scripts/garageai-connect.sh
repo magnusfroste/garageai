@@ -390,9 +390,9 @@ else
     ok "Listening on $(printf '%s' "$LISTEN" | tr '\n' ' ')(port ${PORT}); the gateway verifies the mesh path next"
   else
     warn "The runtime only listens on ${LISTEN:-127.0.0.1}, so the gateway cannot reach it."
-    runtime_hint "$MESH_IP"
-    info "Binding to the mesh IP (${MESH_IP}) keeps the runtime off your home LAN."
-    info "Binding to 0.0.0.0 also works, but then anything on your LAN can reach it too."
+    runtime_hint "0.0.0.0"
+    info "0.0.0.0 makes it reachable over the mesh. Devices on your own LAN can reach it too;"
+    info "  nothing on the internet can, unless your router forwards port ${PORT}."
     die "Restart the runtime bound to the mesh and run this script again."
   fi
 fi
