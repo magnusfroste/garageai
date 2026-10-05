@@ -23,6 +23,8 @@
 #       [--port PORT] \
 #       [--name NODE_NAME] [--runtime-api-key KEY] [--register-url URL --register-token TOKEN] \
 #       [--models MODEL[,MODEL...]] [--skip-install] [--no-heartbeat] [--yes]
+#   ./garageai-connect.sh --doctor       check this garage and say exactly what to fix
+#   ./garageai-connect.sh --uninstall    remove the heartbeat, the Ollama login item and leave the mesh
 #   ./garageai-connect.sh --remove-heartbeat
 #
 # --runtime-api-key is for runtimes started with an API key (e.g. vLLM --api-key). It is
@@ -54,6 +56,12 @@ REGISTER_TOKEN="${GARAGEAI_REGISTER_TOKEN:-}"
 SKIP_INSTALL=0
 HEARTBEAT=1
 REMOVE_HEARTBEAT=0
+DOCTOR=0
+UNINSTALL=0
+RUNTIME_GIVEN=0
+[ -n "${GARAGEAI_RUNTIME:-}" ] && RUNTIME_GIVEN=1
+PORT_GIVEN=0
+[ -n "${GARAGEAI_PORT:-}" ] && PORT_GIVEN=1
 ASSUME_YES=0
 MESH_WAIT_SECONDS="${GARAGEAI_MESH_WAIT_SECONDS:-30}"
 
@@ -63,14 +71,14 @@ ok()   { printf '  \033[32m✓\033[0m %s\n' "$*"; }
 warn() { printf '  \033[33m!\033[0m %s\n' "$*" >&2; }
 die()  { printf '  \033[31m✗\033[0m %s\n' "$*" >&2; exit 1; }
 
-usage() { sed -n '2,41p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,43p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --setup-key)      SETUP_KEY="${2:-}"; shift 2 ;;
     --management-url) MANAGEMENT_URL="${2:-}"; shift 2 ;;
-    --runtime)        RUNTIME="${2:-}"; shift 2 ;;
-    --port)           PORT="${2:-}"; shift 2 ;;
+    --runtime)        RUNTIME="${2:-}"; RUNTIME_GIVEN=1; shift 2 ;;
+    --port)           PORT="${2:-}"; PORT_GIVEN=1; shift 2 ;;
     --name)           NODE_NAME="${2:-}"; shift 2 ;;
     --runtime-api-key) RUNTIME_API_KEY="${2:-}"; shift 2 ;;
     --models)         OFFER_MODELS="${2:-}"; shift 2 ;;
@@ -79,6 +87,8 @@ while [ $# -gt 0 ]; do
     --skip-install)   SKIP_INSTALL=1; shift ;;
     --no-heartbeat)   HEARTBEAT=0; shift ;;
     --remove-heartbeat) REMOVE_HEARTBEAT=1; shift ;;
+    --doctor)         DOCTOR=1; shift ;;
+    --uninstall)      UNINSTALL=1; shift ;;
     --yes|-y)         ASSUME_YES=1; shift ;;
     -h|--help)        usage 0 ;;
     *) warn "Unknown option: $1"; usage 1 ;;
@@ -100,13 +110,22 @@ default_port() {
   esac
 }
 
+if [ "$DOCTOR" -eq 1 ] && [ -e /etc/garageai/heartbeat.env ]; then
+  # Root-only file: read it only if sudo needs no password; otherwise keep the defaults.
+  HB="$(sudo -n cat /etc/garageai/heartbeat.env 2>/dev/null || true)"
+  hb_get() { printf '%s\n' "$HB" | sed -n "s/^$1=//p" | head -n 1; }
+  [ "$RUNTIME_GIVEN" -eq 1 ] || { v="$(hb_get GARAGEAI_RUNTIME)"; [ -z "$v" ] || RUNTIME="$v"; }
+  [ "$PORT_GIVEN" -eq 1 ] || { v="$(hb_get GARAGEAI_PORT)"; [ -z "$v" ] || PORT="$v"; }
+  [ -n "$RUNTIME_API_KEY" ] || RUNTIME_API_KEY="$(hb_get GARAGEAI_RUNTIME_API_KEY)"
+fi
+
 case "$RUNTIME" in
   ollama|lmstudio|llamacpp|vllm|sglang|paddock|unsloth|mlx|lemonade|other) ;;
   *) die "Unknown runtime '$RUNTIME' (use ollama, lmstudio, llamacpp, vllm, sglang, paddock, unsloth, mlx, lemonade or other)" ;;
 esac
 
 # Paddock creates and requires an API key whenever it listens beyond localhost.
-if [ "$RUNTIME" = paddock ] && [ -z "$RUNTIME_API_KEY" ]; then
+if [ "$RUNTIME" = paddock ] && [ -z "$RUNTIME_API_KEY" ] && [ "$DOCTOR" -eq 0 ] && [ "$UNINSTALL" -eq 0 ]; then
   die "Paddock requires an API key on network binds. Pass the same key with --runtime-api-key."
 fi
 
@@ -358,6 +377,104 @@ mesh_ip() {
   printf '%s' "${ip%%/*}"
 }
 
+run_doctor() {
+  local problems=0 ip listen models hb_active last
+  bad() { printf '  \033[31m✗\033[0m %s\n' "$1"; shift; for l in "$@"; do info "    → $l"; done; problems=$((problems + 1)); }
+  bold "GarageAI doctor — runtime ${RUNTIME}, port ${PORT}"
+
+  for tool in curl jq; do
+    command -v "$tool" >/dev/null 2>&1 || bad "'$tool' is not installed" "macOS: brew install $tool    Linux: sudo apt install $tool"
+  done
+
+  # Level 1: the tunnel
+  if ! command -v netbird >/dev/null 2>&1; then
+    bad "NetBird is not installed" "run the connect command from the GarageAI portal"
+  else
+    ip="$(mesh_ip)"
+    if netbird status 2>/dev/null | grep -q '^Management: Connected' && [ -n "$ip" ]; then
+      ok "Tunnel: connected to the GarageAI mesh as ${ip}"
+    else
+      bad "Tunnel: NetBird is installed but not connected" "sudo netbird up     (if that asks you to log in, get a new command from the portal)"
+    fi
+  fi
+
+  # Level 2: the runtime
+  if models="$(http_models 127.0.0.1 2>/dev/null)" || { [ -n "${ip:-}" ] && models="$(http_models "$ip" 2>/dev/null)"; }; then
+    ok "Runtime: ${RUNTIME} answers on port ${PORT} with $(printf '%s\n' "$models" | grep -c .) model(s): $(printf '%s' "$models" | tr '\n' ' ')"
+    listen="$(listen_addrs)"
+    if [ -z "$listen" ]; then
+      info "  (could not read which address it listens on; lsof or ss is missing)"
+    elif printf '%s\n' "$listen" | grep -qxE "\\*|0\\.0\\.0\\.0|\\[::\\]|::|${ip:-none}"; then
+      ok "Runtime: listens on the network ($(printf '%s' "$listen" | tr '\n' ' ')), so the gateway can reach it"
+    else
+      bad "Runtime: only listens on $(printf '%s' "$listen" | tr '\n' ' '), so the gateway cannot reach it" "see below"
+      runtime_hint "0.0.0.0"
+    fi
+  else
+    bad "Runtime: nothing answers on port ${PORT}" "start ${RUNTIME} (and check --runtime / --port if you use another one)"
+  fi
+
+  # Heartbeat
+  if [ ! -e "$HEARTBEAT_BIN" ]; then
+    bad "Heartbeat: not installed, so model changes and outages are noticed late" "run the connect command from the portal again (\"New command\")"
+  else
+    case "$(uname -s)" in
+      Darwin) launchctl print system/eu.garageai.heartbeat >/dev/null 2>&1 && hb_active=1 || hb_active=0
+              last="$(tail -n 1 /var/log/garageai-heartbeat.log 2>/dev/null || true)" ;;
+      *)      systemctl is-active --quiet garageai-heartbeat.timer 2>/dev/null && hb_active=1 || hb_active=0
+              last="$(journalctl -u garageai-heartbeat.service -n 1 -o cat 2>/dev/null || true)" ;;
+    esac
+    if [ "$hb_active" -eq 1 ]; then ok "Heartbeat: installed and scheduled"
+    else bad "Heartbeat: installed but not running" "run the connect command from the portal again"; fi
+    case "$last" in
+      *'"ok":true'*) ok "Heartbeat: last report was accepted by GarageAI" ;;
+      *401*|*nauthorized*) bad "Heartbeat: GarageAI rejects this garage's token (it was replaced or revoked)" "My garages → New command, and run that command here" ;;
+      "") : ;;
+      *) info "  last heartbeat output: $(printf '%s' "$last" | cut -c1-120)" ;;
+    esac
+  fi
+
+  if [ "$(uname -s)" = Darwin ]; then
+    if [ "$RUNTIME" = ollama ] && [ ! -e "$HOME/Library/LaunchAgents/eu.garageai.ollama-host.plist" ]; then
+      info "  Note: OLLAMA_HOST is not set permanently; after a reboot Ollama listens on localhost again."
+      info "    → run the connect command again and accept the offer to make it permanent"
+    fi
+    info "  Note: a sleeping Mac is offline for buyers. For a garage that should stay up:"
+    info "    → System Settings → Battery/Energy → prevent automatic sleeping when the display is off"
+  fi
+
+  echo
+  if [ "$problems" -eq 0 ]; then ok "No problems found. If the portal still shows the garage as offline, use Retest there."; return 0; fi
+  warn "${problems} problem(s) found — fix the lines marked ✗ from the top down, then run --doctor again."
+  return 1
+}
+
+if [ "$DOCTOR" -eq 1 ]; then
+  run_doctor && exit 0 || exit 1
+fi
+
+if [ "$UNINSTALL" -eq 1 ]; then
+  bold "Remove GarageAI from this machine"
+  info "This removes the heartbeat and the Ollama login item and disconnects from the mesh."
+  info "Your runtime and models are not touched. NetBird itself stays installed."
+  confirm "Continue?" || die "Aborted."
+  remove_heartbeat
+  ok "Heartbeat removed"
+  if [ "$(uname -s)" = Darwin ] && [ -e "$HOME/Library/LaunchAgents/eu.garageai.ollama-host.plist" ]; then
+    launchctl bootout "gui/$(id -u)" "$HOME/Library/LaunchAgents/eu.garageai.ollama-host.plist" 2>/dev/null || true
+    rm -f "$HOME/Library/LaunchAgents/eu.garageai.ollama-host.plist"
+    launchctl unsetenv OLLAMA_HOST 2>/dev/null || true
+    ok "Ollama login item removed (restart Ollama to listen on localhost only again)"
+  fi
+  if command -v netbird >/dev/null 2>&1; then
+    as_root netbird down >/dev/null 2>&1 || true
+    ok "Disconnected from the mesh"
+    info "To remove NetBird too: macOS → sudo netbird service uninstall, then delete the app; Linux → sudo apt remove netbird"
+  fi
+  info "Finally, remove the garage under My garages in the portal so it is not offered again."
+  exit 0
+fi
+
 if [ "$REMOVE_HEARTBEAT" -eq 1 ]; then
   remove_heartbeat
   ok "Heartbeat removed. The garage will show as offline on GarageAI after 15 minutes."
@@ -368,9 +485,14 @@ bold "GarageAI node connect — ${NODE_NAME}"
 echo
 
 # 0. Prerequisites
-for tool in curl jq; do
-  command -v "$tool" >/dev/null 2>&1 || die "'$tool' is required (e.g. 'sudo apt install $tool' or 'brew install $tool')."
-done
+command -v curl >/dev/null 2>&1 || die "'curl' is required (e.g. 'sudo apt install curl')."
+if ! command -v jq >/dev/null 2>&1; then
+  if command -v brew >/dev/null 2>&1 && confirm "'jq' is required. Install it with Homebrew now?"; then brew install jq
+  elif command -v apt-get >/dev/null 2>&1 && confirm "'jq' is required. Install it with apt now?"; then as_root apt-get install -y jq
+  elif command -v dnf >/dev/null 2>&1 && confirm "'jq' is required. Install it with dnf now?"; then as_root dnf install -y jq
+  fi
+  command -v jq >/dev/null 2>&1 || die "'jq' is required (macOS: brew install jq; Linux: sudo apt install jq)."
+fi
 
 # 1. NetBird client
 bold "1/5  NetBird client"
