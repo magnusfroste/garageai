@@ -8,9 +8,16 @@ PORT=18000
 fails=0
 check() { # check "name" "expected text" "actual output"
   if printf '%s' "$3" | grep -qF -- "$2"; then printf '  ok    %s\n' "$1"
-  else printf '  FAIL  %s\n        expected: %s\n' "$1" "$2"; fails=$((fails + 1)); fi
+  else printf '  FAIL  %s\n        expected: %s\n        got:\n' "$1" "$2"; printf '%s\n' "$3" | sed 's/^/          /'; fails=$((fails + 1)); fi
 }
-start_runtime() { python3 tests/fake_runtime.py "$1" & RT=$!; sleep 1; }
+start_runtime() {
+  python3 tests/fake_runtime.py "$1" & RT=$!
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    curl -fsS --max-time 1 "http://127.0.0.1:$PORT/v1/models" >/dev/null 2>&1 && return 0
+    sleep 0.5
+  done
+  echo "  FAIL  fake runtime did not start on $1:$PORT"; fails=$((fails + 1))
+}
 stop_runtime() { kill "$RT" 2>/dev/null; wait "$RT" 2>/dev/null; }
 
 echo "bash $(bash --version | head -n 1)"
