@@ -83,6 +83,13 @@ const HowItWorks = ({
                   >
                     {track.ctaText}
                   </motion.a>
+                  {track.noteUrl && (
+                    <p className="mt-3 text-sm">
+                      <a href={track.noteUrl} className="underline" style={{ color: 'var(--color-text-secondary)' }}>
+                        {track.noteText}
+                      </a>
+                    </p>
+                  )}
                 </div>
               )}
             </motion.div>

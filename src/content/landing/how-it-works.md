@@ -26,7 +26,7 @@ tracks:
     color: "var(--color-primary)"
     steps:
       - title: "Start the “Offer your GPU” wizard"
-        text: "Sign up and pick your OS (macOS or Linux; Windows is not supported yet) and your runtime: Ollama, LM Studio, llama.cpp, vLLM, SGLang or Paddock (beta). The wizard shows how to prepare it."
+        text: "Sign up and pick your OS (macOS or Linux; Windows is coming soon) and your runtime: Ollama, LM Studio, llama.cpp, vLLM, SGLang or Paddock (beta). The wizard shows how to prepare it."
       - title: "Run one command"
         text: "It installs the NetBird client, joins your machine to the encrypted GarageAI mesh and registers your models. You don't open any inbound ports."
       - title: "Pass the acceptance test"
@@ -35,6 +35,8 @@ tracks:
         text: "Buyers can now reach your models. You earn the token price buyers pay for requests your garage serves. There is no platform fee during launch."
     ctaText: "Offer Your GPU"
     ctaUrl: "https://app.garageai.eu/auth?intent=operator"
+    noteText: "On Windows? Support for Ollama and LM Studio is coming soon. Join the waitlist →"
+    noteUrl: "mailto:powerup@garageai.eu?subject=Windows%20waitlist&body=I%27d%20like%20to%20offer%20my%20GPU%20on%20Windows.%0AGPU%3A%20%0ARuntime%20(Ollama%20%2F%20LM%20Studio%20%2F%20other)%3A%20"
 whyTitle: "Why GarageAI"
 whyDescription: "The principle hasn't changed. AI capacity can be built from hardware Europe already has, close to the people who use it."
 whyItems:
