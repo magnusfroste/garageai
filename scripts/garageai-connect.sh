@@ -9,6 +9,9 @@
 #   4. checks that the runtime is reachable on this node's mesh IP
 #   5. lists the models you offer and registers the node with GarageAI
 #      (or prints the details for manual registration)
+#   6. installs a small heartbeat (systemd timer on Linux, launchd on macOS) that
+#      reports the runtime's current models every 5 minutes, so loading or removing a
+#      model updates what GarageAI sells without re-running this script
 #
 # Your runtime is never exposed to the public internet: only the GarageAI
 # gateway can reach it, over the encrypted mesh. This script never needs the
@@ -16,9 +19,11 @@
 #
 # Usage:
 #   ./garageai-connect.sh --setup-key KEY --management-url https://netbird.example.eu \
-#       [--runtime ollama|lmstudio|llamacpp|vllm|paddock|unsloth|other] [--port PORT] \
+#       [--runtime ollama|lmstudio|llamacpp|vllm|sglang|paddock|unsloth|mlx|lemonade|other] \
+#       [--port PORT] \
 #       [--name NODE_NAME] [--runtime-api-key KEY] [--register-url URL --register-token TOKEN] \
-#       [--skip-install] [--yes]
+#       [--skip-install] [--no-heartbeat] [--yes]
+#   ./garageai-connect.sh --remove-heartbeat
 #
 # --runtime-api-key is for runtimes started with an API key (e.g. vLLM --api-key). It is
 # used to query the runtime and is sent to GarageAI with the registration, so the gateway
@@ -42,6 +47,8 @@ RUNTIME_API_KEY="${GARAGEAI_RUNTIME_API_KEY:-}"
 REGISTER_URL="${GARAGEAI_REGISTER_URL:-}"
 REGISTER_TOKEN="${GARAGEAI_REGISTER_TOKEN:-}"
 SKIP_INSTALL=0
+HEARTBEAT=1
+REMOVE_HEARTBEAT=0
 ASSUME_YES=0
 MESH_WAIT_SECONDS="${GARAGEAI_MESH_WAIT_SECONDS:-30}"
 
@@ -51,7 +58,7 @@ ok()   { printf '  \033[32m✓\033[0m %s\n' "$*"; }
 warn() { printf '  \033[33m!\033[0m %s\n' "$*" >&2; }
 die()  { printf '  \033[31m✗\033[0m %s\n' "$*" >&2; exit 1; }
 
-usage() { sed -n '2,32p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,37p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -64,6 +71,8 @@ while [ $# -gt 0 ]; do
     --register-url)   REGISTER_URL="${2:-}"; shift 2 ;;
     --register-token) REGISTER_TOKEN="${2:-}"; shift 2 ;;
     --skip-install)   SKIP_INSTALL=1; shift ;;
+    --no-heartbeat)   HEARTBEAT=0; shift ;;
+    --remove-heartbeat) REMOVE_HEARTBEAT=1; shift ;;
     --yes|-y)         ASSUME_YES=1; shift ;;
     -h|--help)        usage 0 ;;
     *) warn "Unknown option: $1"; usage 1 ;;
@@ -76,14 +85,24 @@ default_port() {
     lmstudio) echo 1234 ;;
     llamacpp) echo 8080 ;;
     vllm)     echo 8000 ;;
+    sglang)   echo 30000 ;;
+    paddock)  echo 11540 ;;
+    unsloth)  echo 8888 ;;
+    mlx)      echo 8080 ;;
+    lemonade) echo 13305 ;;
     *)        echo "" ;;
   esac
 }
 
 case "$RUNTIME" in
-  ollama|lmstudio|llamacpp|vllm|paddock|unsloth|other) ;;
-  *) die "Unknown runtime '$RUNTIME' (use ollama, lmstudio, llamacpp, vllm, paddock, unsloth or other)" ;;
+  ollama|lmstudio|llamacpp|vllm|sglang|paddock|unsloth|mlx|lemonade|other) ;;
+  *) die "Unknown runtime '$RUNTIME' (use ollama, lmstudio, llamacpp, vllm, sglang, paddock, unsloth, mlx, lemonade or other)" ;;
 esac
+
+# Paddock creates and requires an API key whenever it listens beyond localhost.
+if [ "$RUNTIME" = paddock ] && [ -z "$RUNTIME_API_KEY" ]; then
+  die "Paddock requires an API key on network binds. Pass the same key with --runtime-api-key."
+fi
 
 [ -n "$PORT" ] || PORT="$(default_port "$RUNTIME")"
 [ -n "$PORT" ] || die "Runtime '$RUNTIME' has no default port — pass --port with the port its OpenAI-compatible server listens on."
@@ -95,23 +114,48 @@ runtime_hint() {
   case "$RUNTIME" in
     ollama)
       info "Ollama listens on 127.0.0.1 by default. Start it bound to the mesh:"
-      info "    OLLAMA_HOST=${bind}:${PORT} ollama serve"
+      info "    OLLAMA_HOST=${bind}:${PORT} OLLAMA_NUM_PARALLEL=4 ollama serve"
       info "  On Linux with the systemd service: sudo systemctl edit ollama, add"
       info "    [Service]"
       info "    Environment=\"OLLAMA_HOST=${bind}:${PORT}\""
-      info "  then: sudo systemctl restart ollama" ;;
+      info "    Environment=\"OLLAMA_NUM_PARALLEL=4\""
+      info "  then: sudo systemctl restart ollama"
+      info "  On macOS: launchctl setenv OLLAMA_HOST ${bind}:${PORT}, then restart the Ollama app."
+      info "  Ollama has no API key; only the gateway can reach it over the mesh." ;;
     lmstudio)
       info "LM Studio: Developer tab → start the server on port ${PORT} and enable"
-      info "  \"Serve on Local Network\" so it is not bound to 127.0.0.1 only." ;;
+      info "  \"Serve on Local Network\" so it is not bound to 127.0.0.1 only."
+      info "  Headless: lms server start --bind ${bind} --port ${PORT}"
+      info "  Optional: Settings → Require Authentication, then pass --runtime-api-key." ;;
     llamacpp)
       info "llama.cpp:"
-      info "    llama-server -m /path/to/model.gguf --host ${bind} --port ${PORT}" ;;
+      info "    llama-server -m /path/to/model.gguf --host ${bind} --port ${PORT} -np 4 --jinja [--api-key KEY]" ;;
     vllm)
       info "vLLM:"
-      info "    vllm serve <model> --host ${bind} --port ${PORT}" ;;
-    paddock|unsloth|other)
-      info "Start the ${RUNTIME} OpenAI-compatible server on port ${PORT}, bound to"
-      info "  ${bind} instead of 127.0.0.1 (see its documentation for the bind option)." ;;
+      info "    vllm serve <model> --host ${bind} --port ${PORT} [--api-key KEY] [--served-model-name NAME]" ;;
+    sglang)
+      info "SGLang:"
+      info "    python -m sglang.launch_server --model-path <model> --host ${bind} --port ${PORT} [--api-key KEY]" ;;
+    paddock)
+      info "Paddock (beta):"
+      info "    paddock-runner --model /path/to/model.gguf --host ${bind} --port ${PORT} --api-key KEY"
+      info "  Pass the same key here with --runtime-api-key." ;;
+    unsloth)
+      info "Unsloth:"
+      info "    unsloth run --model <repo>:<quant> -H ${bind} -p ${PORT} --disable-tools"
+      info "  Create an API key in Settings → API and pass it with --runtime-api-key."
+      info "  Or export the model to GGUF and serve it with --runtime llamacpp or ollama." ;;
+    mlx)
+      info "MLX (Apple Silicon):"
+      info "    mlx_lm.server --model <model> --host ${bind} --port ${PORT}"
+      info "  mlx-lm has no API key; only the gateway can reach it over the mesh." ;;
+    lemonade)
+      info "Lemonade (AMD):"
+      info "    LEMONADE_API_KEY=KEY lemond --host ${bind} --port ${PORT}"
+      info "  Pass the same key with --runtime-api-key." ;;
+    other)
+      info "Start your OpenAI-compatible server on port ${PORT}, bound to ${bind} instead of"
+      info "  127.0.0.1 (see its documentation). It must serve /v1/models and /v1/chat/completions." ;;
   esac
 }
 
@@ -134,6 +178,117 @@ http_models() {
   curl -fsS --max-time 5 ${auth[@]+"${auth[@]}"} "http://$1:${PORT}/v1/models" | jq -er '.data[].id'
 }
 
+HEARTBEAT_CONF=/etc/garageai/heartbeat.env
+HEARTBEAT_BIN=/usr/local/bin/garageai-heartbeat
+HEARTBEAT_PLIST=/Library/LaunchDaemons/eu.garageai.heartbeat.plist
+HEARTBEAT_UNIT=/etc/systemd/system/garageai-heartbeat
+
+remove_heartbeat() {
+  case "$(uname -s)" in
+    Darwin)
+      as_root launchctl bootout system "$HEARTBEAT_PLIST" 2>/dev/null || true
+      as_root rm -f "$HEARTBEAT_PLIST" ;;
+    *)
+      as_root systemctl disable --now garageai-heartbeat.timer 2>/dev/null || true
+      as_root rm -f "${HEARTBEAT_UNIT}.service" "${HEARTBEAT_UNIT}.timer"
+      as_root systemctl daemon-reload 2>/dev/null || true ;;
+  esac
+  as_root rm -f "$HEARTBEAT_BIN" "$HEARTBEAT_CONF"
+}
+
+install_heartbeat() {
+  local url="${REGISTER_URL%/register-node}/node-heartbeat"
+  as_root mkdir -p /etc/garageai /usr/local/bin
+  # The register token and runtime key are secrets: root-only file.
+  as_root sh -c "umask 077 && : > '$HEARTBEAT_CONF'"
+  {
+    printf 'GARAGEAI_HEARTBEAT_URL=%q\n' "$url"
+    printf 'GARAGEAI_REGISTER_TOKEN=%q\n' "$REGISTER_TOKEN"
+    printf 'GARAGEAI_NODE_NAME=%q\n' "$NODE_NAME"
+    printf 'GARAGEAI_RUNTIME=%q\n' "$RUNTIME"
+    printf 'GARAGEAI_PORT=%q\n' "$PORT"
+    printf 'GARAGEAI_RUNTIME_API_KEY=%q\n' "$RUNTIME_API_KEY"
+    printf 'GARAGEAI_MESH_IP=%q\n' "$MESH_IP"
+  } | as_root tee "$HEARTBEAT_CONF" >/dev/null
+
+  as_root tee "$HEARTBEAT_BIN" >/dev/null <<'HEARTBEAT'
+#!/usr/bin/env bash
+# garageai-heartbeat — reports this garage's current models to GarageAI.
+# Installed by garageai-connect.sh and run every 5 minutes. Remove it with
+# garageai-connect.sh --remove-heartbeat.
+set -euo pipefail
+# shellcheck disable=SC1090
+. "${GARAGEAI_HEARTBEAT_CONF:-/etc/garageai/heartbeat.env}"
+export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
+
+auth=()
+[ -n "${GARAGEAI_RUNTIME_API_KEY:-}" ] && auth=(-H "Authorization: Bearer ${GARAGEAI_RUNTIME_API_KEY}")
+models='[]'
+for host in 127.0.0.1 "${GARAGEAI_MESH_IP:-}"; do
+  [ -n "$host" ] || continue
+  if out="$(curl -fsS --max-time 5 ${auth[@]+"${auth[@]}"} "http://${host}:${GARAGEAI_PORT}/v1/models" 2>/dev/null)" &&
+     list="$(printf '%s' "$out" | jq -ec '[.data[].id]' 2>/dev/null)"; then
+    models="$list"; break
+  fi
+done
+# If the runtime does not answer, report no models so buyers are not routed here.
+
+payload="$(jq -nc --arg name "$GARAGEAI_NODE_NAME" --argjson port "$GARAGEAI_PORT" \
+  --arg runtime "$GARAGEAI_RUNTIME" --argjson models "$models" --arg key "${GARAGEAI_RUNTIME_API_KEY:-}" \
+  '{name: $name, port: $port, runtime: $runtime, models: $models}
+   + (if $key != "" then {runtime_api_key: $key} else {} end)')"
+curl -fsS --max-time 180 -X POST "$GARAGEAI_HEARTBEAT_URL" \
+  -H "Authorization: Bearer ${GARAGEAI_REGISTER_TOKEN}" \
+  -H "Content-Type: application/json" -d "$payload"
+echo
+HEARTBEAT
+  as_root chmod 755 "$HEARTBEAT_BIN"
+
+  case "$(uname -s)" in
+    Darwin)
+      as_root tee "$HEARTBEAT_PLIST" >/dev/null <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>eu.garageai.heartbeat</string>
+  <key>ProgramArguments</key><array><string>${HEARTBEAT_BIN}</string></array>
+  <key>StartInterval</key><integer>300</integer>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>/var/log/garageai-heartbeat.log</string>
+  <key>StandardErrorPath</key><string>/var/log/garageai-heartbeat.log</string>
+</dict>
+</plist>
+PLIST
+      as_root launchctl bootout system "$HEARTBEAT_PLIST" 2>/dev/null || true
+      as_root launchctl bootstrap system "$HEARTBEAT_PLIST" ;;
+    *)
+      as_root tee "${HEARTBEAT_UNIT}.service" >/dev/null <<UNIT
+[Unit]
+Description=GarageAI heartbeat (reports this garage's models)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=${HEARTBEAT_BIN}
+UNIT
+      as_root tee "${HEARTBEAT_UNIT}.timer" >/dev/null <<UNIT
+[Unit]
+Description=Run the GarageAI heartbeat every 5 minutes
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target
+UNIT
+      as_root systemctl daemon-reload
+      as_root systemctl enable --now garageai-heartbeat.timer >/dev/null ;;
+  esac
+}
+
 mesh_ip() {
   local ip=""
   ip="$(netbird status --json 2>/dev/null | jq -r '.netbirdIp // empty' 2>/dev/null || true)"
@@ -142,6 +297,12 @@ mesh_ip() {
   fi
   printf '%s' "${ip%%/*}"
 }
+
+if [ "$REMOVE_HEARTBEAT" -eq 1 ]; then
+  remove_heartbeat
+  ok "Heartbeat removed. The garage will show as offline on GarageAI after 15 minutes."
+  exit 0
+fi
 
 bold "GarageAI node connect — ${NODE_NAME}"
 echo
@@ -215,6 +376,21 @@ else
   die "Restart the runtime bound to the mesh and run this script again."
 fi
 echo "$MODELS" | while IFS= read -r m; do info "model: $m"; done
+
+# Buyers pay per token, so the runtime must report usage in streamed replies.
+FIRST_MODEL="$(printf '%s\n' "$MODELS" | head -n 1)"
+usage_auth=()
+[ -n "$RUNTIME_API_KEY" ] && usage_auth=(-H "Authorization: Bearer ${RUNTIME_API_KEY}")
+if curl -fsS -N --max-time 120 ${usage_auth[@]+"${usage_auth[@]}"} \
+     -H "Content-Type: application/json" "http://${MESH_IP}:${PORT}/v1/chat/completions" \
+     -d "$(jq -nc --arg m "$FIRST_MODEL" '{model: $m, max_tokens: 1, stream: true,
+           stream_options: {include_usage: true}, messages: [{role: "user", content: "hi"}]}')" \
+     2>/dev/null | grep -q '"usage" *: *{'; then
+  ok "Token usage is reported (needed for per-token billing)"
+else
+  warn "No token usage in the streamed reply from ${FIRST_MODEL}. Billing may be incomplete;"
+  warn "  check that the runtime supports stream_options.include_usage."
+fi
 echo
 
 # 5. Register
@@ -228,11 +404,37 @@ PAYLOAD="$(jq -nc \
 
 if [ -n "$REGISTER_URL" ]; then
   [ -n "$REGISTER_TOKEN" ] || die "--register-url given without --register-token."
-  curl -fsS --max-time 15 -X POST "$REGISTER_URL" \
+  info "Registering and running the acceptance test (a real request through the gateway)..."
+  # register-node tests every model end to end before it is sold; this can take a minute.
+  RESPONSE="$(curl -fsS --max-time 180 -X POST "$REGISTER_URL" \
     -H "Authorization: Bearer ${REGISTER_TOKEN}" \
     -H "Content-Type: application/json" \
-    -d "$PAYLOAD" >/dev/null || die "Registration request to ${REGISTER_URL} failed."
-  ok "Node registered — your garage is live on GarageAI."
+    -d "$PAYLOAD")" || die "Registration request to ${REGISTER_URL} failed."
+  PASSED=0
+  while IFS=$'\t' read -r model passed tps ttft err; do
+    [ -n "$model" ] || continue
+    if [ "$passed" = "true" ]; then
+      PASSED=$((PASSED + 1))
+      ok "${model}: passed (${tps} tok/s, first token after ${ttft} ms)"
+    else
+      warn "${model}: failed (${err})"
+    fi
+  done < <(printf '%s' "$RESPONSE" | jq -r '.acceptance[]? |
+    [.model, (.passed|tostring), (.tokens_per_second // "?" | tostring),
+     (.ttft_ms // "?" | tostring), (.error // "")] | @tsv')
+  if [ "$PASSED" -gt 0 ]; then
+    ok "Node registered — your garage is live on GarageAI."
+  else
+    warn "Registered, but no model passed the acceptance test, so nothing is for sale yet."
+    warn "Check that the runtime answers on the mesh IP and that the model loads, then run this again."
+  fi
+
+  if [ "$HEARTBEAT" -eq 1 ]; then
+    bold "6/6  Heartbeat"
+    install_heartbeat
+    ok "Installed: reports your models every 5 minutes. Load a new model and it will be"
+    info "  tested and offered automatically. Remove with: $0 --remove-heartbeat"
+  fi
 else
   info "No --register-url given. Send these details to GarageAI to activate the node:"
   echo
