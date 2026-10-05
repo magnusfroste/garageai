@@ -30,11 +30,34 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=${NETBIRD_NETWORK:?set NETBIRD_NETWORK in .env}
-      - traefik.http.routers.litellm.rule=Host(`${LITELLM_DOMAIN:?set LITELLM_DOMAIN in .env}`)
+      - traefik.http.services.litellm.loadbalancer.server.port=4000
+      # Public: only the LLM API and liveness checks, rate limited per client IP.
+      - traefik.http.routers.litellm.rule=Host(`${LITELLM_DOMAIN:?set LITELLM_DOMAIN in .env}`) && (Path(`/v1/chat/completions`) || Path(`/chat/completions`) || Path(`/v1/completions`) || Path(`/completions`) || Path(`/v1/embeddings`) || Path(`/embeddings`) || Path(`/v1/models`) || Path(`/models`) || Path(`/v1/messages`) || Path(`/v1/messages/count_tokens`) || Path(`/v1/responses`) || Path(`/health/liveliness`) || Path(`/health/readiness`))
+      - traefik.http.routers.litellm.priority=300
       - traefik.http.routers.litellm.entrypoints=websecure
       - traefik.http.routers.litellm.tls=true
       - traefik.http.routers.litellm.tls.certresolver=letsencrypt
-      - traefik.http.services.litellm.loadbalancer.server.port=4000
+      - traefik.http.routers.litellm.service=litellm
+      - traefik.http.routers.litellm.middlewares=litellm-ratelimit
+      - traefik.http.middlewares.litellm-ratelimit.ratelimit.average=20
+      - traefik.http.middlewares.litellm-ratelimit.ratelimit.burst=60
+      # Admin API (model, key, user, spend routes): only with the master key, so buyer keys
+      # cannot read /model/info (garage addresses) or trigger /health (real inference).
+      - traefik.http.routers.litellm-admin.rule=Host(`${LITELLM_DOMAIN}`) && Header(`Authorization`, `Bearer ${LITELLM_MASTER_KEY:?set LITELLM_MASTER_KEY in .env}`)
+      - traefik.http.routers.litellm-admin.priority=200
+      - traefik.http.routers.litellm-admin.entrypoints=websecure
+      - traefik.http.routers.litellm-admin.tls=true
+      - traefik.http.routers.litellm-admin.tls.certresolver=letsencrypt
+      - traefik.http.routers.litellm-admin.service=litellm
+      # Everything else (admin UI, /sso, /openapi.json, admin routes without the master key): 403.
+      - traefik.http.routers.litellm-deny.rule=Host(`${LITELLM_DOMAIN}`)
+      - traefik.http.routers.litellm-deny.priority=100
+      - traefik.http.routers.litellm-deny.entrypoints=websecure
+      - traefik.http.routers.litellm-deny.tls=true
+      - traefik.http.routers.litellm-deny.tls.certresolver=letsencrypt
+      - traefik.http.routers.litellm-deny.service=litellm
+      - traefik.http.routers.litellm-deny.middlewares=litellm-deny
+      - traefik.http.middlewares.litellm-deny.ipallowlist.sourcerange=127.0.0.1/32
     logging:
       driver: json-file
       options:

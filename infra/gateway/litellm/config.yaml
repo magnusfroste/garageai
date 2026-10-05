@@ -5,6 +5,8 @@
 
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
+  # Spend logs hold no prompts, but grow with every request (including rejected ones).
+  maximum_spend_logs_retention_period: "30d"
 
 litellm_settings:
   drop_params: true        # ignore OpenAI params a garage runtime doesn't support

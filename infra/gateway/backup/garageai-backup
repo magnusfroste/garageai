@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# garageai-backup — nightly local backup of the GarageAI gateway state.
+# Contents: LiteLLM Postgres (keys, budgets, models, spend), LiteLLM .env (master and
+# salt key), NetBird config.yaml (store encryption key) and data volume, Let's Encrypt
+# certificates. Kept 7 days in /var/backups/garageai (root only). Copy off-site too:
+# a local backup does not survive losing this server.
+set -euo pipefail
+umask 077
+DEST=/var/backups/garageai
+STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+WORK=$(mktemp -d)
+trap 'rm -rf "$WORK"' EXIT
+mkdir -p "$DEST"
+
+docker exec garageai-litellm-postgres-1 pg_dump -U litellm -d litellm -Fc > "$WORK/litellm.pgdump"
+cp /opt/garageai/litellm/.env "$WORK/litellm.env"
+cp /opt/garageai/litellm/config.yaml /opt/garageai/litellm/docker-compose.yml "$WORK/"
+cp /opt/garageai/netbird/config.yaml "$WORK/netbird-config.yaml"
+cp /opt/garageai/netbird/docker-compose.yml "$WORK/netbird-docker-compose.yml"
+for vol in netbird_netbird_data netbird_netbird_traefik_letsencrypt; do
+  docker run --rm -v "$vol":/data:ro -v "$WORK":/out alpine:3 tar -C /data -czf "/out/$vol.tgz" .
+done
+
+tar -C "$WORK" -czf "$DEST/garageai-$STAMP.tgz" .
+find "$DEST" -name 'garageai-*.tgz' -mtime +7 -delete
+echo "backup ok: $DEST/garageai-$STAMP.tgz ($(du -h "$DEST/garageai-$STAMP.tgz" | cut -f1))"
