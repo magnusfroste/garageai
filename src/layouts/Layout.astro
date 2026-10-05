@@ -24,7 +24,7 @@ const organizationSchema = {
   email: 'powerup@garageai.eu',
   slogan: "Your Garage. Europe's AI Engine.",
   description:
-    "Europe's first decentralized, sovereign AI infrastructure initiative — powered by solar panels, EV batteries, and 75 million garages.",
+    "A marketplace for local AI inference in Europe: garage owners offer their GPUs and get paid per token, buyers use open models through one OpenAI-compatible API.",
   foundingDate: '2025',
   foundingLocation: { '@type': 'Place', name: 'Sweden' },
   address: { '@type': 'PostalAddress', addressCountry: 'SE' },
@@ -32,7 +32,7 @@ const organizationSchema = {
     'Sovereign AI',
     'Distributed AI inference',
     'Local large language models',
-    'Vehicle-to-grid',
+    'OpenAI-compatible API',
     'Decentralized computing',
     'European AI sovereignty',
   ],
@@ -45,7 +45,7 @@ const websiteSchema = {
   name: 'Garage AI',
   url: site.href,
   description:
-    "Sweden leads Europe's first decentralized AI infrastructure initiative. 75M garages. Solar + EV batteries + local inference.",
+    "Local, sovereign AI inference from GPUs in European garages. Offer your GPU or use AI through an OpenAI-compatible API.",
   inLanguage: 'en',
   publisher: { '@type': 'Organization', name: 'Garage AI', url: site.href },
 };
@@ -63,7 +63,7 @@ const websiteSchema = {
     <title>{title}</title>
     <meta name="title" content={title} />
     <meta name="description" content={description} />
-    <meta name="keywords" content="Garage AI, sovereign AI, distributed inference, Sweden AI, Europe AI, decentralized AI, V2G, solar AI, local AI, AI infrastructure" />
+    <meta name="keywords" content="Garage AI, GarageAI, sovereign AI, local AI inference, GPU marketplace, OpenAI-compatible API, earn with your GPU, Europe AI, decentralized AI, Ollama, vLLM, LM Studio, llama.cpp" />
     <meta name="author" content="Garage AI" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="language" content="English" />
@@ -72,7 +72,7 @@ const websiteSchema = {
     <!-- Open Graph / LinkedIn -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalURL} />
-    <meta property="og:title" content="🇸🇪 Garage AI — Distributed Sovereign AI Infrastructure" />
+    <meta property="og:title" content="Garage AI — Local AI Inference from European Garages" />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={imageURL} />
     <meta property="og:image:type" content="image/png" />
@@ -85,7 +85,7 @@ const websiteSchema = {
     <!-- Twitter / X -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content={canonicalURL} />
-    <meta property="twitter:title" content="🇸🇪 Garage AI — Distributed Sovereign AI Infrastructure" />
+    <meta property="twitter:title" content="Garage AI — Local AI Inference from European Garages" />
     <meta property="twitter:description" content={description} />
     <meta property="twitter:image" content={imageURL} />
     <meta property="twitter:image:alt" content="Garage AI — Your Garage. Europe's AI Engine." />

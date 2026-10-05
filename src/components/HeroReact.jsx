@@ -1,6 +1,30 @@
 import { motion } from 'framer-motion';
 
-const Hero = ({ title, subtitle, description, secondaryText, stats }) => {
+const defaultBadges = [
+  { text: 'Open source · MIT License', color: 'green' },
+  { text: 'Made in Sweden · Built for Europe', color: 'blue' },
+];
+
+const defaultButtons = [
+  { text: 'Offer Your GPU', url: 'https://app.garageai.eu/auth?intent=operator', variant: 'primary' },
+  { text: 'Use AI', url: 'https://app.garageai.eu/auth?intent=buyer', variant: 'secondary' },
+];
+
+const badgeColors = {
+  green: 'text-green-400',
+  blue: 'text-blue-400',
+};
+
+const Hero = ({
+  title,
+  subtitle,
+  description,
+  secondaryText,
+  stats,
+  badges = defaultBadges,
+  buttons = defaultButtons,
+  secondaryLink,
+}) => {
   return (
     <section
       className="hero-gradient min-h-screen flex flex-col items-center justify-center pt-20 relative overflow-hidden"
@@ -104,12 +128,14 @@ const Hero = ({ title, subtitle, description, secondaryText, stats }) => {
           transition={{ duration: 0.6, delay: 0.7 }}
           className="flex justify-center gap-3 flex-wrap mb-10"
         >
-          <span className="inline-flex items-center gap-2 px-4 py-2 bg-slate-950 border border-slate-700 rounded-full text-green-400 text-sm font-medium">
-            100% Open Source · MIT License
-          </span>
-          <span className="inline-flex items-center gap-2 px-4 py-2 bg-slate-950 border border-slate-700 rounded-full text-blue-400 text-sm font-medium">
-            Made in Sweden · Built for Europe
-          </span>
+          {(badges || []).map((badge) => (
+            <span
+              key={badge.text}
+              className={`inline-flex items-center gap-2 px-4 py-2 bg-slate-950 border border-slate-700 rounded-full text-sm font-medium ${badgeColors[badge.color] || 'text-green-400'}`}
+            >
+              {badge.text}
+            </span>
+          ))}
         </motion.div>
 
         {/* CTA buttons */}
@@ -119,31 +145,37 @@ const Hero = ({ title, subtitle, description, secondaryText, stats }) => {
           transition={{ duration: 0.8, delay: 0.75 }}
           className="flex gap-4 justify-center flex-wrap"
         >
-          <motion.a
-            href="https://app.garageai.eu/auth?intent=operator"
-            className="apple-button-primary inline-block no-underline"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            Offer Your GPU
-          </motion.a>
-          <motion.a
-            href="https://app.garageai.eu/auth?intent=buyer"
-            className="apple-button-secondary inline-block no-underline"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            Use AI
-          </motion.a>
-          <motion.button
-            onClick={() => window.open('https://github.com/magnusfroste/garageai', '_blank')}
-            className="apple-button-secondary"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            GitHub
-          </motion.button>
+          {(buttons || []).map((button) => (
+            <motion.a
+              key={button.url}
+              href={button.url}
+              className={`${button.variant === 'primary' ? 'apple-button-primary' : 'apple-button-secondary'} inline-block no-underline`}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              {button.text}
+            </motion.a>
+          ))}
         </motion.div>
+
+        {secondaryLink && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.9 }}
+            className="mt-6 text-sm"
+          >
+            <a
+              href={secondaryLink.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-cyan-400 transition"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              {secondaryLink.text}
+            </a>
+          </motion.p>
+        )}
 
         {/* LinkedIn share */}
         <motion.div

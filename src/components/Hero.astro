@@ -1,29 +1,9 @@
 ---
 import HeroReact from './HeroReact.jsx';
 
-interface Stat {
-  icon: string;
-  value: string;
-  label: string;
-  accent: string;
-}
-
-interface Props {
-  title: string;
-  subtitle: string;
-  description: string;
-  secondaryText: string;
-  stats: Stat[];
-}
-
-const { title, subtitle, description, secondaryText, stats } = Astro.props;
+// All hero copy (title, texts, badges, buttons, secondaryLink) comes from
+// src/content/landing/hero.md; stats come from src/content/stats/hero-stats.json.
+const props = Astro.props;
 ---
 
-<HeroReact 
-  client:load
-  title={title}
-  subtitle={subtitle}
-  description={description}
-  secondaryText={secondaryText}
-  stats={stats}
-/>
+<HeroReact client:load {...props} />

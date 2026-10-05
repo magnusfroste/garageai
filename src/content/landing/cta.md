@@ -2,8 +2,8 @@
 section: "cta"
 title: "Your Garage Is Ready."
 subtitle: "Is Europe?"
-description: "The infrastructure for Europe's sovereign AI future isn't a billion-euro data center somewhere in the Nordics. It's 75 million garages — already built, already powered, already connected."
-secondaryText: "The prototype is running on GitHub. The nodes are online. Sweden takes the lead. The only thing missing is you."
+description: "Europe's AI capacity doesn't have to be only a billion-euro data centre somewhere. Part of it can be the GPUs people and companies already own, connected, local and paid."
+secondaryText: "The mesh, the gateway and the portal are live, and the first garages are serving models. Offer your GPU, or start using AI from European garages today."
 icon: "🏠"
 buttons:
   - text: "🚀 Offer Your GPU"
@@ -15,7 +15,7 @@ buttons:
   - text: "🔓 Open Source on GitHub"
     url: "https://github.com/magnusfroste/garageai"
     variant: "secondary"
-order: 10
+order: 12
 ---
 
 Content for this section is defined in the frontmatter above.

@@ -10,48 +10,26 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 }
 };
 
-const quotes = [
-  {
-    quote: 'Running a private inference server at home felt niche two years ago. Now it feels like the obvious future. Garage AI is the structure this movement was missing.',
-    author: 'Early node operator',
-    location: 'Stockholm, Sweden',
-    avatar: '🚀',
-  },
-  {
-    quote: 'The parallels to solar are striking. Same technology adoption curve, same decentralization pressure, same sovereignty argument. We\'re early.',
-    author: 'Energy systems researcher',
-    location: 'Gothenburg, Sweden',
-    avatar: '☀️',
-  },
-  {
-    quote: 'When autonomous agents need hundreds of inference calls per task, local infrastructure stops being optional — it becomes the only rational choice.',
-    author: 'AI infrastructure engineer',
-    location: 'Malmö, Sweden',
-    avatar: '🤖',
-  },
-];
-
-const communityStats = [
-  { icon: '🖥️', value: 'Growing', label: 'Node Operators' },
-  { icon: '🌍', value: '🇸🇪→🇪🇺', label: 'Sweden First' },
-  { icon: '🔓', value: 'MIT', label: 'Open Source License' },
-  { icon: '⚡', value: 'Live', label: 'Prototype Running' },
-];
-
 const Community = ({
-  title = 'The Community',
-  description = "Builders, researchers, energy enthusiasts, and AI practitioners — united around a shared conviction that Europe's AI future should be local, sovereign, and community-owned.",
-  quotes: quotesProp,
-  stats,
-  buildItems = ['Set up a garage node (docs on GitHub)', 'Contribute to the open-source inference cluster', 'Test V2G and solar integration', 'Document your setup for others'],
-  spreadItems = ['Share this initiative with your municipality', 'Talk to local energy companies about V2G', 'Connect with EU policy makers', 'Tell your neighbours what\'s possible'],
+  title = 'Open Source & Community',
+  subtitle,
+  description,
+  quotes = [],
+  stats = [],
+  buildTitle = '🛠️ Build & Contribute',
+  buildItems = [],
+  spreadTitle = '🌍 Spread the Vision',
+  spreadItems = [],
+  joinTitle = 'Join Early',
+  joinText,
+  joinButtons = [],
 } = {}) => {
-  const quoteList = quotesProp || quotes;
-  const statList = stats || communityStats;
+  const quoteList = quotes || [];
+  const statList = stats || [];
 
   return (
     <motion.section
-      id="community"
+      id="open-source"
       className="py-20 px-4 max-w-6xl mx-auto"
       variants={containerVariants}
       initial="hidden"
@@ -65,6 +43,11 @@ const Community = ({
       >
         {title}
       </motion.h2>
+      {subtitle && (
+        <motion.p variants={itemVariants} className="apple-heading-2 mb-4 text-center" style={{ color: 'var(--color-text-secondary)' }}>
+          {subtitle}
+        </motion.p>
+      )}
       <motion.p
         variants={itemVariants}
         className="apple-body mb-12 text-center max-w-2xl mx-auto"
@@ -89,7 +72,8 @@ const Community = ({
         ))}
       </motion.div>
 
-      {/* Quotes */}
+      {/* Quotes (only rendered when real, attributable quotes are provided) */}
+      {quoteList.length > 0 && (
       <motion.div variants={itemVariants} className="grid md:grid-cols-3 gap-6 mb-16">
         {(quoteList || []).map((q, i) => (
           <motion.div
@@ -109,12 +93,13 @@ const Community = ({
           </motion.div>
         ))}
       </motion.div>
+      )}
 
       {/* Ways to participate */}
       <motion.div variants={itemVariants} className="grid md:grid-cols-2 gap-8 mb-12">
         <div className="fact-box p-7">
           <h4 className="font-black text-lg mb-4" style={{ color: 'var(--color-primary)' }}>
-            🛠️ Build & Contribute
+            {buildTitle}
           </h4>
           <ul className="space-y-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
             {(buildItems || []).map((item, i) => (
@@ -124,7 +109,7 @@ const Community = ({
         </div>
         <div className="fact-box p-7">
           <h4 className="font-black text-lg mb-4" style={{ color: 'var(--color-accent)' }}>
-            🌍 Spread the Vision
+            {spreadTitle}
           </h4>
           <ul className="space-y-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
             {(spreadItems || []).map((item, i) => (
@@ -138,28 +123,24 @@ const Community = ({
       <motion.div variants={itemVariants}>
         <div className="text-center p-8 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
           <h3 className="text-xl font-black mb-4" style={{ color: 'var(--color-primary)' }}>
-            Join the Movement
+            {joinTitle}
           </h3>
           <p className="text-sm mb-6" style={{ color: 'var(--color-text-secondary)' }}>
-            500+ builders are already running nodes. The prototype is live. Europe's sovereign AI future starts in a garage.
+            {joinText}
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
-            <motion.button
-              onClick={() => window.open('https://github.com/magnusfroste/garageai/discussions', '_blank')}
-              className="apple-button-primary"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              💬 GitHub Discussions
-            </motion.button>
-            <motion.button
-              onClick={() => window.open('https://github.com/magnusfroste/garageai', '_blank')}
-              className="apple-button-secondary"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              🔓 View on GitHub
-            </motion.button>
+            {(joinButtons || []).map((button) => (
+              <motion.a
+                key={button.url}
+                href={button.url}
+                {...(button.url.startsWith('https://github.com') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                className={`${button.variant === 'primary' ? 'apple-button-primary' : 'apple-button-secondary'} inline-block no-underline`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {button.text}
+              </motion.a>
+            ))}
           </div>
         </div>
       </motion.div>

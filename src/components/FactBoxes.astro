@@ -1,63 +1,9 @@
 ---
 import FactBoxesReact from './FactBoxesReact.jsx';
 
-interface CountryData {
-  country: string;
-  homes: string;
-  garages: string;
-  pct: string;
-  evs: string;
-}
-
-interface WhySwedenItem {
-  icon: string;
-  title: string;
-  stats: string[];
-  color: string;
-}
-
-interface LabelValue {
-  label: string;
-  value: string;
-}
-
-interface Props {
-  title: string;
-  description: string;
-  euData: CountryData[];
-  totalRow: {
-    homes: string;
-    garages: string;
-    pct: string;
-    evs: string;
-  };
-  sourceNote: string;
-  whySweden: WhySwedenItem[];
-  gridElectricity: string[];
-  gridComputing: string[];
-  gridQuote: string;
-  evParking: LabelValue[];
-  energyStack: LabelValue[];
-  euScale: LabelValue[];
-  evFootnotes: string[];
-}
-
-const { title, description, euData, totalRow, sourceNote, whySweden, gridElectricity, gridComputing, gridQuote, evParking, energyStack, euScale, evFootnotes } = Astro.props;
+// Vision section (EU garage estimates, Sweden, energy stack).
+// Content: src/content/landing/factboxes.md.
+const props = Astro.props;
 ---
 
-<FactBoxesReact
-  client:load
-  title={title}
-  description={description}
-  euData={euData}
-  totalRow={totalRow}
-  sourceNote={sourceNote}
-  whySweden={whySweden}
-  gridElectricity={gridElectricity}
-  gridComputing={gridComputing}
-  gridQuote={gridQuote}
-  evParking={evParking}
-  energyStack={energyStack}
-  euScale={euScale}
-  evFootnotes={evFootnotes}
-/>
+<FactBoxesReact client:load {...props} />

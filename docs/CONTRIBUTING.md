@@ -234,7 +234,7 @@ npm run docs:deploy
 
 ### High Priority
 
-- **🚀 Boot Image Creation**: Improve USB boot image generation
+- **🔌 Operator onboarding**: Improve the connect script (`scripts/garageai-connect.sh`) and runtime support (Ollama, LM Studio, llama.cpp, vLLM)
 - **🔧 Hardware Detection**: Better GPU and hardware compatibility
 - **🌐 Network Optimization**: Reduce latency in distributed inference
 - **🔒 Security**: Enhance node authentication and data protection

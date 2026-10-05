@@ -1,45 +1,8 @@
 ---
 import CommunityReact from './CommunityReact.jsx';
 
-interface Quote {
-  quote: string;
-  author: string;
-  location: string;
-  avatar: string;
-}
-
-interface Stat {
-  icon: string;
-  value: string;
-  label: string;
-}
-
-interface Props {
-  title: string;
-  subtitle: string;
-  description: string;
-  quotes: Quote[];
-  stats: Stat[];
-  discordUrl: string;
-  githubDiscussionsUrl: string;
-  ctaText: string;
-  buildItems: string[];
-  spreadItems: string[];
-}
-
-const { title, subtitle, description, quotes, stats, discordUrl, githubDiscussionsUrl, ctaText, buildItems, spreadItems } = Astro.props;
+// "Open Source & Community" section. Content: src/content/landing/community.md.
+const props = Astro.props;
 ---
 
-<CommunityReact
-  client:load
-  title={title}
-  subtitle={subtitle}
-  description={description}
-  quotes={quotes}
-  stats={stats}
-  discordUrl={discordUrl}
-  githubDiscussionsUrl={githubDiscussionsUrl}
-  ctaText={ctaText}
-  buildItems={buildItems}
-  spreadItems={spreadItems}
-/>
+<CommunityReact client:load {...props} />

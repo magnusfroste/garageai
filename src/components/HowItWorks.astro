@@ -1,0 +1,8 @@
+---
+import HowItWorksReact from './HowItWorksReact.jsx';
+
+// Content: src/content/landing/how-it-works.md (tracks for buyers/operators + "why" cards).
+const props = Astro.props;
+---
+
+<HowItWorksReact client:load {...props} />

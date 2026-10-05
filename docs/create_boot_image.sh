@@ -1,4 +1,6 @@
 #!/bin/bash
+# NOTE: Legacy script from GarageAI's previous architecture (custom OS image / Podman-in-Docker /
+# vLLM-only). Not used anymore. Current setup: infra/gateway/README.md and scripts/garageai-connect.sh.
 # Garage AI Boot Image Creation Script
 # This script creates a bootable USB image for Garage AI
 

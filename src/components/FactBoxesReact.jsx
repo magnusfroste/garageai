@@ -40,8 +40,7 @@ const whySwedenDefault = [
     stats: [
       '1.5M+ EVs & PHEVs on road',
       '50%+ of new car sales electric',
-      'Average 60kWh battery = local storage',
-      'V2G-ready grid infrastructure'
+      'Average 60kWh battery = local storage'
     ],
     color: 'var(--color-accent)'
   },
@@ -63,14 +62,12 @@ const gridElectricityDefault = [
   'Solar panels arrived — anyone could produce energy',
   'Excess production feeds back into the grid',
   'EVs become mobile battery storage (V2G)',
-  'Today: 600GW solar installed in EU alone',
 ];
 
 const gridComputingDefault = [
   'Hyperscale datacenters are the only source of AI compute',
-  'Consumer hardware (GPU/NPU) now rivals data center performance',
+  'Consumer GPUs and Apple silicon can now run capable open models',
   'Local models run privately, excess capacity shared',
-  'A Mac Mini in every home — the "Mac Mini moment"',
   'Tomorrow: your garage feeds the neighbourhood',
 ];
 
@@ -87,11 +84,11 @@ const evParkingDefault = [
 
 const energyStackDefault = [
   { label: 'Solar panels (8–12 kW)³', value: '40–60 kWh on a good day' },
-  { label: 'Home battery — PRIMARY link', value: 'Powers node 24/7, day & night' },
+  { label: 'Home battery', value: 'Could power a node through the night' },
   { label: 'Powerwall 3 / BYD Battery Box', value: '13.5–15 kWh buffer capacity' },
   { label: 'EV V2H (when home, evenings)', value: '60–100 kWh additional buffer' },
   { label: 'AI inference hardware', value: '300–600W continuous draw' },
-  { label: 'Net energy cost (solar)', value: 'Near zero — runs on own production' },
+
 ];
 
 const euScaleDefault = [
@@ -112,7 +109,7 @@ const evFootnotesDefault = [
 
 const FactBoxes = ({
   title = "Europe's Hidden Data Centers",
-  description = '75+ million garages across the EU sit idle — waiting to become the backbone of a sovereign, decentralized AI infrastructure.',
+  description = 'An estimated 75+ million garages across the EU. Each one could host AI hardware.',
   euData,
   totalRow = { homes: '~225M', garages: '~75M+', pct: '~33%', evs: '~17M' },
   sourceNote = 'Sources: Eurostat Housing Statistics 2023, ACEA Electric Vehicle Report 2024. Garage estimates based on single-family home stock.',
@@ -124,6 +121,11 @@ const FactBoxes = ({
   energyStack,
   euScale,
   evFootnotes,
+  whySwedenTitle = 'Why Start in Sweden',
+  whySwedenDescription = 'Sweden has several of the building blocks the long-term vision needs.',
+  energyTitle = 'The Energy Vision: Solar, Batteries and EVs',
+  energyDescription,
+  energyConclusion,
 } = {}) => {
   const rows = euData || euGarageData;
   const whySwedenItems = whySweden || whySwedenDefault;
@@ -195,10 +197,10 @@ const FactBoxes = ({
       <motion.section variants={itemVariants}>
         <div className="apple-card">
           <h3 className="apple-heading-2 mb-4 text-center">
-            Why Sweden Takes the Lead
+            {whySwedenTitle}
           </h3>
           <p className="apple-body mb-8 text-center max-w-2xl mx-auto">
-            Sweden doesn't just have the vision — it has every infrastructure advantage needed to make this real.
+            {whySwedenDescription}
           </p>
           <div className="grid md:grid-cols-3 gap-6">
             {(whySwedenItems || []).map((item, i) => (
@@ -276,13 +278,10 @@ const FactBoxes = ({
       <motion.section variants={itemVariants}>
         <div className="apple-card">
           <h3 className="apple-heading-2 mb-4 text-center">
-            EV Batteries: Evening & Weekend Buffer
+            {energyTitle}
           </h3>
           <p className="apple-body mb-6 text-center max-w-2xl mx-auto">
-            The honest picture: EVs are mostly away during solar peak hours on weekdays.
-            But they're home during evenings and weekends — and that's when V2H (Vehicle-to-Home)
-            adds real capacity to the stack. The <strong>home battery is the 24/7 backbone</strong>;
-            the EV is an important complement.
+            {energyDescription}
           </p>
 
           <div className="grid md:grid-cols-2 gap-8 mb-6">
@@ -298,7 +297,7 @@ const FactBoxes = ({
               </ul>
             </div>
             <div>
-              <p className="font-semibold mb-4" style={{ color: 'var(--color-primary)' }}>🏠 Garage Node Energy Stack</p>
+              <p className="font-semibold mb-4" style={{ color: 'var(--color-primary)' }}>🏠 A Possible Garage Energy Stack</p>
               <ul className="space-y-3">
                 {(energyStackItems || []).map(({ label, value }, i) => (
                   <li key={i} className="flex justify-between text-sm border-b border-slate-800 pb-2">
@@ -325,9 +324,7 @@ const FactBoxes = ({
 
           <div className="p-4 rounded-lg text-center" style={{ background: 'rgba(52,199,89,0.08)', border: '1px solid rgba(52,199,89,0.2)' }}>
             <p className="text-sm" style={{ color: 'var(--color-primary)' }}>
-              <strong>The stack works.</strong> Solar + home battery powers the AI node around the clock.
-              The EV adds meaningful evening and weekend capacity via V2H.
-              <strong> Locally produced. Locally consumed. Locally owned.</strong>
+              {energyConclusion}
             </p>
           </div>
 

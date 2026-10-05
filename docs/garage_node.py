@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 """
+NOTE: Legacy proof of concept from GarageAI's previous architecture. Not used anymore.
+Current setup: infra/gateway/README.md and scripts/garageai-connect.sh.
+
 Garage AI Node - Proof of Concept Implementation
 This script demonstrates the core functionality of a Garage AI node.
 """

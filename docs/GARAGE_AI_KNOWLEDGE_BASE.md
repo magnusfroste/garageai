@@ -1,5 +1,9 @@
 # 🧠 Garage AI Knowledge Base
 
+> **⚠️ Previous architecture.** This document describes GarageAI's earlier design (a custom OS / boot image, vLLM-only nodes, Podman-in-Docker isolation and an overlay network). That approach has been dropped and this page is kept for history only.
+> GarageAI now uses a NetBird (WireGuard) mesh and a LiteLLM gateway: operators keep their own macOS or Linux machine and any supported runtime (Ollama, LM Studio, llama.cpp, vLLM).
+> To get started, use the portal at https://app.garageai.eu (operators: https://app.garageai.eu/auth?intent=operator). Technical setup: [infra/gateway/README.md](https://github.com/magnusfroste/garageai/blob/main/infra/gateway/README.md) and [scripts/garageai-connect.sh](https://github.com/magnusfroste/garageai/blob/main/scripts/garageai-connect.sh).
+
 **Version**: 2.1 | **Last Updated**: April 2026 | **Status**: Active
 
 This knowledge base contains technical documentation, implementation details, and architectural overview for Garage AI — a distributed AI network built on idle hardware in European homes and garages.

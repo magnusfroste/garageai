@@ -4,6 +4,7 @@ import Layout from '../layouts/Layout.astro';
 import ScrollProgress from '../components/ScrollProgress.jsx';
 import Header from '../components/Header.astro';
 import Hero from '../components/Hero.astro';
+import HowItWorks from '../components/HowItWorks.astro';
 import FactBoxes from '../components/FactBoxes.astro';
 import AIExplained from '../components/AIExplained.astro';
 import Infrastructure from '../components/Infrastructure.astro';
@@ -12,13 +13,13 @@ import TokenEconomy from '../components/TokenEconomy.astro';
 import Roadmap from '../components/Roadmap.astro';
 import Community from '../components/Community.astro';
 import FAQ from '../components/FAQ.astro';
-import Sponsors from '../components/Sponsors.astro';
 import CTA from '../components/CTA.astro';
 import Footer from '../components/Footer.astro';
 
 // All content is authored in src/content/landing/*.md and src/content/faq/*.md.
 const header = await getEntry('landing', 'header');
 const hero = await getEntry('landing', 'hero');
+const howItWorks = await getEntry('landing', 'how-it-works');
 const factboxes = await getEntry('landing', 'factboxes');
 const aiExplained = await getEntry('landing', 'ai-explained');
 const infrastructure = await getEntry('landing', 'infrastructure');
@@ -26,7 +27,6 @@ const b2b = await getEntry('landing', 'b2b');
 const tokenEconomy = await getEntry('landing', 'token-economy');
 const roadmap = await getEntry('landing', 'roadmap');
 const community = await getEntry('landing', 'community');
-const sponsors = await getEntry('landing', 'sponsors');
 const cta = await getEntry('landing', 'cta');
 const footer = await getEntry('landing', 'footer');
 const faq = await getEntry('faq', 'general');
@@ -49,8 +49,8 @@ const faqSchema = {
 ---
 
 <Layout
-  title="Garage AI — Sweden's Sovereign AI Initiative | Your Garage. Europe's AI Engine."
-  description="Sweden leads Europe's first decentralized AI infrastructure initiative. 75M garages. Solar + EV batteries + local inference."
+  title="Garage AI — Local AI Inference from European Garages | Offer Your GPU or Use AI"
+  description="A marketplace for local AI inference. Garage owners offer their GPU and get paid per token; buyers use open models through one OpenAI-compatible API, routed over an encrypted mesh via an EU gateway."
 >
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(faqSchema)} />
   <ScrollProgress client:load />
@@ -59,15 +59,19 @@ const faqSchema = {
 
   <Hero {...hero.data} stats={stats.default} />
 
-  <FactBoxes {...factboxes.data} />
-  <AIExplained {...aiExplained.data} />
+  <!-- What works today -->
+  <HowItWorks {...howItWorks.data} />
   <Infrastructure {...infrastructure.data} />
-  <B2B {...b2b.data} />
   <TokenEconomy {...tokenEconomy.data} />
+  <B2B {...b2b.data} />
   <Roadmap {...roadmap.data} />
+
+  <!-- The long-term vision -->
+  <AIExplained {...aiExplained.data} />
+  <FactBoxes {...factboxes.data} />
+
   <Community {...community.data} />
   <FAQ {...faq.data} />
-  <Sponsors {...sponsors.data} />
   <CTA {...cta.data} />
   <Footer {...footer.data} />
 </Layout>

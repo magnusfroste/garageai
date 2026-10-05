@@ -39,7 +39,7 @@ We appreciate security researchers who help keep our community safe. With your p
 
 ### For Node Operators
 
-- **Keep your boot image updated** to the latest version
+- **Keep your runtime and the NetBird client updated** to the latest version
 - **Use strong, unique passwords** for node authentication
 - **Monitor your node's activity** regularly
 - **Report suspicious behavior** immediately
@@ -79,8 +79,7 @@ Our security advisories follow the [Common Vulnerability Scoring System (CVSS)](
 ### Current Limitations
 
 - **Local Processing**: While data stays local, physical access to the machine could compromise security
-- **Network Security**: Inter-node communication requires proper firewall configuration
-- **Boot Security**: USB boot images should be stored securely to prevent tampering
+- **Network Security**: Garages join a WireGuard mesh (NetBird); no inbound ports are needed, garages cannot reach each other, and only the gateway reaches a garage's runtime
 
 ### Mitigation Strategies
 
