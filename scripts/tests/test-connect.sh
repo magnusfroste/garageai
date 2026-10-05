@@ -2,7 +2,7 @@
 # Tests for garageai-connect.sh that need no NetBird, no GPU and no network:
 # syntax (also under macOS's bash 3.2), option parsing and --doctor against a fake runtime.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 SCRIPT=./garageai-connect.sh
 PORT=18000
 fails=0
