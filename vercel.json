@@ -51,7 +51,7 @@
   "redirects": [
     {
       "source": "/docs",
-      "destination": "https://github.com/magnusfroste/garageai/blob/main/docs/GET_STARTED.md",
+      "destination": "https://github.com/magnusfroste/garageai#readme",
       "permanent": false
     },
     {
