@@ -9,8 +9,8 @@ order: 1
 
 ## CTA Buttons
 
-- **Primary**: "🚀 Start My Node" → https://github.com/magnusfroste/garageai/blob/main/docs/GET_STARTED.md
-- **Secondary**: "💬 Join the Community" → https://github.com/magnusfroste/garageai/discussions
+- **Primary**: "Offer Your GPU" → https://app.garageai.eu/auth?intent=operator
+- **Secondary**: "Use AI" → https://app.garageai.eu/auth?intent=buyer
 - **Tertiary**: "📚 GitHub" → https://github.com/magnusfroste/garageai
 
 ## Highlights

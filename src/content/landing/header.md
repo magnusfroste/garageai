@@ -3,8 +3,8 @@ section: "header"
 order: 0
 title: "Header"
 logo: "🏠 GARAGE AI"
-ctaText: "Join the Movement"
-ctaUrl: "https://github.com/magnusfroste/garageai/discussions"
+ctaText: "Get Started"
+ctaUrl: "https://app.garageai.eu/auth"
 navLinks:
   - label: "Home"
     sectionId: null

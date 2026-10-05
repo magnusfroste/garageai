@@ -119,22 +119,22 @@ const Hero = ({ title, subtitle, description, secondaryText, stats }) => {
           transition={{ duration: 0.8, delay: 0.75 }}
           className="flex gap-4 justify-center flex-wrap"
         >
-          <motion.button
-            onClick={() => window.open('https://github.com/magnusfroste/garageai/blob/main/docs/GET_STARTED.md', '_blank')}
-            className="apple-button-primary"
+          <motion.a
+            href="https://app.garageai.eu/auth?intent=operator"
+            className="apple-button-primary inline-block no-underline"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            Start My Node
-          </motion.button>
-          <motion.button
-            onClick={() => window.open('https://github.com/magnusfroste/garageai/discussions', '_blank')}
-            className="apple-button-secondary"
+            Offer Your GPU
+          </motion.a>
+          <motion.a
+            href="https://app.garageai.eu/auth?intent=buyer"
+            className="apple-button-secondary inline-block no-underline"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            Join the Community
-          </motion.button>
+            Use AI
+          </motion.a>
           <motion.button
             onClick={() => window.open('https://github.com/magnusfroste/garageai', '_blank')}
             className="apple-button-secondary"
