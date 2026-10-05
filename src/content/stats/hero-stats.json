@@ -1,26 +1,26 @@
 [
   {
-    "icon": "🏠",
-    "value": "75M+",
-    "label": "Garages in EU",
+    "icon": "🔌",
+    "value": "OpenAI",
+    "label": "Compatible API",
     "accent": "var(--color-primary)"
   },
   {
-    "icon": "⚡",
-    "value": "10 TWh",
-    "label": "Potential Storage",
+    "icon": "💻",
+    "value": "macOS + Linux",
+    "label": "Operator platforms",
     "accent": "var(--color-warning)"
   },
   {
-    "icon": "🔋",
-    "value": "17M+",
-    "label": "EVs Today",
+    "icon": "🧩",
+    "value": "4 runtimes",
+    "label": "Ollama · LM Studio · llama.cpp · vLLM",
     "accent": "var(--color-tertiary)"
   },
   {
-    "icon": "🛡️",
-    "value": "100%",
-    "label": "Local Privacy",
+    "icon": "💶",
+    "value": "0%",
+    "label": "Platform fee during launch",
     "accent": "var(--color-accent)"
   }
 ]

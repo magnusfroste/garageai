@@ -10,72 +10,17 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 }
 };
 
-const phases = [
-  {
-    flag: '🇸🇪',
-    period: '2025',
-    title: 'Sweden: Foundation',
-    badge: 'DONE',
-    badgeColor: 'rgba(120,120,120,0.9)',
-    status: 'done',
-    items: [
-      'Distributed inference cluster built',
-      'Multi-node repo published on GitHub (open source)',
-      'Local AI on consumer hardware validated',
-      'Proof-of-concept for garage nodes confirmed',
-      'Security & performance benchmarking completed',
-    ],
-    color: 'rgba(180,180,180,0.8)',
-  },
-  {
-    flag: '🇸🇪',
-    period: '2026',
-    title: 'Sweden: Pilot',
-    badge: 'NOW',
-    badgeColor: 'var(--color-primary)',
-    status: 'current',
-    items: [
-      'Swedish pilot launched — first live nodes',
-      'Solar + V2G energy integration',
-      'Neighbourhood sharing protocol live',
-      'Community governance structure established',
-      '10,000 nodes target for Sweden',
-    ],
-    color: 'var(--color-primary)',
-  },
-  {
-    flag: '🇪🇺',
-    period: '2027',
-    title: 'Europe: Accelerate',
-    badge: 'NEXT',
-    badgeColor: 'var(--color-accent)',
-    status: 'upcoming',
-    items: [
-      'EU expansion — Germany, France, Netherlands first',
-      'Sweden model as reference architecture for all EU states',
-      '1M+ European garage nodes target',
-      'Pan-European inference mesh live',
-      'EU regulatory framework alignment',
-      'The rest of the world follows',
-    ],
-    color: 'var(--color-accent)',
-  },
-];
-
-const whyActItemsDefault = [
-  { icon: '🏆', title: 'Be an Early Builder', text: 'First movers shape the protocol, the community governance, and the defaults that millions will use.' },
-  { icon: '🇸🇪', title: 'Sweden Sets the Standard', text: 'What Sweden builds today becomes the reference architecture for every EU member state that follows.' },
-  { icon: '🌍', title: 'Sovereignty Can\'t Wait', text: 'EU AI dependency on US hyperscalers grows by the day. Every quarter delayed is more lock-in to reverse.' },
-];
-
 const Roadmap = ({
-  title = 'Sweden First. Europe Next.',
-  description = "Sweden's innovation culture, fiber infrastructure, EV leadership and technical competence make it the natural starting point for Europe's sovereign AI revolution.",
-  phases: phasesProp = phases,
-  whyActItems = whyActItemsDefault,
+  title,
+  description,
+  phases = [],
+  whyActTitle = 'Why Join Early?',
+  whyActItems = [],
+  ctaText = '🚀 Get Started',
+  ctaUrl = 'https://app.garageai.eu/auth',
 } = {}) => {
-  const phaseList = phasesProp || phases;
-  const whyList = whyActItems || whyActItemsDefault;
+  const phaseList = phases || [];
+  const whyList = whyActItems || [];
   return (
     <motion.section
       id="roadmap"
@@ -115,7 +60,7 @@ const Roadmap = ({
                   color: phase.status === 'done' ? 'rgba(255,255,255,0.8)' : '#000',
                 }}
               >
-                {phase.status === 'current' ? '🔴 ' : phase.status === 'done' ? '✓ ' : ''}{phase.badge}
+                {phase.status === 'current' ? '● ' : phase.status === 'done' ? '✓ ' : ''}{phase.badge}
               </span>
             </div>
 
@@ -143,7 +88,7 @@ const Roadmap = ({
 
       {/* Why act now */}
       <motion.div variants={itemVariants} className="apple-card max-w-4xl mx-auto">
-        <h3 className="apple-heading-2 mb-8 text-center">Why Act Now?</h3>
+        <h3 className="apple-heading-2 mb-8 text-center">{whyActTitle}</h3>
         <div className="grid md:grid-cols-3 gap-8 mb-10">
           {(whyList || []).map((item, i) => (
             <div key={i} className="text-center">
@@ -156,12 +101,12 @@ const Roadmap = ({
 
         <div className="text-center">
           <motion.button
-            onClick={() => window.open('https://github.com/magnusfroste/garageai/discussions', '_blank')}
+            onClick={() => { window.location.href = ctaUrl; }}
             className="apple-button-primary"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            🚀 Join the Community
+            {ctaText}
           </motion.button>
         </div>
       </motion.div>

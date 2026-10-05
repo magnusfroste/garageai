@@ -1,5 +1,9 @@
 # 🚀 Garage AI: Implementation Blueprint
 
+> **⚠️ Previous architecture.** This document describes GarageAI's earlier design (a custom OS / boot image, vLLM-only nodes, Podman-in-Docker isolation and an overlay network). That approach has been dropped and this page is kept for history only.
+> GarageAI now uses a NetBird (WireGuard) mesh and a LiteLLM gateway: operators keep their own macOS or Linux machine and any supported runtime (Ollama, LM Studio, llama.cpp, vLLM).
+> To get started, use the portal at https://app.garageai.eu (operators: https://app.garageai.eu/auth?intent=operator). Technical setup: [infra/gateway/README.md](https://github.com/magnusfroste/garageai/blob/main/infra/gateway/README.md) and [scripts/garageai-connect.sh](https://github.com/magnusfroste/garageai/blob/main/scripts/garageai-connect.sh).
+
 **Version**: 2.1 | **Status**: Active | **Focus**: Chat + Batch Workloads
 
 This document describes the technical architecture for Garage AI's distributed AI inference cluster, including the Nosana-inspired Podman-in-Docker isolation model.

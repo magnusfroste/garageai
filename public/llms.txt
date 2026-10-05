@@ -1,40 +1,31 @@
 # Garage AI
 
-> Garage AI is Europe's first decentralized, sovereign AI-inference infrastructure initiative. It turns ordinary garages — powered by rooftop solar, home batteries and EV batteries — into local AI inference nodes, so that AI runs on European soil, owned by European individuals and communities, instead of on US-owned hyperscale cloud. The project starts in Sweden and expands across the EU.
+> Garage AI (GarageAI) is a two-sided marketplace for local AI inference in Europe. Garage owners ("operators") connect GPUs they already own and get paid per token for the requests they serve; buyers use open models through one OpenAI-compatible API. The principle: Europe's AI capacity can come from hardware people and companies already own, not only from hyperscaler data centres.
 
-## Key facts
+## Key facts (what works today)
 
-- **What it is:** A distributed network of home/garage-based AI inference nodes running local open-weight models (Llama, Mistral, Qwen).
-- **Why it matters:** Data sovereignty (GDPR by architecture, no US Cloud Act exposure), predictable cost (compute not per-token), and renewable-powered compute (solar + home battery + EV V2H).
-- **Where:** Sweden first (98% fiber coverage, high EV and solar adoption), then Germany, France, the Netherlands and the wider EU.
-- **Scale of the opportunity:** ~75M+ garages across the EU-27; ~17M EVs on the road today.
-- **License:** 100% open source, MIT.
-- **Status:** Prototype running; first live nodes in Stockholm garages.
+- **For buyers:** Sign up at https://app.garageai.eu, create an API key and call the OpenAI-compatible API at https://llm.garageai.eu/v1 (works with OpenAI SDKs, agents and coding tools), or use the chat in the portal. Pay per token with prepaid credits (card via Stripe).
+- **Two ways to buy a model:** "Pool" (cheaper, load-balanced across every garage offering the model, automatic failover) or "Specific garage" (a named garage, e.g. for location; shared, not exclusive capacity).
+- **For operators:** Sign up at https://app.garageai.eu/auth?intent=operator and follow the "Offer your GPU" wizard. Supported OS: macOS and Linux (not Windows yet). Supported runtimes: Ollama, LM Studio, llama.cpp, vLLM. One command installs the NetBird client, joins the encrypted mesh and registers the models. Every model must pass an automated acceptance test (time-to-first-token, tokens/second) before it can be sold.
+- **Operator earnings:** Operators earn the token price buyers pay for requests their garage serves. No platform fee during launch (a fee will come later). Wallet and payouts are being built.
+- **Technology (open source):** Self-hosted NetBird (WireGuard mesh) — no inbound ports, garages cannot reach each other, only the gateway reaches a runtime. LiteLLM gateway (OpenAI-compatible API, routing, failover, usage metering) on an EU VPS (Hetzner, Helsinki).
+- **Privacy, honestly:** Traffic is encrypted in transit over the mesh, but prompts are processed on the operator's machine. Verified garages and data-processing agreements are planned before selling to buyers with sensitive data.
+- **Status:** Live, with the first garages serving open models.
+- **License:** Open source, MIT.
 
-## The garage node stack
+## Vision (not today's product)
 
-1. **Solar panels** (8–12 kW) — primary energy production.
-2. **Home battery** (e.g. Tesla Powerwall, BYD) — the 24/7 backbone that powers the node day and night.
-3. **EV battery via V2H** — evening and weekend buffer.
-4. **AI inference node** (Mac Mini M4 Pro, RTX 4090/5090 rig, or dedicated server) — runs local models at 15–120 tokens/sec.
-5. **Fiber connection** — coordination only; inference stays local.
-
-## Frequently asked questions
-
-- **What is a Garage AI node?** A computer in your garage running local AI models, serving your household and neighbourhood with private, fast inference. No data leaves your property.
-- **Why local inference for agents?** Autonomous agents make hundreds of model calls per task; local inference is cheaper at scale and the only safe option for private data.
-- **What hardware do I need?** An existing RTX 30/40/50-series gaming PC works today; a Mac Mini M4 Pro (~€1,400) runs 7B–70B models.
-- **How does this relate to EU AI sovereignty?** It builds inference capacity on European soil, owned by Europeans — the fiber-broadband model applied to AI.
-- **Privacy?** 100% local processing; data never leaves your garage; the protocol is open source and auditable.
+Garage nodes running largely on locally produced energy (rooftop solar, home batteries, EV batteries), many more garages across Europe, and larger regional clusters.
 
 ## Links
 
 - Website: https://www.garageai.eu
+- Portal (sign up): https://app.garageai.eu/auth
+- API base URL: https://llm.garageai.eu/v1
 - Source code (GitHub): https://github.com/magnusfroste/garageai
-- Get started: https://github.com/magnusfroste/garageai/blob/main/docs/GET_STARTED.md
-- Knowledge base: https://github.com/magnusfroste/garageai/blob/main/docs/GARAGE_AI_KNOWLEDGE_BASE.md
+- Gateway setup: https://github.com/magnusfroste/garageai/blob/main/infra/gateway/README.md
 - Community discussions: https://github.com/magnusfroste/garageai/discussions
-- Contact: powerup@garageai.eu
+- Contact (incl. B2B pilots): powerup@garageai.eu
 
 ## Attribution
 

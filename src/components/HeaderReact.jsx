@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 
-const Header = ({ logo = '🏠 GARAGE AI', ctaText = 'Join the Movement', ctaUrl = 'https://github.com/magnusfroste/garageai/discussions', navLinks = [] } = {}) => {
+const Header = ({ logo = '🏠 GARAGE AI', ctaText = 'Get Started', ctaUrl = 'https://app.garageai.eu/auth', navLinks = [] } = {}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const scrollToSection = (sectionId) => {
@@ -14,12 +14,12 @@ const Header = ({ logo = '🏠 GARAGE AI', ctaText = 'Join the Movement', ctaUrl
 
   const defaultNavLinks = [
     { label: 'Home', sectionId: null },
-    { label: 'EU Analysis', sectionId: 'eu-analysis' },
-    { label: 'The Vision', sectionId: 'three-waves' },
-    { label: 'The Garage Node', sectionId: 'infrastructure' },
+    { label: 'How It Works', sectionId: 'how-it-works' },
+    { label: 'Technology', sectionId: 'technology' },
+    { label: 'Pricing', sectionId: 'pricing' },
     { label: 'For Business', sectionId: 'for-business' },
-    { label: 'Economy', sectionId: 'token-economy' },
     { label: 'Roadmap', sectionId: 'roadmap' },
+    { label: 'Vision', sectionId: 'vision' },
     { label: 'FAQ', sectionId: 'faq' },
   ];
 

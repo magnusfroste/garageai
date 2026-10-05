@@ -1,63 +1,9 @@
 ---
 import AIExplainedReact from './AIExplainedReact.jsx';
 
-interface Wave {
-  number: string;
-  era: string;
-  title: string;
-  subtitle: string;
-  description: string;
-  icon: string;
-  color: string;
-  outcome: string;
-  highlight?: boolean;
-}
-
-interface OpenClawCard {
-  icon: string;
-  title: string;
-  text: string;
-  color: string;
-}
-
-interface AgentInWild {
-  name: string;
-  url: string;
-  tag: string;
-  desc: string;
-  color: string;
-  icon: string;
-}
-
-interface HomeStackItem {
-  system: string;
-  benefit: string;
-}
-
-interface Props {
-  title: string;
-  subtitle: string;
-  description: string;
-  waves: Wave[];
-  openClawCards: OpenClawCard[];
-  agentsInWild: AgentInWild[];
-  homeStack: HomeStackItem[];
-  ctaText: string;
-  ctaUrl: string;
-}
-
-const { title, subtitle, description, waves, openClawCards, agentsInWild, homeStack, ctaText, ctaUrl } = Astro.props;
+// "The Vision" section (four waves). Content: src/content/landing/ai-explained.md.
+// openClawCards / agentsInWild / homeStack blocks only render when provided.
+const props = Astro.props;
 ---
 
-<AIExplainedReact
-  client:load
-  title={title}
-  subtitle={subtitle}
-  description={description}
-  waves={waves}
-  openClawCards={openClawCards}
-  agentsInWild={agentsInWild}
-  homeStack={homeStack}
-  ctaText={ctaText}
-  ctaUrl={ctaUrl}
-/>
+<AIExplainedReact client:load {...props} />

@@ -45,8 +45,8 @@ const svg = `<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http:/
   <text x="80" y="392" font-size="94" font-weight="bold" fill="url(#accent)">Europe's AI Engine.</text>
 
   <!-- subtitle -->
-  <text x="80" y="470" font-size="34" fill="#C7C7CC">Sweden's sovereign AI infrastructure —</text>
-  <text x="80" y="514" font-size="34" fill="#C7C7CC">solar + EV batteries + local inference.</text>
+  <text x="80" y="470" font-size="34" fill="#C7C7CC">Local AI inference from European garages.</text>
+  <text x="80" y="514" font-size="34" fill="#C7C7CC">Offer your GPU. Use AI. Get paid per token.</text>
 
   <!-- footer -->
   <text x="80" y="582" font-size="26" font-weight="bold" fill="#00FF88">garageai.eu</text>

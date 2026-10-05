@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion';
 
 const defaultTagline = '🌍 Garage AI — Sovereign AI infrastructure for Europe. Built in Sweden.';
-const defaultSubtagline = 'Decentralize compute. Reclaim sovereignty. Power it with the sun.';
+const defaultSubtagline = 'A marketplace for local AI inference. GPUs in European garages, one OpenAI-compatible API.';
 const defaultLinks = [
-  { icon: '🚀', text: 'Get Started', url: 'https://github.com/magnusfroste/garageai/blob/main/docs/GET_STARTED.md' },
-  { icon: '📖', text: 'Docs', url: 'https://github.com/magnusfroste/garageai/blob/main/docs/GARAGE_AI_KNOWLEDGE_BASE.md' },
+  { icon: '🚀', text: 'Get Started', url: 'https://app.garageai.eu/auth' },
+  { icon: '📖', text: 'Gateway docs', url: 'https://github.com/magnusfroste/garageai/blob/main/infra/gateway/README.md' },
   { icon: '🐙', text: 'GitHub', url: 'https://github.com/magnusfroste/garageai' },
   { icon: '💬', text: 'Discussions', url: 'https://github.com/magnusfroste/garageai/discussions' },
   { icon: '📧', text: 'powerup@garageai.eu', url: 'mailto:powerup@garageai.eu' },
@@ -21,6 +21,7 @@ const Footer = ({
   links = defaultLinks,
   partners = defaultPartners,
   copyright = defaultCopyright,
+  credits,
 }) => {
   return (
     <motion.footer
@@ -108,20 +109,12 @@ const Footer = ({
           className="text-xs"
         >
           {copyright}
-          <br />
-          <span style={{ opacity: 0.5 }}>
-            AI inference powered by{' '}
-            <a
-              href="https://kilo.code"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-orange-400 transition"
-              style={{ color: 'rgba(255,160,80,0.8)' }}
-            >
-              Kilo Code
-            </a>
-            {' '}— produced in our own garage on solar energy! ☀️🏠
-          </span>
+          {credits && (
+            <>
+              <br />
+              <span style={{ opacity: 0.5 }}>{credits}</span>
+            </>
+          )}
         </motion.p>
       </div>
     </motion.footer>

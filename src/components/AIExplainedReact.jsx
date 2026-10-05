@@ -48,71 +48,14 @@ const waves = [
     number: '04',
     era: '2025 →',
     title: 'Autonomous Agents',
-    subtitle: 'The Fourth Wave — Happening Now',
+    subtitle: 'The Fourth Wave — Starting Now',
     description:
-      'Action is being democratized. AI agents plan, decide, and execute autonomously — making thousands of model calls per task. Demand for inference is exploding at a pace no centralised infrastructure can sustainably serve. The key insight: agents running on private, local models unlock true autonomy. The intelligence that left the mainframe in the 1980s is now leaving the cloud — and coming back to your garage.',
+      'Action is being democratized. AI agents plan, decide and execute on their own, making many model calls per task, so demand for inference keeps growing. We believe a large share of that inference can run on private, local hardware instead of only in hyperscale clouds. The intelligence that left the mainframe in the 1980s can leave the cloud too, and come back to your garage.',
     icon: '🤖',
     color: 'var(--color-primary)',
     outcome: 'Action becomes autonomous. Intelligence comes home.',
     highlight: true,
   },
-];
-
-const openClawCardsDefault = [
-  {
-    icon: '🔒',
-    title: 'Private by Default',
-    text: 'Data never leaves your hardware. OpenClaw runs locally — browser control, file operations, shell commands, persistent memory. Exactly what Garage AI infrastructure was built to power.',
-    color: 'var(--color-primary)'
-  },
-  {
-    icon: '🤖',
-    title: 'Truly Agentic',
-    text: 'Manages email, calendar, files and workflows autonomously. One agent, thousands of model calls per day. The inference demand is real — and it needs to be local, fast, and private.',
-    color: 'var(--color-accent)'
-  },
-  {
-    icon: '💻',
-    title: 'The Mac Mini Moment',
-    text: 'A Mac Mini M4 Pro (64GB unified memory) runs Llama 70B at ~15 tokens/sec — entirely locally. The household AI node is already here. The garage is the logical next step.',
-    color: 'var(--color-warning)'
-  }
-];
-
-const agentsInWildDefault = [
-  {
-    name: 'OpenClaw',
-    url: 'https://openclaw.ai',
-    tag: 'Personal AI agent',
-    desc: 'Runs locally on your machine. Controls browser, files, calendar and 50+ integrations via WhatsApp or Telegram. Private by design — built for local inference.',
-    color: 'var(--color-primary)',
-    icon: '🦾',
-  },
-  {
-    name: 'FlowWink',
-    url: 'https://www.flowwink.com',
-    tag: 'AI-powered CMS & marketing',
-    desc: 'AI agents manage content workflows and marketing operations autonomously — reducing the manual overhead of digital publishing to near zero.',
-    color: 'var(--color-warning)',
-    icon: '✨',
-  },
-  {
-    name: 'Silicon Soap',
-    url: 'https://www.siliconsoap.com',
-    tag: 'Multi-agent debate platform',
-    desc: '2–4 AI agents (Llama, DeepSeek, Qwen, Mistral) debate any topic autonomously across multiple rounds. A live demonstration of multi-agent coordination at work.',
-    color: 'var(--color-accent)',
-    icon: '🎭',
-  },
-];
-
-const homeStackDefault = [
-  { system: 'Security & cameras', benefit: 'Local AI processes, zero cloud' },
-  { system: 'Fire & smoke detection', benefit: 'Real-time local response' },
-  { system: 'Heating & ventilation', benefit: 'AI-optimized for summer/winter' },
-  { system: 'Garden & irrigation', benefit: 'Weather-aware, fully automated' },
-  { system: 'Kitchen appliances', benefit: 'Connected to same local gateway' },
-  { system: 'EV charging', benefit: 'Smart scheduling via V2G' },
 ];
 
 const AIExplained = ({
@@ -122,20 +65,29 @@ const AIExplained = ({
   openClawCards,
   agentsInWild,
   homeStack,
+  label,
+  closingText,
 } = {}) => {
   const waveList = wavesProp || waves;
-  const openClawCardList = openClawCards || openClawCardsDefault;
-  const agentsInWildList = agentsInWild || agentsInWildDefault;
-  const homeStackList = homeStack || homeStackDefault;
+  const openClawCardList = openClawCards || [];
+  const agentsInWildList = agentsInWild || [];
+  const homeStackList = homeStack || [];
   return (
     <motion.section
-      id="three-waves"
+      id="vision"
       className="py-20 px-4 max-w-6xl mx-auto"
       variants={containerVariants}
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true }}
     >
+      {label && (
+        <motion.div variants={itemVariants} className="text-center mb-4">
+          <span className="text-xs font-black px-3 py-1 rounded-full" style={{ background: 'var(--color-warning)', color: '#000' }}>
+            {label}
+          </span>
+        </motion.div>
+      )}
       <motion.h2
         variants={itemVariants}
         className="apple-heading-1 mb-4 text-center gradient-text-cyan"
@@ -191,7 +143,8 @@ const AIExplained = ({
         ))}
       </motion.div>
 
-      {/* OpenClaw & local inference explosion */}
+      {/* OpenClaw & local inference explosion (only rendered when content provides cards) */}
+      {openClawCardList.length > 0 && (
       <motion.div variants={itemVariants} className="apple-card mb-8">
         <h3 className="apple-heading-2 mb-4 text-center">The Catalyst: OpenClaw</h3>
         <p className="apple-body mb-8 text-center max-w-2xl mx-auto">
@@ -199,8 +152,6 @@ const AIExplained = ({
           {' '}is the viral phenomenon that crystallised the fourth wave —
           an open-source personal AI agent that runs entirely on your own hardware,
           integrating with WhatsApp, Telegram, iMessage and 50+ other services.
-          More downloads in its first months than Linux accumulated in 30 years.
-          Users say: <em style={{ color: 'var(--color-text-secondary)' }}>"It's running my company."</em>
         </p>
 
         <div className="grid md:grid-cols-3 gap-6 mb-8">
@@ -252,7 +203,10 @@ const AIExplained = ({
         </div>
       </motion.div>
 
-      {/* The connected home analogy */}
+      )}
+
+      {/* The connected home analogy (only rendered when content provides homeStack) */}
+      {homeStackList.length > 0 && (
       <motion.div variants={itemVariants} className="apple-card">
         <h3 className="apple-heading-2 mb-4 text-center">Your Home as a Connected Tesla</h3>
         <p className="apple-body mb-8 text-center max-w-2xl mx-auto">
@@ -293,6 +247,17 @@ const AIExplained = ({
           </div>
         </div>
       </motion.div>
+      )}
+
+      {closingText && (
+        <motion.div
+          variants={itemVariants}
+          className="p-5 rounded-xl text-center"
+          style={{ background: 'rgba(0,122,255,0.07)', border: '1px solid rgba(0,122,255,0.2)' }}
+        >
+          <p className="text-sm" style={{ color: 'var(--color-accent)' }}>{closingText}</p>
+        </motion.div>
+      )}
 
     </motion.section>
   );

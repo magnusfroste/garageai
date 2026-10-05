@@ -1,8 +1,8 @@
 ---
 section: "factboxes"
-order: 2
-title: "Europe's Hidden Data Centers"
-description: "75+ million garages across the EU sit idle — waiting to become the backbone of a sovereign, decentralized AI infrastructure."
+order: 9
+title: "The Vision: Europe's Hidden Data Centres"
+description: "An estimated 75+ million garages across the EU. In the long run, each one could host AI hardware, and together they could become a sovereign, distributed AI infrastructure. The figures below are estimates from public statistics, not GarageAI numbers."
 euData:
   - country: "🇩🇪 Germany"
     homes: "41.5M"
@@ -62,10 +62,9 @@ whySweden:
   - icon: "⚡"
     title: "EV Leadership"
     stats:
-      - "1.5M+ EVs & PHEVs on road"
-      - "50%+ of new car sales electric"
-      - "Average 60kWh battery = local storage"
-      - "V2G-ready grid infrastructure"
+      - "1.5M+ EVs & PHEVs on road⁵"
+      - "Average ~60 kWh battery = potential local storage (estimate)"
+      - "Sources: see footnotes ⁴ ⁵ below"
     color: "var(--color-accent)"
   - icon: "☀️"
     title: "Solar Momentum"
@@ -80,14 +79,12 @@ gridElectricity:
   - "Solar panels arrived — anyone could produce energy"
   - "Excess production feeds back into the grid"
   - "EVs become mobile battery storage (V2G)"
-  - "Today: 600GW solar installed in EU alone"
 gridComputing:
   - "Hyperscale datacenters are the only source of AI compute"
-  - "Consumer hardware (GPU/NPU) now rivals data center performance"
-  - "Local models run privately, excess capacity shared"
-  - "A Mac Mini in every home — the \"Mac Mini moment\""
-  - "Tomorrow: your garage feeds the neighbourhood"
-gridQuote: "\"The technology is here. The mass scale-up of locally produced electricity is a clear example. Computing — or AI inference, same thing — is following the exact same path.\""
+  - "Consumer GPUs and Apple silicon can now run capable open models"
+  - "Today: GarageAI lets owners sell spare GPU capacity per token"
+  - "Tomorrow: garages as a real part of Europe's AI capacity"
+gridQuote: "Locally produced electricity went from niche to normal. We think AI inference can follow a similar path."
 evParking:
   - label: "Car parked (all time)"
     value: "92–95% of the time¹"
@@ -104,16 +101,14 @@ evParking:
 energyStack:
   - label: "Solar panels (8–12 kW)³"
     value: "40–60 kWh on a good day"
-  - label: "Home battery — PRIMARY link"
-    value: "Powers node 24/7, day & night"
+  - label: "Home battery"
+    value: "Could power a node through the night"
   - label: "Powerwall 3 / BYD Battery Box"
     value: "13.5–15 kWh buffer capacity"
   - label: "EV V2H (when home, evenings)"
     value: "60–100 kWh additional buffer"
   - label: "AI inference hardware"
-    value: "300–600W continuous draw"
-  - label: "Net energy cost (solar)"
-    value: "Near zero — runs on own production"
+    value: "Typically a few hundred watts under load (estimate)"
 euScale:
   - label: "17M EVs in EU today⁴"
     value: "= 1+ TWh theoretical storage"
@@ -123,6 +118,11 @@ euScale:
     value: "= 90 GWh potential"
   - label: "WFH rate Sweden ~35%⁶"
     value: "boosts daytime V2H availability"
+whySwedenTitle: "Why Start in Sweden"
+whySwedenDescription: "GarageAI is built in Sweden, which has several of the building blocks the long-term energy vision needs."
+energyTitle: "The Energy Vision: Solar, Batteries and EVs"
+energyDescription: "Not part of today's product. The long-term idea is that a garage node can run largely on locally produced energy: rooftop solar during the day, a home battery overnight, and an EV battery (V2H) as an evening and weekend buffer. EVs are mostly away during weekday solar peak, so the home battery would be the backbone."
+energyConclusion: "Vision: locally produced, locally consumed, locally owned. Today any garage on the grid can join; the energy stack is where we want to go."
 evFootnotes:
   - "¹ INRIX Global Traffic Scorecard; RAC Foundation: \"Spaced Out\" report on vehicle utilisation"
   - "² Transport for London / European Environment Agency: vehicle location studies"

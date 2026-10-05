@@ -1,4 +1,6 @@
 #!/bin/bash
+# NOTE: Legacy script from GarageAI's previous architecture (custom OS image / Podman-in-Docker /
+# vLLM-only). Not used anymore. Current setup: infra/gateway/README.md and scripts/garageai-connect.sh.
 
 # Garage AI Node Setup Script
 # Clones Nosana's start.sh approach but replaces blockchain with our own system

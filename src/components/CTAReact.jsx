@@ -4,13 +4,18 @@ const CTA = ({
   icon = '🏠',
   title = 'Your Garage Is Ready.',
   subtitle = 'Is Europe?',
-  description = "The infrastructure for Europe's sovereign AI future isn't a billion-euro data center somewhere in the Nordics. It's 75 million garages — already built, already powered, already connected.",
-  secondaryText = 'The prototype is running on GitHub. The nodes are online. Sweden takes the lead. The only thing missing is you.',
+  description = "Europe's AI capacity doesn't have to be only a billion-euro data centre somewhere. Part of it can be the GPUs people and companies already own, connected, local and paid.",
+  secondaryText = 'The mesh, the gateway and the portal are live, and the first garages are serving models.',
   buttons = [
     {
-      text: '🚀 Start My Node',
-      url: 'https://github.com/magnusfroste/garageai/blob/main/docs/GET_STARTED.md',
+      text: '🚀 Offer Your GPU',
+      url: 'https://app.garageai.eu/auth?intent=operator',
       variant: 'primary',
+    },
+    {
+      text: '⚡ Use AI',
+      url: 'https://app.garageai.eu/auth?intent=buyer',
+      variant: 'secondary',
     },
     {
       text: '🔓 Open Source on GitHub',
