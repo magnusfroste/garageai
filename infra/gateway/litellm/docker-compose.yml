@@ -38,9 +38,74 @@ services:
       - traefik.http.routers.litellm.tls=true
       - traefik.http.routers.litellm.tls.certresolver=letsencrypt
       - traefik.http.routers.litellm.service=litellm
-      - traefik.http.routers.litellm.middlewares=litellm-ratelimit
+      - traefik.http.routers.litellm.middlewares=litellm-ratelimit,litellm-strip
       - traefik.http.middlewares.litellm-ratelimit.ratelimit.average=20
       - traefik.http.middlewares.litellm-ratelimit.ratelimit.burst=60
+      # Buyers must not learn which garage or provider served them: LiteLLM adds headers with
+      # the upstream api_base, deployment id and runtime model name. Keep only the call id
+      # (support) and the total cost. Provider headers (llm_provider-*) are disabled in config.yaml.
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-model-api-base=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-model-id=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-model-name=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-model-group=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-version=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-key-spend=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-attempted-fallbacks=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-attempted-retries=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-callback-duration-ms=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-overhead-duration-ms=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-response-duration-ms=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-response-cost-input=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-response-cost-output=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-response-cost-reasoning=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-response-cost-tool-usage=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-response-cost-original=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-response-cost-discount-amount=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-response-cost-margin-amount=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-response-cost-margin-percent=
+      # Upstream headers LiteLLM forwards as llm_provider-* (Traefik has no wildcard removal; this is the
+      # set seen from Cloudflare, uvicorn/vLLM, Ollama and OpenAI-compatible servers).
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-alt-svc=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-cf-cache-status=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-cf-ray=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-cf-connecting-ip=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-cf-ipcountry=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-connection=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-content-encoding=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-content-type=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-content-length=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-transfer-encoding=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-date=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-nel=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-report-to=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-server=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-vary=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-via=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-x-request-id=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-x-powered-by=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-x-envoy-upstream-service-time=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-cache-control=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-strict-transport-security=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-set-cookie=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-access-control-allow-origin=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-access-control-allow-credentials=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-access-control-expose-headers=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-x-ratelimit-limit-requests=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-x-ratelimit-limit-tokens=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-x-ratelimit-remaining-requests=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-x-ratelimit-remaining-tokens=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-x-ratelimit-reset-requests=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-x-ratelimit-reset-tokens=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-openai-organization=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-openai-processing-ms=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-openai-version=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-x-litellm-response-cost=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-x-frame-options=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-x-content-type-options=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-cf-apo-via=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-age=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-etag=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-last-modified=
       # Admin API (model, key, user, spend routes): only with the master key, so buyer keys
       # cannot read /model/info (garage addresses) or trigger /health (real inference).
       - traefik.http.routers.litellm-admin.rule=Host(`${LITELLM_DOMAIN}`) && Header(`Authorization`, `Bearer ${LITELLM_MASTER_KEY:?set LITELLM_MASTER_KEY in .env}`)
