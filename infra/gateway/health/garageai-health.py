@@ -26,11 +26,14 @@ from datetime import datetime, timezone
 
 STATE_DIR = "/var/lib/garageai-health"
 TIMEOUT = 5
+USER_AGENT = "garageai-health/1 (+https://garageai.eu)"
 
 
 def http(method, url, headers=None, body=None, timeout=TIMEOUT):
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(url, data=data, method=method, headers=headers or {})
+    # Some provider endpoints sit behind a WAF that rejects Python's default User-Agent with 403.
+    req.add_header("User-Agent", USER_AGENT)
     if data is not None:
         req.add_header("Content-Type", "application/json")
     with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -122,9 +125,12 @@ def main():
             print(f"gateway-health-report: {e}", file=sys.stderr)
 
     for r in results:
+        models = r['models'] or []
+        # Providers can list hundreds of models; keep the journal readable.
+        shown = ','.join(models[:8]) + (f",… ({len(models)} total)" if len(models) > 8 else "")
         print(f"{r['garage']}: mesh={r['mesh_connected']} runtime={r['runtime_ok']}"
               f"{' (' + r['runtime_error'] + ')' if r['runtime_error'] else ''}"
-              f" models={','.join(r['models'] or []) or '-'}")
+              f" models={shown or '-'}")
     print(f"source={source} garages={len(results)}")
 
 
