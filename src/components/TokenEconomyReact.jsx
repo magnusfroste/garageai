@@ -20,6 +20,10 @@ const TokenEconomy = ({
   buyOptions = [],
   buyerNotes = [],
   operatorPoints = [],
+  poolTitle,
+  poolDescription,
+  poolSteps = [],
+  poolNote,
   marketTitle,
   marketDescription,
   marketStats = [],
@@ -90,6 +94,30 @@ const TokenEconomy = ({
           </ul>
         </div>
       </motion.div>
+
+      {/* How the pool works */}
+      {(poolSteps || []).length > 0 && (
+        <motion.div variants={itemVariants} className="apple-card mb-10">
+          <h3 className="apple-heading-2 mb-2 text-center">{poolTitle}</h3>
+          {poolDescription && (
+            <p className="text-sm mb-8 text-center max-w-2xl mx-auto" style={{ color: 'var(--color-text-secondary)' }}>{poolDescription}</p>
+          )}
+          <ol className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {poolSteps.map((step, i) => (
+              <li key={i} className="p-5 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div className="text-xs font-black mb-2" style={{ color: 'var(--color-primary)', opacity: 0.7 }}>
+                  {String(i + 1).padStart(2, '0')}
+                </div>
+                <h4 className="font-bold text-sm mb-2" style={{ color: 'var(--color-text-primary)' }}>{step.title}</h4>
+                <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{step.text}</p>
+              </li>
+            ))}
+          </ol>
+          {poolNote && (
+            <p className="text-xs mt-6 text-center" style={{ color: 'var(--color-text-muted)' }}>{poolNote}</p>
+          )}
+        </motion.div>
+      )}
 
       {/* Market context (third-party estimates, clearly labelled) */}
       {(marketStats || []).length > 0 && (
