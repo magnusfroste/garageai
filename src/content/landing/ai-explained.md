@@ -31,7 +31,7 @@ waves:
     color: "var(--color-warning)"
     outcome: "Creation became accessible. But sovereignty moved back to the cloud."
   - number: "04"
-    era: "2025 →"
+    era: "Now →"
     title: "Autonomous Agents"
     subtitle: "The Fourth Wave — Starting Now"
     description: "Action is being democratized. AI agents plan, decide and execute on their own, making many model calls per task, so demand for inference keeps growing. We believe a large share of that inference can run on private, local hardware instead of only in hyperscale clouds. The intelligence that left the mainframe in the 1980s can leave the cloud too, and come back to your garage."

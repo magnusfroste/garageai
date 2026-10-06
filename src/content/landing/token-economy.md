@@ -45,32 +45,26 @@ poolNote: "Rolling out: price- and reliability-weighted sharing is being introdu
 marketTitle: "The Bigger Picture"
 marketDescription: "Why this matters beyond today's marketplace. Third-party market estimates, not GarageAI figures."
 marketStats:
-  - num: 106
-    prefix: "$"
-    suffix: "B"
-    label: "AI inference market 2025¹"
-    sub: "estimate"
-    color: "var(--color-warning)"
   - num: 255
     prefix: "$"
     suffix: "B"
-    label: "projected by 2030¹"
-    sub: "estimate"
+    label: "AI inference market by 2030¹"
+    sub: "projected"
     color: "var(--color-primary)"
   - num: 19.2
     prefix: ""
     suffix: "%"
-    label: "annual growth rate¹"
-    sub: "CAGR 2025–2030, estimate"
+    label: "annual growth to 2030¹"
+    sub: "projected"
     color: "var(--color-accent)"
 whyAgents:
-  - "Gartner expects 40% of enterprise apps to have embedded AI agents by end of 2026, up from 5% in Sept 2025²"
+  - "Gartner expects 40% of enterprise apps to have embedded AI agents by the end of 2026²"
   - "Inference, not training, accounts for most AI compute usage (estimated 80–90%)³"
   - "Autonomous agents make many model calls per task, so demand per user compounds"
 footnotes:
-  - "¹ MarketsandMarkets: AI Inference Market Report 2025–2030"
+  - "¹ MarketsandMarkets: AI Inference Market report, forecast to 2030"
   - "² Gartner, cited in Landbase: 39 Agentic AI Statistics 2026"
-  - "³ MIT Technology Review, May 2025: \"Inferencing drives 80–90% of all AI compute\""
+  - "³ MIT Technology Review: \"Inferencing drives 80–90% of all AI compute\""
 ---
 
 Content for this section is defined in the frontmatter above.
