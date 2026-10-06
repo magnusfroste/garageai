@@ -45,3 +45,7 @@ coverage/
 # Temporary folders
 tmp/
 temp/
+
+# Python
+__pycache__/
+*.pyc
