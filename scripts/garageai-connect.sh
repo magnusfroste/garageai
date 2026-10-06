@@ -504,7 +504,9 @@ elif [ "$SKIP_INSTALL" -eq 1 ]; then
 else
   info "NetBird is not installed. It will be installed from https://pkgs.netbird.io/install.sh"
   confirm "Install NetBird now?" || die "Aborted. Install NetBird yourself (https://netbird.io) and re-run."
-  curl -fsSL https://pkgs.netbird.io/install.sh | sh
+  # Only the CLI client is needed. The installer would also add the desktop app (netbird-ui,
+  # started at login) on machines with a graphical session; a garage has no use for it.
+  curl -fsSL https://pkgs.netbird.io/install.sh | SKIP_UI_APP=true sh
   command -v netbird >/dev/null 2>&1 || die "NetBird installation did not put 'netbird' on PATH."
   ok "netbird installed"
 fi

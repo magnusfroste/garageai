@@ -51,7 +51,10 @@ two things:
    It does not send prompts, files or anything else. Its settings, including your garage's
    token, are stored in a file only administrators can read.
 
-It does not change your router, your DNS, Docker or other software.
+It does not change your router, Docker or other software. The NetBird client does two things
+on the machine itself: it adds firewall rules for its own interface (`wt0`) so that only the
+gateway can reach the runtime port, and it may register a DNS resolver for the mesh's
+`.netbird.selfhosted` names with systemd-resolved. Both are removed by `--uninstall`.
 
 ## What GarageAI can and cannot do on your machine
 
