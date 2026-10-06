@@ -30,6 +30,8 @@ faqs:
     answer: "Only garages whose model has passed the acceptance test, and keeps passing regular checks, take part. Requests are spread across those healthy garages, with a larger share going to garages that have a good price and a solid track record. This weighting is being rolled out; until then the pool favours the garage that responds fastest. If a garage fails, the request is retried on another one."
   - question: "Which models are available?"
     answer: "Open models that operators choose to serve and that pass the acceptance test. The current list is in the model catalogue in the portal at app.garageai.eu, and it changes as garages come and go."
+  - question: "How is GarageAI different from other decentralised GPU networks?"
+    answer: "Residential GPUs selling inference is not new in itself: there are crypto-based inference networks, hourly GPU rental marketplaces and API aggregators. What we have not seen elsewhere is the combination: named garages you can pick plus a shared pool, local GPUs and verified datacenter providers in the same catalogue and API, payment in euros by card or invoice instead of tokens, a self-hosted EU mesh with no inbound ports, and a web wizard that gets a garage live in minutes. If you know a European service that already does all of that, we would like to hear about it."
   - question: "Is it OpenAI-compatible?"
     answer: "Yes. The API at https://llm.garageai.eu/v1 is OpenAI-compatible, so the OpenAI SDKs, agents and coding tools work by setting the base URL and your GarageAI API key."
   - question: "Can I be both a buyer and an operator?"
