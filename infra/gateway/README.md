@@ -240,6 +240,45 @@ and mistakes: copy the archives off-site (encrypted) as well.
 - Prompts are processed on the operator's machine. Mesh encryption protects them in transit,
   not on the garage itself. Verified operators and a data processing agreement are needed
   before selling to buyers with sensitive data.
-- Next step: replace the manual `register-node.sh` call with a registration endpoint that keeps
-  the master key server-side, and pass its URL and a per-node token to
-  `garageai-connect.sh --register-url ... --register-token ...`.
+- Registration goes through the portal's `register-node` endpoint with a per-garage token;
+  the master key never leaves the gateway and the portal.
+
+## Security checklist
+
+Run after every LiteLLM or NetBird upgrade, after adding a provider, and before giving an
+external tester a key. All commands from the gateway; `$BUYER` is an ordinary buyer key.
+
+1. **Nothing but the LLM API is public.** Expect 403 for the admin UI and routes, 401 for
+   anonymous `/v1/models`:
+   ```bash
+   for p in /ui /openapi.json /model/info /health /key/info; do printf "%-14s " $p; curl -s -o /dev/null -w "%{http_code}\n" https://llm.garageai.eu$p -H "Authorization: Bearer $BUYER"; done
+   curl -s -o /dev/null -w "%{http_code}\n" https://llm.garageai.eu/v1/models
+   ```
+2. **Responses do not reveal the garage or provider.** Read every header of one response per
+   tier (pool and `garage/...`) and per provider. Only `x-litellm-call-id` and
+   `x-litellm-response-cost` may remain; no `x-litellm-model-*`, no `llm_provider-*`:
+   ```bash
+   curl -s -D - -o /dev/null https://llm.garageai.eu/v1/chat/completions -H "Authorization: Bearer $BUYER" \
+     -H "Content-Type: application/json" -d '{"model":"<model>","max_tokens":5,"messages":[{"role":"user","content":"hi"}]}' | grep -i "^x-\|^llm"
+   ```
+   A new header means the `llm_provider-*` list in `docker-compose.yml` needs that name.
+   (Found 2026-10-06: `x-litellm-model-api-base` carried the provider's URL to every buyer.)
+3. **Mesh policy is one-directional.** Only `gateway -> garages` (and named garage routes);
+   no `Default` policy; garages cannot reach each other or the gateway:
+   ```bash
+   curl -s -H "Authorization: Token $NB" https://netbird.garageai.eu/api/policies | jq -c '.[] | {name, src:[.rules[].sources[].name], dst:[.rules[].destinations[].name]}'
+   ```
+4. **No live setup keys.** Every key `valid: false` or `revoked: true`, and every peer pinned
+   to its own `garage-<name>` group:
+   ```bash
+   curl -s -H "Authorization: Token $NB" https://netbird.garageai.eu/api/setup-keys | jq -c '.[] | {name, valid, revoked}'
+   ```
+5. **Portal exposes nothing anonymously** beyond the public RPCs (`garage_public_*`): anon reads
+   of `garages`, `garage_tokens`, `garage_runtime_secrets`, `profiles` return `[]` or a
+   permission error, and `gateway-targets` / `gateway-health-report` answer 401 without
+   `x-gateway-key`.
+6. **Health service and backups are running:** `systemctl status garageai-health.timer
+   garageai-backup.timer`, and `/var/backups/garageai` has today's archive.
+7. **Secrets are where they should be and nowhere else:** `.env` and `config.yaml` are
+   0600/root, nothing secret in the repo (`git grep -I sk-`), and any key pasted in a chat or
+   ticket has been rotated.
