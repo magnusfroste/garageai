@@ -46,7 +46,7 @@ const waves = [
   },
   {
     number: '04',
-    era: '2025 →',
+    era: 'Now →',
     title: 'Autonomous Agents',
     subtitle: 'The Fourth Wave — Starting Now',
     description:

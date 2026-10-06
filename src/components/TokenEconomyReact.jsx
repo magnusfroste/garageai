@@ -124,9 +124,9 @@ const TokenEconomy = ({
         <motion.div variants={itemVariants} className="apple-card">
           <h3 className="apple-heading-2 mb-2 text-center">{marketTitle}</h3>
           <p className="text-sm mb-8 text-center" style={{ color: 'var(--color-text-muted)' }}>{marketDescription}</p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
             {marketStats.map((stat, i) => (
-              <div key={i} className="text-center p-5 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div key={i} className="text-center p-5 rounded-xl sm:w-1/3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <div className="text-3xl font-black mb-1" style={{ color: stat.color }}>
                   <AnimatedCounter value={stat.num} prefix={stat.prefix} suffix={stat.suffix} />
                 </div>

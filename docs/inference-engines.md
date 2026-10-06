@@ -24,7 +24,7 @@ Legend: Y = yes, N = no, ? = unverified. "Bind flag" is the exact way to listen 
 | **SGLang** v0.5.21 | Y [S23] | `--host 0.0.0.0` (default 127.0.0.1) [S23] | **30000** [S23] | Y, `--api-key` [S23] | Y, `include_usage` + `continuous_usage_stats` [S24] | Continuous batching, `--tp N` [S23] | Y/N/N | Apache-2.0 [S0] | Supported with small change |
 | **TensorRT-LLM** `trtllm-serve` | Y [S25] | `--host` [S25] | 8000 in the examples [S25] | ? | ? | Y, tp/pp/ep sizes [S25] | Y/N/N | Apache-2.0 | Supported now as `other` (expert users) |
 | **NVIDIA NIM** (LLM) | Y [S26] | container, `-p 8000:8000` [S26] | 8000 (`NIM_SERVER_PORT`) [S26] | ? | ? | Y (vLLM/TRT-LLM inside) [S26] | Y/N/N | Developer Program: dev/test only, ≤16 GPUs; production needs NVIDIA AI Enterprise [S27] | Not suitable (license) |
-| **HF TGI** v3.3.7 (Dec 2025) | Y | — | — | — | — | — | Linux | Apache-2.0 | Not suitable: maintenance mode since Dec 2025, repo now **archived** [S0][S28] |
+| **HF TGI** v3.3.7 | Y | — | — | — | — | — | Linux | Apache-2.0 | Not suitable: in maintenance mode, repo now **archived** [S0][S28] |
 | **LocalAI** v4.11.0 | Y [S29] | `LOCALAI_ADDRESS` [S29] | 8080 [S29] | Y, `LOCALAI_API_KEY` [S29] | ? | Backend-dependent; `LOCALAI_PARALLEL_REQUESTS`, `LLAMACPP_PARALLEL` [S30] | Y/Y/Y (Docker first) [S29] | MIT [S0] | Supported now as `other` |
 | **Jan** v0.8.4 | Y [S31] | Host setting `0.0.0.0` in the GUI [S31] | **1337** [S31] | Y, optional [S31] | ? | ? | Y/Y/Y [S31] | ? (GitHub: NOASSERTION) [S0] | Supported with small change (low priority, desktop app) |
 | **KoboldCpp** v1.122.1 | Y [S32] | `--host` [S32] | **5001** [S32] | Y, `--password` [S32] | Usage in non-stream replies; stream unverified [S33] | `--multiuser` queue (on by default) [S32] | Y/Y/Y | AGPL-3.0 [S0] | Supported with small change (low priority) |
@@ -88,7 +88,7 @@ Legend: Y = yes, N = no, ? = unverified. "Bind flag" is the exact way to listen 
 
 **Not suitable:**
 - **NVIDIA NIM.** The Developer Program license is for dev/test only. Selling tokens needs NVIDIA AI Enterprise (≈$4,500/GPU/yr) [S27]. Operators who own an AIE license could run it as `other --port 8000`.
-- **HF TGI.** Maintenance mode since December 2025 and the repo is now archived [S0][S28]. Send operators to vLLM or SGLang.
+- **HF TGI.** In maintenance mode and the repo is now archived [S0][S28]. Send operators to vLLM or SGLang.
 - **Foundry Local.** Windows and macOS only, and the port is random unless pinned [S49]. Windows is unsupported by our script.
 
 ---
