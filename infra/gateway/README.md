@@ -204,6 +204,14 @@ request carries the master key, and returns 403 otherwise. Buyer keys therefore 
 `/model/info` (garage addresses) or call `/health` (real inference on every garage).
 After rotating the master key, recreate the container (`docker compose up -d`) so the rule follows.
 
+Responses are stripped of everything that would tell a buyer which garage or provider served
+them: the `x-litellm-*` headers (upstream `api_base`, deployment id, runtime model name, timing)
+and the upstream server's own headers that LiteLLM forwards as `llm_provider-*` (Cloudflare,
+uvicorn, rate-limit headers). Only `x-litellm-call-id` (for support) and
+`x-litellm-response-cost` remain. Traefik has no wildcard header removal, so the
+`llm_provider-*` list is explicit; after adding a provider, check one response with
+`curl -D -` and extend the list if a new header appears.
+
 ## Garage health checks (levels 1 and 2)
 
 `health/garageai-health.py` (installed to `/usr/local/bin/garageai-health`, run every minute by
