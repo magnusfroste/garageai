@@ -71,10 +71,11 @@ def peers_connected(nb_url, nb_token):
     return out
 
 
-def check_runtime(host, port, key):
+def check_runtime(host, port, key, url=None):
+    """url: a provider's https base (…/v1); otherwise a mesh garage's host and port."""
     headers = {"Authorization": f"Bearer {key}"} if key else {}
     try:
-        _, data = http("GET", f"http://{host}:{port}/v1/models", headers)
+        _, data = http("GET", f"{url.rstrip('/')}/models" if url else f"http://{host}:{port}/v1/models", headers)
         return True, None, sorted(m["id"] for m in data.get("data", []))
     except urllib.error.HTTPError as e:
         # The runtime answered: it is up, but we cannot list models (e.g. wrong key).
@@ -96,11 +97,16 @@ def main():
     results = []
     for t in targets:
         peer = t.get("peer_id")
-        mesh = None if connected is None else connected.get(peer, connected.get("name:" + t["garage"], False))
-        if mesh is False:
-            runtime_ok, err, models = False, "mesh_disconnected", None
+        if t.get("endpoint"):
+            # A provider behind a public HTTPS endpoint: no tunnel to check.
+            mesh = None
+            runtime_ok, err, models = check_runtime(None, None, t.get("runtime_api_key"), url=t.get("url"))
         else:
-            runtime_ok, err, models = check_runtime(t["host"], t["port"], t.get("runtime_api_key"))
+            mesh = None if connected is None else connected.get(peer, connected.get("name:" + t["garage"], False))
+            if mesh is False:
+                runtime_ok, err, models = False, "mesh_disconnected", None
+            else:
+                runtime_ok, err, models = check_runtime(t["host"], t["port"], t.get("runtime_api_key"))
         results.append({"garage": t["garage"], "checked_at": now, "mesh_connected": mesh,
                         "runtime_ok": runtime_ok, "runtime_error": err, "models": models})
 
