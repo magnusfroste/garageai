@@ -49,7 +49,7 @@ whyActItems:
     text: "Early operators and buyers influence what gets built next, from payouts to verification."
   - icon: "💶"
     title: "No platform fee during launch"
-    text: "During launch, operators earn the full token price buyers pay for the requests they serve."
+    text: "During launch, operators keep the full price they set for every token they serve."
   - icon: "🌍"
     title: "Sovereignty starts small"
     text: "Every garage that joins adds AI capacity owned in Europe, by the people who run it."
