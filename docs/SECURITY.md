@@ -20,3 +20,4 @@ You will get an answer as soon as possible, and credit when the fix ships unless
 
 - Garages never expose their runtime to the public internet; only the gateway reaches them, over the WireGuard mesh.
 - The connect script never needs the gateway's LiteLLM master key.
+- Operators run the [security checklist](../infra/gateway/README.md#security-checklist) on the gateway after every upgrade, after adding a provider, and before handing out keys to external testers.
