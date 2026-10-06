@@ -36,11 +36,11 @@
 #   GARAGEAI_NODE_NAME, GARAGEAI_RUNTIME_API_KEY, GARAGEAI_REGISTER_URL, GARAGEAI_REGISTER_TOKEN,
 #   GARAGEAI_MODELS
 #
-# --models limits what you offer to the listed model ids (comma-separated). Without it every
-# chat model the runtime lists is offered; embedding and reranker models are skipped.
+# --models chooses which of the runtime's models to offer at registration (comma-separated).
+# Without it every chat model the runtime lists is offered; embedding and reranker models are
+# never offered. Later changes (offer, pause) are made in the GarageAI portal, under My garages.
 #
-# Supported: Linux and macOS. (Windows: install NetBird from netbird.io and run the
-# same steps manually for now.)
+# Supported: Linux and macOS. Windows: garageai-connect.ps1 (Ollama and LM Studio).
 
 set -euo pipefail
 
@@ -125,6 +125,7 @@ case "$RUNTIME" in
 esac
 
 # Paddock creates and requires an API key whenever it listens beyond localhost.
+case "$RUNTIME_API_KEY" in \<*\>|YOUR_*|'<YOUR'*) die "Replace the placeholder in --runtime-api-key / GARAGEAI_RUNTIME_API_KEY with your runtime's real API key (or leave it out)." ;; esac
 if [ "$RUNTIME" = paddock ] && [ -z "$RUNTIME_API_KEY" ] && [ "$DOCTOR" -eq 0 ] && [ "$UNINSTALL" -eq 0 ]; then
   die "Paddock requires an API key on network binds. Pass the same key with --runtime-api-key."
 fi
@@ -239,7 +240,6 @@ install_heartbeat() {
     printf 'GARAGEAI_PORT=%q\n' "$PORT"
     printf 'GARAGEAI_RUNTIME_API_KEY=%q\n' "$RUNTIME_API_KEY"
     printf 'GARAGEAI_MESH_IP=%q\n' "$MESH_IP"
-    printf 'GARAGEAI_MODELS=%q\n' "$OFFER_MODELS"
   } | as_root tee "$HEARTBEAT_CONF" >/dev/null
 
   as_root tee "$HEARTBEAT_BIN" >/dev/null <<'HEARTBEAT'
@@ -258,12 +258,13 @@ models='[]'
 for host in 127.0.0.1 "${GARAGEAI_MESH_IP:-}"; do
   [ -n "$host" ] || continue
   if out="$(curl -fsS --max-time 5 ${auth[@]+"${auth[@]}"} "http://${host}:${GARAGEAI_PORT}/v1/models" 2>/dev/null)" &&
-     list="$(printf '%s' "$out" | jq -ec --arg allow "${GARAGEAI_MODELS:-}" \
-       '[.data[].id] | if $allow != "" then map(select(. as $m | ($allow | split(",") | map(gsub("^ +| +$";"")) | index($m)))) else map(select(test("embed|bge-|bge:|e5-|minilm|rerank|colbert|gte-"; "i") | not)) end' 2>/dev/null)"; then
+     list="$(printf '%s' "$out" | jq -ec '[.data[].id]' 2>/dev/null)"; then
     models="$list"; break
   fi
 done
-# If the runtime does not answer, report no models so buyers are not routed here.
+# The heartbeat reports everything the runtime serves (the inventory); which models are
+# offered is decided in the GarageAI portal. If the runtime does not answer, it reports no
+# models so buyers are not routed here.
 
 payload="$(jq -nc --arg name "$GARAGEAI_NODE_NAME" --argjson port "$GARAGEAI_PORT" \
   --arg runtime "$GARAGEAI_RUNTIME" --argjson models "$models" --arg key "${GARAGEAI_RUNTIME_API_KEY:-}" \
@@ -495,7 +496,7 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 # 1. NetBird client
-bold "1/5  NetBird client"
+bold "1/6  NetBird client"
 if command -v netbird >/dev/null 2>&1; then
   ok "netbird is installed ($(netbird version 2>/dev/null || echo 'unknown version'))"
 elif [ "$SKIP_INSTALL" -eq 1 ]; then
@@ -510,7 +511,7 @@ fi
 echo
 
 # 2. Join the mesh
-bold "2/5  Join the GarageAI mesh"
+bold "2/6  Join the GarageAI mesh"
 MESH_IP="$(mesh_ip)"
 if [ -n "$MESH_IP" ] && [ -z "$SETUP_KEY" ]; then
   ok "Already on the mesh (no setup key given, keeping the current connection)"
@@ -533,7 +534,7 @@ ok "Mesh IP: ${MESH_IP}"
 echo
 
 # 3. Local runtime
-bold "3/5  Inference runtime (${RUNTIME}, port ${PORT})"
+bold "3/6  Inference runtime (${RUNTIME}, port ${PORT})"
 if LOCAL_MODELS="$(http_models 127.0.0.1)"; then
   ok "OpenAI-compatible API answers on 127.0.0.1:${PORT}"
 elif LOCAL_MODELS="$(http_models "$MESH_IP")"; then
@@ -550,7 +551,7 @@ echo
 # NetBird filters a node's traffic to its own mesh IP, so on many systems (macOS in
 # particular) we cannot test the mesh path from here. Try it, and otherwise check which
 # address the runtime listens on; the gateway's acceptance test then proves the path.
-bold "4/5  Reachable over the mesh"
+bold "4/6  Reachable over the mesh"
 PROBE_HOST="$MESH_IP"
 if MODELS="$(http_models "$MESH_IP" 2>/dev/null)"; then
   ok "Reachable on ${MESH_IP}:${PORT}"
@@ -561,6 +562,12 @@ else
     printf '%s\n' "$LISTEN" | grep -qx "$MESH_IP" && PROBE_HOST="$MESH_IP"
     MODELS="$(http_models "$PROBE_HOST")" || die "The runtime stopped answering on ${PROBE_HOST}:${PORT}."
     ok "Listening on $(printf '%s' "$LISTEN" | tr '\n' ' ')(port ${PORT}); the gateway verifies the mesh path next"
+    if [ "$RUNTIME" = ollama ] && [ "$(uname -s)" = Darwin ] && [ "$(id -u)" -ne 0 ] &&
+       [ ! -e "$HOME/Library/LaunchAgents/eu.garageai.ollama-host.plist" ] &&
+       confirm "Keep Ollama listening on the network after a reboot (adds a small login item that sets OLLAMA_HOST)?"; then
+      install_ollama_env_agent
+      ok "Done. OLLAMA_HOST is set at every login from now on."
+    fi
   else
     warn "The runtime only listens on ${LISTEN:-127.0.0.1}, so the gateway cannot reach it."
     if [ "$RUNTIME" = ollama ] && [ "$(uname -s)" = Darwin ] && [ "$(id -u)" -ne 0 ] &&
@@ -607,7 +614,7 @@ fi
 echo
 
 # 5. Register
-bold "5/5  Register with GarageAI"
+bold "5/6  Register with GarageAI"
 MODELS_JSON="$(printf '%s\n' "$MODELS" | jq -R . | jq -sc .)"
 PAYLOAD="$(jq -nc \
   --arg name "$NODE_NAME" --arg mesh_ip "$MESH_IP" --argjson port "$PORT" \
@@ -645,8 +652,8 @@ if [ -n "$REGISTER_URL" ]; then
   if [ "$HEARTBEAT" -eq 1 ]; then
     bold "6/6  Heartbeat"
     install_heartbeat
-    ok "Installed: reports your models every 5 minutes. Load a new model and it will be"
-    info "  tested and offered automatically. Remove with: $0 --remove-heartbeat"
+    ok "Installed: reports your models every 5 minutes. Load a new model and it shows up"
+    info "  under My garages in the portal, where you choose to offer it. Remove with: $0 --remove-heartbeat"
   fi
 else
   info "No --register-url given. Send these details to GarageAI to activate the node:"
