@@ -117,6 +117,44 @@ const partners = [
       </p>
     </div>
 
+    <h2 class="apple-heading-2 mb-2">Worked example: two HP ZGX Nano</h2>
+    <p class="text-sm mb-6 max-w-3xl" style="color: var(--color-text-secondary)">
+      An illustration, not a forecast. Today's catalogue prices, one open-weights model (for example qwen/qwen3.8-27b) served from two
+      GB10-class machines in the pool, and traffic shaped like our first heavy buyer: coding agents that send ~100 input tokens for
+      every output token. The one thing the example assumes is demand, and demand is exactly what a partner channel adds.
+    </p>
+    <div class="apple-card mb-4">
+      <div class="grid md:grid-cols-2 gap-x-10 gap-y-4 text-sm" style="color: var(--color-text-secondary)">
+        <div>
+          <div class="font-semibold mb-2" style="color: var(--color-text)">Assumptions</div>
+          <ul class="list-disc pl-5 space-y-1">
+            <li>Pool price $0.15 per M input tokens, $0.60 per M output (what garages set today)</li>
+            <li>Each machine: ~1,000 input tok/s prefill, ~50 output tok/s decode, batched by vLLM</li>
+            <li>Sold 16 hours a day at half load, 30 days a month</li>
+            <li>Power ~0.2 kW per machine at €0.15/kWh</li>
+          </ul>
+        </div>
+        <div>
+          <div class="font-semibold mb-2" style="color: var(--color-text)">Per machine, per month</div>
+          <ul class="space-y-1">
+            <li>Input tokens served: ~860 M → <strong style="color: var(--color-text)">≈ $130</strong></li>
+            <li>Output tokens served: ~43 M → <strong style="color: var(--color-text)">≈ $26</strong></li>
+            <li>Electricity: ~100 kWh → <strong style="color: var(--color-text)">≈ −€15</strong></li>
+            <li class="pt-1 border-t" style="border-color: rgba(255,255,255,0.08)">Net: <strong style="color: var(--color-primary)">≈ €130 per machine, ≈ €260 for two</strong>, while the owner keeps using them for their own work the rest of the day</li>
+          </ul>
+        </div>
+      </div>
+      <p class="text-xs mt-5" style="color: var(--color-text-secondary)">
+        At full load the same two machines serve twice that. With a model the market wants more (larger, or with a better price per quality),
+        more. With no demand, nothing: the owner still has two private AI machines reachable from anywhere. That asymmetry is why GarageAI is a
+        channel for the hardware rather than a cost: it gives every ZGX a second job and the buyer a reason to pick the box over a cloud subscription.
+      </p>
+    </div>
+    <p class="text-sm mb-16 max-w-3xl" style="color: var(--color-text-secondary)">
+      <strong style="color: var(--color-text)">HP ZGX Nano</strong> runs the same NVIDIA GB10 platform as the DGX Spark we operate in production, so the recipe above
+      applies unchanged: Ubuntu, vLLM, one connect command. A "GarageAI-ready ZGX" is a documentation task, not an engineering project.
+    </p>
+
     <h2 class="apple-heading-2 mb-6">Partners today</h2>
     <div class="grid md:grid-cols-2 gap-6 mb-16">
       {partners.map((p) => (
