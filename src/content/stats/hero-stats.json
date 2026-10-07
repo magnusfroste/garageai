@@ -8,7 +8,7 @@
   {
     "icon": "💻",
     "value": "macOS + Linux",
-    "label": "Operator platforms · Windows soon",
+    "label": "Operator platforms · Windows in beta",
     "accent": "var(--color-warning)"
   },
   {
