@@ -28,6 +28,10 @@ out="$(bash "$SCRIPT" --help 2>&1)"; check "--help lists --doctor" "--doctor" "$
 out="$(bash "$SCRIPT" --no-such-option 2>&1)"; check "unknown option is reported" "Unknown option" "$out"
 out="$(bash "$SCRIPT" --runtime nope 2>&1)"; check "unknown runtime is rejected" "Unknown runtime" "$out"
 out="$(bash "$SCRIPT" --runtime paddock --name x 2>&1)"; check "paddock requires a key" "requires an API key" "$out"
+out="$(GARAGEAI_RUNTIME_API_KEY='sk-abcGARAGEAI_MESH_WAIT_SECONDS=90' bash "$SCRIPT" --runtime vllm --name x 2>&1)"
+check "key with another variable pasted in is rejected" "something else was pasted into it" "$out"
+out="$(GARAGEAI_RUNTIME_API_KEY='sk-abc def' bash "$SCRIPT" --runtime vllm --name x 2>&1)"
+check "key with a space is rejected" "something else was pasted into it" "$out"
 
 out="$(bash "$SCRIPT" --doctor --runtime other --port $PORT 2>&1)"
 check "doctor: no runtime" "nothing answers on port $PORT" "$out"

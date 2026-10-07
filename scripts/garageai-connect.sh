@@ -63,7 +63,7 @@ RUNTIME_GIVEN=0
 PORT_GIVEN=0
 [ -n "${GARAGEAI_PORT:-}" ] && PORT_GIVEN=1
 ASSUME_YES=0
-MESH_WAIT_SECONDS="${GARAGEAI_MESH_WAIT_SECONDS:-30}"
+MESH_WAIT_SECONDS="${GARAGEAI_MESH_WAIT_SECONDS:-90}"
 
 bold() { printf '\033[1m%s\033[0m\n' "$*"; }
 info() { printf '  %s\n' "$*"; }
@@ -124,8 +124,13 @@ case "$RUNTIME" in
   *) die "Unknown runtime '$RUNTIME' (use ollama, lmstudio, llamacpp, vllm, sglang, paddock, unsloth, mlx, lemonade or other)" ;;
 esac
 
-# Paddock creates and requires an API key whenever it listens beyond localhost.
+# A key with another variable or a space in it was pasted together with something else.
+case "$RUNTIME_API_KEY" in
+  *GARAGEAI_*|*" "*|*"	"*)
+    die "The runtime API key contains spaces or 'GARAGEAI_' — something else was pasted into it. Set it on its own line: export GARAGEAI_RUNTIME_API_KEY='<key>'" ;;
+esac
 case "$RUNTIME_API_KEY" in \<*\>|YOUR_*|'<YOUR'*) die "Replace the placeholder in --runtime-api-key / GARAGEAI_RUNTIME_API_KEY with your runtime's real API key (or leave it out)." ;; esac
+# Paddock creates and requires an API key whenever it listens beyond localhost.
 if [ "$RUNTIME" = paddock ] && [ -z "$RUNTIME_API_KEY" ] && [ "$DOCTOR" -eq 0 ] && [ "$UNINSTALL" -eq 0 ]; then
   die "Paddock requires an API key on network binds. Pass the same key with --runtime-api-key."
 fi
@@ -537,10 +542,21 @@ echo
 
 # 3. Local runtime
 bold "3/6  Inference runtime (${RUNTIME}, port ${PORT})"
-if LOCAL_MODELS="$(http_models 127.0.0.1)"; then
+runtime_status() {
+  local auth=()
+  [ -n "$RUNTIME_API_KEY" ] && auth=(-H "Authorization: Bearer ${RUNTIME_API_KEY}")
+  curl -s -o /dev/null -w "%{http_code}" --max-time 5 ${auth[@]+"${auth[@]}"} "http://$1:${PORT}/v1/models" 2>/dev/null || true
+}
+if LOCAL_MODELS="$(http_models 127.0.0.1 2>/dev/null)"; then
   ok "OpenAI-compatible API answers on 127.0.0.1:${PORT}"
-elif LOCAL_MODELS="$(http_models "$MESH_IP")"; then
+elif LOCAL_MODELS="$(http_models "$MESH_IP" 2>/dev/null)"; then
   ok "OpenAI-compatible API answers on ${MESH_IP}:${PORT}"
+elif code="$(runtime_status 127.0.0.1)"; [ "$code" = "401" ] || [ "$code" = "403" ]; then
+  if [ -n "$RUNTIME_API_KEY" ]; then
+    die "${RUNTIME} answers on port ${PORT} but rejects the API key (HTTP ${code}). Check GARAGEAI_RUNTIME_API_KEY: it must be exactly the key the runtime was started with (vLLM: --api-key)."
+  else
+    die "${RUNTIME} answers on port ${PORT} but requires an API key (HTTP ${code}). Set it: export GARAGEAI_RUNTIME_API_KEY='<key>' and run again."
+  fi
 else
   warn "No OpenAI-compatible API answered on port ${PORT}."
   runtime_hint "$MESH_IP"
