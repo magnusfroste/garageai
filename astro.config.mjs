@@ -10,7 +10,8 @@ export default defineConfig({
   integrations: [
     react(),
     mdx(),
-    sitemap(),
+    // /partners is unlisted: reachable by link, not in the sitemap.
+    sitemap({ filter: (page) => !page.includes('/partners') }),
   ],
   vite: {
     ssr: {
