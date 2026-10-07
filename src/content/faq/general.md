@@ -10,6 +10,8 @@ faqs:
     answer: "A machine that can run an open model with acceptable speed: typically a Mac with Apple silicon or a Linux machine with a capable GPU. There is no fixed minimum spec. Every model has to pass an automated acceptance test through the gateway, which measures time-to-first-token and tokens per second, before it can be sold."
   - question: "Which operating systems and runtimes are supported?"
     answer: "macOS and Linux today; Windows is coming soon (see below). Supported runtimes are Ollama, LM Studio, llama.cpp, vLLM, SGLang and Paddock (beta). Unsloth, MLX on Apple Silicon and Lemonade on AMD also work. You keep your own OS and runtime; the onboarding wizard shows how to prepare the runtime, and one command installs the NetBird client, joins the encrypted mesh and registers your models."
+  - question: "Is the connect script finished?"
+    answer: "Not yet, it is in beta. It is tested automatically on every change to it and already runs on the first garages on macOS and Linux, but you may hit rough edges. Run it with --doctor to check your garage and see exactly what to fix, or with --uninstall to remove the heartbeat and leave the mesh. Report problems on GitHub or to powerup@garageai.eu."
   - question: "When is Windows supported?"
     answer: "Windows support for Ollama and LM Studio is coming soon; that covers most gaming PCs with an RTX GPU. vLLM and SGLang on Windows (through WSL2) will follow later. To join the waitlist and be among the first Windows operators, email powerup@garageai.eu with the subject \"Windows waitlist\" and tell us your GPU and runtime."
   - question: "Do I need to open ports on my router?"

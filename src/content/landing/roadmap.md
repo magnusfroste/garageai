@@ -14,7 +14,7 @@ phases:
       - "Private beta completed in spring 2026"
       - "Encrypted NetBird mesh and LiteLLM gateway on an EU VPS"
       - "Portal with accounts, API keys, prepaid credits and chat"
-      - "Self-service operator onboarding (macOS and Linux; Ollama, LM Studio, llama.cpp, vLLM, SGLang, Paddock)"
+      - "Self-service operator onboarding, in beta (macOS and Linux; Ollama, LM Studio, llama.cpp, vLLM, SGLang, Paddock)"
       - "Automated acceptance tests for every model"
       - "Pool and specific-garage routing"
     color: "var(--color-primary)"
