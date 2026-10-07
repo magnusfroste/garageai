@@ -120,71 +120,57 @@ buffering; the NetBird installer already disables Traefik's timeouts for long-li
 
 ## 5. Onboard a garage
 
-The operator starts their runtime (Ollama, LM Studio, llama.cpp, vLLM, Paddock, Unsloth),
-then runs:
+Operators onboard from the portal: the wizard creates the garage, a one-time registration
+token and the exact command to run. The command downloads
+[`scripts/garageai-connect.sh`](../../scripts/garageai-connect.sh) from this repository, joins the
+mesh (`--hostname` = garage name), checks that the runtime answers on the mesh IP, registers the
+garage with the portal's `register-node` endpoint and installs the heartbeat. The portal then
+runs the acceptance test and writes the LiteLLM deployments. The gateway's master key is never
+involved on the operator side.
 
-```bash
-curl -fsSLO https://raw.githubusercontent.com/magnusfroste/garageai/main/scripts/garageai-connect.sh
-bash garageai-connect.sh --setup-key <their-key> --management-url https://netbird.garageai.eu --runtime ollama
-```
+## 6. Manual registration (break-glass only)
 
-The script joins the mesh, checks that the runtime answers on the mesh IP, explains how to
-rebind it if it only listens on localhost, and prints the node's details.
-
-## 6. Register the garage in LiteLLM
-
-From anywhere that can reach the LiteLLM API:
+The portal is the source of truth for garages, models and prices, and it overwrites LiteLLM
+deployments on every sync. Register directly in LiteLLM only when debugging, and expect the
+sync to replace what you wrote:
 
 ```bash
 export LITELLM_URL=https://llm.garageai.eu LITELLM_MASTER_KEY=sk-...
-infra/gateway/register-node.sh add garage-lund 100.92.1.7 11434 qwen3:32b gemma4:27b
 infra/gateway/register-node.sh list
-infra/gateway/register-node.sh remove garage-lund qwen3:32b     # when they stop sharing
+NODE_API_KEY=sk-... infra/gateway/register-node.sh add garage-lund 100.92.1.7 8000 mimo-v2.6-flash
 ```
 
-If the runtime requires an API key (for example vLLM started with `--api-key`), pass it in
-`NODE_API_KEY`. LiteLLM stores it encrypted and buyers never see it:
-
-```bash
-NODE_API_KEY=sk-... infra/gateway/register-node.sh add garage-lund 100.92.1.7 8000 glm-5.3-flash
-```
-
-First end-to-end test:
+Quick end-to-end test of a route:
 
 ```bash
 curl https://llm.garageai.eu/v1/chat/completions \
   -H "Authorization: Bearer $LITELLM_MASTER_KEY" -H "Content-Type: application/json" \
-  -d '{"model": "garage/garage-lund/qwen3:32b", "stream": true,
+  -d '{"model": "garage/garage-lund/xiaomi/mimo-v2.6-flash", "stream": true,
        "messages": [{"role": "user", "content": "Hej från GarageAI!"}]}'
 ```
 
-If LiteLLM can't reach the garage but the host can (`curl http://<garage-mesh-ip>:11434/v1/models`),
+If LiteLLM can't reach the garage but the host can (`curl http://<garage-mesh-ip>:8000/v1/models`),
 test from inside the container:
 
 ```bash
 docker compose -f /opt/garageai/litellm/docker-compose.yml exec litellm python -c \
-  "import urllib.request; print(urllib.request.urlopen('http://<garage-mesh-ip>:11434/v1/models', timeout=5).read()[:200])"
+  "import urllib.request; print(urllib.request.urlopen('http://<garage-mesh-ip>:8000/v1/models', timeout=5).read()[:200])"
 ```
 
-## 7. The two marketplace tiers
+## 7. Model names and the two tiers
 
-`register-node.sh` registers every model twice:
+Every offered model gets two LiteLLM deployments. Names follow the OpenRouter convention
+`creator/model`, derived from the runtime's id (`qwen3:4b` and `Qwen/Qwen3-4B` both become
+`qwen/qwen3-4b`); admins can set an alias for provider models whose ids say nothing.
 
-| Model name                     | Routes to                     | Sold as |
-|--------------------------------|-------------------------------|---------|
-| `garage/garage-lund/qwen3:32b` | that one garage only          | Booked, single-tenant access to a named garage |
-| `qwen3:32b`                    | any garage offering the model | Cheaper pool access, load-balanced |
+| Route                                        | Routes to                              | Sold as |
+|----------------------------------------------|----------------------------------------|---------|
+| `garage/garage-lund/xiaomi/mimo-v2.6-flash`  | that one garage only                   | Specific garage, at that garage's price |
+| `xiaomi/mimo-v2.6-flash`                     | any garage or provider offering it     | Pool, load-balanced with failover |
 
-Give a buyer a LiteLLM virtual key limited to what they bought:
-
-```bash
-curl -X POST "$LITELLM_URL/key/generate" \
-  -H "Authorization: Bearer $LITELLM_MASTER_KEY" -H "Content-Type: application/json" \
-  -d '{"models": ["garage/garage-lund/qwen3:32b"], "max_budget": 25, "duration": "30d",
-       "metadata": {"buyer": "acme-ab", "booking": "b_123"}}'
-```
-
-LiteLLM's spend tracking per key and model is the basis for operator payouts.
+Deployment ids stay `<garage>__<runtime-id>__<tier>` so aliases can change without new ids. The
+request goes upstream as the runtime's own id; buyers never see it. LiteLLM's spend log per
+key and model is the basis for revenue statements.
 
 ## Operations
 
