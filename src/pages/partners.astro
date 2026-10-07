@@ -1,0 +1,205 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { getEntry } from 'astro:content';
+
+// Unlisted page: not in the nav, not in the sitemap (see astro.config.mjs), noindex.
+// Used as a talking aid with hardware and compute partners.
+const header = await getEntry('landing', 'header');
+const footer = await getEntry('landing', 'footer');
+
+const proof = [
+  { value: 'Live', label: 'DGX Spark garage in production', detail: 'xiaomi/mimo-v2.6-flash · 512k context · ~24 tok/s · Sweden' },
+  { value: '2', label: 'kinds of supply, one API', detail: 'home & office GPUs over a private mesh, verified providers over HTTPS' },
+  { value: '5 min', label: 'from wizard to first sale', detail: 'one command, no inbound ports, automated acceptance test' },
+  { value: '23M', label: 'tokens from one buyer in one evening', detail: 'a coding agent on a provider GPU that would otherwise have sat idle' },
+];
+
+const offers = [
+  {
+    icon: '🏷️',
+    title: 'Reference garages',
+    text: 'Your machines run as named reference garages with your badge in the catalogue: a public, measurable demonstration of what the hardware does in the real world, with reliability grade and availability shown to every buyer.',
+  },
+  {
+    icon: '📦',
+    title: 'A "GarageAI-ready" recipe',
+    text: 'A tested setup guide or image for your product line (runtime, connect script, acceptance test) that your partners and customers can ship with the box. We maintain it in the open-source repository.',
+  },
+  {
+    icon: '🤝',
+    title: 'Partner channel',
+    text: 'Resellers can position the machine with an answer to "what will it earn me?": run your own models privately, and let it sell tokens on GarageAI when you are not using it.',
+  },
+  {
+    icon: '🚀',
+    title: 'Launch pilot',
+    text: 'A defined pilot, for example the first 20 machines of a product line onboarded with our support: hardware or discount from the partner, onboarding, monitoring and operator support from us, shared learnings and numbers.',
+  },
+];
+
+const whatWeAre = [
+  ['Mesh, not ports', 'Every garage opens one outgoing WireGuard tunnel to an EU gateway. Nothing inbound, no port forwarding, no public address. Only the gateway can reach the runtime port.'],
+  ['Proxy, not referral', 'Buyers talk to llm.garageai.eu only. They never see which garage or provider served them; providers never see which buyer asked.'],
+  ['Measured, not promised', 'Every model passes an acceptance test through the gateway before it is sold and is probed every hour. Reliability sets the grade; availability is shown as hours live per week.'],
+  ['OpenRouter-compatible', 'Model names follow the creator/model convention, so an existing OpenRouter configuration moves over by changing the base URL. Pay in euros by card or invoice.'],
+  ['Open source', 'The gateway setup, the connect scripts and the security documentation are public under the MIT license. Anyone can read what runs on their machine.'],
+  ['Europe first', 'Location is measured from the mesh connection and shown as a flag; buyers can filter for EU/EEA only. Gateway and mesh are self-hosted in the EU.'],
+];
+
+const partners = [
+  { name: 'Autoversio', role: 'Verified provider', text: 'GPU rigs in Sweden selling deepseek and qwen models through GarageAI since launch week.', url: 'https://www.autoversio.com' },
+  { name: 'Liteit', role: 'Founding partner', text: 'Swedish IT company behind the first private garages and the pilot infrastructure.', url: 'https://www.liteit.se' },
+];
+---
+
+<Layout
+  title="Partners — GarageAI"
+  description="How hardware makers, compute providers and resellers work with GarageAI, Europe's marketplace for local AI inference."
+>
+  <meta name="robots" content="noindex, nofollow" slot="head" />
+  <Header {...header.data} />
+
+  <main class="max-w-6xl mx-auto px-4 pt-28 pb-20">
+    <p class="text-sm uppercase tracking-widest mb-4" style="color: var(--color-accent)">Partners</p>
+    <h1 class="apple-heading-1 mb-4">Give the machine a reason to be switched on.</h1>
+    <p class="apple-body-large max-w-3xl mb-12" style="color: var(--color-text-secondary)">
+      GarageAI turns GPUs that people and companies already own into Europe's AI capacity: one OpenAI-compatible API in front,
+      a private mesh behind, and the owner paid for every token served. For a hardware maker that is the answer to the question every
+      buyer of a desktop AI box asks: <em>what will it actually do all day?</em>
+    </p>
+
+    <div class="grid md:grid-cols-4 gap-4 mb-16">
+      {proof.map((p) => (
+        <div class="apple-card">
+          <div class="text-3xl font-bold mb-1" style="color: var(--color-primary)">{p.value}</div>
+          <div class="font-semibold mb-2">{p.label}</div>
+          <div class="text-sm" style="color: var(--color-text-secondary)">{p.detail}</div>
+        </div>
+      ))}
+    </div>
+
+    <h2 class="apple-heading-2 mb-6">What we offer partners</h2>
+    <div class="grid md:grid-cols-2 gap-6 mb-16">
+      {offers.map((o) => (
+        <div class="apple-card">
+          <div class="text-3xl mb-3">{o.icon}</div>
+          <h3 class="font-bold text-lg mb-2">{o.title}</h3>
+          <p class="text-sm leading-relaxed" style="color: var(--color-text-secondary)">{o.text}</p>
+        </div>
+      ))}
+    </div>
+
+    <h2 class="apple-heading-2 mb-6">What GarageAI is, in six lines</h2>
+    <div class="apple-card mb-16">
+      <dl class="grid md:grid-cols-2 gap-x-10 gap-y-5">
+        {whatWeAre.map(([k, v]) => (
+          <div>
+            <dt class="font-semibold mb-1" style="color: var(--color-primary)">{k}</dt>
+            <dd class="text-sm leading-relaxed" style="color: var(--color-text-secondary)">{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+
+    <h2 class="apple-heading-2 mb-6">A desktop AI box as a garage</h2>
+    <div class="apple-card mb-16">
+      <ol class="list-decimal pl-6 space-y-3 text-sm leading-relaxed" style="color: var(--color-text-secondary)">
+        <li><strong style="color: var(--color-text)">Unbox and run your own models.</strong> vLLM, Ollama or LM Studio on the machine, as today. Nothing GarageAI-specific yet.</li>
+        <li><strong style="color: var(--color-text)">Connect in five minutes.</strong> Create a garage in the portal, run one command. The machine joins the private mesh; no ports are opened and nothing becomes reachable from the internet.</li>
+        <li><strong style="color: var(--color-text)">Use it from anywhere, privately.</strong> Your own chat and API against your own machine, from the laptop or the phone, through the mesh. (Private garages: on the roadmap, built on the same mechanism.)</li>
+        <li><strong style="color: var(--color-text)">Offer what you like, when you like.</strong> Pick which models to sell, set a price, pause whenever. Every model passes an acceptance test before it is sold.</li>
+        <li><strong style="color: var(--color-text)">Get paid per token.</strong> Earnings per model and per garage in the portal; statements for companies.</li>
+      </ol>
+      <p class="text-sm mt-5" style="color: var(--color-text-secondary)">
+        Today in production on an NVIDIA DGX Spark (GB10). The same recipe applies to any GB10-class desktop system and to any Linux or macOS machine with a capable GPU.
+      </p>
+    </div>
+
+    <h2 class="apple-heading-2 mb-2">Worked example: two HP ZGX Nano, two cases</h2>
+    <p class="text-sm mb-6 max-w-3xl" style="color: var(--color-text-secondary)">
+      Illustrations, not forecasts. Both cases price the model at <strong style="color: var(--color-text)">OpenRouter parity</strong>
+      (what buyers pay there today, converted to euros), serve it from two GB10-class machines in the pool, and assume traffic shaped like our
+      first heavy buyer: coding agents sending ~100 input tokens per output token. The one thing both assume is demand, and demand is exactly
+      what a partner channel adds.
+    </p>
+    <div class="grid md:grid-cols-2 gap-6 mb-4">
+      <div class="apple-card">
+        <div class="flex items-baseline justify-between mb-1">
+          <h3 class="font-bold text-lg">Modest</h3>
+          <span class="text-xs px-2 py-1 rounded-full" style="background: rgba(255,255,255,0.06); color: var(--color-text-secondary)">google/gemma-4-31b-it</span>
+        </div>
+        <p class="text-xs mb-4" style="color: var(--color-text-secondary)">A dense 31B model that fits comfortably; priced like a commodity. OpenRouter: €0.08 in / €0.31 out per M tokens.</p>
+        <ul class="space-y-1 text-sm" style="color: var(--color-text-secondary)">
+          <li>~860 M input tokens → <strong style="color: var(--color-text)">≈ €69</strong></li>
+          <li>~43 M output tokens → <strong style="color: var(--color-text)">≈ €13</strong></li>
+          <li>Electricity ~100 kWh → <strong style="color: var(--color-text)">≈ −€15</strong></li>
+          <li class="pt-2 mt-2 border-t" style="border-color: rgba(255,255,255,0.08)">Net per machine and month: <strong style="color: var(--color-primary)">≈ €65</strong> · two machines: <strong style="color: var(--color-primary)">≈ €135</strong></li>
+        </ul>
+      </div>
+      <div class="apple-card" style="border-color: var(--color-primary)">
+        <div class="flex items-baseline justify-between mb-1">
+          <h3 class="font-bold text-lg">Stretch</h3>
+          <span class="text-xs px-2 py-1 rounded-full" style="background: rgba(255,255,255,0.06); color: var(--color-text-secondary)">qwen/qwen3.8-27b</span>
+        </div>
+        <p class="text-xs mb-4" style="color: var(--color-text-secondary)">The newest 27B in demand for agents, 1M context; also fits, and the market pays for it. OpenRouter: €0.39 in / €2.35 out per M tokens.</p>
+        <ul class="space-y-1 text-sm" style="color: var(--color-text-secondary)">
+          <li>~860 M input tokens → <strong style="color: var(--color-text)">≈ €337</strong></li>
+          <li>~43 M output tokens → <strong style="color: var(--color-text)">≈ €102</strong></li>
+          <li>Electricity ~100 kWh → <strong style="color: var(--color-text)">≈ −€15</strong></li>
+          <li class="pt-2 mt-2 border-t" style="border-color: rgba(255,255,255,0.08)">Net per machine and month: <strong style="color: var(--color-primary)">≈ €425</strong> · two machines: <strong style="color: var(--color-primary)">≈ €850</strong></li>
+        </ul>
+      </div>
+    </div>
+    <div class="apple-card mb-4">
+      <div class="font-semibold mb-2 text-sm">Shared assumptions</div>
+      <ul class="list-disc pl-5 space-y-1 text-sm" style="color: var(--color-text-secondary)">
+        <li>Each machine: ~1,000 input tok/s prefill, ~50 output tok/s decode, batched by vLLM (in line with what we measure on the DGX Spark)</li>
+        <li>Sold 16 hours a day at half load, 30 days a month; the owner uses the machines for their own work the rest of the time</li>
+        <li>Power ~0.2 kW per machine at €0.15/kWh; OpenRouter prices as of October 2026, $→€ at 0.92</li>
+        <li>No platform fee during launch; later a fee is taken from the price, not added to it</li>
+      </ul>
+      <p class="text-xs mt-4" style="color: var(--color-text-secondary)">
+        At full load both cases double. With no demand, nothing: the owner still has two private AI machines reachable from anywhere. That asymmetry
+        is why GarageAI is a channel for the hardware rather than a cost: it gives every ZGX a second job and the buyer a reason to pick the box
+        over a cloud subscription.
+      </p>
+    </div>
+    <p class="text-sm mb-16 max-w-3xl" style="color: var(--color-text-secondary)">
+      <strong style="color: var(--color-text)">HP ZGX Nano</strong> runs the same NVIDIA GB10 platform as the DGX Spark we operate in production, so the recipe above
+      applies unchanged: Ubuntu, vLLM, one connect command. A "GarageAI-ready ZGX" is a documentation task, not an engineering project. Every token it serves is billed in euros, routed through an EU gateway, and shown to buyers with the country it ran in.
+    </p>
+
+    <h2 class="apple-heading-2 mb-6">Partners today</h2>
+    <div class="grid md:grid-cols-2 gap-6 mb-16">
+      {partners.map((p) => (
+        <a href={p.url} class="apple-card block no-underline" target="_blank" rel="noopener">
+          <div class="flex items-baseline justify-between mb-2">
+            <span class="font-bold text-lg">{p.name}</span>
+            <span class="text-xs px-2 py-1 rounded-full" style="background: rgba(255,255,255,0.06); color: var(--color-text-secondary)">{p.role}</span>
+          </div>
+          <p class="text-sm" style="color: var(--color-text-secondary)">{p.text}</p>
+        </a>
+      ))}
+    </div>
+
+    <h2 class="apple-heading-2 mb-6">What we do not do</h2>
+    <div class="apple-card mb-16">
+      <ul class="list-disc pl-6 space-y-2 text-sm leading-relaxed" style="color: var(--color-text-secondary)">
+        <li>No exclusivity. NVIDIA, Apple silicon, AMD and anything that runs an OpenAI-compatible server are equally welcome.</li>
+        <li>No earnings guarantees to owners. We show measured demand and measured reliability instead.</li>
+        <li>No crypto, no tokens, no wallets. Euros, cards and invoices.</li>
+        <li>No access to the machine. One runtime port, over the tunnel the machine opened. The connect script is open source and removable with one flag.</li>
+      </ul>
+    </div>
+
+    <div class="text-center">
+      <p class="apple-body mb-4">Talk to us about a reference garage, a recipe for your product line, or a pilot.</p>
+      <a href="mailto:powerup@garageai.eu?subject=Partnership" class="apple-button-primary inline-block no-underline">powerup@garageai.eu</a>
+      <p class="text-xs mt-6" style="color: var(--color-text-secondary)">Magnus Froste, founder · Lund, Sweden</p>
+    </div>
+  </main>
+
+  <Footer {...footer.data} />
+</Layout>
