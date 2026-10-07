@@ -47,7 +47,7 @@ through the same API:
 
 - **The mesh** — self-hosted NetBird gives every garage a private WireGuard connection to the gateway. Only the gateway can reach a garage's runtime port; garages cannot reach each other or the internet through the mesh.
 - **The gateway** — [LiteLLM](https://github.com/BerriAI/litellm) on an EU VPS routes each request over the mesh (or over HTTPS to a provider), counts tokens per key and model, and handles retries and failover. Responses carry nothing that reveals which garage or provider served them. Setup: [`infra/gateway/`](infra/gateway/README.md).
-- **The portal** — accounts, credits, keys, chat, the operator wizard, the catalogue, acceptance tests, reliability grades, revenue statements. The portal is the source of truth; it writes to LiteLLM and NetBird. (Separate repository.)
+- **The portal** — accounts, credits, keys, chat, the operator wizard, the catalogue, acceptance tests, reliability grades, revenue statements. The portal is the source of truth; it writes to LiteLLM and NetBird. Lives in [magnusfroste/garageai-portal](https://github.com/magnusfroste/garageai-portal).
 - **Health** — a service on the gateway checks every garage every minute (tunnel up? runtime answering?) and the portal delists and relists within a minute, without any action from the operator.
 
 ## Repository
