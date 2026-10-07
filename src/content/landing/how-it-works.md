@@ -26,7 +26,7 @@ tracks:
     color: "var(--color-primary)"
     steps:
       - title: "Create your garage"
-        text: "Sign up and create a garage in the portal. Pick your OS (macOS or Linux; Windows is coming soon) and your runtime: Ollama, LM Studio, llama.cpp, vLLM, SGLang or Paddock (beta)."
+        text: "Sign up and create a garage in the portal. Pick your OS (macOS or Linux) and your runtime: Ollama, LM Studio, llama.cpp, vLLM, SGLang or Paddock (beta)."
       - title: "Set your price"
         text: "Choose the models you offer and set your price per million tokens, input and output. The same price applies whether a buyer picks your garage or the request comes through the pool."
       - title: "Paste one command (beta)"
@@ -35,8 +35,11 @@ tracks:
         text: "Every model is tested through the gateway with a real streamed request, measuring time-to-first-token and tokens per second. Once it passes, buyers can reach it and you earn your price for every token served. No platform fee during launch."
     ctaText: "Offer Your GPU"
     ctaUrl: "https://app.garageai.eu/auth?intent=operator"
-    noteText: "On Windows? Support for Ollama and LM Studio is coming soon. Join the waitlist →"
-    noteUrl: "mailto:powerup@garageai.eu?subject=Windows%20waitlist&body=I%27d%20like%20to%20offer%20my%20GPU%20on%20Windows.%0AGPU%3A%20%0ARuntime%20(Ollama%20%2F%20LM%20Studio%20%2F%20other)%3A%20"
+    noteText: "On Windows? The connect script for Ollama and LM Studio is in beta. Join the beta testers →"
+    noteUrl: "mailto:powerup@garageai.eu?subject=Windows%20beta&body=I%27d%20like%20to%20test%20GarageAI%20on%20Windows.%0AGPU%3A%20%0ARuntime%20(Ollama%20%2F%20LM%20Studio)%3A%20"
+    noteDetail: "Windows (beta): installs NetBird via MSI and runs in PowerShell as administrator. Tested in CI, not yet on a real GPU machine, and not yet in the portal's wizard."
+    noteLinkText: "Read the script on GitHub"
+    noteLinkUrl: "https://github.com/magnusfroste/garageai/blob/main/scripts/garageai-connect.ps1"
 whyTitle: "Why GarageAI"
 whyDescription: "The principle hasn't changed. AI capacity can be built from hardware Europe already has, close to the people who use it."
 whyItems:

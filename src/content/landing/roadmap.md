@@ -29,6 +29,7 @@ phases:
       - "Payouts to operators"
       - "Automatic model detection (the garage reports model changes itself)"
       - "Per-garage capacity limits"
+      - "Windows in the onboarding wizard (the connect script is in beta)"
       - "Verified garages and data-processing agreements"
       - "Booked / reserved capacity"
     color: "var(--color-accent)"

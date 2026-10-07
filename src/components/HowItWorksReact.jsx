@@ -90,6 +90,19 @@ const HowItWorks = ({
                       </a>
                     </p>
                   )}
+                  {(track.noteDetail || track.noteLinkUrl) && (
+                    <p className="mt-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                      {track.noteDetail}
+                      {track.noteLinkUrl && (
+                        <>
+                          {track.noteDetail ? ' ' : ''}
+                          <a href={track.noteLinkUrl} className="underline" target="_blank" rel="noopener noreferrer">
+                            {track.noteLinkText}
+                          </a>
+                        </>
+                      )}
+                    </p>
+                  )}
                 </div>
               )}
             </motion.div>
