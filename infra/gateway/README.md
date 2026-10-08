@@ -220,9 +220,15 @@ Most traffic comes from coding agents (Claude Code on `/v1/messages`, Codex on
 - `enable_pre_call_checks`: LiteLLM counts the prompt first and answers 400 when it does not
   fit the model's window, instead of letting the garage break the stream.
 - `garageai_callbacks.py` (mounted into the container, registered under
-  `litellm_settings.callbacks`): adds `"items": {}` to array parameters in tool schemas that
-  lack it. Claude Code sends such schemas; without the fix LiteLLM's token counter fails and
-  the pre-call check is silently skipped.
+  `litellm_settings.callbacks`):
+  - adds `"items": {}` to array parameters in tool schemas that lack it (Claude Code sends
+    such schemas; without it LiteLLM's token counter fails and its pre-call check is skipped);
+  - checks prompt + requested `max_tokens` against 95 % of the model's window before
+    routing (runtimes such as vLLM count both; the margin covers tokenizer differences);
+  - answers in the words agents act on: OpenAI format `code: "context_length_exceeded"` and
+    "maximum context length is N tokens", Anthropic format "prompt is too long: N tokens >
+    M maximum" or "input length and `max_tokens` exceed context limit"; upstream context
+    errors that slip through are rewritten the same way, without internal names.
 - `stream_timeout: 300`, `request_timeout: 600`: prefilling an agent-sized prompt takes
   minutes on home GPUs and busy providers; the stream timeout includes the wait for the
   first token.
