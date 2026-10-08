@@ -166,10 +166,18 @@ const partners = [
         over a cloud subscription.
       </p>
     </div>
-    <p class="text-sm mb-16 max-w-3xl" style="color: var(--color-text-secondary)">
+    <p class="text-sm mb-6 max-w-3xl" style="color: var(--color-text-secondary)">
       <strong style="color: var(--color-text)">HP ZGX Nano</strong> runs the same NVIDIA GB10 platform as the DGX Spark we operate in production, so the recipe above
       applies unchanged: Ubuntu, vLLM, one connect command. A "GarageAI-ready ZGX" is a documentation task, not an engineering project. Every token it serves is billed in euros, routed through an EU gateway, and shown to buyers with the country it ran in.
     </p>
+    <div class="apple-card mb-16" style="border-color: var(--color-primary)">
+      <p class="text-lg font-semibold mb-3">From unboxed machine to a garage selling tokens in under an hour. Connecting to GarageAI takes five minutes.</p>
+      <ul class="list-disc pl-5 space-y-1 text-sm" style="color: var(--color-text-secondary)">
+        <li>Most of the hour is downloading the model: 30–55 GB for a 27B-class model, 10–30 minutes on a home fibre line, plus a few minutes for vLLM's first start.</li>
+        <li>Connecting is the GarageAI wizard, one command and the automated acceptance test: about five minutes, measured on our DGX Spark.</li>
+        <li>The ZGX Nano itself is not yet tested on GarageAI; it shares the GB10 platform with the Spark. The first ZGX we connect becomes the reference, and we will publish the measured time here.</li>
+      </ul>
+    </div>
 
     <h2 class="apple-heading-2 mb-6">Partners today</h2>
     <div class="grid md:grid-cols-2 gap-6 mb-16">
