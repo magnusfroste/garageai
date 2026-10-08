@@ -33,6 +33,8 @@ tracks:
         text: "The portal gives you a script. Paste it on your machine: it installs the NetBird client, joins the encrypted GarageAI mesh and registers your models. You don't open any inbound ports. The script is in beta: if something doesn't work, --doctor checks your garage and says what to fix, and --uninstall removes the heartbeat and leaves the mesh."
       - title: "Pass the test and go live"
         text: "Every model is tested through the gateway with a real streamed request, measuring time-to-first-token and tokens per second. Once it passes, buyers can reach it and you earn your price for every token served. No platform fee during launch."
+    helpText: "Not sure which runtime or model fits your GPU? Pick your setup ↓"
+    helpUrl: "#pick-your-setup"
     ctaText: "Offer Your GPU"
     ctaUrl: "https://app.garageai.eu/auth?intent=operator"
     noteText: "On Windows? The connect script for Ollama and LM Studio is in beta. Join the beta testers →"
