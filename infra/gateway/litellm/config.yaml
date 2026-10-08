@@ -16,6 +16,11 @@ litellm_settings:
 # garage in the pool and take a failing garage out of rotation quickly.
 router_settings:
   routing_strategy: latency-based-routing
+  # Count tokens before calling the garage and answer 400 context_length_exceeded when the
+  # prompt does not fit the model's window (model_info.max_input_tokens). Without this the
+  # garage rejects it after the stream has started, and coding agents (Codex, Claude Code)
+  # see a broken stream instead of the error they know how to recover from (by compacting).
+  enable_pre_call_checks: true
   # Streaming: give up when a garage sends nothing for 120 s (time between chunks,
   # so long answers are not cut; long enough for a cold model to load).
   stream_timeout: 120
