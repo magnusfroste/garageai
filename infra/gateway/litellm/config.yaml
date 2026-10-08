@@ -10,7 +10,7 @@ general_settings:
 
 litellm_settings:
   drop_params: true        # ignore OpenAI params a garage runtime doesn't support
-  request_timeout: 300     # longest wait for a non-streamed reply (read timeout)
+  request_timeout: 600     # longest wait for a non-streamed reply (read timeout)
 
 # Residential nodes drop out more often than datacenter ones: retry on another
 # garage in the pool and take a failing garage out of rotation quickly.
@@ -21,9 +21,10 @@ router_settings:
   # garage rejects it after the stream has started, and coding agents (Codex, Claude Code)
   # see a broken stream instead of the error they know how to recover from (by compacting).
   enable_pre_call_checks: true
-  # Streaming: give up when a garage sends nothing for 120 s (time between chunks,
-  # so long answers are not cut; long enough for a cold model to load).
-  stream_timeout: 120
+  # Streaming: give up when a garage sends nothing for 300 s. This includes the wait for
+  # the first token: coding agents send prompts of 100k+ tokens, and prefilling those takes
+  # minutes on home GPUs and on busy providers (120 s cut 3 % of agent requests).
+  stream_timeout: 300
   # One retry: with a single garage per model a second retry only hits the same
   # dead garage again and keeps the buyer waiting.
   num_retries: 1
