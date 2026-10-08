@@ -16,8 +16,15 @@
    "prompt is too long: N tokens > M maximum" and "input length and `max_tokens` exceed
    context limit". Upstream context errors that slip through are rewritten the same way,
    without LiteLLM's prefix or internal deployment names.
+
+4. Response ids without internal names. On /v1/messages LiteLLM answers through its
+   Responses bridge with an id that is base64 of "litellm:custom_llm_provider:...;
+   model_id:<garage>__<runtime model>__<tier>;response_id:...", which tells a buyer which
+   garage served them. Anthropic messages are not chained by id, so we replace it with a
+   neutral "msg_" id derived from it (stable for the same response, reveals nothing).
 """
 import asyncio
+import hashlib
 import re
 
 import litellm
@@ -132,6 +139,19 @@ class GarageAICallbacks(CustomLogger):
                   f"output={output} limit={limit}", flush=True)
             raise ContextLengthExceeded(context_message(_is_anthropic(call_type), prompt, output, limit))
         return data
+
+    async def async_post_call_success_hook(self, data, user_api_key_dict, response):
+        rid = response.get("id") if isinstance(response, dict) else getattr(response, "id", None)
+        if isinstance(rid, str) and rid.startswith("resp_") and _is_anthropic(request_data=data):
+            neutral = "msg_" + hashlib.sha256(rid.encode()).hexdigest()[:24]
+            if isinstance(response, dict):
+                response["id"] = neutral
+            else:
+                try:
+                    response.id = neutral
+                except Exception:  # noqa: BLE001 - leave the id rather than fail the response
+                    pass
+        return response
 
     async def async_post_call_failure_hook(self, request_data, original_exception, user_api_key_dict,
                                            traceback_str=None):
