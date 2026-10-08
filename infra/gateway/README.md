@@ -212,6 +212,21 @@ uvicorn, rate-limit headers). Only `x-litellm-call-id` (for support) and
 `llm_provider-*` list is explicit; after adding a provider, check one response with
 `curl -D -` and extend the list if a new header appears.
 
+## Agent traffic
+
+Most traffic comes from coding agents (Claude Code on `/v1/messages`, Codex on
+`/v1/responses`) with prompts of 100k+ tokens. Three settings in `litellm/` exist for them:
+
+- `enable_pre_call_checks`: LiteLLM counts the prompt first and answers 400 when it does not
+  fit the model's window, instead of letting the garage break the stream.
+- `garageai_callbacks.py` (mounted into the container, registered under
+  `litellm_settings.callbacks`): adds `"items": {}` to array parameters in tool schemas that
+  lack it. Claude Code sends such schemas; without the fix LiteLLM's token counter fails and
+  the pre-call check is silently skipped.
+- `stream_timeout: 300`, `request_timeout: 600`: prefilling an agent-sized prompt takes
+  minutes on home GPUs and busy providers; the stream timeout includes the wait for the
+  first token.
+
 ## Garage health checks (levels 1 and 2)
 
 `health/garageai-health.py` (installed to `/usr/local/bin/garageai-health`, run every minute by

@@ -9,6 +9,8 @@ general_settings:
   maximum_spend_logs_retention_period: "30d"
 
 litellm_settings:
+  # garageai_callbacks.py: fixes tool schemas so the pre-call context check can count Claude Code prompts.
+  callbacks: garageai_callbacks.proxy_handler_instance
   drop_params: true        # ignore OpenAI params a garage runtime doesn't support
   request_timeout: 600     # longest wait for a non-streamed reply (read timeout)
 
