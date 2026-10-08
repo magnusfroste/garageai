@@ -145,14 +145,16 @@ runtime_hint() {
   case "$RUNTIME" in
     ollama)
       info "Ollama listens on 127.0.0.1 by default. Start it bound to the mesh:"
-      info "    OLLAMA_HOST=${bind}:${PORT} OLLAMA_NUM_PARALLEL=4 ollama serve"
+      info "    OLLAMA_HOST=${bind}:${PORT} OLLAMA_NUM_PARALLEL=4 OLLAMA_CONTEXT_LENGTH=$(ollama_context_target) ollama serve"
       info "  On Linux with the systemd service: sudo systemctl edit ollama, add"
       info "    [Service]"
       info "    Environment=\"OLLAMA_HOST=${bind}:${PORT}\""
       info "    Environment=\"OLLAMA_NUM_PARALLEL=4\""
+      info "    Environment=\"OLLAMA_CONTEXT_LENGTH=$(ollama_context_target)\""
       info "  then: sudo systemctl restart ollama"
       info "  On macOS: run this script again and accept the offer to make it permanent, or:"
       info "    launchctl setenv OLLAMA_HOST ${bind}:${PORT}"
+      info "    launchctl setenv OLLAMA_CONTEXT_LENGTH $(ollama_context_target)"
       info "  then restart Ollama: Ollama app → quit from the menu bar and open it again;"
       info "  Homebrew → brew services restart ollama"
       info "  (Install: macOS → the Ollama app from ollama.com/download, or brew install ollama;"
@@ -353,9 +355,34 @@ select_models() {
   fi
 }
 
+# Ollama's default context window (4,096 tokens) silently cuts longer prompts, and clients
+# speaking the OpenAI API (/v1) cannot raise it per request: the server has to be started
+# with OLLAMA_CONTEXT_LENGTH. Coding agents send prompts of 100,000 tokens and more.
+ollama_context_target() {
+  if [ -n "${GARAGEAI_OLLAMA_CONTEXT:-}" ]; then printf '%s\n' "$GARAGEAI_OLLAMA_CONTEXT"; return; fi
+  local gb=0
+  case "$(uname -s)" in
+    Darwin) gb=$(( $(sysctl -n hw.memsize 2>/dev/null || echo 0) / 1073741824 )) ;;
+    *)      gb=$(( $(awk '/MemTotal/ {print $2}' /proc/meminfo 2>/dev/null || echo 0) / 1048576 )) ;;
+  esac
+  # More context needs more memory for the KV cache; scale with the machine.
+  if   [ "$gb" -ge 64 ]; then echo 65536
+  elif [ "$gb" -ge 32 ]; then echo 32768
+  elif [ "$gb" -ge 16 ]; then echo 16384
+  else echo 8192; fi
+}
+
+ollama_loaded_context() {
+  # Context window Ollama runs model $1 with, from /api/ps on host $2; empty when unknown.
+  curl -fsS --max-time 5 "http://$2:${PORT}/api/ps" 2>/dev/null |
+    jq -r --arg m "$1" '[.models[]? | select(.name == $m or .model == $m) | .context_length // empty] | first // empty' 2>/dev/null || true
+}
+
 install_ollama_env_agent() {
-  # macOS: make OLLAMA_HOST survive logout and reboot. The Ollama app reads it at start.
-  local plist="$HOME/Library/LaunchAgents/eu.garageai.ollama-host.plist"
+  # macOS: make OLLAMA_HOST and OLLAMA_CONTEXT_LENGTH survive logout and reboot.
+  # The Ollama app and Homebrew's service read them at start.
+  local plist="$HOME/Library/LaunchAgents/eu.garageai.ollama-host.plist" ctx
+  ctx="$(ollama_context_target)"
   mkdir -p "$HOME/Library/LaunchAgents"
   cat > "$plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -364,7 +391,7 @@ install_ollama_env_agent() {
 <dict>
   <key>Label</key><string>eu.garageai.ollama-host</string>
   <key>ProgramArguments</key>
-  <array><string>/bin/launchctl</string><string>setenv</string><string>OLLAMA_HOST</string><string>0.0.0.0:${PORT}</string></array>
+  <array><string>/bin/sh</string><string>-c</string><string>launchctl setenv OLLAMA_HOST 0.0.0.0:${PORT}; launchctl setenv OLLAMA_CONTEXT_LENGTH ${ctx}</string></array>
   <key>RunAtLoad</key><true/>
 </dict>
 </plist>
@@ -372,6 +399,16 @@ PLIST
   launchctl bootout "gui/$(id -u)" "$plist" 2>/dev/null || true
   launchctl bootstrap "gui/$(id -u)" "$plist" 2>/dev/null || launchctl load "$plist"
   launchctl setenv OLLAMA_HOST "0.0.0.0:${PORT}"
+  launchctl setenv OLLAMA_CONTEXT_LENGTH "$ctx"
+}
+
+OLLAMA_DROPIN=/etc/systemd/system/ollama.service.d/garageai-context.conf
+install_ollama_systemd_context() {
+  # Linux with Ollama's systemd service: a drop-in that sets the context window, then restart.
+  as_root mkdir -p "$(dirname "$OLLAMA_DROPIN")"
+  printf '[Service]\nEnvironment="OLLAMA_CONTEXT_LENGTH=%s"\n' "$1" | as_root tee "$OLLAMA_DROPIN" >/dev/null
+  as_root systemctl daemon-reload
+  as_root systemctl restart ollama
 }
 
 mesh_ip() {
@@ -415,6 +452,18 @@ run_doctor() {
     else
       bad "Runtime: only listens on $(printf '%s' "$listen" | tr '\n' ' '), so the gateway cannot reach it" "see below"
       runtime_hint "0.0.0.0"
+    fi
+    if [ "$RUNTIME" = ollama ]; then
+      first="$(printf '%s\n' "$models" | head -n 1)"
+      ctx_now="$(ollama_loaded_context "$first" 127.0.0.1)"
+      ctx_want="$(ollama_context_target)"
+      if [ -z "$ctx_now" ]; then
+        info "  Context window: unknown until ${first} is loaded (ask it anything once, then run --doctor again)"
+      elif [ "$ctx_now" -ge "$ctx_want" ]; then
+        ok "Runtime: context window ${ctx_now} tokens"
+      else
+        bad "Runtime: context window only ${ctx_now} tokens; longer prompts are cut silently" "set OLLAMA_CONTEXT_LENGTH=${ctx_want} (run the connect command again and accept the offer)"
+      fi
     fi
   else
     bad "Runtime: nothing answers on port ${PORT}" "start ${RUNTIME} (and check --runtime / --port if you use another one)"
@@ -470,6 +519,7 @@ if [ "$UNINSTALL" -eq 1 ]; then
     launchctl bootout "gui/$(id -u)" "$HOME/Library/LaunchAgents/eu.garageai.ollama-host.plist" 2>/dev/null || true
     rm -f "$HOME/Library/LaunchAgents/eu.garageai.ollama-host.plist"
     launchctl unsetenv OLLAMA_HOST 2>/dev/null || true
+    launchctl unsetenv OLLAMA_CONTEXT_LENGTH 2>/dev/null || true
     ok "Ollama login item removed (restart Ollama to listen on localhost only again)"
   fi
   if command -v netbird >/dev/null 2>&1; then
@@ -629,6 +679,40 @@ else
   warn "No token usage in the streamed reply from ${FIRST_MODEL}. Billing may be incomplete;"
   warn "  check that the runtime supports stream_options.include_usage."
 fi
+
+# Ollama: the request above loaded the model, so /api/ps now shows its context window.
+CONTEXT_LENGTH=""
+if [ "$RUNTIME" = ollama ]; then
+  CTX_TARGET="$(ollama_context_target)"
+  CONTEXT_LENGTH="$(ollama_loaded_context "$FIRST_MODEL" "$PROBE_HOST")"
+  if [ -z "$CONTEXT_LENGTH" ]; then
+    info "Could not read Ollama's context window; make sure OLLAMA_CONTEXT_LENGTH is at least ${CTX_TARGET}."
+  elif [ "$CONTEXT_LENGTH" -ge "$CTX_TARGET" ]; then
+    ok "Context window: ${CONTEXT_LENGTH} tokens"
+  else
+    warn "Ollama runs ${FIRST_MODEL} with a ${CONTEXT_LENGTH}-token context window and silently cuts longer prompts."
+    warn "  Buyers' coding agents send far longer prompts. Recommended for this machine: ${CTX_TARGET} tokens."
+    if [ "$(uname -s)" = Darwin ] && [ "$(id -u)" -ne 0 ] &&
+       confirm "Set OLLAMA_CONTEXT_LENGTH=${CTX_TARGET} permanently (the same small login item that sets OLLAMA_HOST)?"; then
+      install_ollama_env_agent
+      ok "Done. Now restart Ollama so it picks this up, then run this script again:"
+      if command -v brew >/dev/null 2>&1 && brew services list 2>/dev/null | grep -q '^ollama '; then
+        info "  brew services restart ollama"
+      else
+        info "  quit Ollama from the menu bar and open it again"
+      fi
+      exit 0
+    elif [ "$(uname -s)" != Darwin ] && systemctl cat ollama >/dev/null 2>&1 &&
+         confirm "Set OLLAMA_CONTEXT_LENGTH=${CTX_TARGET} for the ollama service and restart it?"; then
+      install_ollama_systemd_context "$CTX_TARGET"
+      ok "Ollama restarted with a ${CTX_TARGET}-token context window (${OLLAMA_DROPIN})."
+      CONTEXT_LENGTH="$CTX_TARGET"
+    else
+      info "  Set it yourself and restart Ollama: OLLAMA_CONTEXT_LENGTH=${CTX_TARGET} (environment of 'ollama serve')."
+      warn "  Continuing: the garage is registered with the smaller window."
+    fi
+  fi
+fi
 echo
 
 # 5. Register
@@ -637,7 +721,9 @@ MODELS_JSON="$(printf '%s\n' "$MODELS" | jq -R . | jq -sc .)"
 PAYLOAD="$(jq -nc \
   --arg name "$NODE_NAME" --arg mesh_ip "$MESH_IP" --argjson port "$PORT" \
   --arg runtime "$RUNTIME" --argjson models "$MODELS_JSON" --arg runtime_api_key "$RUNTIME_API_KEY" \
+  --arg context_length "$CONTEXT_LENGTH" \
   '{name: $name, mesh_ip: $mesh_ip, port: $port, runtime: $runtime, models: $models}
+   + (if $context_length != "" then {context_length: ($context_length | tonumber)} else {} end)
    + (if $runtime_api_key != "" then {runtime_api_key: $runtime_api_key} else {} end)')"
 
 if [ -n "$REGISTER_URL" ]; then

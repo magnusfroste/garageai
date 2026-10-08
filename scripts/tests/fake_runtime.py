@@ -1,4 +1,5 @@
-"""A fake OpenAI-compatible runtime for the connect script tests: serves /v1/models only.
+"""A fake OpenAI-compatible runtime for the connect script tests: serves /v1/models, and
+Ollama's /api/ps with the model loaded at a small (default) context window.
 
 Usage: fake_runtime.py <bind address> <port>
 """
@@ -10,7 +11,10 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        body = json.dumps({"data": [{"id": "qwen3:4b"}, {"id": "nomic-embed-text:latest"}]}).encode()
+        if self.path == "/api/ps":
+            body = json.dumps({"models": [{"name": "qwen3:4b", "model": "qwen3:4b", "context_length": 4096}]}).encode()
+        else:
+            body = json.dumps({"data": [{"id": "qwen3:4b"}, {"id": "nomic-embed-text:latest"}]}).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()

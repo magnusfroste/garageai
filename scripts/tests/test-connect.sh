@@ -46,6 +46,9 @@ stop_runtime
 start_runtime 0.0.0.0
 out="$(bash "$SCRIPT" --doctor --runtime ollama --port $PORT 2>&1)"
 check "doctor: network bind is fine" "listens on the network" "$out"
+check "doctor: a 4,096-token Ollama window is a problem" "context window only 4096 tokens" "$out"
+out="$(GARAGEAI_OLLAMA_CONTEXT=4096 bash "$SCRIPT" --doctor --runtime ollama --port $PORT 2>&1)"
+check "doctor: a window at the target is fine" "context window 4096 tokens" "$out"
 stop_runtime
 
 out="$(printf 'n\n' | bash "$SCRIPT" --uninstall 2>&1)"; check "uninstall asks first" "Aborted" "$out"
