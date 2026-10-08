@@ -38,6 +38,8 @@
     background: #080809;
     color: var(--color-text-primary);
     overflow-x: hidden;
+    /* Break long unbreakable strings (URLs, file paths) instead of widening the page on mobile. */
+    overflow-wrap: break-word;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

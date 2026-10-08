@@ -73,6 +73,14 @@ const HowItWorks = ({
                 ))}
               </ol>
 
+              {track.helpUrl && (
+                <p className="mt-6 text-sm">
+                  <a href={track.helpUrl} className="underline" style={{ color: 'var(--color-text-secondary)' }}>
+                    {track.helpText}
+                  </a>
+                </p>
+              )}
+
               {track.ctaUrl && (
                 <div className="mt-8">
                   <motion.a
