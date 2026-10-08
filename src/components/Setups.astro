@@ -1,0 +1,8 @@
+---
+import SetupsReact from './SetupsReact.jsx';
+
+// "Pick your setup" section. Content: src/content/landing/setups.md.
+const props = Astro.props;
+---
+
+<SetupsReact client:load {...props} />

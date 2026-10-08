@@ -6,6 +6,7 @@ import Header from '../components/Header.astro';
 import Hero from '../components/Hero.astro';
 import HowItWorks from '../components/HowItWorks.astro';
 import Positioning from '../components/Positioning.astro';
+import Setups from '../components/Setups.astro';
 import FactBoxes from '../components/FactBoxes.astro';
 import AIExplained from '../components/AIExplained.astro';
 import Infrastructure from '../components/Infrastructure.astro';
@@ -22,6 +23,7 @@ const header = await getEntry('landing', 'header');
 const hero = await getEntry('landing', 'hero');
 const howItWorks = await getEntry('landing', 'how-it-works');
 const positioning = await getEntry('landing', 'positioning');
+const setups = await getEntry('landing', 'setups');
 const factboxes = await getEntry('landing', 'factboxes');
 const aiExplained = await getEntry('landing', 'ai-explained');
 const infrastructure = await getEntry('landing', 'infrastructure');
@@ -63,6 +65,7 @@ const faqSchema = {
 
   <!-- What works today -->
   <HowItWorks {...howItWorks.data} />
+  <Setups {...setups.data} />
   <Positioning {...positioning.data} />
   <Infrastructure {...infrastructure.data} />
   <TokenEconomy {...tokenEconomy.data} />
