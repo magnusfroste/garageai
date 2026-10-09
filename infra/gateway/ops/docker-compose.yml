@@ -19,11 +19,11 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=netbird_netbird
-      - traefik.http.routers.ops.rule=Host(`${OPS_DOMAIN:?set OPS_DOMAIN in .env}`)
-      - traefik.http.routers.ops.entrypoints=websecure
-      - traefik.http.routers.ops.tls=true
-      - traefik.http.routers.ops.tls.certresolver=letsencrypt
-      - traefik.http.routers.ops.middlewares=ops-auth,ops-ratelimit,ops-headers
+      - traefik.http.routers.ops-center.rule=Host(`${OPS_DOMAIN:?set OPS_DOMAIN in .env}`)
+      - traefik.http.routers.ops-center.entrypoints=websecure
+      - traefik.http.routers.ops-center.tls=true
+      - traefik.http.routers.ops-center.tls.certresolver=letsencrypt
+      - traefik.http.routers.ops-center.middlewares=ops-auth,ops-ratelimit,ops-headers
       - traefik.http.middlewares.ops-auth.basicauth.users=${OPS_BASIC_AUTH:?set OPS_BASIC_AUTH in .env}
       - traefik.http.middlewares.ops-auth.basicauth.realm=GarageAI Operations Center
       - traefik.http.middlewares.ops-ratelimit.ratelimit.average=5
