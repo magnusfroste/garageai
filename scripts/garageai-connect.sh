@@ -905,7 +905,7 @@ if [ -n "$REGISTER_URL" ]; then
   if [ "$PASSED" -gt 0 ]; then
     ok "Node registered — your garage is live on GarageAI."
     FINISHED=1
-    CURRENT_STEP="5/6  Register with GarageAI"; report done "Registered: ${PASSED} model(s) passed the acceptance test"
+    CURRENT_STEP="5/6  Register with GarageAI"; report "done" "Registered: ${PASSED} model(s) passed the acceptance test"
   else
     warn "Registered, but no model passed the acceptance test, so nothing is for sale yet."
     warn "Check that the runtime answers on the mesh IP and that the model loads, then run this again."
@@ -917,7 +917,7 @@ if [ -n "$REGISTER_URL" ]; then
     install_heartbeat
     ok "Installed: reports your models every 5 minutes. Load a new model and it shows up"
     info "  under My garages in the portal, where you choose to offer it. Remove with: $0 --remove-heartbeat"
-    report done "Heartbeat installed"
+    report "done" "Heartbeat installed"
   fi
 else
   FINISHED=1
