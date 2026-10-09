@@ -287,6 +287,27 @@ classes; the portal and site seen from outside; and a list of current alerts.
   with the user Traefik passes in `X-Ops-User`; signing out makes the browser forget the
   basic-auth credentials.
 
+### Chat
+
+The *Chat* page talks to any public model, or to one garage through its dedicated route, the way a buyer would. Each reply shows time to first token, tokens per second, tokens in and out (and reasoning), with the reasoning collapsible.
+
+Quick prompts check a newly loaded model:
+- identity,
+- exact instruction following,
+- Swedish,
+- reasoning,
+- code,
+- JSON mode,
+- a tool call,
+- output speed (about 400 words),
+- a system message mid-conversation.
+
+The browser never sees a key. nginx forwards only `/llm/v1/chat/completions` and `/llm/v1/models` to the LiteLLM container on the shared Docker network, and adds `OPS_CHAT_KEY`:
+- That is a LiteLLM key called `ops-chat`, with a budget of $5 per 30 days.
+- It lives in `/opt/garageai/ops/.env` and is filled into `nginx.conf.template` when the container starts.
+- Every other path under `/llm/` returns 404.
+- The page sits behind the same basic auth as the rest.
+
 ### Models and quality
 
 The *Models* page lists every LiteLLM deployment buyers can call: public name, tier (pool or dedicated), garage, runtime model, the context window and output cap the gateway enforces, and the price. Each deployment is checked against its garage. The gateway is on the mesh, so it reads each runtime's own `/v1/models` every 10 minutes, which the portal cannot do. It alerts on:

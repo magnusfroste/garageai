@@ -1,0 +1,35 @@
+# GarageAI Operations Center: static page and ops.json. Traefik in front does TLS and basic auth,
+# and passes the signed-in user in X-Ops-User.
+#
+# A template: the nginx image fills in ${OPS_CHAT_KEY} (from /opt/garageai/ops/.env) at start, so the
+# key for the Chat page lives only on the server. The browser never sees it.
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    server_tokens off;
+
+    location = /whoami {
+        default_type application/json;
+        return 200 '{"user":"$http_x_ops_user"}';
+    }
+    # Chat page: only these two LiteLLM paths, straight to the LiteLLM container on the shared Docker
+    # network, with the ops-chat key (its own LiteLLM key, $5 per 30 days) added here.
+    resolver 127.0.0.11 valid=30s;
+    location ~ ^/llm/(v1/chat/completions|v1/models)$ {
+        set $litellm http://garageai-litellm-litellm-1:4000;
+        rewrite ^/llm/(.*)$ /$1 break;
+        proxy_pass $litellm;
+        proxy_set_header Authorization "Bearer ${OPS_CHAT_KEY}";
+        proxy_set_header Cookie "";
+        proxy_http_version 1.1;
+        proxy_buffering off;
+        proxy_read_timeout 600s;
+        client_max_body_size 4m;
+    }
+    location /llm/ { return 404; }
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}

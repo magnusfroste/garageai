@@ -61,7 +61,7 @@ DEPLOYED = {
     "/usr/local/bin/garageai-ops-collect": "infra/gateway/ops/garageai-ops-collect.py",
     "/var/lib/garageai-ops/www/index.html": "infra/gateway/ops/index.html",
     "/opt/garageai/ops/docker-compose.yml": "infra/gateway/ops/docker-compose.yml",
-    "/opt/garageai/ops/nginx.conf": "infra/gateway/ops/nginx.conf",
+    "/opt/garageai/ops/nginx.conf.template": "infra/gateway/ops/nginx.conf.template",
     "/usr/local/sbin/garageai-guard": "infra/gateway/guard/garageai-guard.py",
 }
 LOG_ALERT_MB = 400

@@ -2,8 +2,8 @@
 # garageai-ops-collect on the host. Served by nginx behind NetBird's Traefik, with HTTPS
 # and basic auth. Read-only: the page cannot change anything.
 #
-# .env (root, 0600): OPS_DOMAIN=ops.garageai.eu and OPS_BASIC_AUTH='user:$apr1$...'
-# (single quotes keep the $ signs literal). Create the hash with:
+# .env (root, 0600): OPS_DOMAIN=ops.garageai.eu, OPS_BASIC_AUTH='user:$apr1$...' (single quotes
+# keep the $ signs literal) and OPS_CHAT_KEY (a LiteLLM key with a small budget, for the Chat page). Create the hash with:
 #   openssl passwd -apr1 "$(cat /etc/garageai/ops-password)"
 name: garageai-ops
 
@@ -12,10 +12,13 @@ services:
     image: nginx:1.27-alpine
     restart: unless-stopped
     read_only: true
-    tmpfs: [/var/cache/nginx, /var/run, /tmp]
+    tmpfs: [/var/cache/nginx, /var/run, /tmp, /etc/nginx/conf.d]
     volumes:
       - /var/lib/garageai-ops/www:/usr/share/nginx/html:ro
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+    environment:
+      OPS_CHAT_KEY: ${OPS_CHAT_KEY:?set OPS_CHAT_KEY in .env (a LiteLLM key for the Chat page)}
+      NGINX_ENVSUBST_FILTER: ^OPS_
     logging:
       driver: json-file
       options: {max-size: "10m", max-file: "3"}
