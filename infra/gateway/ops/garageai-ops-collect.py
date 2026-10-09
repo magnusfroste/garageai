@@ -9,6 +9,11 @@ it. The file holds no secrets: no keys, no tokens, no prompts.
 
 Config: /etc/garageai/gateway-health.env (same as the health service).
 Output: /var/lib/garageai-ops/www/ops.json; state in /var/lib/garageai-ops/state.json.
+
+Telegram notifications (optional): /etc/garageai/telegram.env (root, 0600) with
+TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID. One-way: the bot only sends to that chat.
+  garageai-ops-collect --telegram-setup   find the chat that messaged the bot and save its id
+  garageai-ops-collect --telegram-test    send a test message
 """
 import hashlib
 import json
@@ -19,10 +24,12 @@ import shutil
 import socket
 import ssl
 import subprocess
+import sys
 import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 OUT_DIR = "/var/lib/garageai-ops/www"
 STATE = "/var/lib/garageai-ops/state.json"
@@ -49,6 +56,13 @@ DEPLOYED = {
     "/opt/garageai/ops/nginx.conf": "infra/gateway/ops/nginx.conf",
 }
 LOG_ALERT_MB = 400
+OPS_URL = "https://ops.garageai.eu"
+TELEGRAM_ENV = "/etc/garageai/telegram.env"
+# Minutes in a row an alert must be present before it is sent: short blips stay quiet, and a
+# deploy that briefly differs from main does not page anyone. Info alerts are never sent.
+NOTIFY_AFTER = {"critical": 2, "warning": 15}
+REMIND_MINUTES = 240          # repeat open critical alerts this often
+DAILY_REPORT = (7, "Europe/Stockholm")
 
 
 def now():
@@ -577,6 +591,155 @@ def alerts(d):
     return sorted(a, key=lambda x: order[x["level"]])
 
 
+# ---------------------------------------------------------------- Telegram notifications
+def telegram(cfg, text):
+    """Send one HTML message; returns None on success, else a short error (never the token)."""
+    body = json.dumps({"chat_id": cfg["TELEGRAM_CHAT_ID"], "text": text, "parse_mode": "HTML",
+                       "disable_web_page_preview": True}).encode()
+    req = urllib.request.Request(f"https://api.telegram.org/bot{cfg['TELEGRAM_BOT_TOKEN']}/sendMessage", data=body,
+                                 headers={"Content-Type": "application/json", "User-Agent": UA})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return None if r.status == 200 else f"HTTP {r.status}"
+    except urllib.error.HTTPError as e:
+        return f"HTTP {e.code}"
+    except Exception as e:  # noqa: BLE001
+        return type(e).__name__
+
+
+def html(s):
+    return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def alert_key(a):
+    # Numbers change from run to run ("backup is 27.3 h old"); the alert is the same.
+    return a.get("page", "") + ":" + re.sub(r"\d+(?:\.\d+)?", "#", a["text"])
+
+
+ICON = {"critical": "\U0001F534", "warning": "\U0001F7E0", "resolved": "\u2705", "reminder": "\U0001F501"}
+
+
+def daily_report(d):
+    crit = sum(a["level"] == "critical" for a in d["alerts"])
+    warn = sum(a["level"] == "warning" for a in d["alerts"])
+    g = d["garages"]
+    down = [x["garage"] for x in g if not x["runtime_ok"] or x["mesh"] is False]
+    t = d["traffic"]["last_24h"]
+    req = sum(r["requests"] for r in t)
+    failed = sum(r["failed"] for r in t)
+    tokens = sum(r["prompt_tokens"] + r["completion_tokens"] for r in t)
+    spend = sum(r["spend_usd"] or 0 for r in t)
+    p95 = max([r["ttft_p95_s"] or 0 for r in t] or [0])
+    updates = [f"{v['component']} {v['latest']}" for v in d.get("versions", []) if v.get("update")]
+    status = (f"{ICON['critical']} {crit} critical, {warn} warning" if crit else
+              f"{ICON['warning']} {warn} warning" if warn else f"{ICON['resolved']} All systems operational")
+    lines = [f"<b>GarageAI morning report</b>", status, "",
+             f"Supply: {len(g) - len(down)}/{len(g)} online" + (f" (down: {html(', '.join(down))})" if down else ""),
+             f"Last 24 h: {req:,} requests, {failed} failed, {tokens / 1e6:.1f}M tokens, ${spend:.2f}",
+             f"First token p95 (worst model): {p95} s",
+             f"Backup: {d['backup'].get('age_hours', '?')} h old · disk {d['host']['disk_used_pct']} %"]
+    if updates:
+        lines.append(f"Updates available: {html(', '.join(updates))}")
+    lines.append(f'<a href="{OPS_URL}/">Operations Center</a>')
+    return "\n".join(lines)
+
+
+def notify(d, state):
+    """Send new, escalated, repeated and resolved alerts, and the morning report. A failed send is
+    retried on the next run (the alert is only marked as sent when Telegram accepted it)."""
+    cfg = load_env(TELEGRAM_ENV)
+    configured = bool(cfg.get("TELEGRAM_BOT_TOKEN") and cfg.get("TELEGRAM_CHAT_ID"))
+    ns = state.setdefault("notify", {})
+    open_ = ns.setdefault("open", {})
+    t = time.time()
+    current = {alert_key(a): a for a in d["alerts"] if a["level"] in NOTIFY_AFTER}
+    for k, a in current.items():
+        e = open_.setdefault(k, {"seen": 0, "notified": None, "notified_level": None})
+        e.update(level=a["level"], text=a["text"], page=a.get("page"), seen=e["seen"] + 1)
+    items, sent_keys, resolved = [], [], []
+    for k, e in list(open_.items()):
+        if k not in current:
+            if e.get("notified"):
+                items.append(("resolved", e)); resolved.append(k)
+            else:
+                del open_[k]
+            continue
+        rank = {"warning": 1, "critical": 2}
+        if e["seen"] >= NOTIFY_AFTER[e["level"]] and (not e["notified"] or rank[e["level"]] > rank.get(e["notified_level"], 0)):
+            items.append((e["level"], e)); sent_keys.append(k)
+        elif e["notified"] and e["level"] == "critical" and t - e["notified"] >= REMIND_MINUTES * 60:
+            items.append(("reminder", e)); sent_keys.append(k)
+
+    error = None
+    if configured and items:
+        order = {"critical": 0, "reminder": 1, "warning": 2, "resolved": 3}
+        lines = []
+        for kind, e in sorted(items, key=lambda x: order[x[0]]):
+            label = {"critical": "Critical", "warning": "Warning", "reminder": "Still open", "resolved": "Resolved"}[kind]
+            lines.append(f'{ICON[kind]} <b>{label}</b> · <a href="{OPS_URL}/#{e.get("page") or "dashboard"}">{html((e.get("page") or "").title())}</a>\n{html(e["text"])}')
+        error = telegram(cfg, "\n\n".join(lines))
+        if not error:
+            for k in sent_keys:
+                open_[k].update(notified=t, notified_level=open_[k]["level"])
+            for k in resolved:
+                open_.pop(k, None)
+            ns["last_sent"] = now().isoformat(timespec="seconds")
+
+    hour, zone = DAILY_REPORT
+    local = datetime.now(ZoneInfo(zone))
+    if configured and local.hour >= hour and ns.get("daily") != local.date().isoformat():
+        err = telegram(cfg, daily_report(d))
+        if not err:
+            ns["daily"] = local.date().isoformat()
+            ns["last_sent"] = now().isoformat(timespec="seconds")
+        error = error or err
+    if error:
+        ns["last_error"] = {"at": now().isoformat(timespec="seconds"), "error": error}
+    elif items or not configured:
+        ns.pop("last_error", None)
+
+    d["notify"] = {"channel": "telegram", "configured": configured, "last_sent": ns.get("last_sent"),
+                   "last_error": ns.get("last_error"), "sent_open": sum(1 for e in open_.values() if e.get("notified")),
+                   "rules": f"critical after {NOTIFY_AFTER['critical']} min, warning after {NOTIFY_AFTER['warning']} min, "
+                            f"critical repeated every {REMIND_MINUTES // 60} h, resolved when cleared",
+                   "daily_report": f"{hour:02d}:00 {zone}"}
+    if not configured:
+        d["alerts"].append({"level": "info", "text": "Telegram notifications are not configured", "page": "server"})
+    elif ns.get("last_error"):
+        d["alerts"].append({"level": "warning", "page": "server",
+                            "text": f"Telegram notifications failing since {ns['last_error']['at']} ({ns['last_error']['error']})"})
+    d["alerts"].sort(key=lambda a: {"critical": 0, "warning": 1, "info": 2}[a["level"]])
+
+
+def telegram_cli(arg):
+    cfg = load_env(TELEGRAM_ENV)
+    if not cfg.get("TELEGRAM_BOT_TOKEN"):
+        sys.exit(f"No TELEGRAM_BOT_TOKEN in {TELEGRAM_ENV}")
+    if arg == "--telegram-setup":
+        code, body, _ = http(f"https://api.telegram.org/bot{cfg['TELEGRAM_BOT_TOKEN']}/getUpdates", timeout=15)
+        if code != 200:
+            sys.exit(f"Telegram getUpdates answered {code}: check the bot token")
+        chats = {}
+        for u in json.loads(body).get("result", []):
+            c = (u.get("message") or {}).get("chat") or {}
+            if c.get("type") == "private":
+                chats[c["id"]] = c.get("username") or c.get("first_name") or "?"
+        if len(chats) != 1:
+            sys.exit(f"Expected exactly one private chat with the bot, found {len(chats)}: "
+                     "send /start to the bot from your own Telegram account and run this again")
+        chat_id, who = next(iter(chats.items()))
+        lines = [l for l in open(TELEGRAM_ENV).read().splitlines() if not l.startswith("TELEGRAM_CHAT_ID=")]
+        with open(TELEGRAM_ENV, "w") as f:
+            f.write("\n".join(lines + [f"TELEGRAM_CHAT_ID={chat_id}"]) + "\n")
+        os.chmod(TELEGRAM_ENV, 0o600)
+        cfg["TELEGRAM_CHAT_ID"] = str(chat_id)
+        print(f"Saved the chat with {who}.")
+    if not cfg.get("TELEGRAM_CHAT_ID"):
+        sys.exit("No TELEGRAM_CHAT_ID yet: run --telegram-setup")
+    err = telegram(cfg, f'{ICON["resolved"]} <b>GarageAI Operations Center</b> is connected. Alerts will arrive here.\n<a href="{OPS_URL}/">Open</a>')
+    sys.exit(f"Sending failed: {err}" if err else 0)
+
+
 def main():
     env = load_env()
     state = read_json(STATE, {})
@@ -600,6 +763,7 @@ def main():
     data["source"] = source(state)
     data["logs"] = logs(data["containers"])
     data["alerts"] = alerts(data)
+    notify(data, state)
     data["collect_seconds"] = round(time.time() - t0, 1)
     os.makedirs(OUT_DIR, exist_ok=True)
     tmp = os.path.join(OUT_DIR, ".ops.json.tmp")
@@ -614,4 +778,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1 and sys.argv[1] in ("--telegram-setup", "--telegram-test"):
+        telegram_cli(sys.argv[1])
+    else:
+        main()
