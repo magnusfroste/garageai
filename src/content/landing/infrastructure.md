@@ -38,6 +38,8 @@ securityColumns:
       - "Operators open no inbound ports"
       - "Garages are isolated from each other; only the gateway reaches a runtime"
       - "Buyers authenticate with per-account API keys"
+      - "Buyers can't see which garage served them: the gateway removes the headers and ids that would reveal it"
+      - "Clients that guess API keys or probe the gateway are blocked automatically"
   - icon: "⚠️"
     title: "What you should know"
     color: "var(--color-warning)"
