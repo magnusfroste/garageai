@@ -10,6 +10,12 @@ it. The file holds no secrets: no keys, no tokens, no prompts.
 Config: /etc/garageai/gateway-health.env (same as the health service).
 Output: /var/lib/garageai-ops/www/ops.json; state in /var/lib/garageai-ops/state.json.
 
+History and events: /var/lib/garageai-ops/history.db (SQLite). Samples every minute (30 days),
+events (180 days): alerts opened and resolved, reboots, container restarts, version changes,
+deployed files, merges to main, mesh and supply changes, and notes. Every 5 minutes the page's
+history.json is written from it (and from LiteLLM's spend logs for hourly traffic).
+  garageai-ops-collect --note "text"      add a note to the event log (e.g. a maintenance window)
+
 Telegram notifications (optional): /etc/garageai/telegram.env (root, 0600) with
 TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID. One-way: the bot only sends to that chat.
   garageai-ops-collect --telegram-setup   find the chat that messaged the bot and save its id
@@ -22,6 +28,7 @@ import platform
 import re
 import shutil
 import socket
+import sqlite3
 import ssl
 import subprocess
 import sys
@@ -57,6 +64,10 @@ DEPLOYED = {
 }
 LOG_ALERT_MB = 400
 OPS_URL = "https://ops.garageai.eu"
+HISTORY_DB = "/var/lib/garageai-ops/history.db"
+SAMPLE_DAYS = 30
+EVENT_DAYS = 180
+HISTORY_EVERY = 300           # seconds between history.json writes
 TELEGRAM_ENV = "/etc/garageai/telegram.env"
 # Minutes in a row an alert must be present before it is sent: short blips stay quiet, and a
 # deploy that briefly differs from main does not page anyone. Info alerts are never sent.
@@ -591,6 +602,207 @@ def alerts(d):
     return sorted(a, key=lambda x: order[x["level"]])
 
 
+# ---------------------------------------------------------------- history and events
+def db_open():
+    db = sqlite3.connect(HISTORY_DB, timeout=10)
+    db.executescript("""
+      create table if not exists host_samples (ts integer primary key, mem_pct real, disk_pct real, load1 real,
+                                               crit integer, warn integer);
+      create table if not exists garage_samples (ts integer, garage text, up integer, running integer, waiting integer,
+                                                 kv_pct real, gen_tok_s real, primary key (ts, garage));
+      create table if not exists events (id integer primary key autoincrement, ts integer, level text, kind text,
+                                         page text, text text);
+      create index if not exists events_ts on events (ts);
+    """)
+    return db
+
+
+def add_event(db, level, kind, page, text, ts=None):
+    db.execute("insert into events (ts, level, kind, page, text) values (?, ?, ?, ?, ?)",
+               (int(ts or time.time()), level, kind, page, text))
+
+
+def record_samples(db, d, state):
+    ts = int(time.time() // 60 * 60)
+    h = d["host"]
+    mem = round(100 * (1 - h["mem_available_mb"] / h["mem_total_mb"]), 1) if h.get("mem_total_mb") else None
+    db.execute("insert or replace into host_samples values (?, ?, ?, ?, ?, ?)",
+               (ts, mem, h["disk_used_pct"], h["load"][0],
+                sum(a["level"] == "critical" for a in d["alerts"]), sum(a["level"] == "warning" for a in d["alerts"])))
+    for g in d["garages"]:
+        v = g.get("vllm") or {}
+        db.execute("insert or replace into garage_samples values (?, ?, ?, ?, ?, ?, ?)",
+                   (ts, g["garage"], 1 if g["runtime_ok"] and g["mesh"] is not False else 0,
+                    v.get("running"), v.get("waiting"), v.get("kv_cache_pct"), v.get("gen_tok_s")))
+    if not state.get("history_backfilled"):
+        # The first 24 h of uptime were kept in state.json before the database existed.
+        for name, series in state.get("history", {}).items():
+            db.executemany("insert or ignore into garage_samples (ts, garage, up) values (?, ?, ?)",
+                           [(m * 60, name, up) for m, up in series])
+        state["history_backfilled"] = True
+    old = time.time() - SAMPLE_DAYS * 86400
+    db.execute("delete from host_samples where ts < ?", (old,))
+    db.execute("delete from garage_samples where ts < ?", (old,))
+    db.execute("delete from events where ts < ?", (time.time() - EVENT_DAYS * 86400,))
+
+
+def container_starts():
+    ids = sh(["docker", "ps", "-aq"]).split()
+    if not ids:
+        return {}
+    out = sh(["docker", "inspect", "--format", "{{.Name}} {{.State.StartedAt}}", *ids])
+    return {n.lstrip("/"): t for n, _, t in (line.partition(" ") for line in out.splitlines()) if n}
+
+
+def duration(seconds):
+    m = int(seconds // 60)
+    return f"{m} min" if m < 120 else f"{m // 60} h {m % 60} min" if m < 2880 else f"{m // 1440} d {m // 60 % 24} h"
+
+
+def detect_events(db, d, state):
+    """Compare this run with the previous one and log what changed."""
+    t = time.time()
+    boot = int(t - float(open("/proc/uptime").read().split()[0]))
+    cur = {
+        "alerts": {alert_key(a): [a["level"], a["text"], a.get("page")] for a in d["alerts"]},
+        "boot": boot,
+        "containers": container_starts(),
+        "versions": {v["component"]: v["running"] for v in d.get("versions", []) if v.get("running")},
+        "files": {f: sha256_file(f) for f in DEPLOYED},
+        "main": (d.get("source") or {}).get("main"),
+        "peers": sorted(p["name"] for p in d["mesh"].get("peers", [])),
+        "garages": sorted(g["garage"] for g in d["garages"]),
+        "setup_keys": d["mesh"].get("valid_setup_keys"),
+    }
+    prev = state.get("events_prev")
+    since = state.setdefault("alert_since", {})
+    state["events_prev"] = cur
+    if prev is None:
+        since.update({k: t for k in cur["alerts"]})
+        return
+    for k, (level, text, page) in cur["alerts"].items():
+        if k not in prev["alerts"]:
+            since[k] = t
+            add_event(db, level, "alert", page, text)
+        elif prev["alerts"][k][0] != level:
+            add_event(db, level, "alert", page, f"{text} (was {prev['alerts'][k][0]})")
+    for k, (level, text, page) in prev["alerts"].items():
+        if k not in cur["alerts"]:
+            started = since.pop(k, None)
+            add_event(db, "ok", "resolved", page, f"Resolved: {text}" + (f" (after {duration(t - started)})" if started else ""))
+    if prev.get("boot") and abs(boot - prev["boot"]) > 120:
+        add_event(db, "info", "reboot", "server", "Gateway rebooted", ts=boot)
+    for name, started in cur["containers"].items():
+        before = prev["containers"].get(name)
+        if before is None:
+            add_event(db, "info", "restart", "server", f"Container {name} created")
+        elif started != before and t - boot > 300:   # after a reboot every container restarts: one event is enough
+            add_event(db, "info", "restart", "server", f"Container {name} restarted")
+    for name in set(prev["containers"]) - set(cur["containers"]):
+        add_event(db, "info", "restart", "server", f"Container {name} removed")
+    for comp, running in cur["versions"].items():
+        before = prev["versions"].get(comp)
+        if before and before != running:
+            add_event(db, "info", "deploy", "updates", f"{comp}: {before} -> {running}")
+    changed = [f for f, h in cur["files"].items() if h and prev["files"].get(f) and h != prev["files"][f]]
+    if changed:
+        add_event(db, "info", "deploy", "updates", "Deployed on the gateway: " + ", ".join(changed))
+    if cur["main"] and prev.get("main") and cur["main"] != prev["main"]:
+        msg = ((github_json(f"repos/{REPO}/commits/{cur['main']}") or {}).get("commit") or {}).get("message", "")
+        add_event(db, "info", "source", "updates", f"main -> {cur['main'][:7]}: {msg.splitlines()[0] if msg else ''}".rstrip(": "))
+    for name in sorted(set(cur["peers"]) - set(prev["peers"])):
+        add_event(db, "warning", "mesh", "mesh", f"New NetBird peer: {name}")
+    for name in sorted(set(prev["peers"]) - set(cur["peers"])):
+        add_event(db, "info", "mesh", "mesh", f"NetBird peer removed: {name}")
+    for name in sorted(set(cur["garages"]) - set(prev["garages"])):
+        add_event(db, "info", "supply", "supply", f"Added to supply: {name}")
+    for name in sorted(set(prev["garages"]) - set(cur["garages"])):
+        add_event(db, "info", "supply", "supply", f"Removed from supply: {name}")
+    keys, before = cur["setup_keys"], prev.get("setup_keys")
+    if keys is not None and before is not None and keys > before:
+        add_event(db, "warning", "mesh", "mesh", f"NetBird setup key created ({keys} valid)")
+
+
+def recent_events(db, limit, since=0):
+    rows = db.execute("select ts, level, kind, page, text from events where ts >= ? order by ts desc, id desc limit ?",
+                      (since, limit)).fetchall()
+    return [{"ts": datetime.fromtimestamp(r[0], timezone.utc).isoformat(timespec="seconds"),
+             "level": r[1], "kind": r[2], "page": r[3], "text": r[4]} for r in rows]
+
+
+def traffic_hourly():
+    probes = "model_group not like 'probe/%' and model_group not like 'garage-probe%'"
+    by_garage = psql(f"""
+      select extract(epoch from date_trunc('hour', "startTime"))::bigint, coalesce(nullif(split_part(model_id, '__', 1), ''), '?'),
+             count(*), count(*) filter (where status <> 'success'),
+             coalesce(sum(prompt_tokens), 0), coalesce(sum(completion_tokens), 0), round(coalesce(sum(spend), 0)::numeric, 4)
+      from "LiteLLM_SpendLogs" where "startTime" > now() - interval '7 days' and {probes} group by 1, 2""")
+    latency = psql(f"""
+      select extract(epoch from date_trunc('hour', "startTime"))::bigint,
+             round((percentile_cont(0.5) within group (order by extract(epoch from ("completionStartTime" - "startTime"))))::numeric, 2),
+             round((percentile_cont(0.95) within group (order by extract(epoch from ("completionStartTime" - "startTime"))))::numeric, 2)
+      from "LiteLLM_SpendLogs" where "startTime" > now() - interval '7 days' and {probes} and status = 'success' group by 1""")
+    hour = int(time.time() // 3600 * 3600)
+    rows = {h: {"t": h, "requests": 0, "failed": 0, "tok_in": 0, "tok_out": 0, "spend": 0.0, "p50": None, "p95": None, "garages": {}}
+            for h in range(hour - 167 * 3600, hour + 1, 3600)}
+    for h, g, n, f, ti, to, sp in by_garage:
+        r = rows.get(int(h))
+        if r:
+            r["requests"] += int(n); r["failed"] += int(f); r["tok_in"] += int(ti); r["tok_out"] += int(to)
+            r["spend"] = round(r["spend"] + float(sp), 4); r["garages"][g] = r["garages"].get(g, 0) + int(n)
+    for h, p50, p95 in latency:
+        r = rows.get(int(h))
+        if r:
+            r["p50"] = float(p50) if p50 else None; r["p95"] = float(p95) if p95 else None
+    return list(rows.values())
+
+
+def write_history(db, state):
+    t = time.time()
+    path = os.path.join(OUT_DIR, "history.json")
+    if os.path.exists(path) and t - state.get("history_written", 0) < HISTORY_EVERY:
+        return
+    week, month = t - 7 * 86400, t - 30 * 86400
+    host = db.execute("""select ts / 900 * 900, round(avg(mem_pct), 1), round(avg(disk_pct), 1), round(avg(load1), 2)
+                         from host_samples where ts >= ? group by 1 order by 1""", (week,)).fetchall()
+    uptime, daily, load = {}, {}, {}
+    for g, b, pct, n in db.execute("""select garage, ts / 3600 * 3600, round(avg(up) * 100, 1), count(*)
+                                      from garage_samples where ts >= ? group by 1, 2 order by 2""", (week,)):
+        uptime.setdefault(g, []).append([b, pct, n])
+    for g, b, pct in db.execute("""select garage, ts / 86400 * 86400, round(avg(up) * 100, 2)
+                                   from garage_samples where ts >= ? group by 1, 2 order by 2""", (month,)):
+        daily.setdefault(g, []).append([b, pct])
+    for g, b, run, wait, kv, gen in db.execute("""select garage, ts / 900 * 900, round(avg(running), 2), max(waiting),
+                                                 round(avg(kv_pct), 1), round(avg(gen_tok_s), 1)
+                                                 from garage_samples where ts >= ? and running is not null group by 1, 2 order by 2""", (week,)):
+        load.setdefault(g, []).append([b, run, wait, kv, gen])
+    out = {"generated_at": now().isoformat(timespec="seconds"), "host": host, "uptime_hourly": uptime,
+           "uptime_daily": daily, "garage_load": load, "traffic_hourly": traffic_hourly(),
+           "events": recent_events(db, 1000, since=month)}
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(out, f, separators=(",", ":"))
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, path)
+    state["history_written"] = t
+
+
+def history(d, state):
+    """Samples, events and history.json. A failure here must never stop ops.json."""
+    try:
+        db = db_open()
+        try:
+            record_samples(db, d, state)
+            detect_events(db, d, state)
+            db.commit()
+            d["events_recent"] = recent_events(db, 15)
+            write_history(db, state)
+        finally:
+            db.close()
+    except Exception as e:  # noqa: BLE001
+        d["alerts"].append({"level": "warning", "page": "server", "text": f"History and event log failed: {type(e).__name__}: {e}"})
+
+
 # ---------------------------------------------------------------- Telegram notifications
 def telegram(cfg, text):
     """Send one HTML message; returns None on success, else a short error (never the token)."""
@@ -764,6 +976,7 @@ def main():
     data["logs"] = logs(data["containers"])
     data["alerts"] = alerts(data)
     notify(data, state)
+    history(data, state)
     data["collect_seconds"] = round(time.time() - t0, 1)
     os.makedirs(OUT_DIR, exist_ok=True)
     tmp = os.path.join(OUT_DIR, ".ops.json.tmp")
@@ -780,5 +993,9 @@ def main():
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] in ("--telegram-setup", "--telegram-test"):
         telegram_cli(sys.argv[1])
+    elif len(sys.argv) == 3 and sys.argv[1] == "--note":
+        with db_open() as db:
+            add_event(db, "info", "note", "server", sys.argv[2])
+        print("Note added.")
     else:
         main()

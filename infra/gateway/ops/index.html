@@ -9,11 +9,13 @@
 <style>
   :root { --bg:#f4f5f7; --panel:#ffffff; --side:#ffffff; --ink:#14171c; --muted:#5d6672; --faint:#8b939d; --line:#e3e6ea; --hover:#eef1f4;
           --ok:#1a7f37; --warn:#9a6700; --crit:#cf222e; --info:#0969da; --accent:#0e7490; --accent-soft:#e0f2f5;
-          --ok-soft:#dafbe1; --warn-soft:#fff3cd; --crit-soft:#ffebe9; --info-soft:#ddf4ff; }
+          --ok-soft:#dafbe1; --warn-soft:#fff3cd; --crit-soft:#ffebe9; --info-soft:#ddf4ff;
+          --series-1:#2a78d6; --series-2:#eb6834; --series-3:#1baf7a; }
   @media (prefers-color-scheme: dark) {
     :root { --bg:#0b0d10; --panel:#14181d; --side:#101317; --ink:#e6e9ed; --muted:#97a1ad; --faint:#6b7480; --line:#252b32; --hover:#1b2026;
             --ok:#3fb950; --warn:#d29922; --crit:#f85149; --info:#58a6ff; --accent:#22d3ee; --accent-soft:#0f2a31;
-            --ok-soft:#12261a; --warn-soft:#2a2110; --crit-soft:#2d1214; --info-soft:#0f2236; }
+            --ok-soft:#12261a; --warn-soft:#2a2110; --crit-soft:#2d1214; --info-soft:#0f2236;
+            --series-1:#3987e5; --series-2:#d95926; --series-3:#199e70; }
   }
   * { box-sizing:border-box; }
   html, body { margin:0; }
@@ -119,6 +121,35 @@
   .note { font-size:12px; color:var(--muted); margin-top:10px; }
   .empty { padding:24px; text-align:center; color:var(--muted); }
 
+  /* ---------- charts and events */
+  .chart { position:relative; min-height:60px; }
+  .chart svg { display:block; width:100%; overflow:visible; }
+  .chart .grid line { stroke:var(--line); stroke-width:1; }
+  .chart text { fill:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; }
+  .chart .cross { stroke:var(--faint); stroke-width:1; stroke-dasharray:3 3; }
+  .legend { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:12px; color:var(--muted); margin-bottom:8px; }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
+  .tip { position:fixed; z-index:50; pointer-events:none; display:none; background:var(--panel); border:1px solid var(--line); border-radius:8px;
+         box-shadow:0 8px 24px rgba(0,0,0,.18); padding:8px 10px; font-size:12px; min-width:140px; max-width:280px; }
+  .tip .h { color:var(--muted); margin-bottom:4px; } .tip div { display:flex; gap:8px; align-items:center; } .tip b { font-variant-numeric:tabular-nums; }
+  .tip i { width:8px; height:8px; border-radius:2px; display:inline-block; flex:none; }
+  .strip { display:grid; grid-template-columns:130px 1fr; gap:6px 10px; align-items:center; }
+  .strip .name { font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .strip .cells { display:flex; gap:1px; height:22px; }
+  .strip .cells span { flex:1; border-radius:2px; background:var(--hover); min-width:1px; }
+  .strip .cells span.ok { background:var(--ok); } .strip .cells span.warning { background:var(--warn); } .strip .cells span.critical { background:var(--crit); }
+  .strip .axis { grid-column:2; display:flex; justify-content:space-between; font-size:11px; color:var(--muted); }
+  .spark { margin-top:8px; height:30px; } .spark svg { width:100%; height:30px; display:block; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+  .chip { border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:16px; padding:4px 12px; font:inherit; font-size:13px; cursor:pointer; }
+  .chip.on { background:var(--accent-soft); color:var(--accent); border-color:transparent; font-weight:600; }
+  .day { font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin:16px 0 4px; }
+  .day:first-child { margin-top:0; }
+  .ev { display:grid; grid-template-columns:52px 16px 92px 1fr auto; gap:8px; align-items:baseline; padding:7px 0; border-top:1px solid var(--line); }
+  .ev .time { color:var(--muted); font-variant-numeric:tabular-nums; font-size:12px; }
+  .ev .txt { min-width:0; overflow-wrap:anywhere; } .ev a { font-size:12px; white-space:nowrap; }
+  @media (max-width: 640px) { .ev { grid-template-columns:44px 14px 1fr; } .ev .kind, .ev a { display:none; } .strip { grid-template-columns:90px 1fr; } }
+
   .scrim { display:none; }
   @media (max-width: 900px) {
     .app { grid-template-columns:minmax(0,1fr); }
@@ -151,6 +182,7 @@
   <symbol id="i-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
   <symbol id="i-money" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .8-3 2s1.3 1.7 3 2 3 .8 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6v2M12 16v2"/></symbol>
   <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-events" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
 </svg>
 
@@ -192,16 +224,27 @@
           <div class="card"><h2>Needs attention</h2><div id="dash-alerts"></div></div>
           <div class="card"><h2>Supply at a glance</h2><div id="dash-supply"></div></div>
         </div>
+        <div class="card"><h2>Recent events</h2><div id="dash-events"></div><div class="note"><a href="#events">All events →</a></div></div>
+      </section>
+
+      <section class="page" data-page="events">
+        <div class="card"><div class="chips" id="ev-chips"></div><div id="ev-list"></div>
+          <div class="note">Logged automatically every minute, kept 180 days. Add a note on the gateway: <code>sudo garageai-ops-collect --note "text"</code></div></div>
       </section>
 
       <section class="page" data-page="supply">
         <div id="alerts-supply"></div>
         <div class="card"><h2>Garages and providers</h2><div id="garages"></div>
           <div class="note">Garages are checked over the NetBird mesh, providers over public HTTPS. Uptime comes from the health check every minute.</div></div>
+        <div class="card"><h2>Uptime per hour, last 7 days</h2><div id="ch-uptime"></div></div>
+        <div class="card"><h2>Requests running on vLLM garages</h2><div class="sub">Average per 15 minutes, last 7 days.</div><div class="chart" id="ch-gload"></div></div>
+        <div class="card"><h2>Supply events, last 30 days</h2><div id="supply-events"></div></div>
       </section>
 
       <section class="page" data-page="traffic">
         <div id="alerts-traffic"></div>
+        <div class="card"><h2>Requests per hour, last 7 days</h2><div class="sub">Probes excluded. Hover for failed requests and the split per garage.</div><div class="chart" id="ch-req"></div></div>
+        <div class="card"><h2>Time to first token per hour</h2><div class="sub">Successful requests, seconds.</div><div class="chart" id="ch-ttft"></div></div>
         <div class="card"><h2>Last hour</h2><div class="sub">Probes excluded.</div><div id="traffic"></div></div>
         <div class="card"><h2>Last 24 hours</h2><div id="traffic24"></div></div>
         <div class="card"><h2>Gateway errors, last hour</h2><div id="errors"></div></div>
@@ -220,6 +263,11 @@
         <div class="grid">
           <div class="card"><h2>Host</h2><div id="host"></div></div>
           <div class="card"><h2>Seen from outside</h2><div id="outside"></div></div>
+        </div>
+        <div class="grid">
+          <div class="card"><h2>Memory used, 7 days</h2><div class="chart" id="ch-mem"></div></div>
+          <div class="card"><h2>Disk used, 7 days</h2><div class="chart" id="ch-disk"></div></div>
+          <div class="card"><h2>Load (1 min), 7 days</h2><div class="chart" id="ch-load"></div></div>
         </div>
         <div class="card"><h2>Containers</h2><div id="containers"></div></div>
         <div class="card"><h2>Notifications</h2><div id="notify"></div></div>
@@ -249,6 +297,7 @@
 <script>
 const PAGES = [
   { id: "dashboard", title: "Dashboard", icon: "dash", sub: "Operations status at a glance" },
+  { id: "events", title: "Events", icon: "events", sub: "Timeline: alerts, deploys, restarts, merges and notes" },
   { group: "Platform" },
   { id: "supply", title: "Supply", icon: "supply", sub: "Garages and providers: tunnel, runtime, uptime, load" },
   { id: "traffic", title: "Traffic", icon: "traffic", sub: "Requests, tokens, latency and gateway errors" },
@@ -281,19 +330,19 @@ function renderNav(alerts) {
     const lvl = worst(mine);
     return `<a href="#${p.id}" data-id="${p.id}">${icon(p.icon)}<span>${p.title}</span>${mine.length ? `<span class="count ${lvl}">${mine.length}</span>` : ""}</a>`;
   }).join("");
-  route();
+  route(false);
 }
-function route() {
+// navigated: the user opened another page (scroll to top, close the phone menu); otherwise a data refresh.
+function route(navigated = true) {
   const id = (location.hash || "#dashboard").slice(1);
   const page = PAGES.find(p => p.id === id) || PAGES[0];
   document.querySelectorAll(".page").forEach(s => s.classList.toggle("active", s.dataset.page === page.id));
   document.querySelectorAll("nav a").forEach(a => a.classList.toggle("active", a.dataset.id === page.id));
   $("ptitle").textContent = page.title; $("psub").textContent = page.sub;
   document.title = `${page.title} · GarageAI Operations`;
-  document.body.classList.remove("nav-open");
-  window.scrollTo(0, 0);
+  if (navigated) { document.body.classList.remove("nav-open"); window.scrollTo(0, 0); renderHistory(); }
 }
-window.addEventListener("hashchange", route);
+window.addEventListener("hashchange", () => route(true));
 document.addEventListener("click", e => { if (!e.target.closest(".user")) $("menu").classList.remove("open"); });
 
 function pageAlerts(id, alerts) {
@@ -353,6 +402,7 @@ function renderDashboard(d) {
       value: `${G.filter(up).length}<small> / ${G.length}</small>`,
       detail: `garages ${garages.filter(up).length}/${garages.length} · providers ${providers.filter(up).length}/${providers.length}` },
     { page: "traffic", icon: "traffic", label: "Requests, 1 h", status: fail1 ? "warning" : lvl("traffic"),
+      extra: spark((hist?.traffic_hourly || []).slice(-24).map(r => [r.t, r.requests])),
       value: fmt(req1), detail: `${fail1 ? `<span class="warning">${fail1} failed</span>` : "0 failed"} · ${short(sum(t1, "prompt_tokens"))} in / ${short(sum(t1, "completion_tokens"))} out` },
     { page: "traffic", icon: "clock", label: "First token, 1 h", status: p95 > 60 ? "warning" : "ok",
       value: p50 == null ? "—" : `${p50}<small> s p50</small>`, detail: p50 == null ? "no traffic" : `worst p95 ${p95} s · ${errTotal ? `<span class="warning">${errTotal} errors</span>` : "no gateway errors"}` },
@@ -363,7 +413,7 @@ function renderDashboard(d) {
       detail: `management ${L.management ? "up" : "DOWN"} · relays ${L.relays_available}/${L.relays_total} · ${d.mesh.valid_setup_keys || 0} setup keys` },
     { page: "server", icon: "server", label: "Gateway server", status: lvl("server"),
       value: `${memPct}<small> % memory</small>`, detail: `disk ${h.disk_used_pct} % · load ${h.load[0]} on ${h.cpus} CPUs${h.reboot_required ? ' · <span class="warning">reboot</span>' : ""}`,
-      extra: bar(memPct, memPct > 90 ? "critical" : memPct > 80 ? "warning" : "") },
+      extra: hist?.host?.length > 4 ? spark(hist.host.slice(-96).map(r => [r[0], r[1]]), 100) : bar(memPct, memPct > 90 ? "critical" : memPct > 80 ? "warning" : "") },
     { page: "server", icon: "shield", label: "Backup and TLS", status: lvl("server") === "critical" ? "critical" : (d.backup.age_hours > 26 || certMin < 14) ? "warning" : "ok",
       value: d.backup.newest ? `${d.backup.age_hours}<small> h old</small>` : '<span class="critical">none</span>', detail: `${d.backup.count} backups kept · certificates ≥ ${certMin} d` },
     { page: "updates", icon: "updates", label: "Updates", status: drift ? "warning" : updates ? "info" : "ok",
@@ -380,6 +430,7 @@ function renderDashboard(d) {
   $("dash-alerts").innerHTML = (shown.length ? shown.map(a => alertRow(a, true)).join("") : `<div class="alert">${dot("ok")}<span class="txt">Nothing needs attention.</span></div>`)
     + (infos.length ? `<div class="small" style="margin:12px 0 4px">For information</div>${infos.map(a => alertRow(a, true)).join("")}` : "");
 
+  $("dash-events").innerHTML = eventList((d.events_recent || []).slice(0, 8));
   $("dash-supply").innerHTML = table([
     ["", g => dot(up(g) ? "ok" : "critical"), ""],
     ["Name", g => `<b>${esc(g.garage)}</b> <span class="small">${g.type === "provider" ? "provider" : "garage"}</span>`],
@@ -482,6 +533,152 @@ function renderPages(d) {
     + table([["Docker", x => esc(x.type)], ["Size", x => esc(x.size), "num"], ["Reclaimable", x => esc(x.reclaimable), "num"]], lg.docker || []);
 }
 
+/* ---------- history: charts and events */
+let hist = null, evFilter = "all";
+const tip = document.createElement("div"); tip.className = "tip"; document.body.appendChild(tip);
+function showTip(e, head, rows) {
+  const h = document.createElement("div"); h.className = "h"; h.textContent = head;
+  tip.replaceChildren(h, ...rows.map(([color, value, label]) => { const r = document.createElement("div");
+    if (color) { const i = document.createElement("i"); i.style.background = color; r.append(i); }
+    const b = document.createElement("b"); b.textContent = value; r.append(b, document.createTextNode(label)); return r; }));
+  tip.style.display = "block";
+  const x = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8), y = Math.min(e.clientY + 14, innerHeight - tip.offsetHeight - 8);
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+const hideTip = () => { tip.style.display = "none"; };
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const fmtHour = t => new Date(t * 1000).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const fmtDay = t => new Date(t * 1000).toLocaleDateString("en-GB", { weekday: "short", day: "numeric" });
+const niceMax = v => { if (!(v > 0)) return 1; const p = 10 ** Math.floor(Math.log10(v)), m = v / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; };
+
+// One chart, one y-axis. series: [{name, color, points: [[t, v]]}], sharing the same t's.
+function chart(el, { series, kind = "line", step = 3600, yMax, unit = "", fmtV = v => fmt(v), height = 190, extra }) {
+  const ts = series[0].points.map(p => p[0]);
+  if (!ts.length || series.every(s => s.points.every(p => p[1] == null))) { el.innerHTML = '<div class="small">No data yet: history builds up from now on.</div>'; return; }
+  const W = Math.max(280, el.clientWidth || 600), H = height, L = 46, R = 8, T = 8, B = 22;
+  const vals = series.flatMap(s => s.points.map(p => p[1])).filter(v => v != null);
+  // A single spike (an agent loop, a flood of bad keys) must not flatten the rest of the week: clip bars far above
+  // the normal level, mark them, and keep the real value in the tooltip.
+  const sorted = [...vals].sort((a, b) => a - b), p97 = sorted[Math.floor(sorted.length * 0.97)] || 0, top = sorted[sorted.length - 1] || 0;
+  const clip = kind === "bar" && yMax == null && p97 > 0 && top > 4 * p97;
+  const max = yMax ?? niceMax(clip ? p97 * 1.5 : Math.max(...vals, 0));
+  const t0 = ts[0], t1 = ts[ts.length - 1] + (kind === "bar" ? step : 0);
+  const x = t => L + (t - t0) / ((t1 - t0) || 1) * (W - L - R), y = v => T + (1 - Math.min(v, max) / max) * (H - T - B);
+  let g = `<g class="grid">`;
+  for (const f of [0, .5, 1]) g += `<line x1="${L}" x2="${W - R}" y1="${y(max * f)}" y2="${y(max * f)}"/><text x="${L - 6}" y="${y(max * f) + 4}" text-anchor="end">${esc(fmtV(max * f))}${unit}</text>`;
+  const day0 = new Date(t0 * 1000); day0.setHours(24, 0, 0, 0);
+  const days = []; for (let t = day0 / 1000; t < t1; t += 86400) days.push(t);
+  const every = Math.ceil(days.length / Math.max(1, Math.floor((W - L) / 70)));
+  days.forEach((t, i) => { if (i % every === 0) g += `<text x="${x(t)}" y="${H - 6}" text-anchor="middle">${esc(fmtDay(t))}</text>`; });
+  g += `</g>`;
+  let marks = "";
+  if (kind === "bar") {
+    const s = series[0], bw = Math.max(1, (W - L - R) / ts.length - (ts.length > 100 ? 1 : 2));
+    for (const [t, v] of s.points) if (v) { const h = Math.max(1, y(0) - y(v)); marks += `<rect x="${x(t)}" y="${y(0) - h}" width="${bw}" height="${h}" rx="${Math.min(2, bw / 2)}" fill="${s.color}"/>`;
+      if (v > max) marks += `<path d="M${x(t) + bw / 2 - 5},${T + 7} l5,-7 l5,7z" fill="${css("--ink")}"/>`; }
+  } else {
+    for (const s of series) {
+      let d = "", pen = false;
+      for (const [t, v] of s.points) { if (v == null) { pen = false; continue; } d += `${pen ? "L" : "M"}${x(t).toFixed(1)},${y(v).toFixed(1)}`; pen = true; }
+      marks += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    }
+  }
+  const clipNote = clip ? `<div class="legend"><span>▲ marks hours above ${esc(fmtV(max))}${unit} (highest ${esc(fmtV(top))}${unit}); hover for the value</span></div>` : "";
+  const legend = clipNote + (series.length > 1 ? `<div class="legend">${series.map(s => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}</div>` : "");
+  el.innerHTML = `${legend}<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="${esc(series.map(s => s.name).join(", "))}">${g}${marks}<line class="cross" y1="${T}" y2="${H - B}" style="display:none"/><rect class="hit" x="${L}" y="0" width="${W - L - R}" height="${H}" fill="transparent"/></svg>`;
+  const svg = el.querySelector("svg"), cross = svg.querySelector(".cross");
+  svg.querySelector(".hit").addEventListener("pointermove", e => {
+    const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) * W / r.width;
+    const t = t0 + (px - L) / (W - L - R) * (t1 - t0) - (kind === "bar" ? step / 2 : 0);
+    let i = 0; for (let k = 1; k < ts.length; k++) if (Math.abs(ts[k] - t) < Math.abs(ts[i] - t)) i = k;
+    const cx = x(ts[i]) + (kind === "bar" ? Math.max(1, (W - L - R) / ts.length - 2) / 2 : 0);
+    cross.setAttribute("x1", cx); cross.setAttribute("x2", cx); cross.style.display = "";
+    showTip(e, fmtHour(ts[i]), [...series.map(s => [s.color, s.points[i][1] == null ? "—" : fmtV(s.points[i][1]) + unit, " " + s.name]), ...(extra ? extra(i) : [])]);
+  });
+  svg.querySelector(".hit").addEventListener("pointerleave", () => { cross.style.display = "none"; hideTip(); });
+}
+function spark(points, yMax) {
+  const vals = points.map(p => p[1]).filter(v => v != null);
+  if (vals.length < 2) return "";
+  const max = yMax ?? Math.max(...vals, 1), n = points.length - 1;
+  const d = points.map((p, i) => p[1] == null ? null : `${(i / n * 100).toFixed(2)},${(28 - p[1] / max * 26).toFixed(2)}`).filter(Boolean);
+  return `<div class="spark"><svg viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="${d.join(" ")}" fill="none" stroke="${css("--series-1")}" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg></div>`;
+}
+const upClass = p => p == null ? "" : p >= 99.5 ? "ok" : p >= 95 ? "warning" : "critical";
+function uptimeStrip(el, data) {
+  const names = Object.keys(data || {}).sort();
+  if (!names.length) { el.innerHTML = '<div class="small">No data yet.</div>'; return; }
+  const end = Math.floor(Date.now() / 3600000) * 3600, hours = []; for (let t = end - 167 * 3600; t <= end; t += 3600) hours.push(t);
+  const rows = names.map(n => { const by = Object.fromEntries(data[n].map(r => [r[0], r[1]]));
+    return `<div class="name">${esc(n)}</div><div class="cells">${hours.map(t => `<span class="${upClass(by[t])}" data-n="${esc(n)}" data-t="${t}" data-v="${by[t] ?? ""}"></span>`).join("")}</div>`; }).join("");
+  el.innerHTML = `<div class="legend"><span><i style="background:var(--ok)"></i>≥ 99.5 %</span><span><i style="background:var(--warn)"></i>95–99.5 %</span><span><i style="background:var(--crit)"></i>&lt; 95 %</span><span><i style="background:var(--hover)"></i>no data</span></div>
+    <div class="strip">${rows}<div class="axis"><span>${esc(fmtDay(hours[0]))}</span><span>${esc(fmtDay(hours[84]))}</span><span>now</span></div></div>`;
+  el.querySelectorAll(".cells span").forEach(c => {
+    c.addEventListener("pointermove", e => showTip(e, fmtHour(+c.dataset.t), [[null, c.dataset.v === "" ? "no data" : c.dataset.v + " %", " up · " + c.dataset.n]]));
+    c.addEventListener("pointerleave", hideTip);
+  });
+}
+const KINDS = { alert: "alert", resolved: "resolved", deploy: "deploy", source: "merge", restart: "restart", reboot: "reboot", mesh: "mesh", supply: "supply", note: "note" };
+const evLevel = e => e.level === "ok" ? "ok" : e.level === "critical" ? "critical" : e.level === "warning" ? "warning" : e.kind === "note" ? "muted" : "info";
+function eventList(list) {
+  if (!list.length) return '<div class="small">No events yet.</div>';
+  let out = "", day = "";
+  for (const e of list) {
+    const t = Date.parse(e.ts) / 1000, dd = new Date(t * 1000).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" });
+    if (dd !== day) { out += `<div class="day">${esc(dd)}</div>`; day = dd; }
+    const page = PAGES.find(p => p.id === e.page);
+    out += `<div class="ev"><span class="time">${new Date(t * 1000).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>${dot(evLevel(e))}
+      <span class="kind">${pill(evLevel(e), esc(KINDS[e.kind] || e.kind))}</span><span class="txt">${esc(e.text)}</span>${page ? `<a href="#${page.id}">${esc(page.title)} →</a>` : "<span></span>"}</div>`;
+  }
+  return out;
+}
+const FILTERS = [["all", "All", () => true], ["alerts", "Alerts", e => e.kind === "alert" || e.kind === "resolved"],
+  ["changes", "Changes", e => ["deploy", "source", "restart", "reboot"].includes(e.kind)], ["mesh", "Mesh and supply", e => e.kind === "mesh" || e.kind === "supply"],
+  ["notes", "Notes", e => e.kind === "note"]];
+function allEvents() {
+  const seen = new Set(), out = [];
+  for (const e of [...(data?.events_recent || []), ...(hist?.events || [])]) { const k = e.ts + e.text; if (!seen.has(k)) { seen.add(k); out.push(e); } }
+  return out.sort((a, b) => b.ts.localeCompare(a.ts));
+}
+function renderHistory() {
+  const page = (location.hash || "#dashboard").slice(1);
+  if (page === "events") {
+    const all = allEvents();
+    $("ev-chips").innerHTML = FILTERS.map(([id, label, f]) => `<button class="chip ${evFilter === id ? "on" : ""}" onclick="evFilter='${id}';renderHistory()">${label} <span class="small">${all.filter(f).length}</span></button>`).join("");
+    $("ev-list").innerHTML = eventList(all.filter(FILTERS.find(f => f[0] === evFilter)[2]));
+  }
+  if (!hist) return;
+  const c1 = css("--series-1"), c2 = css("--series-2");
+  if (page === "traffic") {
+    const th = hist.traffic_hourly;
+    chart($("ch-req"), { kind: "bar", series: [{ name: "requests", color: c1, points: th.map(r => [r.t, r.requests]) }],
+      extra: i => [[null, fmt(th[i].failed), " failed"], [null, short(th[i].tok_in) + " / " + short(th[i].tok_out), " tokens in / out"], [null, "$" + th[i].spend.toFixed(4), " spend"],
+                   ...Object.entries(th[i].garages).sort((a, b) => b[1] - a[1]).map(([g, n]) => [null, fmt(n), " " + (g === "?" ? "not routed" : g)])] });
+    chart($("ch-ttft"), { series: [{ name: "p50", color: c1, points: th.map(r => [r.t, r.p50]) }, { name: "p95", color: c2, points: th.map(r => [r.t, r.p95]) }],
+      unit: " s", fmtV: v => v >= 10 ? Math.round(v) : (+v).toFixed(1) });
+  }
+  if (page === "supply") {
+    uptimeStrip($("ch-uptime"), hist.uptime_hourly);
+    const gl = Object.entries(hist.garage_load || {});
+    if (gl.length) { const [name, pts] = gl[0];
+      chart($("ch-gload"), { series: gl.slice(0, 3).map(([n, p], k) => ({ name: n, color: [c1, c2, css("--series-3")][k], points: p.map(r => [r[0], r[1]]) })), step: 900,
+        fmtV: v => (+v).toFixed(1), extra: i => [[null, String(pts[i]?.[2] ?? "—"), " waiting (max)"], [null, (pts[i]?.[3] ?? "—") + " %", " KV cache"], [null, String(pts[i]?.[4] ?? "—"), " tok/s out"]] }); }
+    else $("ch-gload").innerHTML = '<div class="small">No vLLM garages with metrics.</div>';
+    $("supply-events").innerHTML = eventList(allEvents().filter(e => e.page === "supply"));
+  }
+  if (page === "server") {
+    const h = hist.host;
+    chart($("ch-mem"), { series: [{ name: "memory used", color: c1, points: h.map(r => [r[0], r[1]]) }], yMax: 100, unit: " %", fmtV: v => Math.round(v), height: 150, step: 900 });
+    chart($("ch-disk"), { series: [{ name: "disk used", color: c1, points: h.map(r => [r[0], r[2]]) }], yMax: 100, unit: " %", fmtV: v => Math.round(v), height: 150, step: 900 });
+    chart($("ch-load"), { series: [{ name: "load", color: c1, points: h.map(r => [r[0], r[3]]) }], fmtV: v => (+v).toFixed(1), height: 150, step: 900 });
+  }
+}
+async function loadHistory() {
+  try { const r = await fetch("history.json?t=" + Date.now(), { cache: "no-store" }); if (r.ok) { hist = await r.json(); if (data) renderDashboard(data); renderHistory(); } } catch (e) {}
+}
+let resizeTimer; addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(renderHistory, 200); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (data) renderDashboard(data); renderHistory(); });
+
 /* ---------- data */
 async function load(manual) {
   if (manual) $("refresh").classList.add("spin");
@@ -489,7 +686,7 @@ async function load(manual) {
     const r = await fetch("ops.json?t=" + Date.now(), { cache: "no-store" });
     if (!r.ok) throw new Error("HTTP " + r.status);
     data = await r.json();
-    renderNav(data.alerts); renderChrome(data); renderDashboard(data); renderPages(data);
+    renderNav(data.alerts); renderChrome(data); renderDashboard(data); renderPages(data); renderHistory();
   } catch (e) {
     $("fresh").innerHTML = `${dot("critical")}<span class="txt">Could not load data: ${esc(e.message)}</span>`;
   } finally { setTimeout(() => $("refresh").classList.remove("spin"), 400); }
@@ -508,7 +705,7 @@ function logout() {
     <p class="small">You are signed out of the GarageAI Operations Center.</p><p><a href="/" onclick="location.replace('/');return false">Sign in again</a></p></div></div>`; };
   x.send();
 }
-renderNav([]); load(); whoami(); setInterval(load, 30000);
+renderNav([]); load(); loadHistory(); whoami(); setInterval(load, 30000); setInterval(loadHistory, 300000);
 setInterval(() => data && renderChrome(data), 10000);
 </script>
 </body>
