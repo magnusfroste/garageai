@@ -341,6 +341,35 @@ Setup:
 
 `sudo garageai-ops-collect --telegram-test` sends another test message.
 
+## Guard: blocking key guessing
+
+`guard/garageai-guard.py` (installed to `/usr/local/sbin/garageai-guard`, run every minute by
+`garageai-guard.timer`) reads Traefik's access log. It blocks a source IP for 24 h, or 7 days if
+it comes back within a week, when within 2 minutes it gets either:
+- 30 invalid API keys (401), or
+- 60 requests to paths the gateway does not serve (403).
+
+The block is an nftables set with timeouts in `table inet garageai_guard`, dropped before
+Docker's NAT. It never blocks private, mesh or loopback addresses, the gateway itself, or
+`GUARD_ALLOW` in `/etc/garageai/guard.env`. Blocks and dropped packets show in the Operations
+Center (Traffic), and each block is an event.
+
+On 2026-10-03 two Azure VMs sent 93,026 requests with invalid keys at about 15/s, which is under
+the 20/s rate limit. Replaying that log, the guard would have blocked both within a minute, and
+it finds no false positives in the normal traffic since.
+
+```bash
+sudo garageai-guard --replay 2026-10-03T21:48:00Z 2026-10-03T23:35:00Z   # who would have been blocked
+sudo garageai-guard --unban 203.0.113.7
+```
+
+Install:
+```bash
+sudo install -m 0755 guard/garageai-guard.py /usr/local/sbin/garageai-guard
+sudo install -m 0644 guard/garageai-guard.service guard/garageai-guard.timer /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now garageai-guard.timer
+```
+
 ## Backups
 
 `backup/garageai-backup` (installed to `/usr/local/sbin`, run nightly by `garageai-backup.timer`)

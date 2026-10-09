@@ -35,7 +35,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 OUT_DIR = "/var/lib/garageai-ops/www"
@@ -44,7 +44,8 @@ HEALTH_LAST = "/var/lib/garageai-health/last.json"
 BACKUP_DIR = "/var/backups/garageai"
 LITELLM_DIR = "/opt/garageai/litellm"
 CERT_HOSTS = ["llm.garageai.eu", "netbird.garageai.eu", "ops.garageai.eu", "app.garageai.eu", "www.garageai.eu"]
-TIMERS = ["garageai-health.timer", "garageai-backup.timer", "garageai-ops.timer"]
+TIMERS = ["garageai-health.timer", "garageai-backup.timer", "garageai-ops.timer", "garageai-guard.timer"]
+GUARD_STATUS = "/var/lib/garageai-guard/status.json"
 EXPECTED_POLICIES = {"gateway-to-garages"}
 UA = "garageai-ops/1 (+https://garageai.eu)"
 HISTORY_MINUTES = 24 * 60
@@ -61,6 +62,7 @@ DEPLOYED = {
     "/var/lib/garageai-ops/www/index.html": "infra/gateway/ops/index.html",
     "/opt/garageai/ops/docker-compose.yml": "infra/gateway/ops/docker-compose.yml",
     "/opt/garageai/ops/nginx.conf": "infra/gateway/ops/nginx.conf",
+    "/usr/local/sbin/garageai-guard": "infra/gateway/guard/garageai-guard.py",
 }
 LOG_ALERT_MB = 400
 OPS_URL = "https://ops.garageai.eu"
@@ -408,6 +410,20 @@ def outside():
     return rows
 
 
+# ---------------------------------------------------------------- guard
+def guard():
+    """Clients blocked by garageai-guard, and how many packets the block has dropped."""
+    st = read_json(GUARD_STATUS, None)
+    if st is None:
+        return None
+    dropped = 0
+    for line in sh(["nft", "list", "chain", "inet", "garageai_guard", "pre"]).splitlines():
+        m = re.search(r"counter packets (\d+)", line)
+        if m:
+            dropped += int(m.group(1))
+    return {**st, "dropped_packets": dropped}
+
+
 # ---------------------------------------------------------------- versions, source, logs
 def cached(state, key, seconds, fn):
     entry = state.setdefault("cache", {}).get(key)
@@ -598,11 +614,18 @@ def alerts(d):
             add("warning", f"Container log for {l['container']} is {l['log_mb']} MB", "logs")
         elif not l["max_size"] and l["log_mb"] > 100:
             add("warning", f"Container log for {l['container']} is {l['log_mb']} MB and has no size limit", "logs")
+    gd = d.get("guard")
+    if gd is None:
+        add("warning", "garageai-guard has not run (no status file)", "traffic")
+    elif (now() - datetime.fromisoformat(gd["checked_at"])).total_seconds() > 300:
+        add("warning", f"garageai-guard last ran {gd['checked_at']}", "traffic")
     for o in d["outside"]:
         if o["status"] != 200:
             add("critical", f"{o['name']} ({o['url']}) answered {o['status']}", "server")
     e = d["errors_last_hour"]
-    if e["invalid_key"] > 50:
+    if e["invalid_key"] > 1000:
+        add("critical", f"{e['invalid_key']} requests with an unknown API key in the last hour: someone is guessing keys", "traffic")
+    elif e["invalid_key"] > 50:
         add("warning", f"{e['invalid_key']} requests with an unknown API key in the last hour", "traffic")
     if e["timeouts_408"] > 5:
         add("warning", f"{e['timeouts_408']} timeouts (408) in the last hour", "traffic")
@@ -687,6 +710,7 @@ def detect_events(db, d, state):
         "peers": sorted(p["name"] for p in d["mesh"].get("peers", [])),
         "garages": sorted(g["garage"] for g in d["garages"]),
         "setup_keys": d["mesh"].get("valid_setup_keys"),
+        "blocked": {b["ip"]: b["since"] for b in (d.get("guard") or {}).get("active", [])},
     }
     prev = state.get("events_prev")
     since = state.setdefault("alert_since", {})
@@ -732,6 +756,11 @@ def detect_events(db, d, state):
         add_event(db, "info", "supply", "supply", f"Added to supply: {name}")
     for name in sorted(set(prev["garages"]) - set(cur["garages"])):
         add_event(db, "info", "supply", "supply", f"Removed from supply: {name}")
+    for ip, since in cur["blocked"].items():
+        if prev.get("blocked", {}).get(ip) != since:
+            b = next(x for x in d["guard"]["active"] if x["ip"] == ip)
+            add_event(db, "warning", "guard", "traffic", f"Blocked {ip} for {'7 days (repeated)' if b.get('repeat') else '24 h'}: "
+                                                         f"{b['count']} {b['reason']} within 2 min")
     keys, before = cur["setup_keys"], prev.get("setup_keys")
     if keys is not None and before is not None and keys > before:
         add_event(db, "warning", "mesh", "mesh", f"NetBird setup key created ({keys} valid)")
@@ -864,6 +893,10 @@ def daily_report(d):
              f"Last 24 h: {req:,} requests, {failed} failed, {tokens / 1e6:.1f}M tokens, ${spend:.2f}",
              f"First token p95 (worst model): {p95} s",
              f"Backup: {d['backup'].get('age_hours', '?')} h old · disk {d['host']['disk_used_pct']} %"]
+    blocked = [b for b in (d.get("guard") or {}).get("recent", [])
+               if datetime.fromisoformat(b["since"]) > now() - timedelta(hours=24)]
+    if blocked:
+        lines.append(f"Blocked clients, last 24 h: {len(blocked)} ({html(', '.join(b['ip'] for b in blocked[:5]))})")
     if updates:
         lines.append(f"Updates available: {html(', '.join(updates))}")
     lines.append(f'<a href="{OPS_URL}/">Operations Center</a>')
@@ -984,6 +1017,7 @@ def main():
         "traffic": traffic(),
         "errors_last_hour": gateway_log_counts(),
         "outside": outside(),
+        "guard": guard(),
     }
     data["versions"] = versions(env, state, data["containers"])
     data["source"] = source(state)
