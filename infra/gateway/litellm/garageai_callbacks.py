@@ -22,6 +22,12 @@
    model_id:<garage>__<runtime model>__<tier>;response_id:...", which tells a buyer which
    garage served them. Anthropic messages are not chained by id, so we replace it with a
    neutral "msg_" id derived from it (stable for the same response, reveals nothing).
+
+5. System messages first, and only one. Many open models' chat templates (Qwen, among others)
+   reject a system message anywhere but first ("System message must be at the beginning"),
+   and some reject two. Agents send them later in a conversation (reminders, mode changes).
+   When the order is irregular, every system/developer message is merged, in order, into a
+   single system message at the start. A request that is already regular is not touched.
 """
 import asyncio
 import hashlib
@@ -112,6 +118,35 @@ class ContextLengthExceeded(ProxyException):
         return error
 
 
+SYSTEM_ROLES = ("system", "developer")
+
+
+def _merge_contents(contents):
+    """Join message contents: plain text stays text; if any part is a list, keep the parts."""
+    if all(c is None or isinstance(c, str) for c in contents):
+        return "\n\n".join(c for c in contents if c)
+    parts = []
+    for c in contents:
+        if isinstance(c, str) and c:
+            parts.append({"type": "text", "text": c})
+        elif isinstance(c, list):
+            parts.extend(c)
+    return parts
+
+
+def hoist_system_messages(messages):
+    """The messages with every system/developer message merged into one, first; None if they
+    are already regular (no such message, or exactly one and it is first)."""
+    if not isinstance(messages, list):
+        return None
+    idx = [i for i, m in enumerate(messages) if isinstance(m, dict) and m.get("role") in SYSTEM_ROLES]
+    if not idx or idx == [0]:
+        return None
+    moved = set(idx)
+    merged = {"role": "system", "content": _merge_contents([messages[i].get("content") for i in idx])}
+    return [merged] + [m for i, m in enumerate(messages) if i not in moved]
+
+
 def _is_anthropic(call_type=None, request_data=None):
     if call_type == "anthropic_messages":
         return True
@@ -123,6 +158,11 @@ class GarageAICallbacks(CustomLogger):
     async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
         if data.get("tools"):
             _add_missing_items(data["tools"])
+        hoisted = hoist_system_messages(data.get("messages"))
+        if hoisted is not None:
+            moved = len(data["messages"]) - len(hoisted) + 1
+            print(f"garageai: merged {moved} system message(s) into one at the start model={data.get('model')}", flush=True)
+            data["messages"] = hoisted
         if any(part in str(call_type) for part in SKIPPED_CALLS):
             return data
         window = _window(data.get("model"))
