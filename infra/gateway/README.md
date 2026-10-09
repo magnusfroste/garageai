@@ -287,6 +287,32 @@ classes; the portal and site seen from outside; and a list of current alerts.
   with the user Traefik passes in `X-Ops-User`; signing out makes the browser forget the
   basic-auth credentials.
 
+### History and events
+
+The collector keeps history in `/var/lib/garageai-ops/history.db` (SQLite):
+- **Samples:** one per minute for the host and every garage, kept for 30 days.
+- **Events:** kept for 180 days. Logged automatically:
+  - alerts opened and resolved, with how long they lasted,
+  - gateway reboots and container restarts,
+  - version changes and files deployed on the gateway,
+  - merges to `main`,
+  - new or removed NetBird peers and garages,
+  - new setup keys.
+
+Every 5 minutes it writes `history.json` for the page. Traffic history comes straight from
+LiteLLM's spend logs (30 days).
+
+The page shows:
+- **Traffic:** requests and time to first token per hour. Single spikes are clipped and marked.
+- **Supply:** uptime per garage and hour, and vLLM load.
+- **Server:** memory, disk and load.
+- **Events:** the timeline.
+
+Add a note, for example for a maintenance window:
+```bash
+sudo garageai-ops-collect --note "Maintenance: LiteLLM upgrade"
+```
+
 ### Telegram alerts
 
 The collector sends alerts to one Telegram chat. It is one-way: the bot only sends, and never
