@@ -24,7 +24,7 @@
 #       [--name NODE_NAME] [--runtime-api-key KEY] [--register-url URL --register-token TOKEN] \
 #       [--models MODEL[,MODEL...]] [--skip-install] [--no-heartbeat] [--yes]
 #   ./garageai-connect.sh --doctor       check this garage and say exactly what to fix
-#   ./garageai-connect.sh --uninstall    remove the heartbeat, the Ollama login item and leave the mesh
+#   ./garageai-connect.sh --uninstall    remove the heartbeat, the Ollama login item, the firewall rule and leave the mesh
 #   ./garageai-connect.sh --remove-heartbeat
 #
 # --runtime-api-key is for runtimes started with an API key (e.g. vLLM --api-key). It is
@@ -402,6 +402,79 @@ PLIST
   launchctl setenv OLLAMA_CONTEXT_LENGTH "$ctx"
 }
 
+# Linux: the runtime listens on 0.0.0.0 so the mesh can reach it, which also opens it to every
+# device on the home network (and to the internet if the router forwards the port). This rule
+# drops the runtime port on the interface that carries the default route; the mesh (wt0),
+# this machine (lo) and Docker networks are unaffected. A oneshot unit re-applies it at boot.
+FW_BIN=/usr/local/sbin/garageai-firewall
+FW_UNIT=/etc/systemd/system/garageai-firewall.service
+
+firewall_supported() {
+  [ "$(uname -s)" = Linux ] && command -v iptables >/dev/null 2>&1 && command -v systemctl >/dev/null 2>&1
+}
+
+install_linux_firewall() {
+  {
+    printf '#!/bin/sh\n'
+    printf '# Installed by garageai-connect.sh. Usage: garageai-firewall [apply|remove]\n'
+    printf '# Drops TCP port %s (the inference runtime) on the default-route interface, for the host\n' "$PORT"
+    printf '# and for Docker-published ports. The NetBird mesh (wt0), lo and Docker networks stay open.\n'
+    printf 'PORT=%s\n' "$PORT"
+    cat <<'FWBODY'
+DEV=$(ip route show default 2>/dev/null | awk '{for (i = 1; i < NF; i++) if ($i == "dev") {print $(i + 1); exit}}')
+[ -n "$DEV" ] || exit 0
+for ipt in iptables ip6tables; do
+  command -v "$ipt" >/dev/null 2>&1 || continue
+  while "$ipt" -D INPUT -i "$DEV" -p tcp --dport "$PORT" -m comment --comment garageai -j DROP 2>/dev/null; do :; done
+  docker_chain=0
+  "$ipt" -L DOCKER-USER -n >/dev/null 2>&1 && docker_chain=1
+  if [ "$docker_chain" = 1 ]; then
+    while "$ipt" -D DOCKER-USER -i "$DEV" -p tcp -m conntrack --ctorigdstport "$PORT" -m comment --comment garageai -j DROP 2>/dev/null; do :; done
+  fi
+  [ "${1:-apply}" = remove ] && continue
+  "$ipt" -I INPUT -i "$DEV" -p tcp --dport "$PORT" -m comment --comment garageai -j DROP
+  if [ "$docker_chain" = 1 ]; then
+    "$ipt" -I DOCKER-USER -i "$DEV" -p tcp -m conntrack --ctorigdstport "$PORT" -m comment --comment garageai -j DROP
+  fi
+done
+exit 0
+FWBODY
+  } | as_root tee "$FW_BIN" >/dev/null
+  as_root chmod 0755 "$FW_BIN"
+  as_root tee "$FW_UNIT" >/dev/null <<FWUNIT
+[Unit]
+Description=GarageAI: keep the inference runtime port off the local network
+After=network-online.target docker.service netbird.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=${FW_BIN} apply
+ExecStop=${FW_BIN} remove
+
+[Install]
+WantedBy=multi-user.target
+FWUNIT
+  as_root systemctl daemon-reload
+  as_root systemctl enable garageai-firewall.service >/dev/null 2>&1
+  as_root systemctl restart garageai-firewall.service
+}
+
+remove_linux_firewall() {
+  [ -e "$FW_UNIT" ] || [ -e "$FW_BIN" ] || return 1
+  as_root systemctl disable --now garageai-firewall.service >/dev/null 2>&1 || true
+  if [ -x "$FW_BIN" ]; then as_root "$FW_BIN" remove; fi
+  as_root rm -f "$FW_UNIT" "$FW_BIN"
+  as_root systemctl daemon-reload
+  return 0
+}
+
+firewall_active() {
+  # 0 when a garageai rule for the runtime port is in place (reading the rules needs root).
+  as_root iptables -S INPUT 2>/dev/null | grep -q -- "--dport ${PORT} .*garageai"
+}
+
 OLLAMA_DROPIN=/etc/systemd/system/ollama.service.d/garageai-context.conf
 install_ollama_systemd_context() {
   # Linux with Ollama's systemd service: a drop-in that sets the context window, then restart.
@@ -521,6 +594,9 @@ if [ "$UNINSTALL" -eq 1 ]; then
     launchctl unsetenv OLLAMA_HOST 2>/dev/null || true
     launchctl unsetenv OLLAMA_CONTEXT_LENGTH 2>/dev/null || true
     ok "Ollama login item removed (restart Ollama to listen on localhost only again)"
+  fi
+  if [ "$(uname -s)" = Linux ] && remove_linux_firewall; then
+    ok "Firewall rule removed (the runtime port is reachable from the local network again)"
   fi
   if command -v netbird >/dev/null 2>&1; then
     as_root netbird down >/dev/null 2>&1 || true
@@ -714,6 +790,27 @@ if [ "$RUNTIME" = ollama ]; then
   fi
 fi
 echo
+
+# Keep the runtime port off the local network (Linux). The mesh, this machine and Docker
+# networks keep their access; the acceptance test in the next step proves the mesh path.
+if firewall_supported && [ "${GARAGEAI_FIREWALL:-1}" != 0 ]; then
+  if [ -e "$FW_UNIT" ] && grep -qx "PORT=${PORT}" "$FW_BIN" 2>/dev/null; then
+    as_root systemctl restart garageai-firewall.service && ok "Firewall: port ${PORT} is closed to the local network (already set up)"
+  else
+    info "Port ${PORT} is open to every device on your local network (and to the internet if your router"
+    info "  forwards it). GarageAI only needs it over the mesh."
+    if confirm "Close port ${PORT} to the local network (the mesh, this machine and Docker keep access)?"; then
+      install_linux_firewall
+      if firewall_active; then ok "Firewall: port ${PORT} is now closed to the local network (undo: --uninstall)"
+      else warn "Could not confirm the firewall rule; check 'sudo iptables -S INPUT'."; fi
+      http_models 127.0.0.1 >/dev/null 2>&1 ||
+        warn "The runtime no longer answers on 127.0.0.1:${PORT}; run 'sudo ${FW_BIN} remove' and tell us."
+    else
+      info "  Left open. Devices on your network can use ${RUNTIME}; run this script again to close it later."
+    fi
+  fi
+  echo
+fi
 
 # 5. Register
 bold "5/6  Register with GarageAI"
