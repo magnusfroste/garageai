@@ -381,6 +381,8 @@ def alerts(d):
     for c in d["containers"]:
         if c["state"] != "running":
             add("critical", f"Container {c['name']} is {c['state']}")
+        if str(c.get("image", "")).endswith(":latest"):
+            add("warning", f"Container {c['name']} runs an unpinned image ({c['image']}); a restart may upgrade it")
     for t in d["timers"]:
         if t["active"] != "active":
             add("critical", f"{t['unit']} is {t['active']}")
