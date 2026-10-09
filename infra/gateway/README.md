@@ -254,6 +254,25 @@ The portal uses levels 1 and 2 to delist and relist within a minute without any 
 needs only the stored runtime key and the garage's offered models. Level 3 sets the grade and
 removes a model only after repeated real failures.
 
+## Operations Center
+
+`ops/` is a read-only dashboard for running the platform, separate from the portal's admin
+(which handles garages, models, money and keys). It shows the gateway host, containers,
+timers, backups and certificates; the NetBird mesh (each peer's link from the gateway,
+setup keys, policies); every garage and provider (tunnel, runtime, uptime, vLLM load,
+provider DNS and TLS); gateway traffic per model (TTFT p50/p95, tokens, spend) and error
+classes; the portal and site seen from outside; and a list of current alerts.
+
+- `garageai-ops-collect` (installed to `/usr/local/bin`, run every minute by
+  `garageai-ops.timer`) writes `/var/lib/garageai-ops/www/ops.json`. It reads the health
+  service's config and output, NetBird, Docker and LiteLLM's database. The file holds no
+  keys, tokens or prompts.
+- `ops/docker-compose.yml` serves the page with nginx behind Traefik at
+  `https://ops.garageai.eu` (DNS A record to the gateway, grey cloud), with basic auth and
+  a rate limit. The password is generated on the server into `/etc/garageai/ops-password`
+  (root, 0600); read it once over SSH and keep it in a password manager. The hash lives in
+  `/opt/garageai/ops/.env`.
+
 ## Backups
 
 `backup/garageai-backup` (installed to `/usr/local/sbin`, run nightly by `garageai-backup.timer`)

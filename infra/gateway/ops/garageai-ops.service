@@ -1,0 +1,8 @@
+[Unit]
+Description=GarageAI Operations Center collector
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/garageai-ops-collect
+Nice=10
