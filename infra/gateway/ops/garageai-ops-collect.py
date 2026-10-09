@@ -367,8 +367,8 @@ def traffic():
       select coalesce(nullif(split_part(model_id, '__', 1), ''), '?') garage, model_group, count(*),
              count(*) filter (where status <> 'success'),
              coalesce(sum(prompt_tokens),0), coalesce(sum(completion_tokens),0), round(coalesce(sum(spend),0)::numeric,4),
-             round((percentile_cont(0.5) within group (order by extract(epoch from ("completionStartTime"-"startTime"))))::numeric, 2),
-             round((percentile_cont(0.95) within group (order by extract(epoch from ("completionStartTime"-"startTime"))))::numeric, 2),
+             round((percentile_cont(0.5) within group (order by extract(epoch from ("completionStartTime"-"startTime"))) filter (where "completionStartTime" < "endTime"))::numeric, 2),
+             round((percentile_cont(0.95) within group (order by extract(epoch from ("completionStartTime"-"startTime"))) filter (where "completionStartTime" < "endTime"))::numeric, 2),
              round(avg(prompt_tokens)::numeric, 0)
       from "LiteLLM_SpendLogs"
       where "startTime" > now() - interval '{iv}' and model_group not like 'probe/%' and model_group not like 'garage-probe%'
@@ -755,7 +755,8 @@ def quality():
     base = """
       with s as (
         select coalesce(nullif(split_part(model_id, '__', 1), ''), '?') g, "startTime" st, status,
-               extract(epoch from ("completionStartTime" - "startTime")) ttft,
+               -- LiteLLM sets completionStartTime = endTime when a reply is not streamed: no first token to time
+               case when "completionStartTime" < "endTime" then extract(epoch from ("completionStartTime" - "startTime")) end ttft,
                case when completion_tokens >= 20 and "endTime" > "completionStartTime"
                     then completion_tokens / extract(epoch from ("endTime" - "completionStartTime")) end tps
         from "LiteLLM_SpendLogs"
@@ -923,8 +924,8 @@ def traffic_hourly():
       from "LiteLLM_SpendLogs" where "startTime" > now() - interval '7 days' and {probes} group by 1, 2""")
     latency = psql(f"""
       select extract(epoch from date_trunc('hour', "startTime"))::bigint,
-             round((percentile_cont(0.5) within group (order by extract(epoch from ("completionStartTime" - "startTime"))))::numeric, 2),
-             round((percentile_cont(0.95) within group (order by extract(epoch from ("completionStartTime" - "startTime"))))::numeric, 2)
+             round((percentile_cont(0.5) within group (order by extract(epoch from ("completionStartTime" - "startTime"))) filter (where "completionStartTime" < "endTime"))::numeric, 2),
+             round((percentile_cont(0.95) within group (order by extract(epoch from ("completionStartTime" - "startTime"))) filter (where "completionStartTime" < "endTime"))::numeric, 2)
       from "LiteLLM_SpendLogs" where "startTime" > now() - interval '7 days' and {probes} and status = 'success' group by 1""")
     hour = int(time.time() // 3600 * 3600)
     rows = {h: {"t": h, "requests": 0, "failed": 0, "tok_in": 0, "tok_out": 0, "spend": 0.0, "p50": None, "p95": None, "garages": {}}
