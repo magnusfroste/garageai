@@ -70,6 +70,9 @@ HISTORY_DB = "/var/lib/garageai-ops/history.db"
 SAMPLE_DAYS = 30
 EVENT_DAYS = 180
 HISTORY_EVERY = 300           # seconds between history.json writes
+LITELLM_URL = "https://llm.garageai.eu"
+CONTEXT_EVERY = 600           # seconds between reading each runtime's /v1/models for context windows
+QUEUE_ALERT_MINUTES = 5       # a vLLM garage with requests waiting this long in a row is full
 TELEGRAM_ENV = "/etc/garageai/telegram.env"
 # Minutes in a row an alert must be present before it is sent: short blips stay quiet, and a
 # deploy that briefly differs from main does not page anyone. Info alerts are never sent.
@@ -318,7 +321,8 @@ def garages(env, state, targets):
         h = by_name.get(name, {})
         up = bool(h.get("runtime_ok")) and (h.get("mesh_connected") is not False)
         series = hist.setdefault(name, [])
-        if not series or series[-1][0] != minute:
+        onboarding = not t.get("endpoint") and not (t.get("host") and t.get("port"))
+        if not onboarding and (not series or series[-1][0] != minute):   # onboarding is not downtime
             series.append([minute, 1 if up else 0])
         hist[name] = series[-HISTORY_MINUTES:]
         last60 = [s[1] for s in hist[name] if s[0] > minute - 60]
@@ -341,6 +345,9 @@ def garages(env, state, targets):
             providers.append(name)
         elif t.get("host") and t.get("port"):
             row["vllm"] = vllm_metrics(t["host"], t["port"], t.get("runtime_api_key"), state, name)
+            streaks = state.setdefault("queue_streak", {})
+            streaks[name] = streaks.get(name, 0) + 1 if (row["vllm"] or {}).get("waiting") else 0
+            row["queue_minutes"] = streaks[name]
         rows.append(row)
     for name in list(hist):
         if name not in {t.get("garage") for t in targets or []}:
@@ -610,6 +617,23 @@ def alerts(d):
         tls = p.get("tls") or {}
         if tls.get("days_left") is not None and tls["days_left"] < 14:
             add("warning", f"Provider {g['garage']}: TLS certificate expires in {tls['days_left']} days", "supply")
+    md = d.get("models") or {}
+    if md.get("error"):
+        add("warning", md["error"], "models")
+    seen = {}
+    for r in md.get("deployments", []):
+        for c in r["checks"]:
+            if c["level"] == "info":
+                continue
+            seen.setdefault((r["public"], r["garage"], c["level"], c["text"]), []).append(r["tier"])
+    for (public, garage, level, text), tiers in seen.items():
+        add(level, f"{public} on {garage} ({'/'.join(sorted(set(tiers)))}): {text}", "models")
+    for g in d["garages"]:
+        if (g.get("queue_minutes") or 0) >= QUEUE_ALERT_MINUTES:
+            add("warning", f"{g['garage']} has had requests waiting for {g['queue_minutes']} min: the garage is full", "supply")
+    for g, q in (d.get("quality_24h") or {}).items():
+        if (q.get("requests") or 0) >= 20 and q.get("success_pct") is not None and q["success_pct"] < 90:
+            add("warning", f"{g}: only {q['success_pct']} % of {q['requests']} requests succeeded in the last 24 h", "supply")
     for v in d.get("versions", []):
         if v.get("update"):
             add("info", f"Update available: {v['component']} {v['running']} -> {v['latest']}", "updates")
@@ -646,6 +670,114 @@ def alerts(d):
     return sorted(a, key=lambda x: order[x["level"]])
 
 
+# ---------------------------------------------------------------- models: the sellable catalogue, checked
+def runtime_contexts(t, state, served):
+    """{runtime model id: context window} read from the runtime itself. The gateway is on the mesh, so it
+    can ask a garage directly, which the portal (outside the mesh) cannot. Cached; re-read when the
+    runtime's model list changes."""
+    cache = state.setdefault("contexts", {})
+    name = t.get("garage")
+    entry = cache.get(name)
+    sig = ",".join(sorted(served or []))
+    if entry and entry.get("sig") == sig and time.time() - entry["at"] < CONTEXT_EVERY:
+        return entry["value"]
+    key = t.get("runtime_api_key")
+    hdr = {"Authorization": f"Bearer {key}"} if key else {}
+    url = f"{t['url'].rstrip('/')}/models" if t.get("endpoint") and t.get("url") else (
+          f"http://{t['host']}:{t['port']}/v1/models" if t.get("host") and t.get("port") else None)
+    value = {}
+    if url:
+        code, body, _ = http(url, hdr, timeout=8)
+        if code == 200:
+            try:
+                for m in json.loads(body).get("data", []):
+                    n = m.get("max_model_len") or m.get("context_length") or m.get("context_window") or (m.get("meta") or {}).get("n_ctx_train")
+                    if isinstance(m.get("id"), str) and isinstance(n, (int, float)) and n > 0:
+                        value[m["id"]] = int(n)
+            except ValueError:
+                pass
+        elif entry:
+            value = entry["value"]
+    cache[name] = {"at": time.time(), "sig": sig, "value": value}
+    return value
+
+
+def models(env, state, targets):
+    """Every LiteLLM deployment with what buyers get (public name, tier, price, context, output cap)
+    and checks that it is consistent with the garage behind it."""
+    key = env.get("GARAGEAI_GATEWAY_KEY", "")
+    code, body, _ = http(f"{LITELLM_URL}/v1/model/info", {"Authorization": f"Bearer {key}"}, timeout=15)
+    if code != 200:
+        return {"error": f"LiteLLM /v1/model/info answered {code}"}
+    health = {r.get("garage"): r for r in read_json(HEALTH_LAST, {}).get("results", [])}
+    by_garage = {t.get("garage"): t for t in targets or []}
+    contexts = {g: runtime_contexts(t, state, (health.get(g) or {}).get("models")) for g, t in by_garage.items()}
+    rows, probes = [], 0
+    for dep in json.loads(body).get("data", []):
+        mi, lp = dep.get("model_info") or {}, dep.get("litellm_params") or {}
+        public = dep.get("model_name", "")
+        if public.startswith("probe/") or public.startswith("garage-probe") or (mi.get("garage_tier") == "probe"):
+            probes += 1
+            continue
+        garage = mi.get("garage") or "?"
+        runtime_model = str(lp.get("model", "")).split("/", 1)[-1]
+        cin = mi.get("input_cost_per_token", lp.get("input_cost_per_token"))
+        cout = mi.get("output_cost_per_token", lp.get("output_cost_per_token"))
+        served = (health.get(garage) or {}).get("models")
+        rctx = (contexts.get(garage) or {}).get(runtime_model)
+        max_in, max_out = mi.get("max_input_tokens"), mi.get("max_output_tokens")
+        checks = []
+        if not max_in:
+            checks.append(("warning", "no context window: the gateway cannot reject over-long prompts"))
+        elif rctx and max_in > rctx:
+            checks.append(("warning", f"gateway allows {int(max_in):,} tokens, the runtime only {rctx:,}"))
+        elif rctx and max_in < rctx * 0.5:
+            checks.append(("info", f"gateway limits to {int(max_in):,} tokens, the runtime has {rctx:,}"))
+        if not max_out:
+            checks.append(("info", "no output cap"))
+        if served is not None and runtime_model not in served:
+            checks.append(("warning", f"routed to {runtime_model}, which the runtime does not serve now"))
+        if not cin or not cout:
+            checks.append(("warning", "no price: requests are free"))
+        rows.append({"public": public, "garage": garage, "tier": mi.get("garage_tier") or str(mi.get("id", "")).rsplit("__", 1)[-1],
+                     "runtime_model": runtime_model, "context": int(max_in) if max_in else None, "runtime_context": rctx,
+                     "max_output": int(max_out) if max_out else None,
+                     "price_in": round(cin * 1e6, 4) if cin else None, "price_out": round(cout * 1e6, 4) if cout else None,
+                     "up": bool((health.get(garage) or {}).get("runtime_ok")),
+                     "checks": [{"level": l, "text": x} for l, x in checks]})
+    rows.sort(key=lambda r: (r["public"], r["tier"], r["garage"]))
+    return {"deployments": rows, "public_models": len({r["public"] for r in rows}), "probes": probes}
+
+
+def quality():
+    """Per garage: last 24 h and each of the last 7 days. Success rate, time to first token and
+    output speed (tokens per second after the first token) from LiteLLM's spend logs."""
+    base = """
+      with s as (
+        select coalesce(nullif(split_part(model_id, '__', 1), ''), '?') g, "startTime" st, status,
+               extract(epoch from ("completionStartTime" - "startTime")) ttft,
+               case when completion_tokens >= 20 and "endTime" > "completionStartTime"
+                    then completion_tokens / extract(epoch from ("endTime" - "completionStartTime")) end tps
+        from "LiteLLM_SpendLogs"
+        where "startTime" > now() - interval '{iv}' and model_group not like 'probe/%' and model_group not like 'garage-probe%'
+          and call_type not like '/%')
+      select g, {bucket}, count(*), count(*) filter (where status = 'success'),
+             round((percentile_cont(0.5) within group (order by ttft) filter (where status = 'success'))::numeric, 2),
+             round((percentile_cont(0.95) within group (order by ttft) filter (where status = 'success'))::numeric, 2),
+             round((percentile_cont(0.5) within group (order by tps) filter (where status = 'success'))::numeric, 1)
+      from s where g <> '?' group by 1, 2 order by 2"""
+    num = lambda x: float(x) if x not in (None, "") else None
+    def row(n, ok, p50, p95, tps):
+        n, ok = int(n), int(ok)
+        return {"requests": n, "success_pct": round(100 * ok / n, 1) if n else None,
+                "ttft_p50": num(p50), "ttft_p95": num(p95), "tps_p50": num(tps)}
+    out = {}
+    for g, day, *vals in psql(base.format(iv="7 days", bucket="to_char(date_trunc('day', st), 'YYYY-MM-DD')")):
+        out.setdefault(g, {"days": [], "last_24h": None})["days"].append({"day": day, **row(*vals)})
+    for g, _, *vals in psql(base.format(iv="24 hours", bucket="'24h'")):
+        out.setdefault(g, {"days": [], "last_24h": None})["last_24h"] = row(*vals)
+    return out
+
 # ---------------------------------------------------------------- history and events
 def db_open():
     db = sqlite3.connect(HISTORY_DB, timeout=10)
@@ -674,6 +806,8 @@ def record_samples(db, d, state):
                (ts, mem, h["disk_used_pct"], h["load"][0],
                 sum(a["level"] == "critical" for a in d["alerts"]), sum(a["level"] == "warning" for a in d["alerts"])))
     for g in d["garages"]:
+        if g.get("onboarding"):
+            continue
         v = g.get("vllm") or {}
         db.execute("insert or replace into garage_samples values (?, ?, ?, ?, ?, ?, ?)",
                    (ts, g["garage"], 1 if g["runtime_ok"] and g["mesh"] is not False else 0,
@@ -826,9 +960,11 @@ def write_history(db, state):
                                                  round(avg(kv_pct), 1), round(avg(gen_tok_s), 1)
                                                  from garage_samples where ts >= ? and running is not null group by 1, 2 order by 2""", (week,)):
         load.setdefault(g, []).append([b, run, wait, kv, gen])
+    q = quality()
+    state["quality"] = q
     out = {"generated_at": now().isoformat(timespec="seconds"), "host": host, "uptime_hourly": uptime,
            "uptime_daily": daily, "garage_load": load, "traffic_hourly": traffic_hourly(),
-           "events": recent_events(db, 1000, since=month)}
+           "events": recent_events(db, 1000, since=month), "quality": q}
     tmp = path + ".tmp"
     with open(tmp, "w") as f:
         json.dump(out, f, separators=(",", ":"))
@@ -1026,6 +1162,8 @@ def main():
         "outside": outside(),
         "guard": guard(),
     }
+    data["models"] = models(env, state, targets)
+    data["quality_24h"] = {g: q["last_24h"] for g, q in (state.get("quality") or {}).items() if q.get("last_24h")}
     data["versions"] = versions(env, state, data["containers"])
     data["source"] = source(state)
     data["logs"] = logs(data["containers"])

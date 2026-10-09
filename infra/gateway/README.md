@@ -287,6 +287,25 @@ classes; the portal and site seen from outside; and a list of current alerts.
   with the user Traefik passes in `X-Ops-User`; signing out makes the browser forget the
   basic-auth credentials.
 
+### Models and quality
+
+The *Models* page lists every LiteLLM deployment buyers can call: public name, tier (pool or dedicated), garage, runtime model, the context window and output cap the gateway enforces, and the price. Each deployment is checked against its garage. The gateway is on the mesh, so it reads each runtime's own `/v1/models` every 10 minutes, which the portal cannot do. It alerts on:
+- no context window (the gateway cannot reject over-long prompts),
+- a gateway window larger than the runtime's,
+- a routed model the runtime no longer serves,
+- no price.
+
+*Supply* gets *Quality per garage* from LiteLLM's spend logs (probes excluded), for the last 24 h and as 7-day sparklines:
+- success rate,
+- time to first token (p50, p95),
+- output speed: tokens per second after the first token, median over replies of 20+ tokens.
+
+Further alerts:
+- below 90 % success over at least 20 requests,
+- a vLLM garage with requests waiting 5 minutes in a row, meaning the garage is full.
+
+A garage that is still onboarding does not count as downtime.
+
 ### History and events
 
 The collector keeps history in `/var/lib/garageai-ops/history.db` (SQLite):

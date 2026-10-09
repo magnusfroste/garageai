@@ -182,6 +182,7 @@
   <symbol id="i-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
   <symbol id="i-money" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .8-3 2s1.3 1.7 3 2 3 .8 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6v2M12 16v2"/></symbol>
   <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-models" viewBox="0 0 24 24"><path d="M12 3 3 7.5 12 12l9-4.5z"/><path d="m3 12 9 4.5 9-4.5M3 16.5 12 21l9-4.5"/></symbol>
   <symbol id="i-events" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
 </svg>
@@ -236,9 +237,16 @@
         <div id="alerts-supply"></div>
         <div class="card"><h2>Garages and providers</h2><div id="garages"></div>
           <div class="note">Garages are checked over the NetBird mesh, providers over public HTTPS. Uptime comes from the health check every minute.</div></div>
+        <div class="card"><h2>Quality per garage</h2><div class="sub">Real traffic, probes excluded. Output speed is tokens per second after the first token (median, replies of 20+ tokens).</div><div id="quality"></div></div>
         <div class="card"><h2>Uptime per hour, last 7 days</h2><div id="ch-uptime"></div></div>
         <div class="card"><h2>Requests running on vLLM garages</h2><div class="sub">Average per 15 minutes, last 7 days.</div><div class="chart" id="ch-gload"></div></div>
         <div class="card"><h2>Supply events, last 30 days</h2><div id="supply-events"></div></div>
+      </section>
+
+      <section class="page" data-page="models">
+        <div id="alerts-models"></div>
+        <div class="card"><h2>Catalogue</h2><div class="sub" id="models-sub"></div><div id="models"></div>
+          <div class="note">Context and output cap are what the gateway enforces. "Runtime" is the window the garage's runtime reports, read by the gateway over the mesh every 10 minutes. Prices are per million tokens.</div></div>
       </section>
 
       <section class="page" data-page="traffic">
@@ -301,6 +309,7 @@ const PAGES = [
   { id: "events", title: "Events", icon: "events", sub: "Timeline: alerts, deploys, restarts, merges and notes" },
   { group: "Platform" },
   { id: "supply", title: "Supply", icon: "supply", sub: "Garages and providers: tunnel, runtime, uptime, load" },
+  { id: "models", title: "Models", icon: "models", sub: "What buyers can call: public names, garages, prices, context windows, checked against the runtimes" },
   { id: "traffic", title: "Traffic", icon: "traffic", sub: "Requests, tokens, latency and gateway errors" },
   { group: "Infrastructure" },
   { id: "mesh", title: "Mesh", icon: "mesh", sub: "NetBird: gateway peer, garages and access policies" },
@@ -442,7 +451,26 @@ function renderDashboard(d) {
 
 /* ---------- pages */
 function renderPages(d) {
-  ["supply", "traffic", "mesh", "server", "updates", "logs"].forEach(p => pageAlerts(p, d.alerts));
+  ["supply", "models", "traffic", "mesh", "server", "updates", "logs"].forEach(p => pageAlerts(p, d.alerts));
+
+  const md = d.models || {}, deps = md.deployments || [];
+  $("models-sub").textContent = md.error ? md.error : `${md.public_models} public names, ${deps.length} deployments${md.probes ? `, ${md.probes} probes not shown` : ""}`;
+  const ctxCell = r => {
+    if (!r.context) return pill("warning", "none");
+    const k = n => n >= 1048576 ? (n / 1048576).toFixed(n % 1048576 ? 1 : 0) + "M" : Math.round(n / 1024) + "k";
+    const mismatch = r.runtime_context && r.context > r.runtime_context;
+    return `<span class="${mismatch ? "warning" : ""}">${k(r.context)}</span>${r.runtime_context ? `<div class="small">runtime ${k(r.runtime_context)}</div>` : ""}`;
+  };
+  $("models").innerHTML = table([
+    ["Public name", r => `${dot(r.checks.some(c => c.level === "warning") ? "warning" : r.up ? "ok" : "critical")}<code>${esc(r.public)}</code>`],
+    ["Tier", r => pill("muted", esc(r.tier))],
+    ["Garage", r => esc(r.garage)],
+    ["Runtime model", r => `<code class="small">${esc(r.runtime_model)}</code>`],
+    ["Context", ctxCell, "num"],
+    ["Max out", r => r.max_output ? short(r.max_output) : "—", "num"],
+    ["In / out $/M", r => r.price_in == null || r.price_out == null ? pill("warning", "no price") : `${r.price_in} / ${r.price_out}`, "num"],
+    ["Checks", r => r.checks.length ? r.checks.map(c => `<div class="${c.level}">${esc(c.text)}</div>`).join("") : '<span class="ok">ok</span>'],
+  ], deps);
 
   $("garages").innerHTML = table([
     ["Name", g => `${dot(g.onboarding ? "info" : g.runtime_ok && g.mesh !== false ? "ok" : "critical")}<b>${esc(g.garage)}</b>`],
@@ -453,7 +481,7 @@ function renderPages(d) {
     ["Models", g => g.models, "num"],
     ["Up 1 h", g => g.up_1h_pct == null ? "—" : `${g.up_1h_pct} %`, "num"],
     ["Up 24 h", g => g.up_24h_pct == null ? "—" : `${g.up_24h_pct} %<div class="small">${Math.round(g.minutes_tracked/60)} h tracked</div>`, "num"],
-    ["Load", g => g.vllm ? `${g.vllm.running} running, ${g.vllm.waiting} waiting<div class="small">KV cache ${g.vllm.kv_cache_pct} %${g.vllm.prompt_tok_s != null ? `, ${g.vllm.prompt_tok_s} in / ${g.vllm.gen_tok_s} out tok/s` : ""}</div>` : g.provider ? `<span class="small">${esc((g.provider.ips||[]).slice(0,2).join(", "))}${(g.provider.ips||[]).length > 2 ? ` +${g.provider.ips.length-2}` : ""}${g.provider.private_ip ? ' <span class="critical">private!</span>' : ""}</span>` : "—"],
+    ["Load", g => g.vllm ? `${g.vllm.running} running, <span class="${g.queue_minutes >= 5 ? "warning" : ""}">${g.vllm.waiting} waiting${g.queue_minutes >= 2 ? ` for ${g.queue_minutes} min` : ""}</span><div class="small">KV cache ${g.vllm.kv_cache_pct} %${g.vllm.prompt_tok_s != null ? `, ${g.vllm.prompt_tok_s} in / ${g.vllm.gen_tok_s} out tok/s` : ""}</div>` : g.provider ? `<span class="small">${esc((g.provider.ips||[]).slice(0,2).join(", "))}${(g.provider.ips||[]).length > 2 ? ` +${g.provider.ips.length-2}` : ""}${g.provider.private_ip ? ' <span class="critical">private!</span>' : ""}</span>` : "—"],
     ["TLS", g => g.provider && g.provider.tls ? `${g.provider.tls.days_left ?? "?"} d` : "—", "num"],
     ["Checked", g => ago(g.checked_at)],
   ], d.garages) + `<div class="note">Portal gateway-targets: ${d.portal.targets_status} in ${d.portal.targets_ms} ms, ${d.portal.garages_listed} listed.</div>`;
@@ -671,9 +699,26 @@ function renderHistory() {
     const gl = Object.entries(hist.garage_load || {});
     if (gl.length) { const [name, pts] = gl[0];
       chart($("ch-gload"), { series: gl.slice(0, 3).map(([n, p], k) => ({ name: n, color: [c1, c2, css("--series-3")][k], points: p.map(r => [r[0], r[1]]) })), step: 900,
-        fmtV: v => (+v).toFixed(1), extra: i => [[null, String(pts[i]?.[2] ?? "—"), " waiting (max)"], [null, (pts[i]?.[3] ?? "—") + " %", " KV cache"], [null, String(pts[i]?.[4] ?? "—"), " tok/s out"]] }); }
+        fmtV: v => (+v) < 1 ? (+v).toFixed(2) : (+v).toFixed(1), extra: i => [[null, String(pts[i]?.[2] ?? "—"), " waiting (max)"], [null, (pts[i]?.[3] ?? "—") + " %", " KV cache"], [null, String(pts[i]?.[4] ?? "—"), " tok/s out"]] }); }
     else $("ch-gload").innerHTML = '<div class="small">No vLLM garages with metrics.</div>';
     $("supply-events").innerHTML = eventList(allEvents().filter(e => e.page === "supply"));
+    const live = new Set((data?.garages || []).map(g => g.garage));
+    const qs = Object.entries(hist.quality || {}).filter(([g]) => live.has(g)).sort((a, b) => (b[1].last_24h?.requests || 0) - (a[1].last_24h?.requests || 0));
+    const days = []; for (let i = 6; i >= 0; i--) days.push(new Date(Date.now() - i * 86400000).toISOString().slice(0, 10));
+    const series = (q, k) => days.map((dd, i) => [i, (q.days.find(x => x.day === dd) || {})[k] ?? null]);
+    const sp = (q, k, max) => { const pts = series(q, k); return pts.filter(p => p[1] != null).length > 1 ? spark(pts, max) : '<span class="small">—</span>'; };
+    // Few requests say little: colour the success rate only from 20 requests up.
+    const sc = (v, n) => v == null || n < 20 ? "" : v >= 99 ? "ok" : v >= 90 ? "warning" : "critical";
+    $("quality").innerHTML = qs.length ? table([
+      ["Garage", ([g]) => esc(g)],
+      ["Requests 24 h", ([, q]) => fmt(q.last_24h?.requests ?? 0), "num"],
+      ["Success 24 h", ([, q]) => q.last_24h?.success_pct == null ? "—" : `<span class="${sc(q.last_24h.success_pct, q.last_24h.requests)}">${q.last_24h.success_pct} %</span>`, "num"],
+      ["First token p50 / p95", ([, q]) => q.last_24h ? `${q.last_24h.ttft_p50 ?? "—"} / ${q.last_24h.ttft_p95 ?? "—"} s` : "—", "num"],
+      ["Output tok/s", ([, q]) => q.last_24h?.tps_p50 ?? "—", "num"],
+      ["Success, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "success_pct", 100)}</div>`],
+      ["First token p95, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "ttft_p95")}</div>`],
+      ["Output tok/s, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "tps_p50")}</div>`],
+    ], qs) : '<div class="small">No traffic yet.</div>';
   }
   if (page === "server") {
     const h = hist.host;
