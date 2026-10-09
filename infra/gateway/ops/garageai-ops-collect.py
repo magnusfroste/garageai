@@ -221,7 +221,7 @@ def mesh(env):
         links = {}
     api = env.get("NETBIRD_API_URL", "").rstrip("/")
     token = env.get("NETBIRD_API_TOKEN", "")
-    peers, valid_keys, policies = [], None, []
+    peers, valid_keys, key_names, policies = [], None, [], []
     if api and token:
         hdr = {"Authorization": f"Token {token}", "Accept": "application/json"}
         code, body, _ = http(f"{api}/peers", hdr)
@@ -236,7 +236,8 @@ def mesh(env):
                 })
         code, body, _ = http(f"{api}/setup-keys", hdr)
         if code == 200:
-            valid_keys = sum(1 for k in json.loads(body) if k.get("valid") and not k.get("revoked"))
+            valid = [k for k in json.loads(body) if k.get("valid") and not k.get("revoked")]
+            valid_keys, key_names = len(valid), sorted(k.get("name", "?") for k in valid)
         code, body, _ = http(f"{api}/policies", hdr)
         if code == 200:
             for p in json.loads(body):
@@ -248,7 +249,7 @@ def mesh(env):
                     "ports": sorted({pt for r in rules for pt in r.get("ports") or []}),
                     "bidirectional": any(r.get("bidirectional") for r in rules),
                 })
-    return {"local": local, "peers": peers, "valid_setup_keys": valid_keys, "policies": policies}
+    return {"local": local, "peers": peers, "valid_setup_keys": valid_keys, "valid_setup_key_names": key_names, "policies": policies}
 
 
 # ---------------------------------------------------------------- garages and providers
@@ -323,6 +324,9 @@ def garages(env, state, targets):
         row = {
             "garage": name, "type": "provider" if t.get("endpoint") else "mesh",
             "mesh": h.get("mesh_connected"), "runtime_ok": h.get("runtime_ok"), "error": h.get("runtime_error"),
+            # Not registered yet: the operator is still onboarding (joined the mesh or not, no host and port in
+            # the portal). That is not an outage.
+            "onboarding": not t.get("endpoint") and not (t.get("host") and t.get("port")),
             "models": len(h.get("models") or []), "checked_at": h.get("checked_at"),
             "up_1h_pct": round(100 * sum(last60) / len(last60), 1) if last60 else None,
             "up_24h_pct": round(100 * sum(last24) / len(last24), 1) if last24 else None,
@@ -518,6 +522,7 @@ def alerts(d):
     # page: the Operations Center page the alert belongs to (supply, traffic, mesh, server, updates, logs).
     def add(level, text, page):
         a.append({"level": level, "text": text, "page": page})
+    onboarding = {g["garage"] for g in d["garages"] if g.get("onboarding")}
     h = d["host"]
     if h["disk_used_pct"] >= 90:
         add("critical", f"Disk {h['disk_used_pct']} % full", "server")
@@ -555,7 +560,13 @@ def alerts(d):
     if m["local"].get("management") is False or m["local"].get("signal") is False:
         add("critical", "The gateway's NetBird client is not connected to management/signal", "mesh")
     if m.get("valid_setup_keys"):
-        add("warning", f"{m['valid_setup_keys']} NetBird setup key(s) are still valid", "mesh")
+        # A key handed to an operator who is onboarding right now is expected; any other valid key is not.
+        names = m.get("valid_setup_key_names") or []
+        stray = [n for n in names if n not in onboarding] if names else None
+        if stray is None or stray:
+            add("warning", f"{m['valid_setup_keys']} NetBird setup key(s) are still valid", "mesh")
+        else:
+            add("info", f"Setup key waiting for onboarding: {', '.join(names)}", "mesh")
     for p in m.get("policies", []):
         if p["bidirectional"]:
             add("critical", f"NetBird policy {p['name']} is bidirectional: garages could reach the gateway", "mesh")
@@ -564,6 +575,9 @@ def alerts(d):
     if d["portal"]["targets_status"] != 200:
         add("critical", f"Portal gateway-targets answered {d['portal']['targets_status']}", "supply")
     for g in d["garages"]:
+        if g.get("onboarding"):
+            add("info", f"{g['garage']} is onboarding: {'joined the mesh, ' if g['mesh'] else ''}not registered with the portal yet", "supply")
+            continue
         if not g["runtime_ok"] or g["mesh"] is False:
             add("critical", f"{g['garage']}: {'tunnel down' if g['mesh'] is False else 'runtime not answering'}"
                             + (f" ({g['error']})" if g.get("error") else ""), "supply")
