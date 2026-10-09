@@ -3,7 +3,7 @@ section: "setups"
 order: 3
 title: "Pick Your Setup"
 subtitle: "Have a GPU but no runtime yet? Start here."
-description: "Most GPUs in garages were bought for games, design or work, not for serving AI. Tell us what you have and we suggest one runtime, a popular open model that fits, and three steps to go live. The connect script handles the rest, including a context window large enough for coding agents."
+description: "Most GPUs in garages were bought for games, design or work, not for serving AI. Tell us what you have and we suggest one runtime, a popular open model that fits, and three steps to go live. The connect script handles the rest, including setting the context window as large as your memory allows."
 setups:
   - id: "gaming-pc"
     icon: "🎮"
