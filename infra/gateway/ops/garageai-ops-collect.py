@@ -46,6 +46,7 @@ DEPLOYED = {
     "/usr/local/bin/garageai-ops-collect": "infra/gateway/ops/garageai-ops-collect.py",
     "/var/lib/garageai-ops/www/index.html": "infra/gateway/ops/index.html",
     "/opt/garageai/ops/docker-compose.yml": "infra/gateway/ops/docker-compose.yml",
+    "/opt/garageai/ops/nginx.conf": "infra/gateway/ops/nginx.conf",
 }
 LOG_ALERT_MB = 400
 
@@ -489,88 +490,89 @@ def logs(conts):
 # ---------------------------------------------------------------- alerts
 def alerts(d):
     a = []
-    def add(level, text):
-        a.append({"level": level, "text": text})
+    # page: the Operations Center page the alert belongs to (supply, traffic, mesh, server, updates, logs).
+    def add(level, text, page):
+        a.append({"level": level, "text": text, "page": page})
     h = d["host"]
     if h["disk_used_pct"] >= 90:
-        add("critical", f"Disk {h['disk_used_pct']} % full")
+        add("critical", f"Disk {h['disk_used_pct']} % full", "server")
     elif h["disk_used_pct"] >= 80:
-        add("warning", f"Disk {h['disk_used_pct']} % full")
+        add("warning", f"Disk {h['disk_used_pct']} % full", "server")
     if (h["mem_available_mb"] or 0) < 300:
-        add("warning", f"Only {h['mem_available_mb']} MB memory available")
+        add("warning", f"Only {h['mem_available_mb']} MB memory available", "server")
     if h["swap_used_mb"] > 1024:
-        add("warning", f"Swap in use: {h['swap_used_mb']} MB")
+        add("warning", f"Swap in use: {h['swap_used_mb']} MB", "server")
     if h["reboot_required"]:
-        add("warning", "The gateway needs a reboot for installed updates")
+        add("warning", "The gateway needs a reboot for installed updates", "server")
     for c in d["containers"]:
         if c["state"] != "running":
-            add("critical", f"Container {c['name']} is {c['state']}")
+            add("critical", f"Container {c['name']} is {c['state']}", "server")
         if str(c.get("image", "")).endswith(":latest"):
-            add("warning", f"Container {c['name']} runs an unpinned image ({c['image']}); a restart may upgrade it")
+            add("warning", f"Container {c['name']} runs an unpinned image ({c['image']}); a restart may upgrade it", "updates")
     for t in d["timers"]:
         if t["active"] != "active":
-            add("critical", f"{t['unit']} is {t['active']}")
+            add("critical", f"{t['unit']} is {t['active']}", "server")
         elif t["last_exit"] not in (None, "", "0"):
-            add("warning", f"{t['unit']}: last run exited with {t['last_exit']}")
+            add("warning", f"{t['unit']}: last run exited with {t['last_exit']}", "server")
     b = d["backup"]
     if not b.get("newest"):
-        add("critical", "No backup found")
+        add("critical", "No backup found", "server")
     elif b["age_hours"] > 26:
-        add("warning", f"Newest backup is {b['age_hours']} h old")
+        add("warning", f"Newest backup is {b['age_hours']} h old", "server")
     for c in d["certs"]:
         if c.get("days_left") is None:
-            add("warning", f"Could not read the certificate for {c['host']}")
+            add("warning", f"Could not read the certificate for {c['host']}", "server")
         elif c["days_left"] < 3:
-            add("critical", f"Certificate for {c['host']} expires in {c['days_left']} days")
+            add("critical", f"Certificate for {c['host']} expires in {c['days_left']} days", "server")
         elif c["days_left"] < 14:
-            add("warning", f"Certificate for {c['host']} expires in {c['days_left']} days")
+            add("warning", f"Certificate for {c['host']} expires in {c['days_left']} days", "server")
     m = d["mesh"]
     if m["local"].get("management") is False or m["local"].get("signal") is False:
-        add("critical", "The gateway's NetBird client is not connected to management/signal")
+        add("critical", "The gateway's NetBird client is not connected to management/signal", "mesh")
     if m.get("valid_setup_keys"):
-        add("warning", f"{m['valid_setup_keys']} NetBird setup key(s) are still valid")
+        add("warning", f"{m['valid_setup_keys']} NetBird setup key(s) are still valid", "mesh")
     for p in m.get("policies", []):
         if p["bidirectional"]:
-            add("critical", f"NetBird policy {p['name']} is bidirectional: garages could reach the gateway")
+            add("critical", f"NetBird policy {p['name']} is bidirectional: garages could reach the gateway", "mesh")
         if p["name"] not in EXPECTED_POLICIES:
-            add("info", f"Extra NetBird policy: {p['name']}")
+            add("info", f"Extra NetBird policy: {p['name']}", "mesh")
     if d["portal"]["targets_status"] != 200:
-        add("critical", f"Portal gateway-targets answered {d['portal']['targets_status']}")
+        add("critical", f"Portal gateway-targets answered {d['portal']['targets_status']}", "supply")
     for g in d["garages"]:
         if not g["runtime_ok"] or g["mesh"] is False:
             add("critical", f"{g['garage']}: {'tunnel down' if g['mesh'] is False else 'runtime not answering'}"
-                            + (f" ({g['error']})" if g.get("error") else ""))
+                            + (f" ({g['error']})" if g.get("error") else ""), "supply")
         p = g.get("provider") or {}
         if p.get("private_ip"):
-            add("critical", f"Provider {g['garage']} now resolves to a private address {p.get('ips')}")
+            add("critical", f"Provider {g['garage']} now resolves to a private address {p.get('ips')}", "supply")
         tls = p.get("tls") or {}
         if tls.get("days_left") is not None and tls["days_left"] < 14:
-            add("warning", f"Provider {g['garage']}: TLS certificate expires in {tls['days_left']} days")
+            add("warning", f"Provider {g['garage']}: TLS certificate expires in {tls['days_left']} days", "supply")
     for v in d.get("versions", []):
         if v.get("update"):
-            add("info", f"Update available: {v['component']} {v['running']} -> {v['latest']}")
+            add("info", f"Update available: {v['component']} {v['running']} -> {v['latest']}", "updates")
     for f in d.get("source", {}).get("files", []):
         if f["status"] in ("differs from main", "missing"):
-            add("warning", f"{f['deployed']} {f['status']} ({f['source']})")
+            add("warning", f"{f['deployed']} {f['status']} ({f['source']})", "updates")
     for l in d.get("logs", {}).get("containers", []):
         if l["log_mb"] > LOG_ALERT_MB:
-            add("warning", f"Container log for {l['container']} is {l['log_mb']} MB")
+            add("warning", f"Container log for {l['container']} is {l['log_mb']} MB", "logs")
         elif not l["max_size"] and l["log_mb"] > 100:
-            add("warning", f"Container log for {l['container']} is {l['log_mb']} MB and has no size limit")
+            add("warning", f"Container log for {l['container']} is {l['log_mb']} MB and has no size limit", "logs")
     for o in d["outside"]:
         if o["status"] != 200:
-            add("critical", f"{o['name']} ({o['url']}) answered {o['status']}")
+            add("critical", f"{o['name']} ({o['url']}) answered {o['status']}", "server")
     e = d["errors_last_hour"]
     if e["invalid_key"] > 50:
-        add("warning", f"{e['invalid_key']} requests with an unknown API key in the last hour")
+        add("warning", f"{e['invalid_key']} requests with an unknown API key in the last hour", "traffic")
     if e["timeouts_408"] > 5:
-        add("warning", f"{e['timeouts_408']} timeouts (408) in the last hour")
+        add("warning", f"{e['timeouts_408']} timeouts (408) in the last hour", "traffic")
     if e["mid_stream_failures"]:
-        add("warning", f"{e['mid_stream_failures']} streams broke mid-way in the last hour")
+        add("warning", f"{e['mid_stream_failures']} streams broke mid-way in the last hour", "traffic")
     if e["server_errors_5xx"] > 5:
-        add("warning", f"{e['server_errors_5xx']} server errors (5xx) in the last hour")
+        add("warning", f"{e['server_errors_5xx']} server errors (5xx) in the last hour", "traffic")
     if d["host"]["updates_pending"]:
-        add("info", f"{d['host']['updates_pending']} package updates pending (unattended-upgrades handles security updates)")
+        add("info", f"{d['host']['updates_pending']} package updates pending (unattended-upgrades handles security updates)", "updates")
     order = {"critical": 0, "warning": 1, "info": 2}
     return sorted(a, key=lambda x: order[x["level"]])
 

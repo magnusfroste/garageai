@@ -279,6 +279,13 @@ classes; the portal and site seen from outside; and a list of current alerts.
   a rate limit. The password is generated on the server into `/etc/garageai/ops-password`
   (root, 0600); read it once over SSH and keep it in a password manager. The hash lives in
   `/opt/garageai/ops/.env`.
+- `ops/index.html` is a single static page with a left menu and one page per area:
+  Dashboard (status and KPIs, each linking to its page), Supply, Traffic, Mesh, Server,
+  Updates and Logs. Each alert carries the page it belongs to, so the menu shows a count per
+  page. The sidebar shows what is running (main, LiteLLM, NetBird, Traefik, host OS); the top
+  bar has refresh, pending updates and the signed-in user. `ops/nginx.conf` answers `/whoami`
+  with the user Traefik passes in `X-Ops-User`; signing out makes the browser forget the
+  basic-auth credentials.
 
 ## Backups
 

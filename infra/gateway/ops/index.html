@@ -4,79 +4,395 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>GarageAI Operations Center</title>
+<title>GarageAI Operations</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230e7490'/%3E%3Cpath d='M8 22V13l8-5 8 5v9' fill='none' stroke='white' stroke-width='2.5' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
-  :root { --bg:#f6f7f9; --card:#fff; --ink:#14171c; --muted:#5d6672; --line:#e3e6ea;
-          --ok:#1a7f37; --warn:#9a6700; --crit:#cf222e; --info:#0969da; --accent:#0e7490; }
+  :root { --bg:#f4f5f7; --panel:#ffffff; --side:#ffffff; --ink:#14171c; --muted:#5d6672; --faint:#8b939d; --line:#e3e6ea; --hover:#eef1f4;
+          --ok:#1a7f37; --warn:#9a6700; --crit:#cf222e; --info:#0969da; --accent:#0e7490; --accent-soft:#e0f2f5;
+          --ok-soft:#dafbe1; --warn-soft:#fff3cd; --crit-soft:#ffebe9; --info-soft:#ddf4ff; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#0b0d10; --card:#14181d; --ink:#e6e9ed; --muted:#97a1ad; --line:#262c33;
-            --ok:#3fb950; --warn:#d29922; --crit:#f85149; --info:#58a6ff; --accent:#22d3ee; }
+    :root { --bg:#0b0d10; --panel:#14181d; --side:#101317; --ink:#e6e9ed; --muted:#97a1ad; --faint:#6b7480; --line:#252b32; --hover:#1b2026;
+            --ok:#3fb950; --warn:#d29922; --crit:#f85149; --info:#58a6ff; --accent:#22d3ee; --accent-soft:#0f2a31;
+            --ok-soft:#12261a; --warn-soft:#2a2110; --crit-soft:#2d1214; --info-soft:#0f2236; }
   }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
-  header { padding:16px; display:flex; flex-wrap:wrap; gap:8px 16px; align-items:baseline; border-bottom:1px solid var(--line); }
-  h1 { font-size:18px; margin:0; } h1 span { color:var(--accent); }
-  .meta { color:var(--muted); font-size:12px; }
-  main { padding:16px; display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr)); max-width:1400px; margin:0 auto; }
-  section { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; min-width:0; overflow-x:auto; }
-  section.wide { grid-column:1/-1; }
-  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 10px; }
+  html, body { margin:0; }
+  body { background:var(--bg); color:var(--ink); font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+  code { font:12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  svg.i { width:18px; height:18px; flex:none; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+
+  /* ---------- shell */
+  .app { display:grid; grid-template-columns:240px minmax(0,1fr); min-height:100vh; }
+  aside { background:var(--side); border-right:1px solid var(--line); display:flex; flex-direction:column; position:sticky; top:0; height:100vh; overflow-y:auto; }
+  .brand { display:flex; align-items:center; gap:10px; padding:16px 18px; border-bottom:1px solid var(--line); }
+  .logo { width:30px; height:30px; border-radius:8px; background:var(--accent); display:grid; place-items:center; color:#fff; }
+  .logo svg { width:18px; height:18px; stroke:#fff; }
+  .brand b { display:block; font-size:15px; } .brand span { display:block; font-size:12px; color:var(--muted); }
+  nav { padding:10px 10px; flex:1; }
+  .group { font-size:11px; letter-spacing:.07em; text-transform:uppercase; color:var(--faint); padding:14px 10px 6px; }
+  nav a { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; color:var(--ink); }
+  nav a:hover { background:var(--hover); text-decoration:none; }
+  nav a.active { background:var(--accent-soft); color:var(--accent); font-weight:600; }
+  nav a .count { margin-left:auto; font-size:11px; font-weight:600; min-width:20px; height:20px; padding:0 6px; border-radius:10px; display:grid; place-items:center; }
+  .count.warning { background:var(--warn-soft); color:var(--warn); } .count.critical { background:var(--crit-soft); color:var(--crit); }
+  .count.info { background:var(--info-soft); color:var(--info); }
+  .build { border-top:1px solid var(--line); padding:14px 18px 18px; font-size:12px; color:var(--muted); }
+  .build h4 { margin:0 0 8px; font-size:11px; letter-spacing:.07em; text-transform:uppercase; color:var(--faint); font-weight:600; }
+  .build .row { display:flex; justify-content:space-between; gap:8px; padding:2px 0; }
+  .build .row span:last-child { color:var(--ink); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .build .row .up { color:var(--warn); }
+
+  header.top { position:sticky; top:0; z-index:5; background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(8px);
+               border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px; padding:10px 24px; min-height:60px; }
+  .title { min-width:0; }
+  .title h1 { margin:0; font-size:18px; } .title div { font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tools { margin-left:auto; display:flex; align-items:center; gap:8px; }
+  .btn { display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 10px; border-radius:8px; border:1px solid var(--line);
+         background:var(--panel); color:var(--ink); font:inherit; font-size:13px; cursor:pointer; position:relative; }
+  .btn:hover { background:var(--hover); text-decoration:none; }
+  .btn .badge { position:absolute; top:-6px; right:-6px; background:var(--warn); color:#fff; font-size:10px; font-weight:700; min-width:17px; height:17px;
+                border-radius:9px; display:grid; place-items:center; padding:0 4px; }
+  .fresh { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; white-space:nowrap; }
+  .spin svg { animation:spin .8s linear infinite; } @keyframes spin { to { transform:rotate(360deg); } }
+  .user { position:relative; }
+  .avatar { width:24px; height:24px; border-radius:50%; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:12px; font-weight:700; text-transform:uppercase; }
+  .menu { position:absolute; right:0; top:42px; width:240px; background:var(--panel); border:1px solid var(--line); border-radius:10px;
+          box-shadow:0 10px 30px rgba(0,0,0,.15); padding:6px; display:none; }
+  .menu.open { display:block; }
+  .menu .who { padding:8px 10px 10px; border-bottom:1px solid var(--line); margin-bottom:6px; }
+  .menu .who b { display:block; } .menu .who span { font-size:12px; color:var(--muted); }
+  .menu button, .menu a { display:flex; width:100%; align-items:center; gap:8px; padding:8px 10px; border:0; border-radius:6px; background:none; color:var(--ink); font:inherit; cursor:pointer; text-align:left; }
+  .menu button:hover, .menu a:hover { background:var(--hover); text-decoration:none; }
+  #burger { display:none; }
+
+  main { padding:24px; max-width:1400px; }
+  .page { display:none; } .page.active { display:block; }
+  .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(min(360px,100%),1fr)); }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px; min-width:0; overflow-x:auto; margin-bottom:16px; }
+  .grid .card { margin-bottom:0; } .grid + .card, .card + .grid { margin-top:16px; }
+  .card h2 { font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin:0 0 12px; font-weight:600; }
+  .card h2 + .sub { margin-top:-8px; }
+  .sub { font-size:12px; color:var(--muted); margin-bottom:12px; }
+
+  /* ---------- dashboard */
+  .hero { display:flex; flex-wrap:wrap; align-items:center; gap:14px 24px; padding:18px 20px; border-radius:12px; margin-bottom:16px; border:1px solid var(--line); background:var(--panel); }
+  .hero .state { display:flex; align-items:center; gap:12px; font-size:18px; font-weight:600; }
+  .hero .ring { width:38px; height:38px; border-radius:50%; display:grid; place-items:center; }
+  .hero .ring svg { width:22px; height:22px; stroke-width:2.4; }
+  .hero.ok .ring { background:var(--ok-soft); color:var(--ok); } .hero.warning .ring { background:var(--warn-soft); color:var(--warn); }
+  .hero.critical .ring { background:var(--crit-soft); color:var(--crit); }
+  .hero .counts { display:flex; gap:18px; margin-left:auto; font-size:13px; color:var(--muted); }
+  .hero .counts b { font-size:18px; color:var(--ink); display:block; font-variant-numeric:tabular-nums; }
+  .kpis { display:grid; gap:12px; grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr)); margin-bottom:16px; }
+  a.kpi { display:block; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; color:var(--ink); position:relative; border-top:3px solid var(--line); }
+  a.kpi:hover { text-decoration:none; border-color:var(--accent); }
+  a.kpi.ok { border-top-color:var(--ok); } a.kpi.warning { border-top-color:var(--warn); } a.kpi.critical { border-top-color:var(--crit); }
+  .kpi .label { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; font-weight:600; }
+  .kpi .label svg { width:16px; height:16px; }
+  .kpi .value { font-size:26px; font-weight:650; margin:8px 0 2px; font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+  .kpi .value small { font-size:14px; color:var(--muted); font-weight:500; }
+  .kpi .detail { font-size:12px; color:var(--muted); }
+  .kpi .go { position:absolute; right:14px; top:14px; color:var(--faint); }
+  .bar { height:6px; border-radius:3px; background:var(--hover); overflow:hidden; margin-top:8px; }
+  .bar i { display:block; height:100%; background:var(--accent); }
+  .bar i.warning { background:var(--warn); } .bar i.critical { background:var(--crit); }
+
+  /* ---------- tables and bits */
   table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
-  th, td { text-align:left; padding:5px 6px; border-top:1px solid var(--line); vertical-align:top; }
-  th { color:var(--muted); font-weight:500; font-size:12px; border-top:none; }
-  .scroll { overflow-x:auto; }
+  th, td { text-align:left; padding:7px 8px; border-top:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:500; font-size:12px; border-top:none; white-space:nowrap; }
   .num { text-align:right; }
-  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:middle; }
-  .ok { color:var(--ok); } .warning { color:var(--warn); } .critical { color:var(--crit); } .info { color:var(--info); }
-  .bg-ok { background:var(--ok); } .bg-warning { background:var(--warn); } .bg-critical { background:var(--crit); } .bg-muted { background:var(--muted); }
-  .alert { padding:8px 10px; border-radius:8px; margin:6px 0; border:1px solid var(--line); }
-  .kv { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; }
-  .kv div:nth-child(odd) { color:var(--muted); }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; vertical-align:middle; flex:none; }
+  .ok { color:var(--ok); } .warning { color:var(--warn); } .critical { color:var(--crit); } .info { color:var(--info); } .muted { color:var(--muted); }
+  .bg-ok { background:var(--ok); } .bg-warning { background:var(--warn); } .bg-critical { background:var(--crit); } .bg-info { background:var(--info); } .bg-muted { background:var(--faint); }
+  .pill { display:inline-block; font-size:11px; font-weight:600; padding:1px 8px; border-radius:10px; }
+  .pill.ok { background:var(--ok-soft); } .pill.warning { background:var(--warn-soft); } .pill.critical { background:var(--crit-soft); } .pill.info { background:var(--info-soft); }
+  .pill.muted { background:var(--hover); }
+  .alert { display:flex; align-items:flex-start; gap:4px; padding:9px 12px; border-radius:8px; margin:6px 0; border:1px solid var(--line); }
+  .alert.critical { background:var(--crit-soft); border-color:transparent; } .alert.warning { background:var(--warn-soft); border-color:transparent; }
+  .alert.info { background:var(--info-soft); border-color:transparent; }
+  .alert .dot { margin-top:6px; } .alert .txt { flex:1; color:var(--ink); } .alert a { font-size:12px; white-space:nowrap; margin-left:8px; }
+  .kv { display:grid; grid-template-columns:auto 1fr; gap:6px 16px; }
+  .kv > div:nth-child(odd) { color:var(--muted); }
   .small { font-size:12px; color:var(--muted); }
-  code { font-size:12px; }
-  #banner { font-weight:600; }
+  .note { font-size:12px; color:var(--muted); margin-top:10px; }
+  .empty { padding:24px; text-align:center; color:var(--muted); }
+
+  .scrim { display:none; }
+  @media (max-width: 900px) {
+    .app { grid-template-columns:minmax(0,1fr); }
+    aside { position:fixed; left:0; top:0; bottom:0; width:270px; z-index:20; transform:translateX(-100%); transition:transform .2s; }
+    body.nav-open aside { transform:none; }
+    body.nav-open .scrim { display:block; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:15; }
+    #burger { display:inline-flex; }
+    header.top { padding:10px 16px; }
+    main { padding:16px; }
+    .fresh .txt, .btn .lbl, .user .name { display:none; }
+    .hero .counts { margin-left:0; }
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>GarageAI <span>Operations Center</span></h1>
-  <div id="banner"></div>
-  <div class="meta" id="meta">Loading…</div>
-</header>
-<main>
-  <section class="wide"><h2>Alerts</h2><div id="alerts"></div></section>
-  <section class="wide"><h2>Garages and providers</h2><div class="scroll" id="garages"></div></section>
-  <section class="wide"><h2>Traffic, last hour (probes excluded)</h2><div class="scroll" id="traffic"></div>
-    <h2 style="margin-top:14px">Traffic, last 24 hours</h2><div class="scroll" id="traffic24"></div></section>
-  <section><h2>Gateway errors, last hour</h2><div id="errors"></div></section>
-  <section><h2>Seen from outside</h2><div id="outside"></div></section>
-  <section><h2>Gateway host</h2><div id="host"></div></section>
-  <section><h2>Containers</h2><div id="containers"></div></section>
-  <section><h2>Timers, backup, certificates</h2><div id="ops"></div></section>
-  <section class="wide"><h2>Mesh (NetBird)</h2><div class="scroll" id="mesh"></div></section>
-  <section class="wide"><h2>Versions and updates</h2><div class="scroll" id="versions"></div></section>
-  <section class="wide"><h2>Source and revision</h2><div class="scroll" id="source"></div></section>
-  <section class="wide"><h2>Logs and disk</h2><div class="scroll" id="logs"></div></section>
-</main>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-dash" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></symbol>
+  <symbol id="i-supply" viewBox="0 0 24 24"><path d="M3 21V10l9-6 9 6v11"/><path d="M7 21v-7h10v7"/><path d="M7 17h10"/></symbol>
+  <symbol id="i-traffic" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></symbol>
+  <symbol id="i-mesh" viewBox="0 0 24 24"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7 6h10M6 8l5 8.5M18 8l-5 8.5"/></symbol>
+  <symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/><path d="M7 7.5h.01M7 16.5h.01"/></symbol>
+  <symbol id="i-updates" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16V8M8.5 11.5 12 8l3.5 3.5"/></symbol>
+  <symbol id="i-logs" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.4 17.6A2 2 0 0 0 4.1 20.6h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+  <symbol id="i-git" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 8v8M18 10c0 4-6 3-11.3 6.6"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-money" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .8-3 2s1.3 1.7 3 2 3 .8 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6v2M12 16v2"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+</svg>
+
+<div class="app">
+  <aside id="side">
+    <div class="brand">
+      <div class="logo"><svg class="i"><use href="#i-supply"/></svg></div>
+      <div><b>GarageAI</b><span>Operations Center</span></div>
+    </div>
+    <nav id="nav"></nav>
+    <div class="build" id="build"><h4>Running</h4><div class="small">Loading…</div></div>
+  </aside>
+  <div class="scrim" onclick="document.body.classList.remove('nav-open')"></div>
+
+  <div>
+    <header class="top">
+      <button class="btn" id="burger" aria-label="Menu" onclick="document.body.classList.toggle('nav-open')"><svg class="i"><use href="#i-menu"/></svg></button>
+      <div class="title"><h1 id="ptitle">Dashboard</h1><div id="psub"></div></div>
+      <div class="tools">
+        <div class="fresh" id="fresh"><span class="dot bg-muted"></span><span class="txt">Loading…</span></div>
+        <button class="btn" id="refresh" onclick="load(true)" title="Fetch the newest data (collected every minute)"><svg class="i"><use href="#i-refresh"/></svg><span class="lbl">Refresh</span></button>
+        <a class="btn" id="updbtn" href="#updates" title="Updates"><svg class="i"><use href="#i-updates"/></svg><span class="lbl">Updates</span></a>
+        <div class="user">
+          <button class="btn" id="userbtn" onclick="document.getElementById('menu').classList.toggle('open')"><span class="avatar" id="avatar">?</span><span class="name" id="uname">…</span></button>
+          <div class="menu" id="menu">
+            <div class="who"><b id="uname2">…</b><span>Signed in with basic auth · read-only</span></div>
+            <a href="https://github.com/magnusfroste/garageai/tree/main/infra/gateway" target="_blank" rel="noopener"><svg class="i"><use href="#i-git"/></svg>Gateway source</a>
+            <button onclick="logout()"><svg class="i"><use href="#i-out"/></svg>Sign out</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="page" data-page="dashboard">
+        <div class="hero" id="hero"></div>
+        <div class="kpis" id="kpis"></div>
+        <div class="grid">
+          <div class="card"><h2>Needs attention</h2><div id="dash-alerts"></div></div>
+          <div class="card"><h2>Supply at a glance</h2><div id="dash-supply"></div></div>
+        </div>
+      </section>
+
+      <section class="page" data-page="supply">
+        <div id="alerts-supply"></div>
+        <div class="card"><h2>Garages and providers</h2><div id="garages"></div>
+          <div class="note">Garages are checked over the NetBird mesh, providers over public HTTPS. Uptime comes from the health check every minute.</div></div>
+      </section>
+
+      <section class="page" data-page="traffic">
+        <div id="alerts-traffic"></div>
+        <div class="card"><h2>Last hour</h2><div class="sub">Probes excluded.</div><div id="traffic"></div></div>
+        <div class="card"><h2>Last 24 hours</h2><div id="traffic24"></div></div>
+        <div class="card"><h2>Gateway errors, last hour</h2><div id="errors"></div></div>
+      </section>
+
+      <section class="page" data-page="mesh">
+        <div id="alerts-mesh"></div>
+        <div class="card"><h2>Gateway peer</h2><div id="mesh-local"></div></div>
+        <div class="card"><h2>Peers</h2><div id="mesh-peers"></div></div>
+        <div class="card"><h2>Access policies</h2><div id="mesh-policies"></div>
+          <div class="note">The gateway reaches the garages; garages must never reach the gateway (one way only).</div></div>
+      </section>
+
+      <section class="page" data-page="server">
+        <div id="alerts-server"></div>
+        <div class="grid">
+          <div class="card"><h2>Host</h2><div id="host"></div></div>
+          <div class="card"><h2>Seen from outside</h2><div id="outside"></div></div>
+        </div>
+        <div class="card"><h2>Containers</h2><div id="containers"></div></div>
+        <div class="grid">
+          <div class="card"><h2>Timers and backup</h2><div id="timers"></div></div>
+          <div class="card"><h2>Certificates</h2><div id="certs"></div></div>
+        </div>
+      </section>
+
+      <section class="page" data-page="updates">
+        <div id="alerts-updates"></div>
+        <div class="card"><h2>Versions</h2><div id="versions"></div>
+          <div class="note">Read-only. Updates are run on the gateway at a quiet time (check Traffic first), then verified here.</div></div>
+        <div class="card"><h2>Source and revision</h2><div id="source"></div></div>
+      </section>
+
+      <section class="page" data-page="logs">
+        <div id="alerts-logs"></div>
+        <div class="card"><h2>Container logs</h2><div id="logs"></div>
+          <div class="note">Logs hold request metadata only, never prompts. Alerts above 400 MB, or above 100 MB without rotation.</div></div>
+        <div class="card"><h2>Disk</h2><div id="disk"></div></div>
+      </section>
+    </main>
+  </div>
+</div>
+
 <script>
+const PAGES = [
+  { id: "dashboard", title: "Dashboard", icon: "dash", sub: "Operations status at a glance" },
+  { group: "Platform" },
+  { id: "supply", title: "Supply", icon: "supply", sub: "Garages and providers: tunnel, runtime, uptime, load" },
+  { id: "traffic", title: "Traffic", icon: "traffic", sub: "Requests, tokens, latency and gateway errors" },
+  { group: "Infrastructure" },
+  { id: "mesh", title: "Mesh", icon: "mesh", sub: "NetBird: gateway peer, garages and access policies" },
+  { id: "server", title: "Server", icon: "server", sub: "Gateway host, containers, timers, backup and certificates" },
+  { id: "updates", title: "Updates", icon: "updates", sub: "Running vs latest versions, and deployed files vs main" },
+  { id: "logs", title: "Logs", icon: "logs", sub: "Log sizes, rotation and disk use" },
+];
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "—").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const fmt = n => n == null ? "—" : Number(n).toLocaleString("en-US");
+const short = n => n == null ? "—" : n >= 1e9 ? (n/1e9).toFixed(1) + "B" : n >= 1e6 ? (n/1e6).toFixed(1) + "M" : n >= 1e3 ? (n/1e3).toFixed(1) + "k" : String(n);
 const dot = cls => `<span class="dot bg-${cls}"></span>`;
+const icon = (name, cls = "i") => `<svg class="${cls}"><use href="#i-${name}"/></svg>`;
+const pill = (cls, text) => `<span class="pill ${cls}">${text}</span>`;
 const ago = iso => { if (!iso) return "—"; const s = (Date.now() - Date.parse(iso)) / 1000;
-  return s < 90 ? `${Math.round(s)} s ago` : s < 5400 ? `${Math.round(s/60)} min ago` : s < 172800 ? `${Math.round(s/3600)} h ago` : `${Math.round(s/86400)} d ago`; };
-const table = (cols, rows) => rows.length ? `<table><tr>${cols.map(c => `<th class="${c[2]||""}">${c[0]}</th>`).join("")}</tr>${
+  return s < 90 ? `${Math.max(0, Math.round(s))} s ago` : s < 5400 ? `${Math.round(s/60)} min ago` : s < 172800 ? `${Math.round(s/3600)} h ago` : `${Math.round(s/86400)} d ago`; };
+const table = (cols, rows) => rows && rows.length ? `<table><tr>${cols.map(c => `<th class="${c[2]||""}">${c[0]}</th>`).join("")}</tr>${
   rows.map(r => `<tr>${cols.map(c => `<td class="${c[2]||""}">${c[1](r)}</td>`).join("")}</tr>`).join("")}</table>` : `<div class="small">None.</div>`;
+const worst = list => list.some(a => a.level === "critical") ? "critical" : list.some(a => a.level === "warning") ? "warning" : "ok";
+const sum = (rows, k) => (rows || []).reduce((t, r) => t + (r[k] || 0), 0);
+let data = null;
 
-function render(d) {
-  const crit = d.alerts.filter(a => a.level === "critical").length, warn = d.alerts.filter(a => a.level === "warning").length;
-  $("banner").innerHTML = crit ? `<span class="critical">${dot("critical")}${crit} critical</span>` : warn ? `<span class="warning">${dot("warning")}${warn} warning</span>` : `<span class="ok">${dot("ok")}All systems normal</span>`;
-  $("meta").textContent = `Updated ${ago(d.generated_at)} (${d.generated_at}), collected in ${d.collect_seconds} s`;
-  $("alerts").innerHTML = d.alerts.length ? d.alerts.map(a => `<div class="alert ${a.level}">${dot(a.level)}${esc(a.text)}</div>`).join("") : `<div class="ok">${dot("ok")}No alerts.</div>`;
+/* ---------- navigation */
+function renderNav(alerts) {
+  $("nav").innerHTML = PAGES.map(p => {
+    if (p.group) return `<div class="group">${p.group}</div>`;
+    const mine = (alerts || []).filter(a => a.page === p.id && a.level !== "info");
+    const lvl = worst(mine);
+    return `<a href="#${p.id}" data-id="${p.id}">${icon(p.icon)}<span>${p.title}</span>${mine.length ? `<span class="count ${lvl}">${mine.length}</span>` : ""}</a>`;
+  }).join("");
+  route();
+}
+function route() {
+  const id = (location.hash || "#dashboard").slice(1);
+  const page = PAGES.find(p => p.id === id) || PAGES[0];
+  document.querySelectorAll(".page").forEach(s => s.classList.toggle("active", s.dataset.page === page.id));
+  document.querySelectorAll("nav a").forEach(a => a.classList.toggle("active", a.dataset.id === page.id));
+  $("ptitle").textContent = page.title; $("psub").textContent = page.sub;
+  document.title = `${page.title} · GarageAI Operations`;
+  document.body.classList.remove("nav-open");
+  window.scrollTo(0, 0);
+}
+window.addEventListener("hashchange", route);
+document.addEventListener("click", e => { if (!e.target.closest(".user")) $("menu").classList.remove("open"); });
+
+function pageAlerts(id, alerts) {
+  const mine = alerts.filter(a => a.page === id);
+  $("alerts-" + id).innerHTML = mine.length ? `<div class="card"><h2>Alerts</h2>${mine.map(a => alertRow(a, false)).join("")}</div>` : "";
+}
+const alertRow = (a, link) => `<div class="alert ${a.level}">${dot(a.level)}<span class="txt">${esc(a.text)}</span>${
+  link && a.page ? `<a href="#${a.page}">${esc((PAGES.find(p => p.id === a.page) || {}).title || "")} →</a>` : ""}</div>`;
+
+/* ---------- top bar and sidebar */
+function renderChrome(d) {
+  const age = (Date.now() - Date.parse(d.generated_at)) / 1000;
+  const cls = age > 300 ? "critical" : age > 150 ? "warning" : "ok";
+  $("fresh").innerHTML = `${dot(cls)}<span class="txt">Updated ${ago(d.generated_at)}</span>`;
+  $("fresh").title = `Collected ${d.generated_at} in ${d.collect_seconds} s`;
+  const upd = (d.versions || []).filter(v => v.update).length + (d.source?.files || []).filter(f => f.status !== "in sync").length;
+  $("updbtn").querySelector(".badge")?.remove();
+  if (upd) $("updbtn").insertAdjacentHTML("beforeend", `<span class="badge">${upd}</span>`);
+  const v = Object.fromEntries((d.versions || []).map(x => [x.component, x]));
+  const row = (label, x) => x ? `<div class="row"><span>${label}</span><span class="${x.update ? "up" : ""}" title="${x.update ? "update available: " + esc(x.latest) : "current"}">${esc(String(x.running).split(" · ")[0])}${x.update ? " ↑" : ""}</span></div>` : "";
+  const src = d.source || {};
+  const pick = re => (d.versions || []).find(x => re.test(x.component));
+  $("build").innerHTML = `<h4>Running</h4>
+    <div class="row"><span>${icon("git", "i")} main</span><span><a href="https://github.com/${esc(src.repo)}/commit/${esc(src.main)}" target="_blank" rel="noopener">${esc(src.main_short)}</a></span></div>
+    ${row("LiteLLM", pick(/^LiteLLM/))}${row("NetBird", pick(/NetBird.*(server|management)/i))}${row("Dashboard", pick(/dashboard/i))}${row("Traefik", pick(/^Traefik/))}${row("Host", pick(/Host|OS/i))}
+    <div class="row"><span>Uptime</span><span>${d.host.uptime_hours < 48 ? d.host.uptime_hours + " h" : Math.round(d.host.uptime_hours / 24) + " d"}</span></div>`;
+  $("build").querySelectorAll(".row svg").forEach(s => { s.style.width = "13px"; s.style.height = "13px"; s.style.verticalAlign = "-2px"; });
+}
+
+/* ---------- dashboard */
+function renderDashboard(d) {
+  const A = d.alerts, crit = A.filter(a => a.level === "critical").length, warn = A.filter(a => a.level === "warning").length, info = A.filter(a => a.level === "info").length;
+  const state = crit ? "critical" : warn ? "warning" : "ok";
+  const headline = crit ? `${crit} critical issue${crit > 1 ? "s" : ""}` : warn ? `${warn} warning${warn > 1 ? "s" : ""}` : "All systems operational";
+  $("hero").className = "hero " + state;
+  $("hero").innerHTML = `<div class="state"><div class="ring">${icon(state === "ok" ? "check" : "warn")}</div><div>${headline}<div class="small" style="font-weight:400">Collected ${ago(d.generated_at)} · every minute</div></div></div>
+    <div class="counts"><div><b class="${crit ? "critical" : ""}">${crit}</b>critical</div><div><b class="${warn ? "warning" : ""}">${warn}</b>warning</div><div><b>${info}</b>info</div></div>`;
+
+  const lvl = page => worst(A.filter(a => a.page === page));
+  const G = d.garages || [], up = g => g.runtime_ok && g.mesh !== false;
+  const garages = G.filter(g => g.type !== "provider"), providers = G.filter(g => g.type === "provider");
+  const t1 = d.traffic.last_hour || [], t24 = d.traffic.last_24h || [];
+  const req1 = sum(t1, "requests"), fail1 = sum(t1, "failed");
+  const p95 = Math.max(0, ...t1.map(r => r.ttft_p95_s || 0)), p50 = t1.length ? Math.max(...t1.map(r => r.ttft_p50_s || 0)) : null;
+  const h = d.host, memPct = Math.round(100 * (1 - h.mem_available_mb / h.mem_total_mb));
+  const peers = d.mesh.peers || [], L = d.mesh.local;
+  const updates = (d.versions || []).filter(v => v.update).length, drift = (d.source?.files || []).filter(f => f.status !== "in sync").length;
+  const logs = d.logs?.containers || [], logMb = sum(logs, "log_mb"), unrotated = logs.filter(l => !l.max_size).length;
+  const certMin = Math.min(...d.certs.map(c => c.days_left ?? 999), ...G.map(g => g.provider?.tls?.days_left ?? 999));
+  const errs = d.errors_last_hour;
+  const errTotal = errs.timeouts_408 + errs.mid_stream_failures + errs.server_errors_5xx;
+  const bar = (pct, cls = "") => `<div class="bar"><i class="${cls}" style="width:${Math.min(100, Math.max(0, pct))}%"></i></div>`;
+
+  const tiles = [
+    { page: "supply", icon: "supply", label: "Supply online", status: lvl("supply"),
+      value: `${G.filter(up).length}<small> / ${G.length}</small>`,
+      detail: `garages ${garages.filter(up).length}/${garages.length} · providers ${providers.filter(up).length}/${providers.length}` },
+    { page: "traffic", icon: "traffic", label: "Requests, 1 h", status: fail1 ? "warning" : lvl("traffic"),
+      value: fmt(req1), detail: `${fail1 ? `<span class="warning">${fail1} failed</span>` : "0 failed"} · ${short(sum(t1, "prompt_tokens"))} in / ${short(sum(t1, "completion_tokens"))} out` },
+    { page: "traffic", icon: "clock", label: "First token, 1 h", status: p95 > 60 ? "warning" : "ok",
+      value: p50 == null ? "—" : `${p50}<small> s p50</small>`, detail: p50 == null ? "no traffic" : `worst p95 ${p95} s · ${errTotal ? `<span class="warning">${errTotal} errors</span>` : "no gateway errors"}` },
+    { page: "traffic", icon: "money", label: "Spend, 24 h", status: "ok",
+      value: `$${sum(t24, "spend_usd").toFixed(2)}`, detail: `${fmt(sum(t24, "requests"))} requests · ${short(sum(t24, "prompt_tokens") + sum(t24, "completion_tokens"))} tokens` },
+    { page: "mesh", icon: "mesh", label: "Mesh", status: lvl("mesh"),
+      value: `${peers.filter(p => p.connected).length}<small> / ${peers.length} peers</small>`,
+      detail: `management ${L.management ? "up" : "DOWN"} · relays ${L.relays_available}/${L.relays_total} · ${d.mesh.valid_setup_keys || 0} setup keys` },
+    { page: "server", icon: "server", label: "Gateway server", status: lvl("server"),
+      value: `${memPct}<small> % memory</small>`, detail: `disk ${h.disk_used_pct} % · load ${h.load[0]} on ${h.cpus} CPUs${h.reboot_required ? ' · <span class="warning">reboot</span>' : ""}`,
+      extra: bar(memPct, memPct > 90 ? "critical" : memPct > 80 ? "warning" : "") },
+    { page: "server", icon: "shield", label: "Backup and TLS", status: lvl("server") === "critical" ? "critical" : (d.backup.age_hours > 26 || certMin < 14) ? "warning" : "ok",
+      value: d.backup.newest ? `${d.backup.age_hours}<small> h old</small>` : '<span class="critical">none</span>', detail: `${d.backup.count} backups kept · certificates ≥ ${certMin} d` },
+    { page: "updates", icon: "updates", label: "Updates", status: drift ? "warning" : updates ? "info" : "ok",
+      value: `${updates}<small> available</small>`, detail: `${drift ? `<span class="warning">${drift} files differ from main</span>` : "deployed files match main"} · ${h.updates_pending} OS packages` },
+    { page: "logs", icon: "logs", label: "Logs", status: lvl("logs"),
+      value: `${logMb.toFixed(0)}<small> MB</small>`, detail: `${unrotated ? `<span class="warning">${unrotated} without rotation</span>` : "all containers rotate"} · journal ${esc(d.logs?.journald)}` },
+  ];
+  $("kpis").innerHTML = tiles.map(t => `<a class="kpi ${t.status}" href="#${t.page}">
+      <div class="label">${icon(t.icon)}${t.label}</div><span class="go">${icon("arrow")}</span>
+      <div class="value">${t.value}</div><div class="detail">${t.detail}</div>${t.extra || ""}</a>`).join("");
+
+  const shown = A.filter(a => a.level !== "info");
+  const infos = A.filter(a => a.level === "info");
+  $("dash-alerts").innerHTML = (shown.length ? shown.map(a => alertRow(a, true)).join("") : `<div class="alert">${dot("ok")}<span class="txt">Nothing needs attention.</span></div>`)
+    + (infos.length ? `<div class="small" style="margin:12px 0 4px">For information</div>${infos.map(a => alertRow(a, true)).join("")}` : "");
+
+  $("dash-supply").innerHTML = table([
+    ["", g => dot(up(g) ? "ok" : "critical"), ""],
+    ["Name", g => `<b>${esc(g.garage)}</b> <span class="small">${g.type === "provider" ? "provider" : "garage"}</span>`],
+    ["Up 24 h", g => g.up_24h_pct == null ? "—" : `${g.up_24h_pct} %`, "num"],
+    ["Req 24 h", g => fmt(sum(t24.filter(r => r.garage === g.garage), "requests")), "num"],
+  ], G) + `<div class="note"><a href="#supply">All details →</a></div>`;
+}
+
+/* ---------- pages */
+function renderPages(d) {
+  ["supply", "traffic", "mesh", "server", "updates", "logs"].forEach(p => pageAlerts(p, d.alerts));
 
   $("garages").innerHTML = table([
-    ["Garage", g => `${dot(g.runtime_ok && g.mesh !== false ? "ok" : "critical")}<b>${esc(g.garage)}</b>`],
-    ["Type", g => g.type],
+    ["Name", g => `${dot(g.runtime_ok && g.mesh !== false ? "ok" : "critical")}<b>${esc(g.garage)}</b>`],
+    ["Type", g => pill("muted", g.type)],
     ["Tunnel", g => g.type === "provider" ? "HTTPS" : g.mesh ? `<span class="ok">up</span>` : `<span class="critical">down</span>`],
     ["Runtime", g => g.runtime_ok ? `<span class="ok">answers</span>` : `<span class="critical">${esc(g.error || "down")}</span>`],
     ["Models", g => g.models, "num"],
@@ -85,7 +401,7 @@ function render(d) {
     ["Load", g => g.vllm ? `${g.vllm.running} running, ${g.vllm.waiting} waiting<div class="small">KV cache ${g.vllm.kv_cache_pct} %${g.vllm.prompt_tok_s != null ? `, ${g.vllm.prompt_tok_s} in / ${g.vllm.gen_tok_s} out tok/s` : ""}</div>` : g.provider ? `<span class="small">${esc((g.provider.ips||[]).slice(0,2).join(", "))}${(g.provider.ips||[]).length > 2 ? ` +${g.provider.ips.length-2}` : ""}${g.provider.private_ip ? ' <span class="critical">private!</span>' : ""}</span>` : "—"],
     ["TLS", g => g.provider && g.provider.tls ? `${g.provider.tls.days_left ?? "?"} d` : "—", "num"],
     ["Checked", g => ago(g.checked_at)],
-  ], d.garages);
+  ], d.garages) + `<div class="note">Portal gateway-targets: ${d.portal.targets_status} in ${d.portal.targets_ms} ms, ${d.portal.garages_listed} listed.</div>`;
 
   const tcols = [
     ["Garage", r => r.garage === "?" ? '<span class="small">not routed</span>' : esc(r.garage)], ["Model", r => `<code>${esc(r.model)}</code>`],
@@ -97,18 +413,26 @@ function render(d) {
   $("traffic24").innerHTML = table(tcols, d.traffic.last_24h);
 
   const e = d.errors_last_hour;
+  const erow = (label, n, bad) => `<div>${label}</div><div class="${bad ? "warning" : ""}">${n}</div>`;
   $("errors").innerHTML = `<div class="kv">
-    <div>Unknown API key</div><div class="${e.invalid_key > 50 ? "warning" : ""}">${e.invalid_key}</div>
-    <div>Context rejected (400)</div><div>${e.context_rejected}</div>
-    <div>Timeouts (408)</div><div class="${e.timeouts_408 ? "warning" : ""}">${e.timeouts_408}</div>
-    <div>Broken mid-stream</div><div class="${e.mid_stream_failures ? "warning" : ""}">${e.mid_stream_failures}</div>
-    <div>All deployments in cooldown</div><div>${e.cooldown_429}</div>
-    <div>Server errors (5xx)</div><div class="${e.server_errors_5xx ? "warning" : ""}">${e.server_errors_5xx}</div>
-    <div>Token counting failed</div><div>${e.token_count_failures}</div></div>
-    <div class="small" style="margin-top:8px">Requests by endpoint: ${Object.entries(e.endpoints).map(([k,v]) => `<code>${esc(k)}</code> ${v}`).join(" · ") || "none"}</div>`;
+    ${erow("Unknown API key", e.invalid_key, e.invalid_key > 50)}${erow("Context rejected (400)", e.context_rejected)}
+    ${erow("Timeouts (408)", e.timeouts_408, e.timeouts_408)}${erow("Broken mid-stream", e.mid_stream_failures, e.mid_stream_failures)}
+    ${erow("All deployments in cooldown (429)", e.cooldown_429)}${erow("Server errors (5xx)", e.server_errors_5xx, e.server_errors_5xx)}
+    ${erow("Token counting failed", e.token_count_failures)}</div>
+    <div class="note">Requests by endpoint: ${Object.entries(e.endpoints).map(([k,v]) => `<code>${esc(k)}</code> ${v}`).join(" · ") || "none"}</div>`;
 
-  $("outside").innerHTML = table([["Service", o => `${dot(o.status === 200 ? "ok" : "critical")}${esc(o.name)}`], ["Status", o => o.status ?? "no answer"], ["Time", o => `${o.ms} ms`, "num"]], d.outside)
-    + `<div class="small" style="margin-top:8px">Portal gateway-targets: ${d.portal.targets_status} in ${d.portal.targets_ms} ms, ${d.portal.garages_listed} garages listed.</div>`;
+  const m = d.mesh, L = m.local;
+  $("mesh-local").innerHTML = `<div class="kv">
+    <div>Address</div><div>${dot(L.management && L.signal ? "ok" : "critical")}<code>${esc(L.ip)}</code> · NetBird ${esc(L.version)}</div>
+    <div>Management</div><div>${L.management ? '<span class="ok">connected</span>' : '<span class="critical">DOWN</span>'}</div>
+    <div>Signal</div><div>${L.signal ? '<span class="ok">connected</span>' : '<span class="critical">DOWN</span>'}</div>
+    <div>Relays</div><div>${L.relays_available} / ${L.relays_total} available</div>
+    <div>Valid setup keys</div><div class="${m.valid_setup_keys ? "warning" : "ok"}">${m.valid_setup_keys ?? "?"}</div></div>`;
+  $("mesh-peers").innerHTML = table([["Peer", p => `${dot(p.connected ? "ok" : "muted")}${esc(p.name)}`], ["Groups", p => esc(p.groups.join(", "))],
+    ["Link from gateway", p => p.link ? `${esc(p.link.status)} · ${esc(p.link.type || "—")}${p.link.latency_ms ? ` · ${p.link.latency_ms} ms` : ""}` : "—"],
+    ["Country", p => esc(p.country)], ["NetBird", p => esc(p.version)], ["OS", p => esc(p.os)], ["Last seen", p => p.connected ? "now" : ago(p.last_seen)]], m.peers);
+  $("mesh-policies").innerHTML = table([["Policy", p => `${dot(p.bidirectional ? "critical" : "ok")}${esc(p.name)}`], ["From", p => esc(p.sources.join(", "))],
+    ["To", p => esc(p.destinations.join(", "))], ["Ports", p => esc(p.ports.join(", "))], ["Direction", p => p.bidirectional ? '<span class="critical">both ways</span>' : "one way"]], m.policies);
 
   const h = d.host;
   $("host").innerHTML = `<div class="kv">
@@ -117,54 +441,65 @@ function render(d) {
     <div>Swap used</div><div>${fmt(h.swap_used_mb)} MB</div>
     <div>Disk used</div><div class="${h.disk_used_pct >= 80 ? "warning" : ""}">${h.disk_used_pct} % (${h.disk_free_gb} GB free)</div>
     <div>Uptime</div><div>${h.uptime_hours} h</div>
-    <div>Updates pending</div><div>${h.updates_pending}${h.reboot_required ? ' · <span class="warning">reboot required</span>' : ""}</div></div>`;
-
+    <div>OS updates pending</div><div>${h.updates_pending}${h.reboot_required ? ' · <span class="warning">reboot required</span>' : ""}</div></div>`;
+  $("outside").innerHTML = table([["Service", o => `${dot(o.status === 200 ? "ok" : "critical")}${esc(o.name)}`], ["Status", o => o.status ?? "no answer", "num"], ["Time", o => `${o.ms} ms`, "num"]], d.outside);
   $("containers").innerHTML = table([["Container", c => `${dot(c.state === "running" ? "ok" : "critical")}${esc(c.name)}`], ["Image", c => `<code>${esc(c.image)}</code>`], ["Status", c => esc(c.status)]], d.containers);
-
   const b = d.backup;
-  $("ops").innerHTML = table([["Timer", t => `${dot(t.active === "active" ? "ok" : "critical")}${esc(t.unit)}`], ["Last exit", t => t.last_exit ?? "—"], ["Last run", t => esc(t.last_run)]], d.timers)
-    + `<div style="margin-top:10px" class="kv"><div>Newest backup</div><div>${b.newest ? `${esc(b.newest)} · ${b.age_hours} h old · ${b.size_mb} MB · ${b.count} kept` : '<span class="critical">none</span>'}</div></div>`
-    + `<div style="margin-top:10px">${table([["Certificate", c => esc(c.host)], ["Days left", c => c.days_left == null ? `<span class="warning">${esc(c.error)}</span>` : `<span class="${c.days_left < 14 ? "warning" : ""}">${c.days_left}</span>`, "num"], ["Expires", c => esc(c.expires)]], d.certs)}</div>`;
-
-  const m = d.mesh, L = m.local;
-  $("mesh").innerHTML = `<div class="kv" style="margin-bottom:10px">
-      <div>Gateway peer</div><div>${dot(L.management && L.signal ? "ok" : "critical")}${esc(L.ip)} · NetBird ${esc(L.version)} · management ${L.management ? "connected" : "DOWN"} · signal ${L.signal ? "connected" : "DOWN"} · relays ${L.relays_available}/${L.relays_total}</div>
-      <div>Valid setup keys</div><div class="${m.valid_setup_keys ? "warning" : "ok"}">${m.valid_setup_keys ?? "?"}</div></div>`
-    + table([["Peer", p => `${dot(p.connected ? "ok" : "muted")}${esc(p.name)}`], ["Groups", p => esc(p.groups.join(", "))],
-             ["Link from gateway", p => p.link ? `${esc(p.link.status)} · ${esc(p.link.type || "—")}${p.link.latency_ms ? ` · ${p.link.latency_ms} ms` : ""}` : "—"],
-             ["Country", p => esc(p.country)], ["NetBird", p => esc(p.version)], ["OS", p => esc(p.os)], ["Last seen", p => p.connected ? "now" : ago(p.last_seen)]], m.peers)
-    + `<h2 style="margin-top:14px">Policies</h2>` + table([["Policy", p => `${dot(p.bidirectional ? "critical" : "ok")}${esc(p.name)}`], ["From", p => esc(p.sources.join(", "))], ["To", p => esc(p.destinations.join(", "))], ["Ports", p => esc(p.ports.join(", "))], ["Direction", p => p.bidirectional ? '<span class="critical">both ways</span>' : "one way"]], m.policies);
+  $("timers").innerHTML = table([["Timer", t => `${dot(t.active === "active" ? "ok" : "critical")}${esc(t.unit)}`], ["Last exit", t => t.last_exit ?? "—", "num"], ["Last run", t => esc(t.last_run)]], d.timers)
+    + `<div class="kv" style="margin-top:12px"><div>Newest backup</div><div>${b.newest ? `${esc(b.newest)}<div class="small">${b.age_hours} h old · ${b.size_mb} MB · ${b.count} kept</div>` : '<span class="critical">none</span>'}</div></div>`;
+  $("certs").innerHTML = table([["Host", c => esc(c.host)], ["Days left", c => c.days_left == null ? `<span class="warning">${esc(c.error)}</span>` : `<span class="${c.days_left < 14 ? "warning" : ""}">${c.days_left}</span>`, "num"], ["Expires", c => esc(c.expires)]], d.certs);
 
   $("versions").innerHTML = table([
     ["Component", v => `${dot(v.update ? "warning" : "ok")}${esc(v.component)}`],
-    ["Running", v => `<code>${esc(v.running)}</code>${v.pinned === false ? ' <span class="warning">unpinned</span>' : ""}`],
+    ["Running", v => `<code>${esc(v.running)}</code>${v.pinned === false ? " " + pill("warning", "unpinned") : ""}`],
     ["Latest", v => v.latest ? `<code>${esc(v.latest)}</code>` : "—"],
-    ["Status", v => v.update ? '<span class="warning">update available</span>' : '<span class="ok">current</span>'],
-    ["How to update", v => `<span class="small"><code>${esc(v.how)}</code></span>`]], d.versions || [])
-    + `<div class="small" style="margin-top:8px">Read-only: updates are run on the gateway, at a quiet time (see Traffic), then checked here.</div>`;
-
+    ["Status", v => v.update ? pill("warning", "update available") : pill("ok", "current")],
+    ["How to update", v => `<code class="small">${esc(v.how)}</code>`]], d.versions || []);
   const src = d.source || {};
-  $("source").innerHTML = `<div class="kv" style="margin-bottom:10px">
-      <div>Repository</div><div><a href="https://github.com/${esc(src.repo)}/commits/main" style="color:var(--accent)">${esc(src.repo)}</a></div>
+  $("source").innerHTML = `<div class="kv" style="margin-bottom:12px">
+      <div>Repository</div><div><a href="https://github.com/${esc(src.repo)}/commits/main" target="_blank" rel="noopener">${esc(src.repo)}</a></div>
       <div>main on GitHub</div><div><code>${esc(src.main_short)}</code></div>
       <div>Checkout on the gateway</div><div><code>${esc(src.checkout)}</code> (${esc(src.checkout_branch)})</div>
       <div>NetBird compose</div><div class="small">${esc(src.netbird_compose)}</div></div>`
     + table([["Deployed file", f => `${dot(f.status === "in sync" ? "ok" : f.status === "unknown" ? "muted" : "warning")}<code>${esc(f.deployed)}</code>`],
-             ["Source in repo", f => `<code>${esc(f.source)}</code>`], ["Status", f => esc(f.status)]], src.files || []);
+             ["Source in repo", f => `<code>${esc(f.source)}</code>`], ["Status", f => pill(f.status === "in sync" ? "ok" : f.status === "unknown" ? "muted" : "warning", esc(f.status))]], src.files || []);
 
   const lg = d.logs || {};
   $("logs").innerHTML = table([["Container", l => esc(l.container)], ["Log size", l => `${l.log_mb} MB`, "num"],
-      ["Rotation", l => l.max_size ? `${esc(l.max_size)} × ${esc(l.max_file || 1)}` : '<span class="warning">none</span>']], lg.containers || [])
-    + `<div class="kv" style="margin-top:10px"><div>System journal</div><div>${esc(lg.journald)}</div>${(lg.docker || []).map(x => `<div>Docker ${esc(x.type)}</div><div>${esc(x.size)} (reclaimable ${esc(x.reclaimable)})</div>`).join("")}</div>`;
+      ["Rotation", l => l.max_size ? `${esc(l.max_size)} × ${esc(l.max_file || 1)}` : pill("warning", "none")]], lg.containers || [])
+    + `<div class="kv" style="margin-top:12px"><div>System journal</div><div>${esc(lg.journald)}</div></div>`;
+  $("disk").innerHTML = `<div class="kv" style="margin-bottom:12px"><div>Root filesystem</div><div>${h.disk_used_pct} % used, ${h.disk_free_gb} GB free</div></div>`
+    + table([["Docker", x => esc(x.type)], ["Size", x => esc(x.size), "num"], ["Reclaimable", x => esc(x.reclaimable), "num"]], lg.docker || []);
 }
 
-async function load() {
+/* ---------- data */
+async function load(manual) {
+  if (manual) $("refresh").classList.add("spin");
   try {
     const r = await fetch("ops.json?t=" + Date.now(), { cache: "no-store" });
-    render(await r.json());
-  } catch (e) { $("meta").textContent = "Could not load ops.json: " + e; }
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    data = await r.json();
+    renderNav(data.alerts); renderChrome(data); renderDashboard(data); renderPages(data);
+  } catch (e) {
+    $("fresh").innerHTML = `${dot("critical")}<span class="txt">Could not load data: ${esc(e.message)}</span>`;
+  } finally { setTimeout(() => $("refresh").classList.remove("spin"), 400); }
 }
-load(); setInterval(load, 30000);
+async function whoami() {
+  try { const u = (await (await fetch("whoami", { cache: "no-store" })).json()).user || "operator";
+        $("uname").textContent = $("uname2").textContent = u; $("avatar").textContent = u[0]; } catch (e) {}
+}
+// Basic auth has no real sign-out: send deliberately wrong credentials so the browser forgets the
+// cached ones, then show a signed-out page. Reloading asks for the password again.
+function logout() {
+  const x = new XMLHttpRequest();
+  x.open("GET", "ops.json?logout=" + Date.now(), true, "signed-out", String(Math.random()));
+  x.onloadend = () => { document.body.innerHTML = `<div style="min-height:100vh;display:grid;place-items:center;text-align:center;padding:24px">
+    <div><div class="logo" style="margin:0 auto 14px">${icon("supply")}</div><h1 style="font-size:20px;margin:0 0 6px">Signed out</h1>
+    <p class="small">You are signed out of the GarageAI Operations Center.</p><p><a href="/" onclick="location.replace('/');return false">Sign in again</a></p></div></div>`; };
+  x.send();
+}
+renderNav([]); load(); whoami(); setInterval(load, 30000);
+setInterval(() => data && renderChrome(data), 10000);
 </script>
 </body>
 </html>
