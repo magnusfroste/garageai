@@ -40,6 +40,12 @@
 # Without it every chat model the runtime lists is offered; embedding and reranker models are
 # never offered. Later changes (offer, pause) are made in the GarageAI portal, under My garages.
 #
+# When the portal's command is used (--register-url and --register-token), the script reports
+# each step and its outcome to GarageAI, so you (in the wizard) and GarageAI can see where a
+# connect stopped and why. It sends the step, the outcome, the message shown here, and this
+# machine's OS, CPU architecture, GPU, memory, runtime and port. Never keys, prompts or model
+# output. GARAGEAI_REPORT=0 turns this off.
+#
 # Supported: Linux and macOS. Windows: garageai-connect.ps1 (Ollama and LM Studio).
 
 set -euo pipefail
@@ -68,8 +74,8 @@ MESH_WAIT_SECONDS="${GARAGEAI_MESH_WAIT_SECONDS:-90}"
 bold() { printf '\033[1m%s\033[0m\n' "$*"; }
 info() { printf '  %s\n' "$*"; }
 ok()   { printf '  \033[32m✓\033[0m %s\n' "$*"; }
-warn() { printf '  \033[33m!\033[0m %s\n' "$*" >&2; }
-die()  { printf '  \033[31m✗\033[0m %s\n' "$*" >&2; exit 1; }
+warn() { printf '  \033[33m!\033[0m %s\n' "$*" >&2; [ "${REPORTING:-0}" -eq 1 ] && report warning "$*"; return 0; }
+die()  { printf '  \033[31m✗\033[0m %s\n' "$*" >&2; [ "${REPORTING:-0}" -eq 1 ] && report failed "$*"; REPORTED_FAILURE=1; exit 1; }
 
 usage() { sed -n '2,43p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
@@ -94,6 +100,59 @@ while [ $# -gt 0 ]; do
     *) warn "Unknown option: $1"; usage 1 ;;
   esac
 done
+
+# Onboarding report. When the portal gave a register URL and token, each step and its outcome
+# go to GarageAI, so the operator's wizard and GarageAI's admin see where a connect stopped and
+# why. Sent: the step, the outcome, the message shown here, and this machine's OS, CPU
+# architecture, GPU, memory, runtime and port. Never keys, prompts or model output. A report
+# that cannot be sent never stops the script. GARAGEAI_REPORT=0 turns it off.
+SCRIPT_VERSION="2026-10-09"
+CURRENT_STEP="0/6  Start"
+REPORTING=0
+REPORTED_FAILURE=0
+FINISHED=0
+json_esc() { printf '%s' "$1" | tr -d '\000-\037' | sed 's/\\/\\\\/g; s/"/\\"/g' | cut -c1-500; }
+machine_facts() { # best effort: a missing tool (no nvidia-smi on a Mac or a CPU box) must never stop the script
+  FACT_OS="" FACT_GPU="" FACT_MEM="" FACT_ARCH="$(uname -m 2>/dev/null || true)"
+  if [ "$(uname -s)" = Darwin ]; then
+    FACT_OS="macOS $(sw_vers -productVersion 2>/dev/null || true)"
+    FACT_GPU="$(sysctl -n machdep.cpu.brand_string 2>/dev/null || true)"
+    FACT_MEM="$(( $(sysctl -n hw.memsize 2>/dev/null || echo 0) / 1073741824 ))"
+  else
+    FACT_OS="$( (. /etc/os-release 2>/dev/null && printf '%s' "${PRETTY_NAME:-Linux}") || uname -sr 2>/dev/null || true)"
+    if command -v nvidia-smi >/dev/null 2>&1; then
+      FACT_GPU="$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null | head -n 4 | paste -sd ';' - || true)"
+    fi
+    if [ -z "$FACT_GPU" ] && command -v lspci >/dev/null 2>&1; then
+      FACT_GPU="$(lspci 2>/dev/null | grep -iE 'vga|3d|display' | head -n 2 | sed 's/^[^ ]* //; s/^[^:]*: //' | paste -sd ';' - || true)"
+    fi
+    FACT_MEM="$(awk '/^MemTotal:/ { printf "%d", $2 / 1048576 }' /proc/meminfo 2>/dev/null || true)"
+  fi
+  return 0
+}
+report() { # report STATUS [MESSAGE]: started, warning, failed, stopped or done
+  [ -n "$REGISTER_URL" ] && [ -n "$REGISTER_TOKEN" ] && [ "${GARAGEAI_REPORT:-1}" != 0 ] || return 0
+  [ -n "${FACT_ARCH:-}" ] || machine_facts || true
+  local body
+  body="{\"step\":\"$(json_esc "$CURRENT_STEP")\",\"status\":\"$1\",\"message\":\"$(json_esc "${2:-}")\",\"script_version\":\"${SCRIPT_VERSION}\",\"node_name\":\"$(json_esc "$NODE_NAME")\",\"runtime\":\"$(json_esc "$RUNTIME")\",\"port\":\"$(json_esc "$PORT")\",\"os\":\"$(json_esc "$FACT_OS")\",\"arch\":\"$(json_esc "$FACT_ARCH")\",\"gpu\":\"$(json_esc "$FACT_GPU")\",\"memory_gb\":\"$(json_esc "$FACT_MEM")\"}"
+  curl -s -o /dev/null --max-time 5 -X POST "${REGISTER_URL%/register-node}/onboarding-report" \
+    -H "Authorization: Bearer ${REGISTER_TOKEN}" -H "Content-Type: application/json" -d "$body" 2>/dev/null || true
+}
+step() { CURRENT_STEP="$1"; bold "$1"; report started; }
+on_exit() {
+  local rc=$1
+  [ "$REPORTING" -eq 1 ] || return 0
+  if [ "$rc" -ne 0 ] && [ "$REPORTED_FAILURE" -eq 0 ]; then
+    if [ "$rc" -eq 130 ]; then report stopped "Interrupted (Ctrl-C)"; else report failed "Stopped unexpectedly (exit code ${rc})"; fi
+  elif [ "$rc" -eq 0 ] && [ "$FINISHED" -eq 0 ]; then
+    report stopped "Waiting for the operator: restart the runtime as shown, then run the script again"
+  fi
+}
+if [ "$DOCTOR" -eq 0 ] && [ "$UNINSTALL" -eq 0 ] && [ "$REMOVE_HEARTBEAT" -eq 0 ]; then
+  REPORTING=1
+  trap 'on_exit $?' EXIT
+  report started "Script started"
+fi
 
 default_port() {
   case "$1" in
@@ -627,7 +686,7 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 # 1. NetBird client
-bold "1/6  NetBird client"
+step "1/6  NetBird client"
 if command -v netbird >/dev/null 2>&1; then
   ok "netbird is installed ($(netbird version 2>/dev/null || echo 'unknown version'))"
 elif [ "$SKIP_INSTALL" -eq 1 ]; then
@@ -644,7 +703,7 @@ fi
 echo
 
 # 2. Join the mesh
-bold "2/6  Join the GarageAI mesh"
+step "2/6  Join the GarageAI mesh"
 MESH_IP="$(mesh_ip)"
 if [ -n "$MESH_IP" ] && [ -z "$SETUP_KEY" ]; then
   ok "Already on the mesh (no setup key given, keeping the current connection)"
@@ -667,7 +726,7 @@ ok "Mesh IP: ${MESH_IP}"
 echo
 
 # 3. Local runtime
-bold "3/6  Inference runtime (${RUNTIME}, port ${PORT})"
+step "3/6  Inference runtime (${RUNTIME}, port ${PORT})"
 runtime_status() {
   local auth=()
   [ -n "$RUNTIME_API_KEY" ] && auth=(-H "Authorization: Bearer ${RUNTIME_API_KEY}")
@@ -695,7 +754,7 @@ echo
 # NetBird filters a node's traffic to its own mesh IP, so on many systems (macOS in
 # particular) we cannot test the mesh path from here. Try it, and otherwise check which
 # address the runtime listens on; the gateway's acceptance test then proves the path.
-bold "4/6  Reachable over the mesh"
+step "4/6  Reachable over the mesh"
 PROBE_HOST="$MESH_IP"
 if MODELS="$(http_models "$MESH_IP" 2>/dev/null)"; then
   ok "Reachable on ${MESH_IP}:${PORT}"
@@ -813,7 +872,7 @@ if firewall_supported && [ "${GARAGEAI_FIREWALL:-1}" != 0 ]; then
 fi
 
 # 5. Register
-bold "5/6  Register with GarageAI"
+step "5/6  Register with GarageAI"
 MODELS_JSON="$(printf '%s\n' "$MODELS" | jq -R . | jq -sc .)"
 PAYLOAD="$(jq -nc \
   --arg name "$NODE_NAME" --arg mesh_ip "$MESH_IP" --argjson port "$PORT" \
@@ -845,18 +904,23 @@ if [ -n "$REGISTER_URL" ]; then
      (.ttft_ms // "?" | tostring), (.error // "")] | @tsv')
   if [ "$PASSED" -gt 0 ]; then
     ok "Node registered — your garage is live on GarageAI."
+    FINISHED=1
+    CURRENT_STEP="5/6  Register with GarageAI"; report done "Registered: ${PASSED} model(s) passed the acceptance test"
   else
     warn "Registered, but no model passed the acceptance test, so nothing is for sale yet."
     warn "Check that the runtime answers on the mesh IP and that the model loads, then run this again."
+    FINISHED=1
   fi
 
   if [ "$HEARTBEAT" -eq 1 ]; then
-    bold "6/6  Heartbeat"
+    step "6/6  Heartbeat"
     install_heartbeat
     ok "Installed: reports your models every 5 minutes. Load a new model and it shows up"
     info "  under My garages in the portal, where you choose to offer it. Remove with: $0 --remove-heartbeat"
+    report done "Heartbeat installed"
   fi
 else
+  FINISHED=1
   info "No --register-url given. Send these details to GarageAI to activate the node:"
   echo
   echo "$PAYLOAD" | jq 'del(.runtime_api_key)'
