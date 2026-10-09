@@ -433,7 +433,7 @@ function renderDashboard(d) {
 
   $("dash-events").innerHTML = eventList((d.events_recent || []).slice(0, 8));
   $("dash-supply").innerHTML = table([
-    ["", g => dot(up(g) ? "ok" : "critical"), ""],
+    ["", g => dot(g.onboarding ? "info" : up(g) ? "ok" : "critical"), ""],
     ["Name", g => `<b>${esc(g.garage)}</b> <span class="small">${g.type === "provider" ? "provider" : "garage"}</span>`],
     ["Up 24 h", g => g.up_24h_pct == null ? "—" : `${g.up_24h_pct} %`, "num"],
     ["Req 24 h", g => fmt(sum(t24.filter(r => r.garage === g.garage), "requests")), "num"],
@@ -445,10 +445,11 @@ function renderPages(d) {
   ["supply", "traffic", "mesh", "server", "updates", "logs"].forEach(p => pageAlerts(p, d.alerts));
 
   $("garages").innerHTML = table([
-    ["Name", g => `${dot(g.runtime_ok && g.mesh !== false ? "ok" : "critical")}<b>${esc(g.garage)}</b>`],
+    ["Name", g => `${dot(g.onboarding ? "info" : g.runtime_ok && g.mesh !== false ? "ok" : "critical")}<b>${esc(g.garage)}</b>`],
     ["Type", g => pill("muted", g.type)],
     ["Tunnel", g => g.type === "provider" ? "HTTPS" : g.mesh ? `<span class="ok">up</span>` : `<span class="critical">down</span>`],
-    ["Runtime", g => g.runtime_ok ? `<span class="ok">answers</span>` : `<span class="critical">${esc(g.error || "down")}</span>`],
+    ["Runtime", g => g.onboarding ? `${pill("info", "onboarding")}${g.onboarding_step ? `<div class="small">${esc(g.onboarding_step.step)} · ${esc(g.onboarding_step.status)}${g.onboarding_step.message ? ": " + esc(g.onboarding_step.message) : ""}</div>` : ""}`
+      : g.runtime_ok ? `<span class="ok">answers</span>` : `<span class="critical">${esc(g.error || "down")}</span>`],
     ["Models", g => g.models, "num"],
     ["Up 1 h", g => g.up_1h_pct == null ? "—" : `${g.up_1h_pct} %`, "num"],
     ["Up 24 h", g => g.up_24h_pct == null ? "—" : `${g.up_24h_pct} %<div class="small">${Math.round(g.minutes_tracked/60)} h tracked</div>`, "num"],

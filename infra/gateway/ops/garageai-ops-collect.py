@@ -329,6 +329,8 @@ def garages(env, state, targets):
             # Not registered yet: the operator is still onboarding (joined the mesh or not, no host and port in
             # the portal). That is not an outage.
             "onboarding": not t.get("endpoint") and not (t.get("host") and t.get("port")),
+            # The connect script's latest step, from the portal (gateway-targets), while onboarding.
+            "onboarding_step": t.get("onboarding"),
             "models": len(h.get("models") or []), "checked_at": h.get("checked_at"),
             "up_1h_pct": round(100 * sum(last60) / len(last60), 1) if last60 else None,
             "up_24h_pct": round(100 * sum(last24) / len(last24), 1) if last24 else None,
@@ -592,7 +594,12 @@ def alerts(d):
         add("critical", f"Portal gateway-targets answered {d['portal']['targets_status']}", "supply")
     for g in d["garages"]:
         if g.get("onboarding"):
-            add("info", f"{g['garage']} is onboarding: {'joined the mesh, ' if g['mesh'] else ''}not registered with the portal yet", "supply")
+            st = g.get("onboarding_step") or {}
+            if st.get("status") in ("failed", "stopped"):
+                add("info", f"{g['garage']} is onboarding, stuck at {' '.join(str(st.get('step', '?')).split())}: {st.get('message', '')}", "supply")
+            else:
+                add("info", f"{g['garage']} is onboarding: " + (f"{' '.join(str(st.get('step')).split())} ({st.get('status')})" if st.get("step")
+                    else f"{'joined the mesh, ' if g['mesh'] else ''}not registered with the portal yet"), "supply")
             continue
         if not g["runtime_ok"] or g["mesh"] is False:
             add("critical", f"{g['garage']}: {'tunnel down' if g['mesh'] is False else 'runtime not answering'}"
