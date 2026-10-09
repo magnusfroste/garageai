@@ -287,6 +287,34 @@ classes; the portal and site seen from outside; and a list of current alerts.
   with the user Traefik passes in `X-Ops-User`; signing out makes the browser forget the
   basic-auth credentials.
 
+### Telegram alerts
+
+The collector sends alerts to one Telegram chat. It is one-way: the bot only sends, and never
+acts on messages it receives.
+
+- Critical alerts are sent after 2 minutes in a row and repeated every 4 hours while still open.
+- Warnings are sent after 15 minutes in a row.
+- When an alert that was sent clears, a "Resolved" message follows.
+- A morning report (status, supply, last 24 h traffic and spend, backup, updates) is sent at
+  07:00 Europe/Stockholm.
+
+A send that fails is retried the next minute, and the Operations Center shows the failure.
+
+Setup:
+
+1. In Telegram, ask @BotFather for `/newbot` and copy the token.
+2. On the gateway, store the token without echoing it:
+   ```bash
+   sudo install -m 600 /dev/null /etc/garageai/telegram.env
+   read -rsp "Bot token: " T && printf 'TELEGRAM_BOT_TOKEN=%s\n' "$T" | sudo tee /etc/garageai/telegram.env >/dev/null; unset T; echo
+   ```
+3. Send `/start` to the new bot from your own account, then save that chat and get a test message:
+   ```bash
+   sudo garageai-ops-collect --telegram-setup
+   ```
+
+`sudo garageai-ops-collect --telegram-test` sends another test message.
+
 ## Backups
 
 `backup/garageai-backup` (installed to `/usr/local/sbin`, run nightly by `garageai-backup.timer`)

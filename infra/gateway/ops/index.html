@@ -222,6 +222,7 @@
           <div class="card"><h2>Seen from outside</h2><div id="outside"></div></div>
         </div>
         <div class="card"><h2>Containers</h2><div id="containers"></div></div>
+        <div class="card"><h2>Notifications</h2><div id="notify"></div></div>
         <div class="grid">
           <div class="card"><h2>Timers and backup</h2><div id="timers"></div></div>
           <div class="card"><h2>Certificates</h2><div id="certs"></div></div>
@@ -328,7 +329,8 @@ function renderDashboard(d) {
   const state = crit ? "critical" : warn ? "warning" : "ok";
   const headline = crit ? `${crit} critical issue${crit > 1 ? "s" : ""}` : warn ? `${warn} warning${warn > 1 ? "s" : ""}` : "All systems operational";
   $("hero").className = "hero " + state;
-  $("hero").innerHTML = `<div class="state"><div class="ring">${icon(state === "ok" ? "check" : "warn")}</div><div>${headline}<div class="small" style="font-weight:400">Collected ${ago(d.generated_at)} · every minute</div></div></div>
+  $("hero").innerHTML = `<div class="state"><div class="ring">${icon(state === "ok" ? "check" : "warn")}</div><div>${headline}<div class="small" style="font-weight:400">Collected ${ago(d.generated_at)} · every minute · ${
+      d.notify?.configured ? (d.notify.last_error ? '<span class="warning">Telegram alerts failing</span>' : "Telegram alerts on") : '<a href="#server">Telegram alerts off</a>'}</div></div></div>
     <div class="counts"><div><b class="${crit ? "critical" : ""}">${crit}</b>critical</div><div><b class="${warn ? "warning" : ""}">${warn}</b>warning</div><div><b>${info}</b>info</div></div>`;
 
   const lvl = page => worst(A.filter(a => a.page === page));
@@ -444,6 +446,14 @@ function renderPages(d) {
     <div>OS updates pending</div><div>${h.updates_pending}${h.reboot_required ? ' · <span class="warning">reboot required</span>' : ""}</div></div>`;
   $("outside").innerHTML = table([["Service", o => `${dot(o.status === 200 ? "ok" : "critical")}${esc(o.name)}`], ["Status", o => o.status ?? "no answer", "num"], ["Time", o => `${o.ms} ms`, "num"]], d.outside);
   $("containers").innerHTML = table([["Container", c => `${dot(c.state === "running" ? "ok" : "critical")}${esc(c.name)}`], ["Image", c => `<code>${esc(c.image)}</code>`], ["Status", c => esc(c.status)]], d.containers);
+  const n = d.notify || {};
+  $("notify").innerHTML = `<div class="kv">
+    <div>Telegram</div><div>${n.configured ? (n.last_error ? `${dot("warning")}<span class="warning">failing: ${esc(n.last_error.error)} since ${esc(n.last_error.at)}</span>` : `${dot("ok")}on`)
+      : `${dot("muted")}not configured <span class="small">(see infra/gateway/README.md)</span>`}</div>
+    <div>Last message</div><div>${n.last_sent ? `${ago(n.last_sent)} <span class="small">${esc(n.last_sent)}</span>` : "—"}</div>
+    <div>Open alerts sent</div><div>${n.sent_open ?? 0}</div>
+    <div>Rules</div><div class="small">${esc(n.rules)}</div>
+    <div>Morning report</div><div class="small">${esc(n.daily_report)}</div></div>`;
   const b = d.backup;
   $("timers").innerHTML = table([["Timer", t => `${dot(t.active === "active" ? "ok" : "critical")}${esc(t.unit)}`], ["Last exit", t => t.last_exit ?? "—", "num"], ["Last run", t => esc(t.last_run)]], d.timers)
     + `<div class="kv" style="margin-top:12px"><div>Newest backup</div><div>${b.newest ? `${esc(b.newest)}<div class="small">${b.age_hours} h old · ${b.size_mb} MB · ${b.count} kept</div>` : '<span class="critical">none</span>'}</div></div>`;
