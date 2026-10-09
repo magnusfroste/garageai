@@ -1,0 +1,40 @@
+# GarageAI Operations Center: a static page plus ops.json, written every minute by
+# garageai-ops-collect on the host. Served by nginx behind NetBird's Traefik, with HTTPS
+# and basic auth. Read-only: the page cannot change anything.
+#
+# .env (root, 0600): OPS_DOMAIN=ops.garageai.eu and OPS_BASIC_AUTH='user:$apr1$...'
+# (single quotes keep the $ signs literal). Create the hash with:
+#   openssl passwd -apr1 "$(cat /etc/garageai/ops-password)"
+name: garageai-ops
+
+services:
+  ops:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/var/cache/nginx, /var/run, /tmp]
+    volumes:
+      - /var/lib/garageai-ops/www:/usr/share/nginx/html:ro
+    networks: [netbird]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=netbird_netbird
+      - traefik.http.routers.ops-center.rule=Host(`${OPS_DOMAIN:?set OPS_DOMAIN in .env}`)
+      - traefik.http.routers.ops-center.entrypoints=websecure
+      - traefik.http.routers.ops-center.tls=true
+      - traefik.http.routers.ops-center.tls.certresolver=letsencrypt
+      - traefik.http.routers.ops-center.middlewares=ops-auth,ops-ratelimit,ops-headers
+      - traefik.http.middlewares.ops-auth.basicauth.users=${OPS_BASIC_AUTH:?set OPS_BASIC_AUTH in .env}
+      - traefik.http.middlewares.ops-auth.basicauth.realm=GarageAI Operations Center
+      - traefik.http.middlewares.ops-ratelimit.ratelimit.average=5
+      - traefik.http.middlewares.ops-ratelimit.ratelimit.burst=20
+      - traefik.http.middlewares.ops-headers.headers.customresponseheaders.X-Robots-Tag=noindex, nofollow
+      - traefik.http.middlewares.ops-headers.headers.customresponseheaders.Cache-Control=no-store
+      - traefik.http.middlewares.ops-headers.headers.framedeny=true
+      - traefik.http.middlewares.ops-headers.headers.contenttypenosniff=true
+      - traefik.http.services.ops.loadbalancer.server.port=80
+
+networks:
+  netbird:
+    name: netbird_netbird
+    external: true
