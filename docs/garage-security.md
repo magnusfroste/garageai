@@ -43,13 +43,21 @@ are dropped.
 
 The script is open source: read [`scripts/garageai-connect.sh`](../scripts/garageai-connect.sh)
 (or `garageai-connect.ps1` on Windows) before you run it. It needs administrator rights for
-two things:
+these things:
 
 1. **The NetBird client**, which creates the tunnel and a network interface for it.
 2. **A heartbeat**, a small scheduled job that tells GarageAI every 5 minutes which models your
    runtime serves. It sends your garage's name, the runtime type, the port and the model names.
    It does not send prompts, files or anything else. Its settings, including your garage's
    token, are stored in a file only administrators can read.
+
+3. **On Linux, if you agree: a firewall rule for the runtime port.** Your runtime listens on
+   all addresses so the mesh can reach it, which also lets every device on your home network
+   use it (Ollama has no password). The script offers to drop that port on your network card
+   (the interface with the default route), for the machine and for Docker-published ports.
+   The mesh, the machine itself and Docker networks keep their access. A small service
+   re-applies the rule after a reboot; `--uninstall` removes it. The Windows script adds the
+   equivalent rule; on macOS this is not automated yet.
 
 It does not change your router, Docker or other software. The NetBird client does two things
 on the machine itself: it adds firewall rules for its own interface (`wt0`) so that only the
