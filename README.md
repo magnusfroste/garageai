@@ -23,14 +23,16 @@ Buyers ──HTTPS──▶ LiteLLM gateway (EU) ──private WireGuard mesh─
 
 1. **Sign up and add credits** at [app.garageai.eu](https://app.garageai.eu/auth?intent=buyer) — prepaid, pay per token, no subscription.
 2. **Create an API key.** The API at `https://llm.garageai.eu/v1` is OpenAI-compatible: change the base URL and the OpenAI SDKs, agents and coding tools just work.
-3. **Pick a model and how to buy it** — **Pool** (cheaper, load-balanced across every garage offering that model, with automatic failover) or a **Specific garage** (a named garage, for example when location matters).
+3. **Pick a model and how to buy it** — **Pool** (one model name across every garage offering it; each request goes to one healthy garage and is billed at that garage's price, with automatic failover) or a **Specific garage** (a named garage, for example when location matters; you pay its price). Each garage sets its own price; GarageAI has no price list of its own.
 
 ### Offer your GPU
 
-1. **Start the "Offer your GPU" wizard** at [app.garageai.eu](https://app.garageai.eu/auth?intent=operator) — macOS or Linux (Windows coming soon) with Ollama, LM Studio, llama.cpp, vLLM, SGLang or Paddock (beta).
-2. **Run one command.** [`scripts/garageai-connect.sh`](scripts/garageai-connect.sh) installs the [NetBird](https://netbird.io) client, joins your machine to the encrypted mesh, registers your models and installs a heartbeat that keeps the offered models in sync. No inbound ports are opened.
+1. **Start the "Offer your GPU" wizard** at [app.garageai.eu](https://app.garageai.eu/auth?intent=operator) — macOS or Linux with Ollama, LM Studio, llama.cpp, vLLM, SGLang or Paddock (beta). Create your garage and set your price per million tokens.
+2. **Run one command.** [`scripts/garageai-connect.sh`](scripts/garageai-connect.sh) installs the [NetBird](https://netbird.io) client, joins your machine to the encrypted mesh, registers your models and installs a heartbeat that keeps the offered models in sync. No inbound ports are opened. The script is in beta: `--doctor` checks your garage and `--uninstall` removes it again.
+
+   **Windows is in beta:** [`scripts/garageai-connect.ps1`](scripts/garageai-connect.ps1) supports Ollama and LM Studio and runs in PowerShell as administrator. It is tested in CI but not yet on a real GPU machine, and the wizard does not offer Windows yet. To try it, email powerup@garageai.eu with the subject "Windows beta" and your GPU and runtime.
 3. **Pass the acceptance test.** Every model is tested through the gateway with a real streamed request — time-to-first-token and tokens per second are measured before it can be sold.
-4. **Go live and earn** the token price buyers pay for every request your garage serves. No platform fee during launch.
+4. **Go live and earn** the price you set for every token your garage serves, also for pool requests. No platform fee during launch.
 
 ### Under the hood
 
