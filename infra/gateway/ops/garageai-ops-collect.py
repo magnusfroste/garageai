@@ -10,8 +10,10 @@ it. The file holds no secrets: no keys, no tokens, no prompts.
 Config: /etc/garageai/gateway-health.env (same as the health service).
 Output: /var/lib/garageai-ops/www/ops.json; state in /var/lib/garageai-ops/state.json.
 """
+import hashlib
 import json
 import os
+import platform
 import re
 import shutil
 import socket
@@ -32,6 +34,20 @@ TIMERS = ["garageai-health.timer", "garageai-backup.timer", "garageai-ops.timer"
 EXPECTED_POLICIES = {"gateway-to-garages"}
 UA = "garageai-ops/1 (+https://garageai.eu)"
 HISTORY_MINUTES = 24 * 60
+REPO = "magnusfroste/garageai"
+REPO_DIR = "/home/garageai/garageai"
+# Deployed file -> its source in the repository (compared with main on GitHub).
+DEPLOYED = {
+    "/opt/garageai/litellm/config.yaml": "infra/gateway/litellm/config.yaml",
+    "/opt/garageai/litellm/docker-compose.yml": "infra/gateway/litellm/docker-compose.yml",
+    "/opt/garageai/litellm/garageai_callbacks.py": "infra/gateway/litellm/garageai_callbacks.py",
+    "/usr/local/bin/garageai-health": "infra/gateway/health/garageai-health.py",
+    "/usr/local/sbin/garageai-backup": "infra/gateway/backup/garageai-backup",
+    "/usr/local/bin/garageai-ops-collect": "infra/gateway/ops/garageai-ops-collect.py",
+    "/var/lib/garageai-ops/www/index.html": "infra/gateway/ops/index.html",
+    "/opt/garageai/ops/docker-compose.yml": "infra/gateway/ops/docker-compose.yml",
+}
+LOG_ALERT_MB = 400
 
 
 def now():
@@ -362,6 +378,114 @@ def outside():
     return rows
 
 
+# ---------------------------------------------------------------- versions, source, logs
+def cached(state, key, seconds, fn):
+    entry = state.setdefault("cache", {}).get(key)
+    if entry and time.time() - entry["at"] < seconds:
+        return entry["value"]
+    value = fn()
+    if value is not None:
+        state["cache"][key] = {"at": time.time(), "value": value}
+    return value if value is not None else (entry or {}).get("value")
+
+
+def github_json(path):
+    code, body, _ = http(f"https://api.github.com/{path}", {"Accept": "application/vnd.github+json"}, timeout=10)
+    return json.loads(body) if code == 200 else None
+
+
+def image_of(conts, name):
+    return next((c["image"] for c in conts if c["name"] == name), "")
+
+
+def versions(env, state, conts):
+    rows = []
+    litellm = image_of(conts, "garageai-litellm-litellm-1").rsplit(":", 1)[-1]
+    latest = cached(state, "litellm_latest", 3600, lambda: (github_json("repos/BerriAI/litellm/releases/latest") or {}).get("tag_name"))
+    rows.append({"component": "LiteLLM (gateway)", "running": litellm, "latest": latest,
+                 "update": bool(latest and litellm and latest != litellm),
+                 "how": "set LITELLM_VERSION in /opt/garageai/litellm/.env, then: cd /opt/garageai/litellm && sudo docker compose pull && sudo docker compose up -d"})
+    nb = {}
+    api, token = env.get("NETBIRD_API_URL", "").rstrip("/"), env.get("NETBIRD_API_TOKEN", "")
+    if api and token:
+        code, body, _ = http(f"{api}/instance/version", {"Authorization": f"Token {token}"})
+        nb = json.loads(body) if code == 200 else {}
+    server_img = image_of(conts, "netbird-server").rsplit(":", 1)[-1]
+    rows.append({"component": "NetBird management/relay", "running": nb.get("management_current_version") or server_img,
+                 "latest": nb.get("management_available_version"), "update": bool(nb.get("management_update_available")),
+                 "pinned": server_img != "latest",
+                 "how": "change the netbird-server tag in /opt/garageai/netbird/docker-compose.yml, then: sudo docker compose pull && sudo docker compose up -d (quiet time)"})
+    dash_img = image_of(conts, "netbird-dashboard").rsplit(":", 1)[-1]
+    dash_avail = nb.get("dashboard_available_version")
+    rows.append({"component": "NetBird dashboard", "running": dash_img, "latest": dash_avail and f"v{dash_avail}",
+                 "update": bool(dash_avail and dash_img not in (f"v{dash_avail}", dash_avail, "latest")), "pinned": dash_img != "latest",
+                 "how": "change the dashboard tag in /opt/garageai/netbird/docker-compose.yml, then: sudo docker compose up -d"})
+    client = sh(["netbird", "version"]).strip()
+    rows.append({"component": "NetBird client (gateway peer)", "running": client, "latest": nb.get("management_available_version"),
+                 "update": bool(client and nb.get("management_available_version") and client != nb.get("management_available_version")),
+                 "how": "sudo apt update && sudo apt install --only-upgrade netbird"})
+    traefik = image_of(conts, "netbird-traefik").rsplit(":", 1)[-1]
+    t_latest = cached(state, "traefik_latest", 3600, lambda: (github_json("repos/traefik/traefik/releases/latest") or {}).get("tag_name"))
+    rows.append({"component": "Traefik", "running": traefik, "latest": t_latest,
+                 "update": bool(t_latest and not t_latest.startswith(traefik)),
+                 "how": "minor/patch updates arrive with the floating tag on recreate; a new minor needs the tag changed in /opt/garageai/netbird/docker-compose.yml"})
+    os_name = ""
+    try:
+        os_name = dict(l.strip().split("=", 1) for l in open("/etc/os-release") if "=" in l).get("PRETTY_NAME", "").strip('"')
+    except OSError:
+        pass
+    rows.append({"component": "Host OS", "running": f"{os_name} · kernel {platform.release()}", "latest": None, "update": False,
+                 "how": "security updates install automatically (unattended-upgrades); reboot when the alert says so: sudo reboot"})
+    return rows
+
+
+def sha256_file(path):
+    try:
+        return hashlib.sha256(open(path, "rb").read()).hexdigest()
+    except OSError:
+        return None
+
+
+def source(state):
+    main = cached(state, "repo_main", 600, lambda: (github_json(f"repos/{REPO}/commits/main") or {}).get("sha"))
+    local = sh(["git", "-c", "safe.directory=*", "-C", REPO_DIR, "rev-parse", "HEAD"]).strip() or None
+    branch = sh(["git", "-c", "safe.directory=*", "-C", REPO_DIR, "rev-parse", "--abbrev-ref", "HEAD"]).strip() or None
+    files = []
+    remote = state.setdefault("cache", {}).setdefault("main_files", {"sha": None, "hashes": {}})
+    if main and remote.get("sha") != main:
+        hashes = {}
+        for repo_path in DEPLOYED.values():
+            code, body, _ = http(f"https://raw.githubusercontent.com/{REPO}/{main}/{repo_path}", timeout=10)
+            hashes[repo_path] = hashlib.sha256(body).hexdigest() if code == 200 else None
+        remote.update({"sha": main, "hashes": hashes})
+    for deployed, repo_path in DEPLOYED.items():
+        want, have = remote["hashes"].get(repo_path), sha256_file(deployed)
+        files.append({"deployed": deployed, "source": repo_path,
+                      "status": "missing" if have is None else "unknown" if want is None else "in sync" if want == have else "differs from main"})
+    return {"repo": REPO, "main": main, "main_short": (main or "")[:7], "checkout": local and local[:7], "checkout_branch": branch,
+            "files": files, "netbird_compose": "/opt/garageai/netbird/docker-compose.yml (installer-generated, not in the repo)"}
+
+
+def logs(conts):
+    rows = []
+    for c in conts:
+        info = sh(["docker", "inspect", c["name"], "--format", "{{.LogPath}}|{{json .HostConfig.LogConfig.Config}}"]).strip()
+        path, _, opts = info.partition("|")
+        try:
+            size = os.path.getsize(path) if path else 0
+        except OSError:
+            size = 0
+        try:
+            cfg = json.loads(opts or "{}") or {}
+        except ValueError:
+            cfg = {}
+        rows.append({"container": c["name"], "log_mb": round(size / 1e6, 1), "max_size": cfg.get("max-size"), "max_file": cfg.get("max-file")})
+    journal = re.search(r"take up ([0-9.]+[KMGT]?)", sh(["journalctl", "--disk-usage"]))
+    df = sh(["docker", "system", "df", "--format", "{{.Type}}|{{.Size}}|{{.Reclaimable}}"])
+    docker_df = [dict(zip(["type", "size", "reclaimable"], l.split("|"))) for l in df.splitlines() if "|" in l]
+    return {"containers": rows, "journald": journal.group(1) if journal else None, "docker": docker_df}
+
+
 # ---------------------------------------------------------------- alerts
 def alerts(d):
     a = []
@@ -381,6 +505,8 @@ def alerts(d):
     for c in d["containers"]:
         if c["state"] != "running":
             add("critical", f"Container {c['name']} is {c['state']}")
+        if str(c.get("image", "")).endswith(":latest"):
+            add("warning", f"Container {c['name']} runs an unpinned image ({c['image']}); a restart may upgrade it")
     for t in d["timers"]:
         if t["active"] != "active":
             add("critical", f"{t['unit']} is {t['active']}")
@@ -420,6 +546,17 @@ def alerts(d):
         tls = p.get("tls") or {}
         if tls.get("days_left") is not None and tls["days_left"] < 14:
             add("warning", f"Provider {g['garage']}: TLS certificate expires in {tls['days_left']} days")
+    for v in d.get("versions", []):
+        if v.get("update"):
+            add("info", f"Update available: {v['component']} {v['running']} -> {v['latest']}")
+    for f in d.get("source", {}).get("files", []):
+        if f["status"] in ("differs from main", "missing"):
+            add("warning", f"{f['deployed']} {f['status']} ({f['source']})")
+    for l in d.get("logs", {}).get("containers", []):
+        if l["log_mb"] > LOG_ALERT_MB:
+            add("warning", f"Container log for {l['container']} is {l['log_mb']} MB")
+        elif not l["max_size"] and l["log_mb"] > 100:
+            add("warning", f"Container log for {l['container']} is {l['log_mb']} MB and has no size limit")
     for o in d["outside"]:
         if o["status"] != 200:
             add("critical", f"{o['name']} ({o['url']}) answered {o['status']}")
@@ -457,6 +594,9 @@ def main():
         "errors_last_hour": gateway_log_counts(),
         "outside": outside(),
     }
+    data["versions"] = versions(env, state, data["containers"])
+    data["source"] = source(state)
+    data["logs"] = logs(data["containers"])
     data["alerts"] = alerts(data)
     data["collect_seconds"] = round(time.time() - t0, 1)
     os.makedirs(OUT_DIR, exist_ok=True)

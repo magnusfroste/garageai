@@ -191,6 +191,13 @@ LiteLLM's spend tracking per key and model is the basis for operator payouts.
 - **Back up:** `/opt/garageai/netbird/config.yaml`, `/opt/garageai/litellm/.env`, and the Docker
   volumes `netbird_data` and `pgdata`.
 - **Upgrade LiteLLM:** change `LITELLM_VERSION` in `.env`, then `docker compose pull && docker compose up -d`.
+- **NetBird versions are pinned.** The installer writes `netbirdio/netbird-server:latest` and
+  `netbirdio/dashboard:latest`; `/opt/garageai/netbird/docker-compose.yml` pins them to the
+  versions that run (0.80.0 and v2.94.0 since 2026-10-09), so a restart never upgrades by
+  surprise. To upgrade: read the release notes, change the two tags, `docker compose pull &&
+  docker compose up -d` at a quiet time (management and relays restart for a few seconds;
+  direct peer-to-peer tunnels keep working), then check the Operations Center. Garage clients
+  are upgraded by their owners; the Operations Center lists each peer's NetBird version.
 - **Scale out later:** the same files move unchanged to a bigger VPS, or LiteLLM and NetBird can
   be split onto separate machines.
 
