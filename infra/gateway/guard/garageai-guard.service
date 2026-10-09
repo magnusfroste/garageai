@@ -1,0 +1,7 @@
+[Unit]
+Description=GarageAI guard: block clients that guess API keys or probe the gateway
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/garageai-guard

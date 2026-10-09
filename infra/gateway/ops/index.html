@@ -248,6 +248,7 @@
         <div class="card"><h2>Last hour</h2><div class="sub">Probes excluded.</div><div id="traffic"></div></div>
         <div class="card"><h2>Last 24 hours</h2><div id="traffic24"></div></div>
         <div class="card"><h2>Gateway errors, last hour</h2><div id="errors"></div></div>
+        <div class="card"><h2>Blocked clients</h2><div id="guard"></div></div>
       </section>
 
       <section class="page" data-page="mesh">
@@ -474,6 +475,13 @@ function renderPages(d) {
     ${erow("Token counting failed", e.token_count_failures)}</div>
     <div class="note">Requests by endpoint: ${Object.entries(e.endpoints).map(([k,v]) => `<code>${esc(k)}</code> ${v}`).join(" · ") || "none"}</div>`;
 
+  const gd = d.guard;
+  $("guard").innerHTML = !gd ? '<div class="small">garageai-guard is not installed.</div>' :
+    `<div class="sub">${esc(gd.rules)} · ${fmt(gd.dropped_packets)} packets dropped since the last reboot · checked ${ago(gd.checked_at)}</div>`
+    + (gd.active.length ? table([["Address", b => `${dot("critical")}<code>${esc(b.ip)}</code>`], ["Reason", b => `${fmt(b.count)} ${esc(b.reason)} in 2 min`],
+        ["Blocked", b => ago(b.since)], ["Until", b => esc(b.until.replace("T", " ").slice(0, 16)) + (b.repeat ? " " + pill("warning", "repeat") : "")]], gd.active)
+      : '<div class="small">No client is blocked right now.</div>')
+    + (gd.recent.length ? `<div class="note">Last 30 days: ${gd.recent.length} block${gd.recent.length > 1 ? "s" : ""}. Lift one on the gateway: <code>sudo garageai-guard --unban IP</code></div>` : "");
   const m = d.mesh, L = m.local;
   $("mesh-local").innerHTML = `<div class="kv">
     <div>Address</div><div>${dot(L.management && L.signal ? "ok" : "critical")}<code>${esc(L.ip)}</code> · NetBird ${esc(L.version)}</div>
@@ -618,7 +626,7 @@ function uptimeStrip(el, data) {
     c.addEventListener("pointerleave", hideTip);
   });
 }
-const KINDS = { alert: "alert", resolved: "resolved", deploy: "deploy", source: "merge", restart: "restart", reboot: "reboot", mesh: "mesh", supply: "supply", note: "note" };
+const KINDS = { guard: "blocked", alert: "alert", resolved: "resolved", deploy: "deploy", source: "merge", restart: "restart", reboot: "reboot", mesh: "mesh", supply: "supply", note: "note" };
 const evLevel = e => e.level === "ok" ? "ok" : e.level === "critical" ? "critical" : e.level === "warning" ? "warning" : e.kind === "note" ? "muted" : "info";
 function eventList(list) {
   if (!list.length) return '<div class="small">No events yet.</div>';
@@ -632,7 +640,7 @@ function eventList(list) {
   }
   return out;
 }
-const FILTERS = [["all", "All", () => true], ["alerts", "Alerts", e => e.kind === "alert" || e.kind === "resolved"],
+const FILTERS = [["all", "All", () => true], ["alerts", "Alerts", e => e.kind === "alert" || e.kind === "resolved" || e.kind === "guard"],
   ["changes", "Changes", e => ["deploy", "source", "restart", "reboot"].includes(e.kind)], ["mesh", "Mesh and supply", e => e.kind === "mesh" || e.kind === "supply"],
   ["notes", "Notes", e => e.kind === "note"]];
 function allEvents() {
