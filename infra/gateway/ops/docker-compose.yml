@@ -15,6 +15,9 @@ services:
     tmpfs: [/var/cache/nginx, /var/run, /tmp]
     volumes:
       - /var/lib/garageai-ops/www:/usr/share/nginx/html:ro
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
     networks: [netbird]
     labels:
       - traefik.enable=true

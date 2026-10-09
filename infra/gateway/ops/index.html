@@ -54,6 +54,9 @@
   <section><h2>Containers</h2><div id="containers"></div></section>
   <section><h2>Timers, backup, certificates</h2><div id="ops"></div></section>
   <section class="wide"><h2>Mesh (NetBird)</h2><div class="scroll" id="mesh"></div></section>
+  <section class="wide"><h2>Versions and updates</h2><div class="scroll" id="versions"></div></section>
+  <section class="wide"><h2>Source and revision</h2><div class="scroll" id="source"></div></section>
+  <section class="wide"><h2>Logs and disk</h2><div class="scroll" id="logs"></div></section>
 </main>
 <script>
 const $ = id => document.getElementById(id);
@@ -131,6 +134,28 @@ function render(d) {
              ["Link from gateway", p => p.link ? `${esc(p.link.status)} · ${esc(p.link.type || "—")}${p.link.latency_ms ? ` · ${p.link.latency_ms} ms` : ""}` : "—"],
              ["Country", p => esc(p.country)], ["NetBird", p => esc(p.version)], ["OS", p => esc(p.os)], ["Last seen", p => p.connected ? "now" : ago(p.last_seen)]], m.peers)
     + `<h2 style="margin-top:14px">Policies</h2>` + table([["Policy", p => `${dot(p.bidirectional ? "critical" : "ok")}${esc(p.name)}`], ["From", p => esc(p.sources.join(", "))], ["To", p => esc(p.destinations.join(", "))], ["Ports", p => esc(p.ports.join(", "))], ["Direction", p => p.bidirectional ? '<span class="critical">both ways</span>' : "one way"]], m.policies);
+
+  $("versions").innerHTML = table([
+    ["Component", v => `${dot(v.update ? "warning" : "ok")}${esc(v.component)}`],
+    ["Running", v => `<code>${esc(v.running)}</code>${v.pinned === false ? ' <span class="warning">unpinned</span>' : ""}`],
+    ["Latest", v => v.latest ? `<code>${esc(v.latest)}</code>` : "—"],
+    ["Status", v => v.update ? '<span class="warning">update available</span>' : '<span class="ok">current</span>'],
+    ["How to update", v => `<span class="small"><code>${esc(v.how)}</code></span>`]], d.versions || [])
+    + `<div class="small" style="margin-top:8px">Read-only: updates are run on the gateway, at a quiet time (see Traffic), then checked here.</div>`;
+
+  const src = d.source || {};
+  $("source").innerHTML = `<div class="kv" style="margin-bottom:10px">
+      <div>Repository</div><div><a href="https://github.com/${esc(src.repo)}/commits/main" style="color:var(--accent)">${esc(src.repo)}</a></div>
+      <div>main on GitHub</div><div><code>${esc(src.main_short)}</code></div>
+      <div>Checkout on the gateway</div><div><code>${esc(src.checkout)}</code> (${esc(src.checkout_branch)})</div>
+      <div>NetBird compose</div><div class="small">${esc(src.netbird_compose)}</div></div>`
+    + table([["Deployed file", f => `${dot(f.status === "in sync" ? "ok" : f.status === "unknown" ? "muted" : "warning")}<code>${esc(f.deployed)}</code>`],
+             ["Source in repo", f => `<code>${esc(f.source)}</code>`], ["Status", f => esc(f.status)]], src.files || []);
+
+  const lg = d.logs || {};
+  $("logs").innerHTML = table([["Container", l => esc(l.container)], ["Log size", l => `${l.log_mb} MB`, "num"],
+      ["Rotation", l => l.max_size ? `${esc(l.max_size)} × ${esc(l.max_file || 1)}` : '<span class="warning">none</span>']], lg.containers || [])
+    + `<div class="kv" style="margin-top:10px"><div>System journal</div><div>${esc(lg.journald)}</div>${(lg.docker || []).map(x => `<div>Docker ${esc(x.type)}</div><div>${esc(x.size)} (reclaimable ${esc(x.reclaimable)})</div>`).join("")}</div>`;
 }
 
 async function load() {
