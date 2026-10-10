@@ -287,6 +287,17 @@ classes; the portal and site seen from outside; and a list of current alerts.
   with the user Traefik passes in `X-Ops-User`; signing out makes the browser forget the
   basic-auth credentials.
 
+### Planned stops
+
+When an operator stops a garage on purpose, or a known outage is being fixed, silence it. Its alerts then become info with the reason: no Telegram, no reminders, and no "Resolved" when the silence starts. Supply shows it as *planned stop*. The silence ends by itself, and both ends are events.
+
+```bash
+sudo garageai-ops-collect --silence autoversio 36h "DGX Spark reinstall"
+sudo garageai-ops-collect --unsilence autoversio
+```
+
+It matches the exact garage name: silencing `autoversio` does not silence `autoversio-south`. Later, Bridge's `garageai pause` will set this from the operator's side (docs/bridge.md, phase 1).
+
 ### Onboarding
 
 The *Onboarding* page lists garages created in the portal but not registered yet. For each it shows:

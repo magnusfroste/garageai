@@ -553,7 +553,7 @@ function renderPages(d) {
   ], deps);
 
   $("garages").innerHTML = table([
-    ["Name", g => `${dot(g.onboarding ? "info" : g.runtime_ok && g.mesh !== false ? "ok" : "critical")}<b>${esc(g.garage)}</b>`],
+    ["Name", g => `${dot(g.onboarding || d.silences?.[g.garage] ? "info" : g.runtime_ok && g.mesh !== false ? "ok" : "critical")}<b>${esc(g.garage)}</b>${d.silences?.[g.garage] ? " " + pill("info", "planned stop") : ""}`],
     ["Type", g => pill("muted", g.type)],
     ["Tunnel", g => g.type === "provider" ? "HTTPS" : g.mesh ? `<span class="ok">up</span>` : `<span class="critical">down</span>`],
     ["Runtime", g => g.onboarding ? `${pill("info", "onboarding")}${g.onboarding_step ? `<div class="small">${esc(g.onboarding_step.step)} · ${esc(g.onboarding_step.status)}${g.onboarding_step.message ? ": " + esc(g.onboarding_step.message) : ""}</div>` : ""}`
