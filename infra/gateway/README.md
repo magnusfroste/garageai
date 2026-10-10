@@ -287,6 +287,16 @@ classes; the portal and site seen from outside; and a list of current alerts.
   with the user Traefik passes in `X-Ops-User`; signing out makes the browser forget the
   basic-auth credentials.
 
+### Onboarding
+
+The *Onboarding* page lists garages created in the portal but not registered yet. For each it shows:
+- the last step the connect script reported, and its message,
+- the problem codes from the garage profile (`--doctor --json`),
+- whether the garage has joined the mesh,
+- how long it has waited.
+
+A garage is stuck when its last step failed or waited for the operator for 30 minutes. That is a warning, so it reaches Telegram once. A garage that never reported a step is noted after a day. The full profile and the fixes are on the garage's page in the portal admin.
+
 ### Business
 
 The *Business* page reads the portal's `ops-summary` every 5 minutes. It authenticates like `gateway-targets`, with `x-gateway-key`, and returns aggregates only: no e-mail addresses, names, keys or Stripe ids. The page shows:
