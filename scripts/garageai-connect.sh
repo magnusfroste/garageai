@@ -796,7 +796,10 @@ doctor_json() {
   fi
   [ -e "$HEARTBEAT_BIN" ] && hb_installed=true
   case "$(uname -s)" in
-    Darwin) launchctl print system/eu.garageai.heartbeat >/dev/null 2>&1 && hb_active=true ;;
+    # launchctl may refuse a normal user the system domain: a log written in the last 15 minutes
+    # (the heartbeat runs every 5) also proves it is running.
+    Darwin) { launchctl print system/eu.garageai.heartbeat >/dev/null 2>&1 ||
+              [ -n "$(find /var/log/garageai-heartbeat.log -mmin -15 2>/dev/null)" ]; } && hb_active=true ;;
     *) systemctl is-active --quiet garageai-heartbeat.timer 2>/dev/null && hb_active=true ;;
   esac
   if [ -r "$HEARTBEAT_CONF" ]; then

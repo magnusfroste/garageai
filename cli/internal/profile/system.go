@@ -168,7 +168,12 @@ func heartbeatAndConfig() (Heartbeat, GarageAI) {
 		_, err := os.Stat("/usr/local/bin/garageai-heartbeat")
 		hb.Installed = err == nil
 		if runtime.GOOS == "darwin" {
+			// launchctl may refuse a normal user the system domain: a log written in the last 15
+			// minutes (the heartbeat runs every 5) also proves it is running.
 			hb.Active = run("launchctl", "print", "system/eu.garageai.heartbeat") != ""
+			if fi, err := os.Stat("/var/log/garageai-heartbeat.log"); err == nil && time.Since(fi.ModTime()) < 15*time.Minute {
+				hb.Active = true
+			}
 		} else {
 			hb.Active = exec.Command("systemctl", "is-active", "--quiet", "garageai-heartbeat.timer").Run() == nil
 		}
