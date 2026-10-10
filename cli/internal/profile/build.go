@@ -173,3 +173,20 @@ func problems(p Profile) []Problem {
 	}
 	return out
 }
+
+// ListenAddrs are the local addresses a port is listening on ("*" for all), for connect's step 4.
+func ListenAddrs(port int) []string {
+	_, addrs, _ := byPort(listeners())
+	return addrs[port]
+}
+
+// MeshIPFromInterfaces is the NetBird address on this machine's tunnel interface, or "".
+func MeshIPFromInterfaces() string { return meshIPFromInterfaces() }
+
+// Network reports whether a runtime bound to these addresses is reachable from the mesh.
+func Network(binds []string) bool {
+	return anyOf(binds, "0.0.0.0", "*", "::") || anyPrefix(binds, "100.")
+}
+
+// OllamaContextTarget is the window the connect script recommends for this machine's memory.
+func OllamaContextTarget(mem *int) int { return ollamaContextTarget(mem) }

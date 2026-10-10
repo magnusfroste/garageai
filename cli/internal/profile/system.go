@@ -194,19 +194,35 @@ func heartbeatAndConfig() (Heartbeat, GarageAI) {
 		hb.Active = strings.Contains(run("schtasks", "/query", "/tn", "GarageAI heartbeat"), "Ready") ||
 			strings.Contains(run("schtasks", "/query", "/tn", "GarageAI heartbeat"), "Running")
 	default:
-		_, err := os.Stat("/usr/local/bin/garageai-heartbeat")
-		hb.Installed = err == nil
+		// Bridge's own service (garageai run) or the connect script's heartbeat: either counts.
+		_, errBridge := os.Stat("/etc/garageai/bridge.json")
+		_, errScript := os.Stat("/usr/local/bin/garageai-heartbeat")
+		hb.Installed = errBridge == nil || errScript == nil
 		if runtime.GOOS == "darwin" {
 			// launchctl may refuse a normal user the system domain: a log written in the last 15
 			// minutes (the heartbeat runs every 5) also proves it is running.
-			hb.Active = run("launchctl", "print", "system/eu.garageai.heartbeat") != ""
-			if fi, err := os.Stat("/var/log/garageai-heartbeat.log"); err == nil && time.Since(fi.ModTime()) < 15*time.Minute {
-				hb.Active = true
+			hb.Active = run("launchctl", "print", "system/eu.garageai.bridge") != "" || run("launchctl", "print", "system/eu.garageai.heartbeat") != ""
+			for _, log := range []string{"/var/log/garageai-bridge.log", "/var/log/garageai-heartbeat.log"} {
+				if fi, err := os.Stat(log); err == nil && time.Since(fi.ModTime()) < 15*time.Minute {
+					hb.Active = true
+				}
 			}
 		} else {
-			hb.Active = exec.Command("systemctl", "is-active", "--quiet", "garageai-heartbeat.timer").Run() == nil
+			hb.Active = exec.Command("systemctl", "is-active", "--quiet", "garageai-bridge.timer").Run() == nil ||
+				exec.Command("systemctl", "is-active", "--quiet", "garageai-heartbeat.timer").Run() == nil
 		}
-		if b, err := os.ReadFile("/etc/garageai/heartbeat.env"); err == nil {
+		if b, err := os.ReadFile("/etc/garageai/bridge.json"); err == nil {
+			var c struct {
+				Runtime string `json:"runtime"`
+				Port    int    `json:"port"`
+			}
+			if json.Unmarshal(b, &c) == nil {
+				cfg.ConfiguredRuntime = strp(c.Runtime)
+				if c.Port > 0 {
+					cfg.ConfiguredPort = &c.Port
+				}
+			}
+		} else if b, err := os.ReadFile("/etc/garageai/heartbeat.env"); err == nil {
 			for _, line := range strings.Split(string(b), "\n") {
 				k, v, ok := strings.Cut(line, "=")
 				v = strings.Trim(v, `'"`)
@@ -265,13 +281,19 @@ func localFacts(hb Heartbeat) (last string, ollamaPersistent bool, sleepMin, dis
 				}
 			}
 		}
-		if b, err := os.ReadFile("/var/log/garageai-heartbeat.log"); err == nil {
-			lines := strings.Split(strings.TrimSpace(string(b)), "\n")
-			last = lines[len(lines)-1]
+		for _, log := range []string{"/var/log/garageai-bridge.log", "/var/log/garageai-heartbeat.log"} {
+			if b, err := os.ReadFile(log); err == nil && strings.TrimSpace(string(b)) != "" {
+				lines := strings.Split(strings.TrimSpace(string(b)), "\n")
+				last = lines[len(lines)-1]
+				break
+			}
 		}
 	case "linux":
 		if hb.Installed {
-			last = strings.TrimSpace(run("journalctl", "-u", "garageai-heartbeat.service", "-n", "1", "-o", "cat"))
+			last = strings.TrimSpace(run("journalctl", "-u", "garageai-bridge.service", "-n", "1", "-o", "cat"))
+			if last == "" {
+				last = strings.TrimSpace(run("journalctl", "-u", "garageai-heartbeat.service", "-n", "1", "-o", "cat"))
+			}
 		}
 	}
 	return

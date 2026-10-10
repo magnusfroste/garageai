@@ -12,7 +12,7 @@ A bridge goes both ways:
 from, opens Bridge. Bridge sees the machine, says what it can earn and with which model, installs
 and configures everything, and the garage is live. No terminal, no flags, no guessing.
 
-Status: experimental. Phase 0 is done (see below). Everything else is the agreed direction
+Status: experimental. Phase 0 is done and phase 1 is in progress (see below). Everything else is the agreed direction
 (2026-10-10), not a commitment to dates.
 
 ## Principles
@@ -46,7 +46,11 @@ Status: experimental. Phase 0 is done (see below). Everything else is the agreed
 - The profile travels with the onboarding reports. It shows in the portal admin, the operator's
   wizard and the Operations Center's Onboarding page.
 
-### 1. Connect and keep alive — Bridge replaces the script
+### 1. Connect and keep alive — in progress (PR: bridge-connect)
+Done: `garageai connect` (the six steps, same options, payloads and onboarding reports as the
+script, root through sudo with secrets on stdin), `garageai run` as a systemd timer or launchd
+daemon with `contexts` in every heartbeat, `garageai uninstall`, migration of the script's old
+heartbeat. Not yet: Windows service, pause, self-update, the firewall rule, embedded NetBird.
 - `garageai connect`: join the mesh, find the runtime, register. Same onboarding reports, now
   with `version`.
 - `garageai run` as a service (systemd, launchd, Windows service):
