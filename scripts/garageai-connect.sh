@@ -80,7 +80,7 @@ bold() { printf '\033[1m%s\033[0m\n' "$*"; }
 info() { printf '  %s\n' "$*"; }
 ok()   { printf '  \033[32m✓\033[0m %s\n' "$*"; }
 warn() { printf '  \033[33m!\033[0m %s\n' "$*" >&2; [ "${REPORTING:-0}" -eq 1 ] && report warning "$*"; return 0; }
-die()  { printf '  \033[31m✗\033[0m %s\n' "$*" >&2; [ "${REPORTING:-0}" -eq 1 ] && report failed "$*"; REPORTED_FAILURE=1; exit 1; }
+die()  { printf '  \033[31m✗\033[0m %s\n' "$*" >&2; [ "${REPORTING:-0}" -eq 1 ] && report failed "$*" "$(garage_profile)"; REPORTED_FAILURE=1; exit 1; }
 
 usage() { sed -n '2,43p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
@@ -136,15 +136,34 @@ machine_facts() { # best effort: a missing tool (no nvidia-smi on a Mac or a CPU
   fi
   return 0
 }
-report() { # report STATUS [MESSAGE]: started, warning, failed, stopped or done
+# The garage profile (--doctor --json) for the onboarding report: what runs on this machine and what
+# is wrong, so the wizard and GarageAI's admin can show the exact fix. Kept under 60 KB. Empty when
+# jq is missing or the profile cannot be built yet (very early failures).
+garage_profile() {
+  command -v jq >/dev/null 2>&1 && type doctor_json >/dev/null 2>&1 || return 0
+  local p
+  p="$(doctor_json 2>/dev/null | jq -c '.runtimes |= map(.models |= .[:30])' 2>/dev/null || true)"
+  [ "${#p}" -le 60000 ] || p="$(printf '%s' "$p" | jq -c '.runtimes |= map(.models |= .[:3])' 2>/dev/null || true)"
+  [ "${#p}" -le 60000 ] && printf '%s' "$p"
+  return 0
+}
+PROFILE_SENT=0
+
+report() { # report STATUS [MESSAGE] [PROFILE]: started, warning, failed, stopped or done
   [ -n "$REGISTER_URL" ] && [ -n "$REGISTER_TOKEN" ] && [ "${GARAGEAI_REPORT:-1}" != 0 ] || return 0
   [ -n "${FACT_ARCH:-}" ] || machine_facts || true
   local body
   body="{\"step\":\"$(json_esc "$CURRENT_STEP")\",\"status\":\"$1\",\"message\":\"$(json_esc "${2:-}")\",\"script_version\":\"${SCRIPT_VERSION}\",\"node_name\":\"$(json_esc "$NODE_NAME")\",\"runtime\":\"$(json_esc "$RUNTIME")\",\"port\":\"$(json_esc "$PORT")\",\"os\":\"$(json_esc "$FACT_OS")\",\"arch\":\"$(json_esc "$FACT_ARCH")\",\"gpu\":\"$(json_esc "$FACT_GPU")\",\"memory_gb\":\"$(json_esc "$FACT_MEM")\"}"
+  if [ -n "${3:-}" ] && command -v jq >/dev/null 2>&1; then
+    body="$(printf '%s' "$body" | jq -c --argjson p "$3" '. + {profile: $p}' 2>/dev/null || printf '%s' "$body")"
+  fi
   curl -s -o /dev/null --max-time 5 -X POST "${REGISTER_URL%/register-node}/onboarding-report" \
     -H "Authorization: Bearer ${REGISTER_TOKEN}" -H "Content-Type: application/json" -d "$body" 2>/dev/null || true
 }
-step() { CURRENT_STEP="$1"; bold "$1"; report started; }
+step() { # the first step also carries the garage profile, so a stop later on still has it
+  CURRENT_STEP="$1"; bold "$1"
+  if [ "$PROFILE_SENT" -eq 0 ]; then report started "" "$(garage_profile)"; PROFILE_SENT=1; else report started; fi
+}
 on_exit() {
   local rc=$1
   [ "$REPORTING" -eq 1 ] || return 0
@@ -1118,7 +1137,7 @@ if [ -n "$REGISTER_URL" ]; then
   if [ "$PASSED" -gt 0 ]; then
     ok "Node registered — your garage is live on GarageAI."
     FINISHED=1
-    CURRENT_STEP="5/6  Register with GarageAI"; report "done" "Registered: ${PASSED} model(s) passed the acceptance test"
+    CURRENT_STEP="5/6  Register with GarageAI"; report "done" "Registered: ${PASSED} model(s) passed the acceptance test" "$(garage_profile)"
   else
     warn "Registered, but no model passed the acceptance test, so nothing is for sale yet."
     warn "Check that the runtime answers on the mesh IP and that the model loads, then run this again."
