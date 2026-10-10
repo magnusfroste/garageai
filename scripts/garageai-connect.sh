@@ -317,15 +317,26 @@ set -euo pipefail
 # shellcheck disable=SC1090
 . "${GARAGEAI_HEARTBEAT_CONF:-/etc/garageai/heartbeat.env}"
 export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
+# Context window per model (same filters as garageai-connect.sh).
+CONTEXTS_JQ='[.data[]? | {key: .id, value: (.max_model_len // .context_length // .context_window // .meta.n_ctx_train)} | select((.value | type) == "number" and .value > 0) | .value |= floor] | from_entries'
+OLLAMA_CONTEXTS_JQ='[.models[]? | {key: .name, value: .context_length} | select((.value | type) == "number" and .value > 0)] | from_entries'
 
 auth=()
 [ -n "${GARAGEAI_RUNTIME_API_KEY:-}" ] && auth=(-H "Authorization: Bearer ${GARAGEAI_RUNTIME_API_KEY}")
 models='[]'
+contexts='{}'
 for host in 127.0.0.1 "${GARAGEAI_MESH_IP:-}"; do
   [ -n "$host" ] || continue
   if out="$(curl -fsS --max-time 5 ${auth[@]+"${auth[@]}"} "http://${host}:${GARAGEAI_PORT}/v1/models" 2>/dev/null)" &&
      list="$(printf '%s' "$out" | jq -ec '[.data[].id]' 2>/dev/null)"; then
-    models="$list"; break
+    models="$list"
+    # Each model's context window, so a model swap or a new --max-model-len reaches the gateway.
+    contexts="$(printf '%s' "$out" | jq -c "$CONTEXTS_JQ" 2>/dev/null || echo '{}')"
+    if [ "$GARAGEAI_RUNTIME" = ollama ] &&
+       ps="$(curl -fsS --max-time 5 "http://${host}:${GARAGEAI_PORT}/api/ps" 2>/dev/null)"; then
+      contexts="$(jq -nc --argjson a "$contexts" --argjson b "$(printf '%s' "$ps" | jq -c "$OLLAMA_CONTEXTS_JQ" 2>/dev/null || echo '{}')" '$a + $b' 2>/dev/null || echo "$contexts")"
+    fi
+    break
   fi
 done
 # The heartbeat reports everything the runtime serves (the inventory); which models are
@@ -334,7 +345,9 @@ done
 
 payload="$(jq -nc --arg name "$GARAGEAI_NODE_NAME" --argjson port "$GARAGEAI_PORT" \
   --arg runtime "$GARAGEAI_RUNTIME" --argjson models "$models" --arg key "${GARAGEAI_RUNTIME_API_KEY:-}" \
+  --argjson contexts "$contexts" \
   '{name: $name, port: $port, runtime: $runtime, models: $models}
+   + (if ($contexts | length) > 0 then {contexts: $contexts} else {} end)
    + (if $key != "" then {runtime_api_key: $key} else {} end)')"
 curl -fsS --max-time 180 -X POST "$GARAGEAI_HEARTBEAT_URL" \
   -H "Authorization: Bearer ${GARAGEAI_REGISTER_TOKEN}" \
@@ -542,6 +555,11 @@ install_ollama_systemd_context() {
   as_root systemctl daemon-reload
   as_root systemctl restart ollama
 }
+
+# Context window per model from an OpenAI-compatible /v1/models: vLLM and SGLang report
+# max_model_len, others context_length, context_window or meta.n_ctx_train (llama.cpp).
+CONTEXTS_JQ='[.data[]? | {key: .id, value: (.max_model_len // .context_length // .context_window // .meta.n_ctx_train)} | select((.value | type) == "number" and .value > 0) | .value |= floor] | from_entries'
+contexts_from_models() { jq -c "$CONTEXTS_JQ" 2>/dev/null || echo '{}'; }
 
 mesh_ip() {
   local ip=""
@@ -871,15 +889,23 @@ if firewall_supported && [ "${GARAGEAI_FIREWALL:-1}" != 0 ]; then
   echo
 fi
 
+# Context windows, so the gateway rejects over-long prompts before they reach this machine.
+CONTEXTS_JSON="$(curl -fsS --max-time 5 ${usage_auth[@]+"${usage_auth[@]}"} "http://${PROBE_HOST}:${PORT}/v1/models" 2>/dev/null | contexts_from_models || true)"
+[ -n "$CONTEXTS_JSON" ] || CONTEXTS_JSON='{}'
+if [ -n "$CONTEXT_LENGTH" ]; then
+  CONTEXTS_JSON="$(printf '%s' "$CONTEXTS_JSON" | jq -c --arg m "$FIRST_MODEL" --argjson n "$CONTEXT_LENGTH" '. + {($m): $n}')"
+fi
+
 # 5. Register
 step "5/6  Register with GarageAI"
 MODELS_JSON="$(printf '%s\n' "$MODELS" | jq -R . | jq -sc .)"
 PAYLOAD="$(jq -nc \
   --arg name "$NODE_NAME" --arg mesh_ip "$MESH_IP" --argjson port "$PORT" \
   --arg runtime "$RUNTIME" --argjson models "$MODELS_JSON" --arg runtime_api_key "$RUNTIME_API_KEY" \
-  --arg context_length "$CONTEXT_LENGTH" \
+  --arg context_length "$CONTEXT_LENGTH" --argjson contexts "$CONTEXTS_JSON" \
   '{name: $name, mesh_ip: $mesh_ip, port: $port, runtime: $runtime, models: $models}
    + (if $context_length != "" then {context_length: ($context_length | tonumber)} else {} end)
+   + (if ($contexts | length) > 0 then {contexts: $contexts} else {} end)
    + (if $runtime_api_key != "" then {runtime_api_key: $runtime_api_key} else {} end)')"
 
 if [ -n "$REGISTER_URL" ]; then

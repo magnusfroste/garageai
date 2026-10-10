@@ -78,4 +78,27 @@ out="$(GARAGEAI_RUNTIME_API_KEY='a b' bash "$SCRIPT" --runtime vllm --name x --r
 check "report: an unreachable portal does not change the outcome" "something else was pasted into it" "$out"
 rm -f "$REPORTS"
 
+# Context windows: the filters, then the heartbeat end to end against the fake runtime.
+CTX_JQ="$(sed -n "s/^CONTEXTS_JQ='\(.*\)'$/\1/p" "$SCRIPT" | head -n 1)"
+OLLAMA_JQ="$(sed -n "s/^OLLAMA_CONTEXTS_JQ='\(.*\)'$/\1/p" "$SCRIPT" | head -n 1)"
+check "contexts: vLLM max_model_len" '{"m":524288}' "$(echo '{"data":[{"id":"m","max_model_len":524288}]}' | jq -c "$CTX_JQ")"
+check "contexts: llama.cpp n_ctx_train" '{"g":8192}' "$(echo '{"data":[{"id":"g","meta":{"n_ctx_train":8192}}]}' | jq -c "$CTX_JQ")"
+check "contexts: context_length, and models without one are left out" '{"a":4096}' "$(echo '{"data":[{"id":"a","context_length":4096},{"id":"b"}]}' | jq -c "$CTX_JQ")"
+check "contexts: Ollama /api/ps" '{"qwen3:4b":16384}' "$(echo '{"models":[{"name":"qwen3:4b","context_length":16384}]}' | jq -c "$OLLAMA_JQ")"
+HB_DIR="$(mktemp -d)"; REPORTS="$HB_DIR/reports"
+sed -n "/<<'HEARTBEAT'$/,/^HEARTBEAT$/p" "$SCRIPT" | sed '1d;$d' > "$HB_DIR/heartbeat"
+FAKE_REPORT_LOG="$REPORTS" start_runtime 127.0.0.1
+for rt in vllm ollama; do
+  : > "$REPORTS"
+  printf '%s\n' "GARAGEAI_HEARTBEAT_URL=http://127.0.0.1:$PORT/functions/v1/node-heartbeat" "GARAGEAI_REGISTER_TOKEN=tok" \
+    "GARAGEAI_NODE_NAME=hb-test" "GARAGEAI_RUNTIME=$rt" "GARAGEAI_PORT=$PORT" "GARAGEAI_RUNTIME_API_KEY=" "GARAGEAI_MESH_IP=" > "$HB_DIR/env"
+  GARAGEAI_HEARTBEAT_CONF="$HB_DIR/env" bash "$HB_DIR/heartbeat" >/dev/null 2>&1
+  body="$(python3 -c 'import json,sys; print(json.loads(open(sys.argv[1]).readline())["body"])' "$REPORTS" 2>&1)"
+  [ "$rt" = vllm ] && check "heartbeat (vllm) sends contexts" '"contexts":{"qwen3:4b":32768}' "$body"
+  [ "$rt" = ollama ] && check "heartbeat (ollama) uses the loaded window" '"contexts":{"qwen3:4b":4096}' "$body"
+done
+check "heartbeat still sends the models" '"models":["qwen3:4b","nomic-embed-text:latest"]' "$body"
+stop_runtime
+rm -rf "$HB_DIR"
+
 [ "$fails" -eq 0 ] && echo "all tests passed" || { echo "$fails test(s) failed"; exit 1; }
