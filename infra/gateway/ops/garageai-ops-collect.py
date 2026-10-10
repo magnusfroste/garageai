@@ -803,7 +803,8 @@ def quality():
                case when "completionStartTime" < "endTime" then extract(epoch from ("completionStartTime" - "startTime")) end ttft,
                prompt_tokens pt,
                coalesce((metadata->'usage_object'->'prompt_tokens_details'->>'cached_tokens')::bigint, 0) ct,
-               case when completion_tokens >= 20 and "endTime" > "completionStartTime"
+               -- at least 0.5 s of generation: a reply delivered at once has no meaningful speed
+               case when completion_tokens >= 20 and "endTime" > "completionStartTime" + interval '0.5 seconds'
                     then completion_tokens / extract(epoch from ("endTime" - "completionStartTime")) end tps
         from "LiteLLM_SpendLogs"
         where "startTime" > now() - interval '{iv}' and model_group not like 'probe/%' and model_group not like 'garage-probe%'
