@@ -804,13 +804,24 @@ doctor_json() {
     conf_port="$(sed -n "s/^GARAGEAI_PORT=//p" "$HEARTBEAT_CONF" | tr -d "'\"" | head -n 1)"
   fi
   [ -n "${FACT_ARCH:-}" ] || machine_facts || true
+  # macOS: is OLLAMA_HOST set for good (the LaunchAgent the connect script offers), and does the Mac sleep?
+  local plist=false sleep_min=0 hb_last=""
+  if [ "$(uname -s)" = Darwin ]; then
+    [ -e "$HOME/Library/LaunchAgents/eu.garageai.ollama-host.plist" ] && plist=true
+    sleep_min="$(pmset -g 2>/dev/null | awk '$1 == "sleep" {print $2 + 0; exit}' || true)"
+    hb_last="$(tail -n 1 /var/log/garageai-heartbeat.log 2>/dev/null || true)"
+  elif [ "$hb_installed" = true ]; then
+    hb_last="$(journalctl -u garageai-heartbeat.service -n 1 -o cat 2>/dev/null || true)"
+  fi
+  [ -n "$sleep_min" ] || sleep_min=0
   jq -n --arg v "$SCRIPT_VERSION" --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     --arg os "$FACT_OS" --arg arch "$FACT_ARCH" --arg mem "$FACT_MEM" --argjson gpus "$(gpus_json)" \
     --argjson runtimes "$runtimes" --argjson fw "$(firewall_json)" \
     --argjson nb_installed "$(command -v netbird >/dev/null 2>&1 && echo true || echo false)" --arg nb_version "${nb_version:-}" \
     --argjson nb_connected "$nb_connected" --arg mesh "$mesh" \
     --argjson hb_installed "$hb_installed" --argjson hb_active "$hb_active" --arg conf_rt "$conf_rt" --arg conf_port "$conf_port" \
-    --argjson ctx_target "$(ollama_context_target)" '
+    --argjson ctx_target "$(ollama_context_target)" --arg uname "$(uname -s)" --argjson plist "$plist" \
+    --argjson sleep_min "$sleep_min" --arg hb_last "$hb_last" '
     def nz: if . == "" then null else . end;
     def problem($sev; $code; $msg; $fix): {severity: $sev, code: $code, message: $msg, fix: $fix};
     ($runtimes | map(select(.api == "openai" or .api == "openai (needs API key)"))) as $rt |
@@ -850,6 +861,14 @@ doctor_json() {
         + (if ($conf_rt != "") and ($hb_installed | not) then [problem("warning"; "heartbeat_missing"; "The heartbeat is not installed"; "Run the connect command from the portal again")]
            elif $hb_installed and ($hb_active | not) then [problem("warning"; "heartbeat_stopped"; "The heartbeat is installed but not running"; "Run the connect command from the portal again")]
            else [] end)
+        + (if ($hb_last | test("401|[Uu]nauthorized")) then [problem("error"; "heartbeat_rejected";
+             "GarageAI rejects this garage'"'"'s heartbeat (its token was replaced or revoked)"; "My garages → New command, and run that command here")] else [] end)
+        + (if $uname == "Darwin" and ($rt | any(.kind == "ollama")) and ($plist | not) then [problem("warning"; "ollama_host_not_persistent";
+             "OLLAMA_HOST is not set permanently: after a restart Ollama listens on localhost again";
+             "Run the connect command again and accept the offer to make it permanent")] else [] end)
+        + (if $uname == "Darwin" and $sleep_min > 0 then [problem("info"; "mac_sleeps";
+             "This Mac goes to sleep after \($sleep_min) min; a sleeping Mac is offline for buyers";
+             "System Settings → Battery/Energy → prevent automatic sleeping when the display is off")] else [] end)
         + (if ($gpus | length) == 0 then [problem("info"; "no_gpu"; "No GPU found (nvidia-smi, rocm-smi, Apple silicon)"; "Inference on CPU only is slow; buyers will see it")] else [] end)
       )
     } | .ok = ([.problems[] | select(.severity == "error")] | length == 0)'

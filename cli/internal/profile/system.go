@@ -210,3 +210,30 @@ func ollamaContextTarget(mem *int) int {
 	}
 	return 8192
 }
+
+// localFacts: the heartbeat's last output, whether OLLAMA_HOST is set for good on macOS (the
+// LaunchAgent the connect script offers), and after how many minutes a Mac goes to sleep.
+func localFacts(hb Heartbeat) (last string, ollamaPersistent bool, sleepMin int) {
+	switch runtime.GOOS {
+	case "darwin":
+		if home, err := os.UserHomeDir(); err == nil {
+			_, err := os.Stat(filepath.Join(home, "Library/LaunchAgents/eu.garageai.ollama-host.plist"))
+			ollamaPersistent = err == nil
+		}
+		for _, line := range strings.Split(run("pmset", "-g"), "\n") {
+			if f := strings.Fields(line); len(f) >= 2 && f[0] == "sleep" {
+				sleepMin, _ = strconv.Atoi(f[1])
+				break
+			}
+		}
+		if b, err := os.ReadFile("/var/log/garageai-heartbeat.log"); err == nil {
+			lines := strings.Split(strings.TrimSpace(string(b)), "\n")
+			last = lines[len(lines)-1]
+		}
+	case "linux":
+		if hb.Installed {
+			last = strings.TrimSpace(run("journalctl", "-u", "garageai-heartbeat.service", "-n", "1", "-o", "cat"))
+		}
+	}
+	return
+}

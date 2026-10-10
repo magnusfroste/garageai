@@ -3,6 +3,7 @@ package profile
 import (
 	"fmt"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -29,6 +30,8 @@ func Build(version string) Profile {
 	p.Runtimes = discover(listeners())
 	wg.Wait()
 	p.Heartbeat, p.GarageAI = hb, cfg
+	p.darwin = runtime.GOOS == "darwin"
+	p.heartbeatLast, p.ollamaHostPersistent, p.sleepMinutes = localFacts(hb)
 	p.Problems = problems(p)
 	p.OK = true
 	for _, pr := range p.Problems {
@@ -139,6 +142,24 @@ func problems(p Profile) []Problem {
 		add("warning", "heartbeat_missing", "The heartbeat is not installed", "Run the connect command from the portal again")
 	case p.Heartbeat.Installed && !p.Heartbeat.Active:
 		add("warning", "heartbeat_stopped", "The heartbeat is installed but not running", "Run the connect command from the portal again")
+	}
+	if strings.Contains(p.heartbeatLast, "401") || strings.Contains(strings.ToLower(p.heartbeatLast), "unauthorized") {
+		add("error", "heartbeat_rejected", "GarageAI rejects this garage's heartbeat (its token was replaced or revoked)",
+			"My garages → New command, and run that command here")
+	}
+	if p.darwin {
+		hasOllama := false
+		for _, rt := range p.Runtimes {
+			hasOllama = hasOllama || rt.Kind == "ollama"
+		}
+		if hasOllama && !p.ollamaHostPersistent {
+			add("warning", "ollama_host_not_persistent", "OLLAMA_HOST is not set permanently: after a restart Ollama listens on localhost again",
+				"Run the connect command again and accept the offer to make it permanent")
+		}
+		if p.sleepMinutes > 0 {
+			add("info", "mac_sleeps", fmt.Sprintf("This Mac goes to sleep after %d min; a sleeping Mac is offline for buyers", p.sleepMinutes),
+				"System Settings → Battery/Energy → prevent automatic sleeping when the display is off")
+		}
 	}
 	if len(p.GPUs) == 0 {
 		add("info", "no_gpu", "No GPU found (nvidia-smi, rocm-smi, Apple silicon)", "Inference on CPU only is slow; buyers will see it")
