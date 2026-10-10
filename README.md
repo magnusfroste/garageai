@@ -28,7 +28,7 @@ Buyers ──HTTPS──▶ LiteLLM gateway (EU) ──private WireGuard mesh─
 ### Offer your GPU
 
 1. **Start the "Offer your GPU" wizard** at [app.garageai.eu](https://app.garageai.eu/auth?intent=operator) — macOS or Linux with Ollama, LM Studio, llama.cpp, vLLM, SGLang or Paddock (beta). Create your garage and set your price per million tokens.
-2. **Run one command.** [`scripts/garageai-connect.sh`](scripts/garageai-connect.sh) installs the [NetBird](https://netbird.io) client, joins your machine to the encrypted mesh, registers your models and installs a heartbeat that keeps the offered models in sync. No inbound ports are opened. The script is in beta: `--doctor` checks your garage and `--uninstall` removes it again.
+2. **Run one command.** The wizard gives you a command that installs [GarageAI Bridge](cli/README.md), one small open-source program (`garageai`), and runs `garageai connect`. Bridge installs the [NetBird](https://netbird.io) client, joins your machine to the encrypted mesh, checks that your runtime is reachable, registers your models and installs a heartbeat service that keeps the offered models in sync. No inbound ports are opened. It asks for your password once. Every step is reported to the wizard, so if something stops you see what to fix; `garageai doctor` shows the same on the machine, and `garageai uninstall` removes it again.
 
    **Windows is in beta:** [`scripts/garageai-connect.ps1`](scripts/garageai-connect.ps1) supports Ollama and LM Studio and runs in PowerShell as administrator. It is tested in CI but not yet on a real GPU machine, and the wizard does not offer Windows yet. To try it, email powerup@garageai.eu with the subject "Windows beta" and your GPU and runtime.
 3. **Pass the acceptance test.** Every model is tested through the gateway with a real streamed request — time-to-first-token and tokens per second are measured before it can be sold.
@@ -45,7 +45,9 @@ Buyers ──HTTPS──▶ LiteLLM gateway (EU) ──private WireGuard mesh─
 |---|---|
 | [`src/`](src) | The Astro site at [www.garageai.eu](https://www.garageai.eu) |
 | [`infra/gateway/`](infra/gateway/README.md) | The core: NetBird mesh + LiteLLM on one VPS — setup, DNS, firewall, backups |
-| [`scripts/garageai-connect.sh`](scripts/garageai-connect.sh) | Connects a garage node to the mesh |
+| [`cli/`](cli/README.md) | GarageAI Bridge (`garageai`): connects a garage node to the mesh, the default since October 2026 |
+| [`scripts/garageai-connect.sh`](scripts/garageai-connect.sh) | The previous connect script, kept as a backup and reference (Windows: `garageai-connect.ps1`) |
+| [`docs/bridge.md`](docs/bridge.md) | Bridge's vision and roadmap |
 | [`docs/inference-engines.md`](docs/inference-engines.md) | Support matrix for local inference engines |
 
 ```bash
@@ -57,7 +59,7 @@ npm run dev     # the site on localhost
 
 Contributions are welcome — see [CONTRIBUTING.md](docs/CONTRIBUTING.md). To report a vulnerability, see [SECURITY.md](docs/SECURITY.md).
 
-Offering your GPU? [Security for garage owners](docs/garage-security.md) explains in plain words what the connect script installs and who can reach your machine.
+Offering your GPU? [Security for garage owners](docs/garage-security.md) explains in plain words what Bridge installs and who can reach your machine.
 
 ## License
 
