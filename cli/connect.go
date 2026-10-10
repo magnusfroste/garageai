@@ -366,6 +366,10 @@ func connect(args []string) int {
 		c.hintBind()
 		c.fail("Restart the runtime bound to 0.0.0.0 and run the command again.")
 	}
+	if hint := ufwBlocks(o.Port); hint != "" {
+		c.warn(fmt.Sprintf("ufw is active and has no rule for port %d, so the gateway may be blocked.", o.Port))
+		c.info("  → " + hint)
+	}
 	offered, skipped := rt.Offer(served, o.Models)
 	for _, m := range offered {
 		c.info("model: " + m)
@@ -444,7 +448,7 @@ func connect(args []string) int {
 		return 0
 	}
 	c.begin("6/6  Heartbeat")
-	self, _ := os.Executable()
+	self := installedBinary()
 	cfg := &service.Config{HeartbeatURL: strings.TrimSuffix(o.RegisterURL, "/register-node") + "/node-heartbeat",
 		RegisterURL: o.RegisterURL, RegisterToken: o.RegisterToken, Name: o.Name, Runtime: o.Runtime, Port: o.Port,
 		RuntimeAPIKey: o.RuntimeAPIKey, MeshIP: meshIP}
@@ -460,7 +464,76 @@ func connect(args []string) int {
 	c.ok("Installed: Bridge reports your models every 5 minutes. Load a new model and it shows up")
 	c.info("  under My garages in the portal, where you choose to offer it. Remove with: garageai uninstall")
 	c.report("done", "Heartbeat installed", nil)
+	c.notes()
 	return 0
+}
+
+// notes prints what doctor would flag that is not an error: things to know for a garage that
+// should stay up (a sleeping Mac, OLLAMA_HOST not persistent, a small window).
+func (c *connectRun) notes() {
+	p := profile.Build(version)
+	first := true
+	for _, pr := range p.Problems {
+		if pr.Severity == "error" {
+			continue
+		}
+		if first {
+			fmt.Println()
+			c.bold("Good to know")
+			first = false
+		}
+		mark := "·"
+		if pr.Severity == "warning" {
+			mark = "!"
+		}
+		fmt.Printf("  %s %s\n      → %s\n", mark, pr.Message, pr.Fix)
+	}
+}
+
+// installedBinary makes sure the service runs a root-owned copy in /usr/local/bin: the installer
+// may have put us in the operator's ~/.local/bin, and a root service should not execute a file
+// the user can rewrite. Falls back to our own path when the copy is not possible.
+func installedBinary() string {
+	self, err := os.Executable()
+	if err != nil {
+		return "garageai"
+	}
+	if runtime.GOOS == "windows" || strings.HasPrefix(self, "/usr/local/bin/") {
+		return self
+	}
+	const dest = "/usr/local/bin/garageai"
+	b, err := os.ReadFile(self)
+	if err != nil {
+		return self
+	}
+	if err := os.MkdirAll("/usr/local/bin", 0o755); err != nil {
+		return self
+	}
+	tmp := dest + ".tmp"
+	if err := os.WriteFile(tmp, b, 0o755); err != nil {
+		return self
+	}
+	if err := os.Rename(tmp, dest); err != nil {
+		os.Remove(tmp)
+		return self
+	}
+	return dest
+}
+
+// ufwBlocks: on Linux with ufw active and no allow rule for the port, the command to allow the
+// mesh in; "" otherwise. Mesh traffic arrives on NetBird's wt0 interface.
+func ufwBlocks(port int) string {
+	if runtime.GOOS != "linux" {
+		return ""
+	}
+	out, err := exec.Command("ufw", "status").Output()
+	if err != nil || !strings.Contains(string(out), "Status: active") {
+		return ""
+	}
+	if strings.Contains(string(out), strconv.Itoa(port)) {
+		return ""
+	}
+	return fmt.Sprintf("sudo ufw allow in on wt0 to any port %d proto tcp comment garageai", port)
 }
 
 func (c *connectRun) hintRuntime() {

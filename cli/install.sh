@@ -28,9 +28,13 @@ esac
 
 if [ -n "${GARAGEAI_BRIDGE_DOWNLOAD_BASE:-}" ]; then VERSION=local; fi   # a local build server, for tests
 if [ "$VERSION" = "latest" ]; then
-  # The repository has other releases too: take the newest one whose tag starts with bridge-v.
-  VERSION=$(curl -fsSL "https://api.github.com/repos/$REPO/releases?per_page=30" 2>/dev/null \
-    | sed -n 's/.*"tag_name": *"\(bridge-v[^"]*\)".*/\1/p' | head -n 1)
+  # The repository has other releases too: take the highest stable bridge-v* version; a pre-release
+  # (bridge-v0.3.0-rc1) only when no stable release exists. GARAGEAI_BRIDGE_VERSION picks one.
+  VERSION=$(curl -fsSL "https://api.github.com/repos/$REPO/releases?per_page=50" 2>/dev/null \
+    | sed -n 's/.*"tag_name": *"\(bridge-v[^"]*\)".*/\1/p' \
+    | awk '{ v=$0; sub(/^bridge-v/, "", v); pre=0; if (v ~ /-/) { pre=1; sub(/-.*/, "", v) }
+            n=split(v, p, "."); printf "%d%06d%06d%06d %s\n", 1-pre, p[1], p[2], p[3], $0 }' \
+    | sort -r | head -n 1 | awk '{print $2}')
   [ -n "$VERSION" ] || { echo "garageai: could not find a Bridge release in $REPO (is github.com reachable?)" >&2; exit 1; }
 fi
 base="https://github.com/$REPO/releases/download/$VERSION"
