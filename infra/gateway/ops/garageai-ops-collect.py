@@ -15,6 +15,8 @@ events (180 days): alerts opened and resolved, reboots, container restarts, vers
 deployed files, merges to main, mesh and supply changes, and notes. Every 5 minutes the page's
 history.json is written from it (and from LiteLLM's spend logs for hourly traffic).
   garageai-ops-collect --note "text"      add a note to the event log (e.g. a maintenance window)
+  garageai-ops-collect --silence GARAGE 36h [reason]   planned stop: its alerts become info, no Telegram
+  garageai-ops-collect --unsilence GARAGE              end it early (it also ends by itself)
 
 Telegram notifications (optional): /etc/garageai/telegram.env (root, 0600) with
 TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID. One-way: the bot only sends to that chat.
@@ -747,6 +749,15 @@ def alerts(d):
         add("warning", f"{e['server_errors_5xx']} server errors (5xx) in the last hour", "traffic")
     if d["host"]["updates_pending"]:
         add("info", f"{d['host']['updates_pending']} package updates pending (unattended-upgrades handles security updates)", "updates")
+    # Planned stops (--silence): a known outage is information, not an alarm, until it expires.
+    silenced = {g: v for g, v in (d.get("silences") or {}).items()}
+    for x in a:
+        for g, v in silenced.items():
+            # the exact garage name: "autoversio" must not match "autoversio-south"
+            if x["level"] != "info" and re.search(rf"(?<![\w-]){re.escape(g)}(?![\w-])", x["text"]):
+                x["silenced"] = {"level": x["level"], "text": x["text"]}
+                x["level"] = "info"
+                x["text"] += f" (silenced until {v['until'][:16].replace('T', ' ')} UTC: {v['reason']})"
     order = {"critical": 0, "warning": 1, "info": 2}
     return sorted(a, key=lambda x: order[x["level"]])
 
@@ -1145,13 +1156,15 @@ def notify(d, state):
     open_ = ns.setdefault("open", {})
     t = time.time()
     current = {alert_key(a): a for a in d["alerts"] if a["level"] in NOTIFY_AFTER}
+    # A silenced alert is still there, just expected: no "Resolved" for it, and no reminders.
+    silenced = {alert_key({**a, "text": a["silenced"]["text"]}) for a in d["alerts"] if a.get("silenced")}
     for k, a in current.items():
         e = open_.setdefault(k, {"seen": 0, "notified": None, "notified_level": None})
         e.update(level=a["level"], text=a["text"], page=a.get("page"), seen=e["seen"] + 1)
     items, sent_keys, resolved = [], [], []
     for k, e in list(open_.items()):
         if k not in current:
-            if e.get("notified"):
+            if e.get("notified") and k not in silenced:
                 items.append(("resolved", e)); resolved.append(k)
             else:
                 del open_[k]
@@ -1259,6 +1272,9 @@ def main():
     data["versions"] = versions(env, state, data["containers"])
     data["source"] = source(state)
     data["logs"] = logs(data["containers"])
+    now_iso = now().isoformat(timespec="seconds")
+    state["silences"] = {g: v for g, v in state.get("silences", {}).items() if v["until"] > now_iso}
+    data["silences"] = state["silences"]
     data["alerts"] = alerts(data)
     notify(data, state)
     history(data, state)
@@ -1278,6 +1294,26 @@ def main():
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] in ("--telegram-setup", "--telegram-test"):
         telegram_cli(sys.argv[1])
+    elif len(sys.argv) >= 4 and sys.argv[1] == "--silence":
+        garage, dur = sys.argv[2], sys.argv[3]
+        m = re.fullmatch(r"(\d+)([hd])", dur)
+        if not m:
+            sys.exit("duration like 36h or 2d")
+        until = now() + timedelta(hours=int(m.group(1)) * (24 if m.group(2) == "d" else 1))
+        reason = " ".join(sys.argv[4:]) or "planned stop"
+        st = read_json(STATE, {})
+        st.setdefault("silences", {})[garage] = {"until": until.isoformat(timespec="seconds"), "reason": reason}
+        json.dump(st, open(STATE, "w"))
+        with db_open() as db:
+            add_event(db, "info", "note", "supply", f"{garage} silenced until {until:%Y-%m-%d %H:%M} UTC: {reason}")
+        print(f"{garage} silenced until {until:%Y-%m-%d %H:%M} UTC.")
+    elif len(sys.argv) == 3 and sys.argv[1] == "--unsilence":
+        st = read_json(STATE, {})
+        st.get("silences", {}).pop(sys.argv[2], None)
+        json.dump(st, open(STATE, "w"))
+        with db_open() as db:
+            add_event(db, "info", "note", "supply", f"{sys.argv[2]}: silence ended")
+        print("Silence ended.")
     elif len(sys.argv) == 3 and sys.argv[1] == "--note":
         with db_open() as db:
             add_event(db, "info", "note", "server", sys.argv[2])
