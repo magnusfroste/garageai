@@ -1,4 +1,4 @@
-// Package profile builds the garage profile: what runs on this machine and what is wrong, in the
+// Package profile builds the garage profile for GarageAI Bridge: what runs on this machine and what is wrong, in the
 // same JSON (schema 1) as `garageai-connect.sh --doctor --json`. Discovery is deterministic: it
 // lists the TCP ports that listen, asks each candidate whether it is an OpenAI-compatible API, and
 // reads a few start flags. Keys and whole command lines are never part of a profile.

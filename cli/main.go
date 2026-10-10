@@ -1,5 +1,6 @@
-// garageai: GarageAI's command for garage operators. This first version does one thing, the
-// garage profile, so it can be compared with scripts/garageai-connect.sh --doctor --json.
+// GarageAI Bridge: the bridge between an operator's GPU and the GarageAI network, as one command,
+// `garageai`. This first version does one thing, the garage profile, so it can be compared with
+// scripts/garageai-connect.sh --doctor --json. The roadmap is docs/bridge.md.
 //
 //	garageai doctor           what runs on this machine, what is wrong, how to fix it
 //	garageai doctor --json    the same as the garage profile (schema 1)
@@ -24,7 +25,7 @@ func main() {
 	}
 	switch args[0] {
 	case "version", "--version", "-v":
-		fmt.Println("garageai", version)
+		fmt.Println("GarageAI Bridge", version)
 	case "doctor":
 		os.Exit(doctor(len(args) > 1 && args[1] == "--json"))
 	case "help", "--help", "-h":
@@ -36,7 +37,14 @@ func main() {
 }
 
 func usage(code int) {
-	fmt.Fprintln(os.Stderr, "usage: garageai doctor [--json] | garageai version")
+	fmt.Fprintln(os.Stderr, `GarageAI Bridge — connects your GPU to the GarageAI network
+
+usage:
+  garageai doctor          what runs on this machine, what is wrong, and how to fix it
+  garageai doctor --json   the same as the garage profile (schema 1)
+  garageai version
+
+Experimental: today Bridge diagnoses; connecting still uses the connect command from the portal.`)
 	os.Exit(code)
 }
 
