@@ -1,8 +1,11 @@
-# GarageAI Bridge (`garageai`) — experimental
+# GarageAI Bridge (`garageai`)
 
 **Bridge** is the bridge between an operator's GPU and the GarageAI network, in both directions:
 the garage sells to the network, and later the operator uses the network from the garage. It is one
-binary, `garageai`. The vision and the phases are in [docs/bridge.md](../docs/bridge.md).
+binary, `garageai`, and since 2026-10-10 the default way to connect a garage: the portal's
+command uses it. `scripts/garageai-connect.sh` stays as an internal backup and reference, kept in
+step with Bridge by `scripts/tests/parity-doctor.sh`. The vision and the phases are in
+[docs/bridge.md](../docs/bridge.md).
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.sh | sh

@@ -12,7 +12,8 @@ A bridge goes both ways:
 from, opens Bridge. Bridge sees the machine, says what it can earn and with which model, installs
 and configures everything, and the garage is live. No terminal, no flags, no guessing.
 
-Status: experimental. Phase 0 is done and phase 1 is in progress (see below). Everything else is the agreed direction
+Status: Bridge is the default way to connect a garage since 2026-10-10 (bridge-v0.2.0). The connect
+script stays as an internal backup and reference. Phase 0 is done and phase 1 is in progress. Everything else is the agreed direction
 (2026-10-10), not a commitment to dates.
 
 ## Principles
