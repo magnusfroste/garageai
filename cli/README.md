@@ -8,6 +8,11 @@ anything is decided. The vision and the phases are in [docs/bridge.md](../docs/b
 Today it does one thing: the garage profile.
 
 ```sh
+curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.sh | sh
+garageai doctor
+```
+
+```sh
 garageai doctor           # what runs on this machine, what is wrong, and how to fix it
 garageai doctor --json    # the garage profile (schema 1), identical to garageai-connect.sh --doctor --json
 garageai version
@@ -33,4 +38,6 @@ CI ("Bridge (Go)") tests on Linux, macOS and Windows, and runs the comparison wi
 Linux and macOS. It builds six binaries (`garageai-{linux,darwin,windows}-{amd64,arm64}`) with
 SHA256SUMS as the artifact `garageai-bridge-binaries`.
 
-Installing via `curl` like norrivaagent needs no signing: curl sets no quarantine flag on macOS.
+Releases: push a tag `bridge-vX.Y.Z` and CI publishes the six binaries plus SHA256SUMS as a
+pre-release. `install.sh` picks the newest `bridge-v*` release, checks the checksum, and installs.
+Installing via `curl`, as with norrivaagent, needs no signing: curl sets no quarantine flag on macOS.
