@@ -16,7 +16,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/ps":
             body = json.dumps({"models": [{"name": "qwen3:4b", "model": "qwen3:4b", "context_length": 4096}]}).encode()
         else:
-            body = json.dumps({"data": [{"id": "qwen3:4b"}, {"id": "nomic-embed-text:latest"}]}).encode()
+            body = json.dumps({"data": [{"id": "qwen3:4b", "max_model_len": 32768}, {"id": "nomic-embed-text:latest"}]}).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
@@ -24,9 +24,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         body = self.rfile.read(int(self.headers.get("Content-Length") or 0)).decode()
-        if self.path.endswith("/onboarding-report") and os.environ.get("FAKE_REPORT_LOG"):
+        if (self.path.endswith("/onboarding-report") or self.path.endswith("/node-heartbeat")) and os.environ.get("FAKE_REPORT_LOG"):
             with open(os.environ["FAKE_REPORT_LOG"], "a") as f:
-                f.write(json.dumps({"auth": self.headers.get("Authorization", ""), "body": body}) + "\n")
+                f.write(json.dumps({"path": self.path, "auth": self.headers.get("Authorization", ""), "body": body}) + "\n")
         self.send_response(204)
         self.end_headers()
 
