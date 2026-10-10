@@ -126,4 +126,24 @@ check "doctor --json: a network bind is fine" "true" "$(printf '%s' "$out" | jq 
 check "doctor --json: no localhost problem then" "none" "$(printf '%s' "$out" | jq -r --argjson p "$PORT" '[.problems[] | select(.code == "localhost_only" and (.message | contains("port \($p)")))] | if length == 0 then "none" else "found" end' 2>&1)"
 stop_runtime
 
+# The onboarding report carries the garage profile when a step fails. A fake netbird that is not
+# connected stops the script at step 2 ("no setup key") without touching the real mesh.
+FAKE_BIN="$(mktemp -d)"; printf '#!/bin/sh\nexit 1\n' > "$FAKE_BIN/netbird"; chmod +x "$FAKE_BIN/netbird"
+REPORTS="$(mktemp)"
+FAKE_REPORT_LOG="$REPORTS" start_runtime 127.0.0.1
+out="$(PATH="$FAKE_BIN:$PATH" bash "$SCRIPT" --runtime ollama --port "$PORT" --name prof-test --skip-install --yes \
+       --register-url "http://127.0.0.1:$PORT/functions/v1/register-node" --register-token tok 2>&1)"
+check "profile: the script stops at the mesh step" "No setup key" "$out"
+prof="$(python3 -c 'import json,sys
+for l in open(sys.argv[1]):
+    b=json.loads(json.loads(l)["body"])
+    if b.get("status")=="failed": print(json.dumps(b.get("profile")))' "$REPORTS" 2>&1)"
+check "profile: the failure report carries the profile" '"schema": 1' "$prof"
+check "profile: with the runtime and its localhost problem" '"localhost_only"' "$prof"
+check "profile: the first step report carries it too" "yes" "$(python3 -c 'import json,sys
+r=[json.loads(json.loads(l)["body"]) for l in open(sys.argv[1])]
+s=[b for b in r if b.get("step","").startswith("1/6")]
+print("yes" if s and s[0].get("profile") else "no")' "$REPORTS" 2>&1)"
+stop_runtime; rm -rf "$FAKE_BIN" "$REPORTS"
+
 [ "$fails" -eq 0 ] && echo "all tests passed" || { echo "$fails test(s) failed"; exit 1; }
