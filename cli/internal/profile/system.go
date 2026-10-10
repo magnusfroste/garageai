@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/csv"
 	"encoding/json"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -117,7 +118,35 @@ func netbird() NetBird {
 		nb.Connected = st.Management.Connected
 		nb.MeshIP = strp(strings.SplitN(st.NetbirdIP, "/", 2)[0])
 	}
+	if !nb.Connected {
+		// A normal user may not be allowed to ask the NetBird service (macOS). The mesh address on
+		// the tunnel interface (100.64.0.0/10) shows the client is up all the same.
+		if ip := meshIPFromInterfaces(); ip != "" {
+			nb.Connected, nb.MeshIP = true, &ip
+		}
+	}
 	return nb
+}
+
+func meshIPFromInterfaces() string {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return ""
+	}
+	for _, it := range ifaces {
+		if !(strings.HasPrefix(it.Name, "wt") || strings.HasPrefix(it.Name, "nb") || strings.HasPrefix(it.Name, "utun")) {
+			continue
+		}
+		addrs, _ := it.Addrs()
+		for _, a := range addrs {
+			if ipn, ok := a.(*net.IPNet); ok {
+				if v4 := ipn.IP.To4(); v4 != nil && v4[0] == 100 && v4[1] >= 64 && v4[1] <= 127 {
+					return v4.String()
+				}
+			}
+		}
+	}
+	return ""
 }
 
 func firewall() Firewall {
@@ -218,17 +247,22 @@ func ollamaContextTarget(mem *int) int {
 
 // localFacts: the heartbeat's last output, whether OLLAMA_HOST is set for good on macOS (the
 // LaunchAgent the connect script offers), and after how many minutes a Mac goes to sleep.
-func localFacts(hb Heartbeat) (last string, ollamaPersistent bool, sleepMin int) {
+func localFacts(hb Heartbeat) (last string, ollamaPersistent bool, sleepMin, displayMin int) {
 	switch runtime.GOOS {
 	case "darwin":
 		if home, err := os.UserHomeDir(); err == nil {
 			_, err := os.Stat(filepath.Join(home, "Library/LaunchAgents/eu.garageai.ollama-host.plist"))
 			ollamaPersistent = err == nil
 		}
+		// pmset: "sleep N" is minutes after the display turns off ("displaysleep M"); 0 = never.
 		for _, line := range strings.Split(run("pmset", "-g"), "\n") {
-			if f := strings.Fields(line); len(f) >= 2 && f[0] == "sleep" {
-				sleepMin, _ = strconv.Atoi(f[1])
-				break
+			if f := strings.Fields(line); len(f) >= 2 {
+				switch f[0] {
+				case "sleep":
+					sleepMin, _ = strconv.Atoi(f[1])
+				case "displaysleep":
+					displayMin, _ = strconv.Atoi(f[1])
+				}
 			}
 		}
 		if b, err := os.ReadFile("/var/log/garageai-heartbeat.log"); err == nil {

@@ -31,7 +31,7 @@ func Build(version string) Profile {
 	wg.Wait()
 	p.Heartbeat, p.GarageAI = hb, cfg
 	p.darwin = runtime.GOOS == "darwin"
-	p.heartbeatLast, p.ollamaHostPersistent, p.sleepMinutes = localFacts(hb)
+	p.heartbeatLast, p.ollamaHostPersistent, p.sleepMinutes, p.displayMinutes = localFacts(hb)
 	p.Problems = problems(p)
 	p.OK = true
 	for _, pr := range p.Problems {
@@ -157,7 +157,11 @@ func problems(p Profile) []Problem {
 				"Run the connect command again and accept the offer to make it permanent")
 		}
 		if p.sleepMinutes > 0 {
-			add("info", "mac_sleeps", fmt.Sprintf("This Mac goes to sleep after %d min; a sleeping Mac is offline for buyers", p.sleepMinutes),
+			msg := fmt.Sprintf("This Mac sleeps %d min after its display turns off", p.sleepMinutes)
+			if p.displayMinutes > 0 {
+				msg += fmt.Sprintf(" (display off after %d min)", p.displayMinutes)
+			}
+			add("info", "mac_sleeps", msg+"; a sleeping Mac is offline for buyers",
 				"System Settings → Battery/Energy → prevent automatic sleeping when the display is off")
 		}
 	}
