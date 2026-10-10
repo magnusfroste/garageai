@@ -208,6 +208,7 @@
   <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
   <symbol id="i-models" viewBox="0 0 24 24"><path d="M12 3 3 7.5 12 12l9-4.5z"/><path d="m3 12 9 4.5 9-4.5M3 16.5 12 21l9-4.5"/></symbol>
   <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></symbol>
+  <symbol id="i-business" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
   <symbol id="i-events" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
 </svg>
@@ -262,10 +263,24 @@
         <div id="alerts-supply"></div>
         <div class="card"><h2>Garages and providers</h2><div id="garages"></div>
           <div class="note">Garages are checked over the NetBird mesh, providers over public HTTPS. Uptime comes from the health check every minute.</div></div>
-        <div class="card"><h2>Quality per garage</h2><div class="sub">Real traffic, probes excluded. Output speed is tokens per second after the first token (median, replies of 20+ tokens).</div><div id="quality"></div></div>
+        <div class="card"><h2>Quality per garage</h2><div class="sub">Real traffic, probes excluded. Output speed is tokens per second after the first token (median, replies of 20+ tokens). Cached input is the share of prompt tokens the runtime served from its prefix cache.</div><div id="quality"></div></div>
         <div class="card"><h2>Uptime per hour, last 7 days</h2><div id="ch-uptime"></div></div>
         <div class="card"><h2>Requests running on vLLM garages</h2><div class="sub">Average per 15 minutes, last 7 days.</div><div class="chart" id="ch-gload"></div></div>
         <div class="card"><h2>Supply events, last 30 days</h2><div id="supply-events"></div></div>
+      </section>
+
+      <section class="page" data-page="business">
+        <div id="alerts-business"></div>
+        <div id="biz-empty"></div>
+        <div class="kpis" id="biz-kpis"></div>
+        <div class="grid">
+          <div class="card"><h2>Earnings per operator</h2><div id="biz-ops"></div></div>
+          <div class="card"><h2>Stripe</h2><div id="biz-stripe"></div></div>
+        </div>
+        <div class="grid">
+          <div class="card"><h2>Onboarding</h2><div id="biz-onb"></div></div>
+          <div class="card"><h2>Admin activity</h2><div id="biz-admin"></div></div>
+        </div>
       </section>
 
       <section class="page" data-page="chat">
@@ -353,6 +368,7 @@ const PAGES = [
   { id: "events", title: "Events", icon: "events", sub: "Timeline: alerts, deploys, restarts, merges and notes" },
   { group: "Platform" },
   { id: "supply", title: "Supply", icon: "supply", sub: "Garages and providers: tunnel, runtime, uptime, load" },
+  { id: "business", title: "Business", icon: "business", sub: "Buyers, credits, Stripe, what each operator earns, onboarding and admin activity (from the portal, no personal data)" },
   { id: "chat", title: "Chat", icon: "chat", sub: "Talk to a model or one garage directly: check a newly loaded model, its speed and behaviour" },
   { id: "models", title: "Models", icon: "models", sub: "What buyers can call: public names, garages, prices, context windows, checked against the runtimes" },
   { id: "traffic", title: "Traffic", icon: "traffic", sub: "Requests, tokens, latency and gateway errors" },
@@ -496,7 +512,8 @@ function renderDashboard(d) {
 
 /* ---------- pages */
 function renderPages(d) {
-  ["supply", "models", "traffic", "mesh", "server", "updates", "logs"].forEach(p => pageAlerts(p, d.alerts));
+  renderBusiness(d.business);
+  ["business", "supply", "models", "traffic", "mesh", "server", "updates", "logs"].forEach(p => pageAlerts(p, d.alerts));
 
   const md = d.models || {}, deps = md.deployments || [];
   $("models-sub").textContent = md.error ? md.error : `${md.public_models} public names, ${deps.length} deployments${md.probes ? `, ${md.probes} probes not shown` : ""}`;
@@ -514,6 +531,7 @@ function renderPages(d) {
     ["Context", ctxCell, "num"],
     ["Max out", r => r.max_output ? short(r.max_output) : "—", "num"],
     ["In / out $/M", r => r.price_in == null || r.price_out == null ? pill("warning", "no price") : `${r.price_in} / ${r.price_out}`, "num"],
+    ["Cache read $/M", r => r.price_cache == null ? pill("warning", "none") : `${r.price_cache}${r.price_in ? `<div class="small">${Math.round(100 * r.price_cache / r.price_in)} % of input</div>` : ""}`, "num"],
     ["Checks", r => r.checks.length ? r.checks.map(c => `<div class="${c.level}">${esc(c.text)}</div>`).join("") : '<span class="ok">ok</span>'],
   ], deps);
 
@@ -613,6 +631,38 @@ function renderPages(d) {
     + `<div class="kv" style="margin-top:12px"><div>System journal</div><div>${esc(lg.journald)}</div></div>`;
   $("disk").innerHTML = `<div class="kv" style="margin-bottom:12px"><div>Root filesystem</div><div>${h.disk_used_pct} % used, ${h.disk_free_gb} GB free</div></div>`
     + table([["Docker", x => esc(x.type)], ["Size", x => esc(x.size), "num"], ["Reclaimable", x => esc(x.reclaimable), "num"]], lg.docker || []);
+}
+
+/* ---------- business */
+function renderBusiness(b) {
+  const usd = v => v == null ? "—" : "$" + Number(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (!b || b._error) {
+    $("biz-empty").innerHTML = `<div class="card"><div class="small">${b?._error ? "The portal's ops-summary answered with an error: " + esc(b._error) : "Waiting for the portal's ops-summary endpoint."}</div></div>`;
+    ["biz-kpis", "biz-ops", "biz-stripe", "biz-onb", "biz-admin"].forEach(id => $(id).innerHTML = ""); return;
+  }
+  $("biz-empty").innerHTML = "";
+  const by = b.buyers || {}, cr = b.credits || {}, st = b.stripe || {};
+  const tile = (icon, label, value, detail, status = "ok") => `<div class="kpi ${status}" style="display:block;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;border-top:3px solid var(--${status === "warning" ? "warn" : status === "critical" ? "crit" : "ok"})">
+    <div class="label">${icon ? `<svg class="i"><use href="#i-${icon}"/></svg>` : ""}${label}</div><div class="value">${value}</div><div class="detail">${detail}</div></div>`;
+  $("biz-kpis").innerHTML = [
+    tile("supply", "Buyers", fmt(by.total), `${fmt(by.new_24h)} new today · ${fmt(by.new_7d)} this week · ${fmt(by.active_24h)} active today`),
+    tile("money", "Top-ups, 7 days", usd(cr.topups_7d?.amount_usd), `${fmt(cr.topups_7d?.count)} payments · today ${usd(cr.topups_24h?.amount_usd)} (${fmt(cr.topups_24h?.count)})`),
+    tile("money", "Credit outstanding", usd(cr.outstanding_balance_usd), "prepaid by buyers, not yet used"),
+    tile("warn", "Low credit", fmt(by.low_credit ?? 0), "active buyers under $1", (by.low_credit || 0) >= 5 ? "warning" : "ok"),
+  ].join("");
+  const ops = (b.operators || []).slice().sort((x, y) => (y.earned_7d_usd || 0) - (x.earned_7d_usd || 0));
+  $("biz-ops").innerHTML = table([["Garage", o => esc(o.garage)], ["24 h", o => usd(o.earned_24h_usd), "num"], ["7 days", o => usd(o.earned_7d_usd), "num"],
+    ["Total", o => usd(o.earned_total_usd), "num"], ["Terms", o => o.terms_accepted ? '<span class="ok">accepted</span>' : pill("warning", "missing")]], ops);
+  $("biz-stripe").innerHTML = `<div class="kv">
+    <div>Last webhook</div><div>${st.last_webhook_at ? `${ago(st.last_webhook_at)} <span class="small">${esc(st.last_webhook_at)}</span>` : "—"}</div>
+    <div>Last top-up</div><div>${st.last_topup_at ? `${ago(st.last_topup_at)} <span class="small">${esc(st.last_topup_at)}</span>` : "—"}</div>
+    <div>Failed webhooks, 24 h</div><div class="${st.failed_webhooks_24h ? "warning" : ""}">${st.failed_webhooks_24h ?? "not tracked"}</div>
+    <div>Checkouts not completed (&gt; 1 h)</div><div class="${(st.pending_checkouts || 0) >= 3 ? "warning" : ""}">${st.pending_checkouts ?? "—"}</div></div>
+    <div class="note">From the portal at ${esc(b.generated_at || "")}, refreshed every 5 minutes.</div>`;
+  const onb = b.onboarding || {}, list = onb.garages || onb.items || (Array.isArray(onb) ? onb : []);
+  $("biz-onb").innerHTML = `<div class="sub">${fmt(onb.count ?? list.length)} garage(s) created but never registered.</div>` +
+    table([["Garage", o => esc(o.garage)], ["Created", o => ago(o.created_at)], ["Last step", o => o.last_step ? `${esc(o.last_step)} · ${esc(o.last_status || "")}` : '<span class="small">no report yet</span>']], list);
+  $("biz-admin").innerHTML = table([["When", a => ago(a.at)], ["Action", a => esc(a.action)], ["Target", a => esc(a.target)]], b.admin_activity || []);
 }
 
 /* ---------- history: charts and events */
@@ -761,6 +811,7 @@ function renderHistory() {
       ["Success 24 h", ([, q]) => q.last_24h?.success_pct == null ? "—" : `<span class="${sc(q.last_24h.success_pct, q.last_24h.requests)}">${q.last_24h.success_pct} %</span>`, "num"],
       ["First token p50 / p95", ([, q]) => q.last_24h ? `${q.last_24h.ttft_p50 ?? "—"} / ${q.last_24h.ttft_p95 ?? "—"} s` : "—", "num"],
       ["Output tok/s", ([, q]) => q.last_24h?.tps_p50 ?? "—", "num"],
+      ["Cached input", ([, q]) => q.last_24h?.cached_pct == null ? "—" : `${q.last_24h.cached_pct} %`, "num"],
       ["Success, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "success_pct", 100)}</div>`],
       ["First token p95, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "ttft_p95")}</div>`],
       ["Output tok/s, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "tps_p50")}</div>`],
