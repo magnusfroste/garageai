@@ -592,7 +592,21 @@ mesh_ip() {
   if [ -z "$ip" ]; then
     ip="$(netbird status 2>/dev/null | awk -F': *' '/NetBird IP/ {print $2; exit}' || true)"
   fi
+  if [ -z "$ip" ] && [ "${DOCTOR:-0}" -eq 1 ]; then
+    # Doctor only: a normal user may not be allowed to ask the NetBird service (macOS). The mesh
+    # address on the tunnel interface (100.64.0.0/10) shows the client is up all the same. Connecting
+    # keeps asking the service, so it never mistakes another tunnel for ours.
+    ip="$(mesh_ip_from_interfaces)"
+  fi
   printf '%s' "${ip%%/*}"
+}
+
+mesh_ip_from_interfaces() {
+  if command -v ip >/dev/null 2>&1; then
+    ip -4 -o addr show 2>/dev/null | awk '$2 ~ /^(wt|nb|utun)/ {print $4}'
+  else
+    ifconfig 2>/dev/null | awk '/^utun|^wt/ {iface=1; next} /^[a-z]/ {iface=0} iface && $1 == "inet" {print $2}'
+  fi | awk -F/ '{split($1, o, "."); if (o[1] == 100 && o[2] >= 64 && o[2] <= 127) {print $1; exit}}'
 }
 
 run_doctor() {
@@ -796,6 +810,8 @@ doctor_json() {
   if command -v netbird >/dev/null 2>&1; then
     nb_version="$(netbird version 2>/dev/null | head -n 1 || true)"
     netbird status 2>/dev/null | grep -q '^Management: Connected' && nb_connected=true
+    # The service may refuse a normal user; a mesh address on the tunnel interface means it is up.
+    [ "$nb_connected" = true ] || [ -z "$(mesh_ip_from_interfaces)" ] || nb_connected=true
   fi
   [ -e "$HEARTBEAT_BIN" ] && hb_installed=true
   case "$(uname -s)" in
@@ -811,15 +827,18 @@ doctor_json() {
   fi
   [ -n "${FACT_ARCH:-}" ] || machine_facts || true
   # macOS: is OLLAMA_HOST set for good (the LaunchAgent the connect script offers), and does the Mac sleep?
-  local plist=false sleep_min=0 hb_last=""
+  local plist=false sleep_min=0 display_min=0 hb_last=""
   if [ "$(uname -s)" = Darwin ]; then
     [ -e "$HOME/Library/LaunchAgents/eu.garageai.ollama-host.plist" ] && plist=true
+    # pmset: "sleep N" is minutes after the display turns off ("displaysleep M"); 0 = never.
     sleep_min="$(pmset -g 2>/dev/null | awk '$1 == "sleep" {print $2 + 0; exit}' || true)"
+    display_min="$(pmset -g 2>/dev/null | awk '$1 == "displaysleep" {print $2 + 0; exit}' || true)"
     hb_last="$(tail -n 1 /var/log/garageai-heartbeat.log 2>/dev/null || true)"
   elif [ "$hb_installed" = true ]; then
     hb_last="$(journalctl -u garageai-heartbeat.service -n 1 -o cat 2>/dev/null || true)"
   fi
   [ -n "$sleep_min" ] || sleep_min=0
+  [ -n "$display_min" ] || display_min=0
   jq -n --arg v "$SCRIPT_VERSION" --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     --arg os "$FACT_OS" --arg arch "$FACT_ARCH" --arg mem "$FACT_MEM" --argjson gpus "$(gpus_json)" \
     --argjson runtimes "$runtimes" --argjson fw "$(firewall_json)" \
@@ -827,7 +846,7 @@ doctor_json() {
     --argjson nb_connected "$nb_connected" --arg mesh "$mesh" \
     --argjson hb_installed "$hb_installed" --argjson hb_active "$hb_active" --arg conf_rt "$conf_rt" --arg conf_port "$conf_port" \
     --argjson ctx_target "$(ollama_context_target)" --arg uname "$(uname -s)" --argjson plist "$plist" \
-    --argjson sleep_min "$sleep_min" --arg hb_last "$hb_last" '
+    --argjson sleep_min "$sleep_min" --argjson display_min "$display_min" --arg hb_last "$hb_last" '
     def nz: if . == "" then null else . end;
     def problem($sev; $code; $msg; $fix): {severity: $sev, code: $code, message: $msg, fix: $fix};
     ($runtimes | map(select(.api == "openai" or .api == "openai (needs API key)"))) as $rt |
@@ -873,7 +892,7 @@ doctor_json() {
              "OLLAMA_HOST is not set permanently: after a restart Ollama listens on localhost again";
              "Run the connect command again and accept the offer to make it permanent")] else [] end)
         + (if $uname == "Darwin" and $sleep_min > 0 then [problem("info"; "mac_sleeps";
-             "This Mac goes to sleep after \($sleep_min) min; a sleeping Mac is offline for buyers";
+             "This Mac sleeps \($sleep_min) min after its display turns off" + (if $display_min > 0 then " (display off after \($display_min) min)" else "" end) + "; a sleeping Mac is offline for buyers";
              "System Settings → Battery/Energy → prevent automatic sleeping when the display is off")] else [] end)
         + (if ($gpus | length) == 0 then [problem("info"; "no_gpu"; "No GPU found (nvidia-smi, rocm-smi, Apple silicon)"; "Inference on CPU only is slow; buyers will see it")] else [] end)
       )

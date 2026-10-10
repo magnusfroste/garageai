@@ -26,6 +26,7 @@ type Profile struct {
 	heartbeatLast        string
 	ollamaHostPersistent bool
 	sleepMinutes         int
+	displayMinutes       int
 }
 
 type Machine struct {
