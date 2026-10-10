@@ -287,6 +287,23 @@ classes; the portal and site seen from outside; and a list of current alerts.
   with the user Traefik passes in `X-Ops-User`; signing out makes the browser forget the
   basic-auth credentials.
 
+### Business
+
+The *Business* page reads the portal's `ops-summary` every 5 minutes. It authenticates like `gateway-targets`, with `x-gateway-key`, and returns aggregates only: no e-mail addresses, names, keys or Stripe ids. The page shows:
+- buyers,
+- top-ups and credit outstanding,
+- Stripe status (last top-up, failed webhooks if tracked, checkouts not completed),
+- earnings per operator and whether they have accepted the terms,
+- garages created but never registered, with their last onboarding step,
+- recent admin activity.
+
+Alerts:
+- failed Stripe webhooks,
+- 3 or more checkouts not completed,
+- 5 or more active buyers under $1.
+
+The *Models* page also shows each deployment's cache-read price and warns when one is missing. *Quality* shows the share of input tokens each garage served from its prefix cache.
+
 ### Chat
 
 The *Chat* page talks to any public model, or to one garage through its dedicated route, the way a buyer would. Each reply shows time to first token, tokens per second, tokens in and out (and reasoning), with the reasoning collapsible.

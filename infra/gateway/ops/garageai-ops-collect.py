@@ -419,6 +419,30 @@ def outside():
     return rows
 
 
+# ---------------------------------------------------------------- business (portal ops-summary)
+SUMMARY_EVERY = 300
+
+
+def ops_summary(env, state):
+    """Aggregates from the portal: buyers, credits, Stripe, operator earnings, onboarding, admin
+    activity. No personal data. Cached; None until the portal has the endpoint."""
+    c = state.setdefault("cache", {}).get("ops_summary")
+    if c and time.time() - c["at"] < SUMMARY_EVERY:
+        return c["value"]
+    url, key = env.get("GARAGEAI_PORTAL_URL", "").rstrip("/"), env.get("GARAGEAI_GATEWAY_KEY", "")
+    code, body, ms = http(f"{url}/functions/v1/ops-summary", {"x-gateway-key": key}, timeout=10)
+    value = None
+    if code == 200:
+        try:
+            value = {**json.loads(body), "_ms": ms}
+        except ValueError:
+            value = {"_error": "invalid JSON"}
+    elif code not in (404, None):
+        value = {"_error": f"HTTP {code}"}
+    state["cache"]["ops_summary"] = {"at": time.time(), "value": value}
+    return value
+
+
 # ---------------------------------------------------------------- guard
 def guard():
     """Clients blocked by garageai-guard, and how many packets the block has dropped."""
@@ -645,6 +669,22 @@ def alerts(d):
             add("warning", f"Container log for {l['container']} is {l['log_mb']} MB", "logs")
         elif not l["max_size"] and l["log_mb"] > 100:
             add("warning", f"Container log for {l['container']} is {l['log_mb']} MB and has no size limit", "logs")
+    bz = d.get("business") or {}
+    if bz.get("_error"):
+        add("warning", f"Portal ops-summary: {bz['_error']}", "business")
+    st = bz.get("stripe") or {}
+    if (st.get("failed_webhooks_24h") or 0) > 0:
+        add("warning", f"{st['failed_webhooks_24h']} Stripe webhook(s) failed in the last 24 h: payments may not have become credits", "business")
+    if (st.get("pending_checkouts") or 0) >= 3:
+        add("warning", f"{st['pending_checkouts']} Stripe checkouts started over an hour ago and never completed", "business")
+    if st.get("last_webhook_at") and ((bz.get("credits") or {}).get("topups_7d") or {}).get("count") and \
+            (now() - datetime.fromisoformat(str(st["last_webhook_at"]).replace("Z", "+00:00"))).days >= 7:
+        add("warning", f"No Stripe webhook since {st['last_webhook_at']}", "business")
+    low = (bz.get("buyers") or {}).get("low_credit") or 0
+    if low >= 5:
+        add("warning", f"{low} active buyers have less than $1 in credit", "business")
+    elif low:
+        add("info", f"{low} active buyer(s) have less than $1 in credit", "business")
     gd = d.get("guard")
     if gd is None:
         add("warning", "garageai-guard has not run (no status file)", "traffic")
@@ -723,6 +763,7 @@ def models(env, state, targets):
         runtime_model = str(lp.get("model", "")).split("/", 1)[-1]
         cin = mi.get("input_cost_per_token", lp.get("input_cost_per_token"))
         cout = mi.get("output_cost_per_token", lp.get("output_cost_per_token"))
+        ccache = lp.get("cache_read_input_token_cost", mi.get("cache_read_input_token_cost"))
         served = (health.get(garage) or {}).get("models")
         rctx = (contexts.get(garage) or {}).get(runtime_model)
         max_in, max_out = mi.get("max_input_tokens"), mi.get("max_output_tokens")
@@ -739,10 +780,13 @@ def models(env, state, targets):
             checks.append(("warning", f"routed to {runtime_model}, which the runtime does not serve now"))
         if not cin or not cout:
             checks.append(("warning", "no price: requests are free"))
+        elif ccache is None:
+            checks.append(("warning", "no cache-read price: cached input is billed at the full input price"))
         rows.append({"public": public, "garage": garage, "tier": mi.get("garage_tier") or str(mi.get("id", "")).rsplit("__", 1)[-1],
                      "runtime_model": runtime_model, "context": int(max_in) if max_in else None, "runtime_context": rctx,
                      "max_output": int(max_out) if max_out else None,
                      "price_in": round(cin * 1e6, 4) if cin else None, "price_out": round(cout * 1e6, 4) if cout else None,
+                     "price_cache": round(ccache * 1e6, 4) if ccache is not None else None,
                      "up": bool((health.get(garage) or {}).get("runtime_ok")),
                      "checks": [{"level": l, "text": x} for l, x in checks]})
     rows.sort(key=lambda r: (r["public"], r["tier"], r["garage"]))
@@ -757,6 +801,8 @@ def quality():
         select coalesce(nullif(split_part(model_id, '__', 1), ''), '?') g, "startTime" st, status,
                -- LiteLLM sets completionStartTime = endTime when a reply is not streamed: no first token to time
                case when "completionStartTime" < "endTime" then extract(epoch from ("completionStartTime" - "startTime")) end ttft,
+               prompt_tokens pt,
+               coalesce((metadata->'usage_object'->'prompt_tokens_details'->>'cached_tokens')::bigint, 0) ct,
                case when completion_tokens >= 20 and "endTime" > "completionStartTime"
                     then completion_tokens / extract(epoch from ("endTime" - "completionStartTime")) end tps
         from "LiteLLM_SpendLogs"
@@ -765,13 +811,14 @@ def quality():
       select g, {bucket}, count(*), count(*) filter (where status = 'success'),
              round((percentile_cont(0.5) within group (order by ttft) filter (where status = 'success'))::numeric, 2),
              round((percentile_cont(0.95) within group (order by ttft) filter (where status = 'success'))::numeric, 2),
-             round((percentile_cont(0.5) within group (order by tps) filter (where status = 'success'))::numeric, 1)
+             round((percentile_cont(0.5) within group (order by tps) filter (where status = 'success'))::numeric, 1),
+             round(100.0 * sum(ct) / nullif(sum(pt), 0), 1)
       from s where g <> '?' group by 1, 2 order by 2"""
     num = lambda x: float(x) if x not in (None, "") else None
-    def row(n, ok, p50, p95, tps):
+    def row(n, ok, p50, p95, tps, cached):
         n, ok = int(n), int(ok)
         return {"requests": n, "success_pct": round(100 * ok / n, 1) if n else None,
-                "ttft_p50": num(p50), "ttft_p95": num(p95), "tps_p50": num(tps)}
+                "ttft_p50": num(p50), "ttft_p95": num(p95), "tps_p50": num(tps), "cached_pct": num(cached)}
     out = {}
     for g, day, *vals in psql(base.format(iv="7 days", bucket="to_char(date_trunc('day', st), 'YYYY-MM-DD')")):
         out.setdefault(g, {"days": [], "last_24h": None})["days"].append({"day": day, **row(*vals)})
@@ -1162,6 +1209,7 @@ def main():
         "errors_last_hour": gateway_log_counts(),
         "outside": outside(),
         "guard": guard(),
+        "business": ops_summary(env, state),
     }
     data["models"] = models(env, state, targets)
     data["quality_24h"] = {g: q["last_24h"] for g, q in (state.get("quality") or {}).items() if q.get("last_24h")}
