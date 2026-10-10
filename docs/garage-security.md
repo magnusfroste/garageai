@@ -1,7 +1,7 @@
 # Security for garage owners
 
 What happens on your machine when you offer your GPU on GarageAI, in plain words: what the
-connect script installs, who can reach your machine, and what they can and cannot do.
+connect command (GarageAI Bridge) installs, who can reach your machine, and what they can and cannot do.
 
 ## The short version
 
@@ -39,30 +39,38 @@ are dropped.
 | **A personal VPN account (Tailscale and similar)** | Works well for your own devices, but it is your private network. A marketplace needs a network where the buyer side can reach only one port on your machine and nothing else. |
 | **GarageAI's mesh** | No public address exists. Only the gateway can reach the runtime port, and the connection is set up and kept alive for you. |
 
-## What the connect script installs
+## What the connect command installs
 
-The script is open source: read [`scripts/garageai-connect.sh`](../scripts/garageai-connect.sh)
-(or `garageai-connect.ps1` on Windows) before you run it. It needs administrator rights for
-these things:
+The command installs **GarageAI Bridge**, one small program called `garageai`, and runs
+`garageai connect`. Bridge is open source: read [`cli/`](../cli/README.md) before you run it.
+The install downloads a build for your system and checks it against the release's checksum.
+Bridge asks for your password once (`sudo`) because these things need administrator rights:
 
-1. **The NetBird client**, which creates the tunnel and a network interface for it.
-2. **A heartbeat**, a small scheduled job that tells GarageAI every 5 minutes which models your
-   runtime serves. It sends your garage's name, the runtime type, the port and the model names.
-   It does not send prompts, files or anything else. Its settings, including your garage's
-   token, are stored in a file only administrators can read.
+1. **The NetBird client** (command line only, no desktop app), which creates the tunnel and a
+   network interface for it.
+2. **A heartbeat service** (`garageai run`, a systemd timer on Linux or a launchd daemon on
+   macOS) that tells GarageAI every 5 minutes which models your runtime serves and their context
+   windows. It sends your garage's name, the runtime type, the port and the model names. It does
+   not send prompts, files or anything else. Its settings, including your garage's token, are in
+   `/etc/garageai/bridge.json`, readable only by administrators. The program itself is copied to
+   `/usr/local/bin/garageai`, owned by root, so the service never runs a file your user can edit.
+3. **Progress reports.** While connecting, Bridge tells GarageAI which step it is on and, when
+   a step fails, what it found on the machine: operating system, GPU, memory, which inference
+   runtimes answer on which ports and addresses, NetBird and firewall state. Never keys, prompts
+   or command lines. This is what the wizard shows you when something stops.
 
-3. **On Linux, if you agree: a firewall rule for the runtime port.** Your runtime listens on
-   all addresses so the mesh can reach it, which also lets every device on your home network
-   use it (Ollama has no password). The script offers to drop that port on your network card
-   (the interface with the default route), for the machine and for Docker-published ports.
-   The mesh, the machine itself and Docker networks keep their access. A small service
-   re-applies the rule after a reboot; `--uninstall` removes it. The Windows script adds the
-   equivalent rule; on macOS this is not automated yet.
+On Linux your runtime listens on all addresses so the mesh can reach it, which also lets every
+device on your home network use it (Ollama has no password). Bridge warns when `ufw` would block
+the mesh, and prints the rule to allow it. The previous connect script
+([`scripts/garageai-connect.sh`](../scripts/garageai-connect.sh)) could also close the port to
+your local network for you; Bridge does not do that yet, so restrict the port with your firewall
+if you share the network. The Windows script adds a firewall rule that only allows the mesh.
 
-It does not change your router, Docker or other software. The NetBird client does two things
-on the machine itself: it adds firewall rules for its own interface (`wt0`) so that only the
-gateway can reach the runtime port, and it may register a DNS resolver for the mesh's
-`.netbird.selfhosted` names with systemd-resolved. Both are removed by `--uninstall`.
+Bridge does not change your router, Docker or other software. The NetBird client does two
+things on the machine itself: it adds firewall rules for its own interface (`wt0`) so that only
+the gateway can reach the runtime port, and it may register a DNS resolver for the mesh's
+`.netbird.selfhosted` names with systemd-resolved. `garageai uninstall` removes the heartbeat
+and Bridge's settings; `sudo netbird down` leaves the mesh.
 
 ## What GarageAI can and cannot do on your machine
 
@@ -81,8 +89,8 @@ Two things you should know, because they follow from how runtimes work:
   vLLM.
 - **Listening on `0.0.0.0` also opens the runtime to your own home network** (not to the
   internet). On a shared or office network, bind the runtime to your mesh address instead, or
-  restrict the port with your firewall. `--doctor` shows your mesh address. The Windows script
-  adds a firewall rule that only allows the mesh.
+  restrict the port with your firewall. `garageai doctor` shows your mesh address. The Windows
+  script adds a firewall rule that only allows the mesh.
 
 ## Other people's prompts run on your machine
 
@@ -120,8 +128,8 @@ and turn it off again before resuming.
 ## Checking and leaving
 
 ```bash
-bash garageai-connect.sh --doctor      # tunnel, runtime, heartbeat: what works and what to fix
-bash garageai-connect.sh --uninstall   # remove the heartbeat and leave the mesh
+garageai doctor      # tunnel, runtime, heartbeat: what works and what to fix
+garageai uninstall   # remove the heartbeat and Bridge's settings (then: sudo netbird down)
 ```
 
 Stopping your runtime or shutting down the machine also takes your garage off the market
