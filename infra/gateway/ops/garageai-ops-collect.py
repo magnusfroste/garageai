@@ -65,6 +65,7 @@ DEPLOYED = {
     "/usr/local/sbin/garageai-guard": "infra/gateway/guard/garageai-guard.py",
 }
 LOG_ALERT_MB = 400
+STUCK_MINUTES = 30            # an onboarding garage whose last step failed or waits this long is stuck
 OPS_URL = "https://ops.garageai.eu"
 HISTORY_DB = "/var/lib/garageai-ops/history.db"
 SAMPLE_DAYS = 30
@@ -443,6 +444,31 @@ def ops_summary(env, state):
     return value
 
 
+# ---------------------------------------------------------------- onboarding
+def onboarding(d):
+    """Garages created in the portal but not registered yet: their last reported step, the problems
+    from the garage profile, and how long they have been where they are."""
+    steps = {g["garage"]: g.get("onboarding_step") or {} for g in d["garages"] if g.get("onboarding")}
+    listed = {o["garage"]: o for o in ((d.get("business") or {}).get("onboarding") or {}).get("garages", [])}
+    rows = []
+    for name in sorted(set(steps) | set(listed)):
+        st, o = steps.get(name, {}), listed.get(name, {})
+        last = st.get("at") or None
+        since = last or o.get("created_at")
+        minutes = None
+        if since:
+            try:
+                minutes = int((now() - datetime.fromisoformat(str(since).replace("Z", "+00:00"))).total_seconds() // 60)
+            except ValueError:
+                pass
+        mesh = next((g.get("mesh") for g in d["garages"] if g["garage"] == name), None)
+        rows.append({"garage": name, "created_at": o.get("created_at"), "step": st.get("step") or o.get("last_step"),
+                     "status": st.get("status") or o.get("last_status"), "message": st.get("message"),
+                     "problems": st.get("problems") or [], "last_report_at": last, "minutes": minutes, "mesh": mesh,
+                     "stuck": bool(minutes is not None and minutes >= STUCK_MINUTES and (st.get("status") in ("failed", "stopped") or not last))})
+    return rows
+
+
 # ---------------------------------------------------------------- guard
 def guard():
     """Clients blocked by garageai-guard, and how many packets the block has dropped."""
@@ -623,14 +649,20 @@ def alerts(d):
             add("info", f"Extra NetBird policy: {p['name']}", "mesh")
     if d["portal"]["targets_status"] != 200:
         add("critical", f"Portal gateway-targets answered {d['portal']['targets_status']}", "supply")
+    for o in d.get("onboarding", []):
+        if o["stuck"] and o.get("last_report_at"):
+            add("warning", f"{o['garage']} is stuck at {' '.join(str(o['step']).split())}"
+                           + (f" ({', '.join(o['problems'])})" if o["problems"] else "") + f": {o.get('message') or o['status']}", "onboarding")
+        elif o["stuck"] and (o["minutes"] or 0) >= 24 * 60:
+            add("info", f"{o['garage']} was created {o['minutes'] // 1440} d ago and has not reported a step yet", "onboarding")
     for g in d["garages"]:
         if g.get("onboarding"):
             st = g.get("onboarding_step") or {}
             if st.get("status") in ("failed", "stopped"):
-                add("info", f"{g['garage']} is onboarding, stuck at {' '.join(str(st.get('step', '?')).split())}: {st.get('message', '')}", "supply")
+                add("info", f"{g['garage']} is onboarding, stuck at {' '.join(str(st.get('step', '?')).split())}: {st.get('message', '')}", "onboarding")
             else:
                 add("info", f"{g['garage']} is onboarding: " + (f"{' '.join(str(st.get('step')).split())} ({st.get('status')})" if st.get("step")
-                    else f"{'joined the mesh, ' if g['mesh'] else ''}not registered with the portal yet"), "supply")
+                    else f"{'joined the mesh, ' if g['mesh'] else ''}not registered with the portal yet"), "onboarding")
             continue
         if not g["runtime_ok"] or g["mesh"] is False:
             add("critical", f"{g['garage']}: {'tunnel down' if g['mesh'] is False else 'runtime not answering'}"
@@ -1215,6 +1247,7 @@ def main():
         "guard": guard(),
         "business": ops_summary(env, state),
     }
+    data["onboarding"] = onboarding(data)
     data["models"] = models(env, state, targets)
     data["quality_24h"] = {g: q["last_24h"] for g, q in (state.get("quality") or {}).items() if q.get("last_24h")}
     data["versions"] = versions(env, state, data["containers"])

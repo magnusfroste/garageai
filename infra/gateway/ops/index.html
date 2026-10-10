@@ -209,6 +209,7 @@
   <symbol id="i-models" viewBox="0 0 24 24"><path d="M12 3 3 7.5 12 12l9-4.5z"/><path d="m3 12 9 4.5 9-4.5M3 16.5 12 21l9-4.5"/></symbol>
   <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></symbol>
   <symbol id="i-business" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+  <symbol id="i-onboarding" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16"/></symbol>
   <symbol id="i-events" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
 </svg>
@@ -267,6 +268,12 @@
         <div class="card"><h2>Uptime per hour, last 7 days</h2><div id="ch-uptime"></div></div>
         <div class="card"><h2>Requests running on vLLM garages</h2><div class="sub">Average per 15 minutes, last 7 days.</div><div class="chart" id="ch-gload"></div></div>
         <div class="card"><h2>Supply events, last 30 days</h2><div id="supply-events"></div></div>
+      </section>
+
+      <section class="page" data-page="onboarding">
+        <div id="alerts-onboarding"></div>
+        <div class="card"><h2>Garages onboarding</h2><div class="sub">Created in the portal, not registered yet. Steps and problems come from the connect script's reports and its garage profile.</div><div id="onb"></div>
+          <div class="note">A garage is stuck when its last step failed or waits for the operator for 30 minutes. Fixes and the full machine profile are on the garage's page in the portal admin.</div></div>
       </section>
 
       <section class="page" data-page="business">
@@ -368,6 +375,7 @@ const PAGES = [
   { id: "events", title: "Events", icon: "events", sub: "Timeline: alerts, deploys, restarts, merges and notes" },
   { group: "Platform" },
   { id: "supply", title: "Supply", icon: "supply", sub: "Garages and providers: tunnel, runtime, uptime, load" },
+  { id: "onboarding", title: "Onboarding", icon: "onboarding", sub: "Garages on their way in: last step, what is wrong on the machine, and how long they have waited" },
   { id: "business", title: "Business", icon: "business", sub: "Buyers, credits, Stripe, what each operator earns, onboarding and admin activity (from the portal, no personal data)" },
   { id: "chat", title: "Chat", icon: "chat", sub: "Talk to a model or one garage directly: check a newly loaded model, its speed and behaviour" },
   { id: "models", title: "Models", icon: "models", sub: "What buyers can call: public names, garages, prices, context windows, checked against the runtimes" },
@@ -513,7 +521,16 @@ function renderDashboard(d) {
 /* ---------- pages */
 function renderPages(d) {
   renderBusiness(d.business);
-  ["business", "supply", "models", "traffic", "mesh", "server", "updates", "logs"].forEach(p => pageAlerts(p, d.alerts));
+  const dur = m => m == null ? "—" : m < 90 ? `${m} min` : m < 2880 ? `${Math.round(m / 60)} h` : `${Math.round(m / 1440)} d`;
+  $("onb").innerHTML = table([
+    ["Garage", o => `${dot(o.stuck ? "warning" : "info")}<b>${esc(o.garage)}</b>`],
+    ["Created", o => o.created_at ? ago(o.created_at) : "—"],
+    ["Mesh", o => o.mesh ? '<span class="ok">joined</span>' : o.mesh === false ? '<span class="small">not yet</span>' : "—"],
+    ["Last step", o => o.step ? `${esc(o.step)}<div class="small">${esc(o.status || "")}${o.message ? ": " + esc(o.message) : ""}</div>` : '<span class="small">no report yet (older connect script, or not run)</span>'],
+    ["Problems", o => o.problems?.length ? o.problems.map(c => pill("warning", esc(c))).join(" ") : "—"],
+    ["Waiting", o => `${dur(o.minutes)}${o.stuck ? " " + pill("warning", "stuck") : ""}`, "num"],
+  ], d.onboarding || []);
+  ["onboarding", "business", "supply", "models", "traffic", "mesh", "server", "updates", "logs"].forEach(p => pageAlerts(p, d.alerts));
 
   const md = d.models || {}, deps = md.deployments || [];
   $("models-sub").textContent = md.error ? md.error : `${md.public_models} public names, ${deps.length} deployments${md.probes ? `, ${md.probes} probes not shown` : ""}`;
