@@ -122,3 +122,34 @@ func TestFlagsNeverHoldTheKey(t *testing.T) {
 		t.Errorf("flags read as %+v", f)
 	}
 }
+
+func TestMacProblems(t *testing.T) {
+	base := Profile{NetBird: NetBird{Installed: true, Connected: true}, GPUs: []GPU{{Name: "Apple M2"}},
+		Runtimes: []Runtime{{Kind: "ollama", Port: 11434, Network: true, Binds: []string{"*"}}}}
+	codes := func(p Profile) map[string]bool {
+		c := map[string]bool{}
+		for _, pr := range problems(p) {
+			c[pr.Code] = true
+		}
+		return c
+	}
+	p := base
+	p.darwin, p.sleepMinutes = true, 10
+	if c := codes(p); !c["ollama_host_not_persistent"] || !c["mac_sleeps"] {
+		t.Errorf("a Mac with Ollama, no LaunchAgent and sleep after 10 min: %v", c)
+	}
+	p.ollamaHostPersistent, p.sleepMinutes = true, 0
+	if c := codes(p); c["ollama_host_not_persistent"] || c["mac_sleeps"] {
+		t.Errorf("a well set-up Mac still has Mac problems: %v", c)
+	}
+	p = base
+	p.heartbeatLast = `curl: (22) The requested URL returned error: 401`
+	if c := codes(p); !c["heartbeat_rejected"] {
+		t.Errorf("a 401 from the heartbeat is not reported: %v", c)
+	}
+	p = base // Linux: Mac rules never apply
+	p.sleepMinutes = 10
+	if c := codes(p); c["mac_sleeps"] || c["ollama_host_not_persistent"] {
+		t.Errorf("Mac problems on Linux: %v", c)
+	}
+}

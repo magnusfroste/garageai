@@ -20,6 +20,12 @@ type Profile struct {
 	GarageAI      GarageAI  `json:"garageai"`
 	Problems      []Problem `json:"problems"`
 	OK            bool      `json:"ok"`
+
+	// Inputs to the problem rules that are not part of the profile itself.
+	darwin               bool
+	heartbeatLast        string
+	ollamaHostPersistent bool
+	sleepMinutes         int
 }
 
 type Machine struct {
