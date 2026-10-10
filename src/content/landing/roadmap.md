@@ -16,6 +16,7 @@ phases:
       - "Portal with accounts, API keys, prepaid credits and chat"
       - "Self-service operator onboarding, in beta (macOS and Linux; Ollama, LM Studio, llama.cpp, vLLM, SGLang, Paddock)"
       - "Automated acceptance tests for every model"
+      - "Garages report their models and context windows automatically, every 5 minutes"
       - "Pool and specific-garage routing"
     color: "var(--color-primary)"
   - flag: "🛠️"
@@ -27,7 +28,7 @@ phases:
     items:
       - "Operator earnings dashboard and wallet"
       - "Payouts to operators"
-      - "Automatic model detection (the garage reports model changes itself)"
+      - "GarageAI Bridge: one program that connects your garage, keeps it running and pauses it when you need the GPU yourself (experimental today)"
       - "Per-garage capacity limits"
       - "Windows in the onboarding wizard (the connect script is in beta)"
       - "Verified garages and data-processing agreements"
@@ -40,6 +41,8 @@ phases:
     badgeColor: "var(--color-warning)"
     status: "upcoming"
     items:
+      - "A control panel in Bridge: see what your GPU can earn and go live with one click"
+      - "Sell when your machine is idle, or when electricity is cheap"
       - "Garages powered by solar, home batteries and EV batteries"
       - "Larger regional clusters"
       - "Many more garages across Europe"

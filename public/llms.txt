@@ -11,6 +11,7 @@
 - **Operator earnings:** Operators set their own price and earn it for every token their garage serves, also for pool requests. No platform fee during launch (a fee will come later). Wallet and payouts are being built.
 - **Technology (open source):** Self-hosted NetBird (WireGuard mesh) — no inbound ports, garages cannot reach each other, only the gateway reaches a runtime. LiteLLM gateway (OpenAI-compatible API, routing, failover, usage metering) on an EU VPS (Hetzner, Helsinki). The gateway does not reveal to buyers which garage served a request, and it automatically blocks clients that guess API keys or probe it.
 - **Privacy, honestly:** Traffic is encrypted in transit over the mesh, but prompts are processed on the operator's machine. Verified garages and data-processing agreements are planned before selling to buyers with sensitive data.
+- **GarageAI Bridge (experimental):** one binary, `garageai`, for Linux, macOS and Windows that will replace the connect script. Today it runs `garageai doctor` (what runs on the machine, what is wrong and how to fix it; never prompts, keys or command lines). Planned: connect, keep the garage running, pause it when the owner needs the GPU, and a local control panel. Roadmap: https://github.com/magnusfroste/garageai/blob/main/docs/bridge.md
 - **Status:** Launched in 2026 after a private beta in spring 2026. Live, with the first garages serving open models.
 - **License:** Open source, MIT.
 
