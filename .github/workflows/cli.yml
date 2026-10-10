@@ -1,0 +1,61 @@
+name: CLI (Go)
+
+on:
+  pull_request:
+    paths: ['cli/**', 'scripts/garageai-connect.sh', 'scripts/tests/**', '.github/workflows/cli.yml']
+  push:
+    branches: [main]
+    paths: ['cli/**', 'scripts/garageai-connect.sh', 'scripts/tests/**', '.github/workflows/cli.yml']
+
+jobs:
+  test:
+    # Unit tests on the three operating systems operators use; on Linux and macOS also parity
+    # with garageai-connect.sh --doctor --json against a fake runtime.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: cli/go.mod
+      - run: go vet ./...
+      - run: go test ./...
+      - name: doctor runs on this OS
+        shell: bash
+        run: |
+          go build -o garageai .
+          ./garageai doctor --json | tee profile.json | head -c 400; echo
+          python3 -c "import json; p=json.load(open('profile.json')); assert p['schema']==1 and isinstance(p['problems'], list)"
+      - name: parity with garageai-connect.sh
+        if: runner.os != 'Windows'
+        shell: bash
+        run: /bin/bash ../scripts/tests/parity-doctor.sh "$PWD/garageai"
+
+  build:
+    # One codebase, six binaries. Uploaded as an artifact for trying; no release yet.
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: cli/go.mod
+      - name: cross-compile
+        working-directory: cli
+        run: |
+          mkdir -p dist
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
+            os=${target%/*}; arch=${target#*/}; ext=""; [ "$os" = windows ] && ext=.exe
+            GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${GITHUB_SHA::7}" -o "dist/garageai-$os-$arch$ext" .
+          done
+          (cd dist && sha256sum * > SHA256SUMS && ls -la)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: garageai-binaries
+          path: cli/dist/
