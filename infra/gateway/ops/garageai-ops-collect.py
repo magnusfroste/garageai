@@ -313,6 +313,12 @@ def provider_checks(target):
 
 def garages(env, state, targets):
     health = read_json(HEALTH_LAST, {})
+    if not health.get("results"):
+        # Unreadable or empty (should not happen now that it is written atomically): use the last good
+        # read rather than reporting every garage as down for a minute.
+        health = state.get("last_health") or {}
+    else:
+        state["last_health"] = health
     by_name = {r.get("garage"): r for r in health.get("results", [])}
     hist = state.setdefault("history", {})
     minute = int(time.time() // 60)

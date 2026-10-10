@@ -81,8 +81,10 @@ def check_runtime(host, port, key, url=None):
         _, data = http("GET", f"{url.rstrip('/')}/models" if url else f"http://{host}:{port}/v1/models", headers)
         return True, None, sorted(m["id"] for m in data.get("data", []))
     except urllib.error.HTTPError as e:
-        # The runtime answered: it is up, but we cannot list models (e.g. wrong key).
-        return True, f"http_{e.code}", None
+        # 401/403: the runtime answered but rejects the key, so it is up (the key is the problem).
+        # Anything else is not the runtime answering: 5xx, and Cloudflare's 52x/530 when a provider's
+        # origin is unreachable, mean it is down. Treating those as "up" hid an outage of autoversio.
+        return e.code in (401, 403), f"http_{e.code}", None
     except Exception as e:  # noqa: BLE001
         reason = getattr(e, "reason", e)
         return False, type(reason).__name__ if not isinstance(reason, str) else reason, None
@@ -114,8 +116,11 @@ def main():
                         "runtime_ok": runtime_ok, "runtime_error": err, "models": models})
 
     os.makedirs(STATE_DIR, exist_ok=True)
-    with open(f"{STATE_DIR}/last.json", "w") as f:
+    # Write atomically: the Operations Center reads this file every minute and must never see it half written.
+    tmp = f"{STATE_DIR}/.last.json.tmp"
+    with open(tmp, "w") as f:
         json.dump({"checked_at": now, "source": source, "results": results}, f, indent=2)
+    os.replace(tmp, f"{STATE_DIR}/last.json")
 
     if source == "portal":
         try:
