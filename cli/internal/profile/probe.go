@@ -29,6 +29,13 @@ func probe(port int, binds []string, owner Listener) *Runtime {
 		if json.Unmarshal(body, &list) != nil || list.Data == nil {
 			return nil
 		}
+	} else {
+		// An OpenAI-compatible server rejects a missing key with a JSON error. A 401/403 without
+		// one is something else: macOS's AirPlay receiver answers 403 on port 5000 to everything.
+		var e map[string]any
+		if json.Unmarshal(body, &e) != nil {
+			return nil
+		}
 	}
 	rt := &Runtime{Port: port, Binds: binds, Models: []Model{}, Process: strp(owner.Process)}
 	rt.API = "openai"

@@ -153,3 +153,24 @@ func TestMacProblems(t *testing.T) {
 		t.Errorf("Mac problems on Linux: %v", c)
 	}
 }
+
+func TestAirPlayIsNotARuntime(t *testing.T) {
+	airplay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Server", "AirTunes/870.14.1")
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer airplay.Close()
+	port, _ := strconv.Atoi(airplay.URL[strings.LastIndex(airplay.URL, ":")+1:])
+	if rt := probe(port, []string{"*"}, Listener{Process: "ControlCenter"}); rt != nil {
+		t.Errorf("AirPlay's empty 403 was taken for a runtime: %+v", rt)
+	}
+	keyed := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte(`{"error":{"message":"invalid api key"}}`))
+	}))
+	defer keyed.Close()
+	port, _ = strconv.Atoi(keyed.URL[strings.LastIndex(keyed.URL, ":")+1:])
+	if rt := probe(port, []string{"*"}, Listener{}); rt == nil || rt.API != "openai (needs API key)" {
+		t.Errorf("a runtime that wants a key was not found: %+v", rt)
+	}
+}

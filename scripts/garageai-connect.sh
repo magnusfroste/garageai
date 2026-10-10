@@ -742,6 +742,9 @@ runtime_json() { # port, addresses (one per line), pid, process -> one runtime o
   code="$(printf '%s' "$body" | tail -n 1)"; body="$(printf '%s' "$body" | sed '$d')"
   case "$code" in 200|401|403) ;; *) return 0 ;; esac
   if [ "$code" = 200 ] && ! printf '%s' "$body" | jq -e '.data | type == "array"' >/dev/null 2>&1; then return 0; fi
+  # An OpenAI-compatible server rejects a missing key with a JSON error. A 401/403 without one is
+  # something else: macOS's AirPlay receiver answers 403 on port 5000 to everything.
+  if [ "$code" != 200 ] && ! printf '%s' "$body" | jq -e 'type == "object"' >/dev/null 2>&1; then return 0; fi
   models="$(printf '%s' "$body" | jq -c '[.data[]? | {id, context: (.max_model_len // .context_length // .context_window // .meta.n_ctx_train // null), owned_by: (.owned_by // null)}]' 2>/dev/null || echo '[]')"
   [ -n "$models" ] || models='[]'
   ver="$(curl -fsS --max-time 2 "http://${host}:${port}/api/version" 2>/dev/null | jq -r '.version // empty' 2>/dev/null || true)"
