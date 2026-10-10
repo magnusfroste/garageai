@@ -1,12 +1,15 @@
-# garageai (Go) — experimental
+# GarageAI Bridge (`garageai`) — experimental
 
-A single binary for garage operators, built next to `scripts/garageai-connect.sh` to see whether it
-works better before anything is decided. Today it does one thing: the garage profile.
+**Bridge** is the bridge between an operator's GPU and the GarageAI network, in both directions:
+the garage sells to the network, and later the operator uses the network from the garage. It is one
+binary, `garageai`, built next to `scripts/garageai-connect.sh`. The two are compared before
+anything is decided. The vision and the phases are in [docs/bridge.md](../docs/bridge.md).
+
+Today it does one thing: the garage profile.
 
 ```sh
 garageai doctor           # what runs on this machine, what is wrong, and how to fix it
-garageai doctor --json    # the same as the garage profile (schema 1), identical to
-                          # garageai-connect.sh --doctor --json
+garageai doctor --json    # the garage profile (schema 1), identical to garageai-connect.sh --doctor --json
 garageai version
 ```
 
@@ -14,7 +17,7 @@ garageai version
 - **Linux:** reads `/proc` directly, no `ss` or `lsof` needed.
 - **macOS:** uses `lsof`.
 - **Windows:** uses `netstat` and `tasklist`.
-- Probes candidate ports in parallel, so it is faster than the script.
+- Probes candidate ports in parallel: 0.24 s against 0.7 s for the script.
 - Never reports keys or whole command lines. Only selected vLLM/SGLang flags, and whether an API key is set.
 
 ## Build and test
@@ -26,11 +29,8 @@ go build -o garageai .
 ../scripts/tests/parity-doctor.sh "$PWD/garageai"   # same profile as the script?
 ```
 
-CI builds six binaries (`garageai-{linux,darwin,windows}-{amd64,arm64}`) with SHA256SUMS as the
-artifact `garageai-binaries`. Installing via `curl` like norrivaagent needs no signing: curl sets no
-quarantine flag on macOS.
+CI ("Bridge (Go)") tests on Linux, macOS and Windows, and runs the comparison with the script on
+Linux and macOS. It builds six binaries (`garageai-{linux,darwin,windows}-{amd64,arm64}`) with
+SHA256SUMS as the artifact `garageai-bridge-binaries`.
 
-Next, if the comparison holds:
-- `connect`, with the same onboarding reports and profile,
-- `run` as the heartbeat service,
-- a release flow with an install script.
+Installing via `curl` like norrivaagent needs no signing: curl sets no quarantine flag on macOS.

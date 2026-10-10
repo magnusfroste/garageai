@@ -17,7 +17,7 @@ var runtimeProc = regexp.MustCompile(`(?i)ollama|vllm|sglang|llama|lms|lm studio
 
 // Build discovers this machine and returns its garage profile.
 func Build(version string) Profile {
-	p := Profile{Schema: 1, ScriptVersion: version, Tool: "garageai-go", GeneratedAt: time.Now().UTC().Format(time.RFC3339)}
+	p := Profile{Schema: 1, ScriptVersion: version, Tool: "garageai-bridge", GeneratedAt: time.Now().UTC().Format(time.RFC3339)}
 	var wg sync.WaitGroup
 	var hb Heartbeat
 	var cfg GarageAI
