@@ -663,7 +663,10 @@ def alerts(d):
             add("info", f"Update available: {v['component']} {v['running']} -> {v['latest']}", "updates")
     for f in d.get("source", {}).get("files", []):
         if f["status"] in ("differs from main", "missing"):
-            add("warning", f"{f['deployed']} {f['status']} ({f['source']})", "updates")
+            # The Operations Center's own files differ from main between a deploy and its merge; that
+            # only affects what this page shows, so it is info (no Telegram). Everything else is a warning.
+            own = f["source"].startswith("infra/gateway/ops/")
+            add("info" if own else "warning", f"{f['deployed']} {f['status']} ({f['source']})", "updates")
     for l in d.get("logs", {}).get("containers", []):
         if l["log_mb"] > LOG_ALERT_MB:
             add("warning", f"Container log for {l['container']} is {l['log_mb']} MB", "logs")
