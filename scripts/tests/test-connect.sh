@@ -101,4 +101,29 @@ check "heartbeat still sends the models" '"models":["qwen3:4b","nomic-embed-text
 stop_runtime
 rm -rf "$HB_DIR"
 
+# doctor --json: the garage profile finds a runtime on an unknown port, by itself.
+start_runtime_args() { # like start_runtime, with extra arguments on the command line
+  python3 tests/fake_runtime.py "$1" "$PORT" "${@:2}" 2>/tmp/fake_runtime.err & RT=$!
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    curl -fsS --max-time 1 "http://127.0.0.1:$PORT/v1/models" >/dev/null 2>&1 && return 0
+    sleep 0.5
+  done
+  echo "  FAIL  fake runtime did not start"; fails=$((fails + 1))
+}
+start_runtime_args 127.0.0.1 --api-key sk-should-never-show
+out="$(bash "$SCRIPT" --doctor --json 2>/dev/null)"
+check "doctor --json: valid JSON, schema 1" "1" "$(printf '%s' "$out" | jq -r '.schema' 2>&1)"
+check "doctor --json: finds the runtime on an unknown port" "true" "$(printf '%s' "$out" | jq --argjson p "$PORT" '[.runtimes[] | select(.port == $p)] | length == 1' 2>&1)"
+check "doctor --json: lists its models with context windows" '{"id":"qwen3:4b","context":32768}' \
+  "$(printf '%s' "$out" | jq -c --argjson p "$PORT" '.runtimes[] | select(.port == $p) | .models[0] | {id, context}' 2>&1)"
+check "doctor --json: localhost-only is an error with a fix" "localhost_only" "$(printf '%s' "$out" | jq -r --argjson p "$PORT" '.problems[] | select(.message | contains("port \($p)")) | .code' 2>&1)"
+check "doctor --json: exit code says not ok" "false" "$(printf '%s' "$out" | jq -r '.ok')"
+check "doctor --json: never reports a key from the command line" "clean" "$(printf '%s' "$out" | grep -q 'sk-should-never-show' && echo LEAK || echo clean)"
+stop_runtime
+start_runtime 0.0.0.0
+out="$(bash "$SCRIPT" --doctor --json 2>/dev/null)"
+check "doctor --json: a network bind is fine" "true" "$(printf '%s' "$out" | jq --argjson p "$PORT" '.runtimes[] | select(.port == $p) | .network' 2>&1)"
+check "doctor --json: no localhost problem then" "none" "$(printf '%s' "$out" | jq -r --argjson p "$PORT" '[.problems[] | select(.code == "localhost_only" and (.message | contains("port \($p)")))] | if length == 0 then "none" else "found" end' 2>&1)"
+stop_runtime
+
 [ "$fails" -eq 0 ] && echo "all tests passed" || { echo "$fails test(s) failed"; exit 1; }

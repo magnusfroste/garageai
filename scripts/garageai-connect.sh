@@ -24,6 +24,10 @@
 #       [--name NODE_NAME] [--runtime-api-key KEY] [--register-url URL --register-token TOKEN] \
 #       [--models MODEL[,MODEL...]] [--skip-install] [--no-heartbeat] [--yes]
 #   ./garageai-connect.sh --doctor       check this garage and say exactly what to fix
+#   ./garageai-connect.sh --doctor --json   the same as a machine-readable garage profile: every
+#                                          runtime found on this machine, how it listens, its models
+#                                          and context windows, GPU, NetBird, firewall, heartbeat,
+#                                          and the problems with their fixes. Never keys or prompts.
 #   ./garageai-connect.sh --uninstall    remove the heartbeat, the Ollama login item, the firewall rule and leave the mesh
 #   ./garageai-connect.sh --remove-heartbeat
 #
@@ -63,6 +67,7 @@ SKIP_INSTALL=0
 HEARTBEAT=1
 REMOVE_HEARTBEAT=0
 DOCTOR=0
+DOCTOR_JSON=0
 UNINSTALL=0
 RUNTIME_GIVEN=0
 [ -n "${GARAGEAI_RUNTIME:-}" ] && RUNTIME_GIVEN=1
@@ -94,6 +99,7 @@ while [ $# -gt 0 ]; do
     --no-heartbeat)   HEARTBEAT=0; shift ;;
     --remove-heartbeat) REMOVE_HEARTBEAT=1; shift ;;
     --doctor)         DOCTOR=1; shift ;;
+    --json)           DOCTOR_JSON=1; shift ;;
     --uninstall)      UNINSTALL=1; shift ;;
     --yes|-y)         ASSUME_YES=1; shift ;;
     -h|--help)        usage 0 ;;
@@ -654,6 +660,187 @@ run_doctor() {
   return 1
 }
 
+# ---------------------------------------------------------------- doctor --json: the garage profile
+# Discovery is deterministic (no AI): it looks at what listens on this machine, asks each candidate
+# port whether it is an OpenAI-compatible runtime, and reads a few start flags. It works without
+# --runtime/--port, so it also finds a runtime on an unexpected port. Bash 3.2 compatible (macOS).
+KNOWN_PORTS="11434 1234 8080 8000 30000 11540 8888 13305 5000 5001 8001"
+RUNTIME_PROC='ollama|vllm|sglang|llama|lms|lm studio|lmstudio|lemonade|mlx|unsloth|paddock|python|uvicorn|docker-proxy|koboldcpp|tabby|text-generation|tgi|aphrodite|exllama'
+
+listeners() { # "port<TAB>address<TAB>pid<TAB>process" per listening TCP socket
+  if command -v ss >/dev/null 2>&1; then
+    ss -ltnpH 2>/dev/null | awk '{
+      addr=$4; port=addr; sub(/.*:/, "", port); sub(/:[0-9]+$/, "", addr); gsub(/[\[\]]/, "", addr); sub(/%.*/, "", addr)
+      pid=""; proc=""
+      if (match($0, /users:\(\("[^"]*",pid=[0-9]+/)) { u=substr($0, RSTART, RLENGTH); proc=u; sub(/users:\(\("/, "", proc); sub(/".*/, "", proc); pid=u; sub(/.*pid=/, "", pid) }
+      print port "\t" addr "\t" pid "\t" proc }' || true
+  elif command -v lsof >/dev/null 2>&1; then
+    lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | awk 'NR > 1 { n=$9; port=n; sub(/.*:/, "", port); addr=n; sub(/:[0-9]+$/, "", addr); gsub(/[\[\]]/, "", addr); print port "\t" addr "\t" $2 "\t" $1 }' || true
+  fi
+}
+
+proc_cmdline() { # the command line of pid $1, one argument per line
+  if [ -r "/proc/$1/cmdline" ]; then tr '\0' '\n' < "/proc/$1/cmdline" 2>/dev/null || true
+  else ps -o command= -p "$1" 2>/dev/null | tr ' ' '\n' || true; fi
+}
+
+flag_value() { # value of --flag in a one-per-line command line ($1 = lines, $2 = flag)
+  printf '%s\n' "$1" | awk -v f="$2" '$0 == f { getline; print; exit } index($0, f "=") == 1 { print substr($0, length(f) + 2); exit }'
+}
+
+gpus_json() {
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader,nounits 2>/dev/null |
+      jq -Rsc '[split("\n")[] | select(length > 0) | split(", ") | {vendor: "nvidia", name: .[0], memory_mb: (.[1] | tonumber? // null), driver: .[2]}]' 2>/dev/null || echo '[]'
+  elif [ "$(uname -s)" = Darwin ]; then
+    jq -nc --arg chip "$(sysctl -n machdep.cpu.brand_string 2>/dev/null || true)" \
+      --argjson mem "$(( $(sysctl -n hw.memsize 2>/dev/null || echo 0) / 1048576 ))" \
+      '[{vendor: "apple", name: $chip, memory_mb: $mem, unified_memory: true}]'
+  elif command -v rocm-smi >/dev/null 2>&1; then
+    rocm-smi --showproductname 2>/dev/null | awk -F': ' '/Card series|Card Series/ {print $2}' | jq -Rsc '[split("\n")[] | select(length > 0) | {vendor: "amd", name: .}]' 2>/dev/null || echo '[]'
+  else
+    echo '[]'
+  fi
+}
+
+firewall_json() {
+  local tool=none active=false rule=false
+  if [ "$(uname -s)" = Darwin ]; then
+    tool=macos-application-firewall
+    /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate 2>/dev/null | grep -qi enabled && active=true
+  elif command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q '^Status: active'; then tool=ufw; active=true
+  elif command -v nft >/dev/null 2>&1 || command -v iptables >/dev/null 2>&1; then tool=iptables
+  fi
+  [ -e /etc/systemd/system/garageai-firewall.service ] && rule=true
+  jq -nc --arg tool "$tool" --argjson active "$active" --argjson rule "$rule" '{tool: $tool, active: $active, garageai_rule_installed: $rule}'
+}
+
+runtime_json() { # port, addresses (one per line), pid, process -> one runtime object, or nothing
+  local port="$1" addrs="$2" pid="$3" proc="$4" code body kind models ollama_ps="null" ver cmd hints='{}' host
+  host=127.0.0.1
+  printf '%s\n' "$addrs" | grep -qxE '127\.0\.0\.1|0\.0\.0\.0|\*|::|::1' || host="$(printf '%s\n' "$addrs" | head -n 1)"
+  body="$(curl -s --max-time 3 -w '\n%{http_code}' "http://${host}:${port}/v1/models" 2>/dev/null || true)"
+  code="$(printf '%s' "$body" | tail -n 1)"; body="$(printf '%s' "$body" | sed '$d')"
+  case "$code" in 200|401|403) ;; *) return 0 ;; esac
+  if [ "$code" = 200 ] && ! printf '%s' "$body" | jq -e '.data | type == "array"' >/dev/null 2>&1; then return 0; fi
+  models="$(printf '%s' "$body" | jq -c '[.data[]? | {id, context: (.max_model_len // .context_length // .context_window // .meta.n_ctx_train // null), owned_by: (.owned_by // null)}]' 2>/dev/null || echo '[]')"
+  [ -n "$models" ] || models='[]'
+  ver="$(curl -fsS --max-time 2 "http://${host}:${port}/api/version" 2>/dev/null | jq -r '.version // empty' 2>/dev/null || true)"
+  kind=other
+  if [ -n "$ver" ]; then kind=ollama
+    ollama_ps="$(curl -fsS --max-time 2 "http://${host}:${port}/api/ps" 2>/dev/null | jq -c '[.models[]? | {name, context: .context_length}]' 2>/dev/null || echo null)"
+  else
+    case "$(printf '%s' "$models" | jq -r '.[0].owned_by // ""' 2>/dev/null) $(printf '%s' "$proc" | tr 'A-Z' 'a-z')" in
+      vllm*|*vllm*) kind=vllm ;; sglang*|*sglang*) kind=sglang ;; llamacpp*|*llama*) kind=llamacpp ;;
+      *lms*|*"lm studio"*) kind=lmstudio ;; *lemonade*) kind=lemonade ;; *mlx*) kind=mlx ;; *unsloth*) kind=unsloth ;; *paddock*) kind=paddock ;;
+    esac
+  fi
+  if [ -n "$pid" ]; then
+    cmd="$(proc_cmdline "$pid")"
+    case "$kind $cmd" in *vllm*|*sglang*)
+      # Only these flags; the command line can hold an API key, which is never reported.
+      hints="$(jq -nc --arg host "$(flag_value "$cmd" --host)" --arg port "$(flag_value "$cmd" --port)" \
+        --arg mml "$(flag_value "$cmd" --max-model-len)" --arg ctx "$(flag_value "$cmd" --context-length)" \
+        --argjson key "$(printf '%s\n' "$cmd" | grep -qE '^--api-key' && echo true || echo false)" \
+        --argjson details "$(printf '%s\n' "$cmd" | grep -qx -- '--enable-prompt-tokens-details' && echo true || echo false)" \
+        'def nz: if . == "" then null else . end; {host: ($host | nz), port: ($port | nz | tonumber? // null), max_model_len: ($mml | nz | tonumber? // null),
+          context_length: ($ctx | nz | tonumber? // null), api_key_set: $key, prompt_tokens_details: $details}')" ;;
+    esac
+    case "$kind" in other) kind="$(printf '%s' "$proc" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9\n' '-')" ;; esac
+  fi
+  jq -nc --argjson port "$port" --arg kind "$kind" --arg proc "$proc" --argjson code "$code" --argjson models "$models" \
+    --argjson binds "$(printf '%s\n' "$addrs" | jq -Rsc 'split("\n") | map(select(length > 0))')" --argjson ps "$ollama_ps" \
+    --arg ver "$ver" --argjson hints "$hints" \
+    'def nz: if . == "" then null else . end; {port: $port, kind: $kind, process: ($proc | nz), api: (if $code == 200 then "openai" else "openai (needs API key)" end),
+      binds: $binds, network: ($binds | any(. == "0.0.0.0" or . == "*" or . == "::" or startswith("100."))),
+      models: $models, version: ($ver | nz), ollama_loaded: $ps, flags: $hints}'
+}
+
+doctor_json() {
+  local lines ports port addrs pid proc runtimes='[]' r mesh nb_version nb_connected=false hb_installed=false hb_active=false conf_rt="" conf_port=""
+  command -v jq >/dev/null 2>&1 || { echo '{"error": "jq is required (macOS: brew install jq; Linux: sudo apt install jq)"}'; return 1; }
+  lines="$(listeners)"
+  ports="$( { for p in $KNOWN_PORTS; do echo "$p"; done
+             printf '%s\n' "$lines" | awk -F'\t' -v re="$RUNTIME_PROC" 'tolower($4) ~ re {print $1}'; } | sort -un)"
+  for port in $ports; do
+    addrs="$(printf '%s\n' "$lines" | awk -F'\t' -v p="$port" '$1 == p {print $2}' | sort -u)"
+    [ -n "$addrs" ] || continue
+    pid="$(printf '%s\n' "$lines" | awk -F'\t' -v p="$port" '$1 == p && $3 != "" {print $3; exit}')"
+    proc="$(printf '%s\n' "$lines" | awk -F'\t' -v p="$port" '$1 == p && $4 != "" {print $4; exit}')"
+    r="$(runtime_json "$port" "$addrs" "$pid" "$proc")"
+    [ -n "$r" ] && runtimes="$(jq -c --argjson r "$r" '. + [$r]' <<<"$runtimes")"
+  done
+  mesh="$(mesh_ip 2>/dev/null || true)"
+  if command -v netbird >/dev/null 2>&1; then
+    nb_version="$(netbird version 2>/dev/null | head -n 1 || true)"
+    netbird status 2>/dev/null | grep -q '^Management: Connected' && nb_connected=true
+  fi
+  [ -e "$HEARTBEAT_BIN" ] && hb_installed=true
+  case "$(uname -s)" in
+    Darwin) launchctl print system/eu.garageai.heartbeat >/dev/null 2>&1 && hb_active=true ;;
+    *) systemctl is-active --quiet garageai-heartbeat.timer 2>/dev/null && hb_active=true ;;
+  esac
+  if [ -r "$HEARTBEAT_CONF" ]; then
+    conf_rt="$(sed -n "s/^GARAGEAI_RUNTIME=//p" "$HEARTBEAT_CONF" | tr -d "'\"" | head -n 1)"
+    conf_port="$(sed -n "s/^GARAGEAI_PORT=//p" "$HEARTBEAT_CONF" | tr -d "'\"" | head -n 1)"
+  fi
+  [ -n "${FACT_ARCH:-}" ] || machine_facts || true
+  jq -n --arg v "$SCRIPT_VERSION" --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg os "$FACT_OS" --arg arch "$FACT_ARCH" --arg mem "$FACT_MEM" --argjson gpus "$(gpus_json)" \
+    --argjson runtimes "$runtimes" --argjson fw "$(firewall_json)" \
+    --argjson nb_installed "$(command -v netbird >/dev/null 2>&1 && echo true || echo false)" --arg nb_version "${nb_version:-}" \
+    --argjson nb_connected "$nb_connected" --arg mesh "$mesh" \
+    --argjson hb_installed "$hb_installed" --argjson hb_active "$hb_active" --arg conf_rt "$conf_rt" --arg conf_port "$conf_port" \
+    --argjson ctx_target "$(ollama_context_target)" '
+    def nz: if . == "" then null else . end;
+    def problem($sev; $code; $msg; $fix): {severity: $sev, code: $code, message: $msg, fix: $fix};
+    ($runtimes | map(select(.api == "openai" or .api == "openai (needs API key)"))) as $rt |
+    {
+      schema: 1, script_version: $v, generated_at: $now,
+      machine: {os: $os, arch: $arch, memory_gb: ($mem | tonumber? // null)},
+      gpus: $gpus,
+      netbird: {installed: $nb_installed, version: ($nb_version | nz), connected: $nb_connected, mesh_ip: ($mesh | nz)},
+      runtimes: $runtimes,
+      firewall: $fw,
+      heartbeat: {installed: $hb_installed, active: $hb_active},
+      garageai: {configured_runtime: ($conf_rt | nz), configured_port: ($conf_port | tonumber? // null)},
+      problems: (
+        (if ($rt | length) == 0 then [problem("error"; "no_runtime"; "No OpenAI-compatible runtime answers on this machine";
+           "Start your runtime (Ollama, LM Studio, vLLM, llama.cpp, ...) and run this again")] else [] end)
+        + [ $rt[] | select(.network | not) | problem("error"; "localhost_only"; "\(.kind) on port \(.port) only listens on \(.binds | join(", ")), so the gateway cannot reach it";
+             (if .kind == "ollama" then "Set OLLAMA_HOST=0.0.0.0:\(.port) and restart Ollama"
+              elif .kind == "lmstudio" then "LM Studio: Developer → Settings → Serve on Local Network"
+              elif .kind == "vllm" or .kind == "sglang" then "Restart it with --host 0.0.0.0"
+              elif .kind == "llamacpp" then "Restart llama-server with --host 0.0.0.0"
+              else "Restart it bound to 0.0.0.0" end)) ]
+        + [ $rt[] | select(.api == "openai (needs API key)") | problem("info"; "needs_api_key"; "\(.kind) on port \(.port) requires an API key";
+             "Pass the same key with --runtime-api-key when you connect") ]
+        + [ $rt[] | select(.kind == "ollama") | .ollama_loaded[]? | select(.context != null and .context < $ctx_target)
+             | problem("warning"; "small_context"; "Ollama runs \(.name) with a \(.context)-token window; longer prompts are cut silently";
+               "Set OLLAMA_CONTEXT_LENGTH=\($ctx_target) and restart Ollama") ]
+        + [ $rt[] | select((.kind == "vllm" or .kind == "sglang") and .flags.prompt_tokens_details == false) | problem("info"; "no_cached_token_report";
+             "\(.kind) on port \(.port) does not report cached prompt tokens, so buyers pay full input price for cache hits";
+             "Add --enable-prompt-tokens-details to the vLLM command") ]
+        + (if $nb_installed | not then [problem("error"; "netbird_missing"; "NetBird is not installed"; "Run the connect command from the GarageAI portal")]
+           elif $nb_connected | not then [problem("error"; "netbird_disconnected"; "NetBird is installed but not connected"; "sudo netbird up, or get a new command from the portal")]
+           else [] end)
+        + (if $conf_port != "" and ($rt | map(.port) | index($conf_port | tonumber) | not)
+           then [problem("error"; "port_mismatch"; "GarageAI is set up for port \($conf_port), but no runtime answers there"
+                 + (if ($rt | length) > 0 then " (found: \($rt | map("\(.kind):\(.port)") | join(", ")))" else "" end);
+                 "Start the runtime on port \($conf_port), or run the connect command again with --port")] else [] end)
+        + (if ($conf_rt != "") and ($hb_installed | not) then [problem("warning"; "heartbeat_missing"; "The heartbeat is not installed"; "Run the connect command from the portal again")]
+           elif $hb_installed and ($hb_active | not) then [problem("warning"; "heartbeat_stopped"; "The heartbeat is installed but not running"; "Run the connect command from the portal again")]
+           else [] end)
+        + (if ($gpus | length) == 0 then [problem("info"; "no_gpu"; "No GPU found (nvidia-smi, rocm-smi, Apple silicon)"; "Inference on CPU only is slow; buyers will see it")] else [] end)
+      )
+    } | .ok = ([.problems[] | select(.severity == "error")] | length == 0)'
+}
+
+if [ "$DOCTOR" -eq 1 ] && [ "$DOCTOR_JSON" -eq 1 ]; then
+  out="$(doctor_json)" || { printf '%s\n' "$out"; exit 1; }
+  printf '%s\n' "$out"
+  printf '%s' "$out" | jq -e '.ok' >/dev/null 2>&1 && exit 0 || exit 1
+fi
 if [ "$DOCTOR" -eq 1 ]; then
   run_doctor && exit 0 || exit 1
 fi
