@@ -30,8 +30,11 @@ jobs:
         shell: bash
         run: |
           go build -o garageai .
-          ./garageai doctor --json | tee profile.json | head -c 400; echo
-          python3 -c "import json; p=json.load(open('profile.json')); assert p['schema']==1 and isinstance(p['problems'], list)"
+          # A CI runner has no runtime and no NetBird, so doctor exits 1 (problems found): expected.
+          ./garageai doctor --json > profile.json || true
+          cat profile.json
+          python3 -c "import json; p=json.load(open('profile.json')); assert p['schema']==1 and isinstance(p['problems'], list) and p['machine']['os'], p"
+          ./garageai doctor || true
       - name: parity with garageai-connect.sh
         if: runner.os != 'Windows'
         shell: bash
