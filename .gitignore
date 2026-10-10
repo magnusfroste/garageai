@@ -49,3 +49,6 @@ temp/
 # Python
 __pycache__/
 *.pyc
+cli/garageai
+cli/dist/
+cli/profile.json
