@@ -1,0 +1,13 @@
+[Unit]
+Description=GarageAI Operations Center live view (who uses what, every 5 s)
+After=network-online.target docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/garageai-ops-live
+Restart=always
+RestartSec=10
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
