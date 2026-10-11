@@ -6,6 +6,7 @@
 //	garageai run [--once]        the heartbeat (what the installed service runs)
 //	garageai uninstall           remove the heartbeat and Bridge's configuration
 //	garageai install-service     make the heartbeat service run this version
+//	garageai mcp                 Bridge's tools for the operator's own agent (MCP over stdio)
 //	garageai version
 package main
 
@@ -45,6 +46,8 @@ func main() {
 		os.Exit(uninstall(args[1:]))
 	case "install-service":
 		os.Exit(installService())
+	case "mcp":
+		os.Exit(mcpServe(os.Stdin, os.Stdout))
 	case "help", "--help", "-h":
 		usage(0)
 	default:
@@ -87,6 +90,7 @@ usage:
   garageai run [--once]        the heartbeat: report the runtime's models (the service runs this)
   garageai uninstall           remove the heartbeat and Bridge's configuration
   garageai install-service     make the heartbeat service run this version (the installer does this)
+  garageai mcp                 Bridge's tools for your own AI agent (MCP over stdio)
   garageai version`)
 	os.Exit(code)
 }

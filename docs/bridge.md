@@ -130,6 +130,14 @@ program, an outbound tunnel, a local forward.
     from a runbook per runtime;
   - it applies the fix after a yes, then verifies.
 - `garageai mcp`: the same tools for the operator's own agent (Claude Code, opencode, …).
+  **First (2026-10-11):** read-only tools (doctor, explain_problem, search_knowledge,
+  garage_status) and the knowledge base. Bridge's own agent (`garageai ask`/`chat`) comes next as
+  one more client of the same tools.
+- The knowledge base is `docs/garage-troubleshooting.md`, one section per doctor problem code,
+  built into the binary: it matches that version's doctor and works when the garage reaches
+  nothing. No vector database: a few hundred answers fit in one prompt, and doctor's codes make the
+  lookup exact. When operators' free-text questions run into thousands, pgvector in the Supabase we
+  already have, and a `kb.json` Bridge can fetch to update answers between releases.
 - Fleet knowledge: profiles from every onboarding show which setups exist out there, and feed the
   runbooks and the defaults.
 - Name: the agent is a function of Bridge. A separate name, for example "Mechanic", is kept for
