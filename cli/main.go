@@ -5,6 +5,7 @@
 //	garageai doctor [--json]     what runs on this machine, what is wrong, and how to fix it
 //	garageai run [--once]        the heartbeat (what the installed service runs)
 //	garageai uninstall           remove the heartbeat and Bridge's configuration
+//	garageai install-service     make the heartbeat service run this version
 //	garageai version
 package main
 
@@ -42,6 +43,8 @@ func main() {
 		os.Exit(run(args[1:]))
 	case "uninstall":
 		os.Exit(uninstall(args[1:]))
+	case "install-service":
+		os.Exit(installService())
 	case "help", "--help", "-h":
 		usage(0)
 	default:
@@ -83,6 +86,7 @@ usage:
   garageai doctor [--json]     what runs on this machine, what is wrong, and how to fix it
   garageai run [--once]        the heartbeat: report the runtime's models (the service runs this)
   garageai uninstall           remove the heartbeat and Bridge's configuration
+  garageai install-service     make the heartbeat service run this version (the installer does this)
   garageai version`)
 	os.Exit(code)
 }

@@ -37,7 +37,10 @@ What `connect` does, like the script:
 4. Reachable over the mesh: the runtime listens on the network, streamed replies carry usage, and
    for Ollama the loaded context window (reported as it is; the gateway enforces it).
 5. Register; the portal runs the acceptance test.
-6. Install the heartbeat as a service (systemd timer or launchd daemon) running `garageai run --once`.
+6. Install the heartbeat as a service (systemd timer or launchd daemon) running `garageai run --once`
+   from its own root-only copy of Bridge (`/usr/local/lib/garageai/garageai` on Linux,
+   `/Library/Application Support/GarageAI/garageai` on macOS): the service runs as root, so it never
+   runs the copy in the operator's home, which their account could change.
    The connect script's old heartbeat is removed, so there is one reporter with one token.
 
 The heartbeat also carries Bridge's own report (`agent`): its version, the OS and what `doctor` finds
@@ -47,6 +50,12 @@ Operations Center shows it per garage, so a garage is seen from the inside, not 
 Every step is reported to the portal (`onboarding-report`), with the garage profile at the start,
 on a failure and when done, so a stuck connect is visible in the wizard, the admin and the
 Operations Center.
+
+**Updating:** run the install command again. When the machine has the heartbeat service, the
+installer also runs `sudo garageai install-service`, which puts the new version in the service's
+root-only place, so the heartbeat runs it from the next report on. `doctor` reports
+`service_binary_unsafe` (and the Operations Center shows it) when a root service runs a binary a
+normal user can change, as Bridge before v0.2.4 could set up.
 
 ## Implementation notes
 

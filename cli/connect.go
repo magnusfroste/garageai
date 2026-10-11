@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strconv"
@@ -448,7 +449,10 @@ func connect(args []string) int {
 		return 0
 	}
 	c.begin("6/6  Heartbeat")
-	self := installedBinary()
+	self, err := serviceBinary()
+	if err != nil {
+		c.fail("Could not install Bridge for the heartbeat service: " + err.Error())
+	}
 	cfg := &service.Config{HeartbeatURL: strings.TrimSuffix(o.RegisterURL, "/register-node") + "/node-heartbeat",
 		RegisterURL: o.RegisterURL, RegisterToken: o.RegisterToken, Name: o.Name, Runtime: o.Runtime, Port: o.Port,
 		RuntimeAPIKey: o.RuntimeAPIKey, MeshIP: meshIP}
@@ -490,34 +494,19 @@ func (c *connectRun) notes() {
 	}
 }
 
-// installedBinary makes sure the service runs a root-owned copy in /usr/local/bin: the installer
-// may have put us in the operator's ~/.local/bin, and a root service should not execute a file
-// the user can rewrite. Falls back to our own path when the copy is not possible.
-func installedBinary() string {
+// serviceBinary installs this binary as the heartbeat service's own root-only copy.
+func serviceBinary() (string, error) {
 	self, err := os.Executable()
 	if err != nil {
-		return "garageai"
+		return "", err
 	}
-	if runtime.GOOS == "windows" || strings.HasPrefix(self, "/usr/local/bin/") {
-		return self
+	if self, err = filepath.EvalSymlinks(self); err != nil {
+		return "", err
 	}
-	const dest = "/usr/local/bin/garageai"
-	b, err := os.ReadFile(self)
-	if err != nil {
-		return self
+	if self == service.BinaryPath() {
+		return self, nil
 	}
-	if err := os.MkdirAll("/usr/local/bin", 0o755); err != nil {
-		return self
-	}
-	tmp := dest + ".tmp"
-	if err := os.WriteFile(tmp, b, 0o755); err != nil {
-		return self
-	}
-	if err := os.Rename(tmp, dest); err != nil {
-		os.Remove(tmp)
-		return self
-	}
-	return dest
+	return service.InstallBinary(self)
 }
 
 // ufwBlocks: on Linux with ufw active and no allow rule for the port, the command to allow the
