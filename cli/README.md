@@ -57,6 +57,8 @@ root-only place, so the heartbeat runs it from the next report on. `doctor` repo
 `service_binary_unsafe` (and the Operations Center shows it) when a root service runs a binary a
 normal user can change, as Bridge before v0.2.4 could set up.
 
+What each problem means and how to fix it: [docs/garage-troubleshooting.md](../docs/garage-troubleshooting.md).
+
 ## Implementation notes
 
 - Standard library only. One codebase for Linux, macOS and Windows (amd64 and arm64). The

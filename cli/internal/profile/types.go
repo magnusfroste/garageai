@@ -26,6 +26,7 @@ type Profile struct {
 	heartbeatLast        string
 	ollamaHostPersistent bool
 	sleepMinutes         int
+	laptop               bool // a Mac with a battery: its "prevent sleeping" setting only holds on the power adapter
 	displayMinutes       int
 }
 

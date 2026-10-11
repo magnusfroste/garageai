@@ -34,6 +34,7 @@ func Build(version string) Profile {
 	p.Heartbeat, p.GarageAI = hb, cfg
 	p.darwin = runtime.GOOS == "darwin"
 	p.heartbeatLast, p.ollamaHostPersistent, p.sleepMinutes, p.displayMinutes = localFacts(hb)
+	p.laptop = p.darwin && strings.Contains(run("pmset", "-g", "batt"), "InternalBattery")
 	p.Problems = problems(p)
 	p.OK = true
 	for _, pr := range p.Problems {
@@ -170,8 +171,11 @@ func problems(p Profile) []Problem {
 			if p.displayMinutes > 0 {
 				msg += fmt.Sprintf(" (display off after %d min)", p.displayMinutes)
 			}
-			add("info", "mac_sleeps", msg+"; a sleeping Mac is offline for buyers",
-				"System Settings → Battery/Energy → prevent automatic sleeping when the display is off")
+			fix := "System Settings → Energy → turn on 'Prevent automatic sleeping when the display is off'"
+			if p.laptop {
+				fix = "System Settings → Battery → Options… → turn on 'Prevent automatic sleeping on power adapter when the display is off', and keep it plugged in (on battery it sleeps anyway)"
+			}
+			add("info", "mac_sleeps", msg+"; a sleeping Mac is offline for buyers", fix)
 		}
 	}
 	if len(p.GPUs) == 0 {

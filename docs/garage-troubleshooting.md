@@ -1,0 +1,142 @@
+# Garage troubleshooting
+
+What to do when `garageai doctor` (or the Operations Center's "From the garage" column, or the
+garage page in the portal) reports a problem. One section per problem code, with what it means,
+how to fix it, and what we learned getting real garages online. This is the knowledge base for
+Bridge: when a fix text in `cli/internal/profile/build.go` changes, change it here too, and the
+other way round.
+
+Start with:
+
+```sh
+garageai doctor
+```
+
+It prints the machine, NetBird, the heartbeat, every runtime it finds and its models, then the
+problems with a fix for each. `garageai doctor --json` is the same as JSON (the profile that
+connect also reports to the portal).
+
+Severity: **error** means buyers cannot be served, **warning** means they are served worse or will
+not be after a restart, **info** is worth knowing.
+
+## The machine
+
+### `mac_sleeps` (info)
+The Mac sleeps some minutes after its display turns off. A sleeping Mac drops off the mesh, and the
+gateway sees the garage as down (on garage-m2 this was an 8-minute "tunnel down" alert).
+
+- **MacBook (Air, Pro):** System Settings → Battery → **Options…** → turn on *Prevent automatic
+  sleeping on power adapter when the display is off*. It only holds **on the power adapter**: on
+  battery a MacBook sleeps anyway, so a MacBook garage is a garage while it is plugged in.
+  *Wake for network access* can stay on *Only on Power Adapter* or *Always*.
+- **Mac Studio, Mac mini, iMac (no battery):** System Settings → Energy → turn on *Prevent
+  automatic sleeping when the display is off*. Also turn on *Start up automatically after a power
+  failure*, so a power cut does not take the garage offline until someone presses the button.
+- The display may still turn off: that does not matter, only sleep does.
+- Check: `pmset -g` shows `sleep 0` (on a MacBook: while plugged in), and doctor no longer reports it.
+
+### `no_gpu` (info)
+No GPU found (nvidia-smi, rocm-smi, Apple silicon). Fine for a test; a CPU garage is too slow to sell.
+
+## NetBird (the mesh)
+
+### `netbird_missing` (error)
+The NetBird client is not installed. Run the connect command from the portal: it installs the CLI
+client (no desktop app needed).
+
+Learned: before Bridge v0.2.3 the heartbeat (run by launchd with a minimal PATH) reported this
+falsely on Macs. The Operations Center ignores it while the gateway sees the garage on the mesh.
+
+### `netbird_disconnected` (error)
+Installed but not connected. `sudo netbird up`; if it says *NeedsLogin*, the machine's mesh
+registration was removed: get a new command from the portal (My garages → New command, with a
+setup key) and run it.
+
+Learned: a setup key is used once. Re-running an old command fails with "No setup key"; the portal
+makes a new one.
+
+## The runtime
+
+### `no_runtime` (error)
+No OpenAI-compatible runtime answers on this machine. Start it (Ollama, LM Studio, vLLM,
+llama.cpp, ...) and run doctor again.
+
+Learned: macOS's AirPlay receiver answers on port 5000 with 403 and looks like a server; doctor
+ignores it.
+
+### `localhost_only` (error)
+The runtime listens on 127.0.0.1 only, so the gateway cannot reach it over the mesh.
+- **Ollama app:** Settings → *Expose Ollama to the network*.
+- **Ollama with Homebrew or a terminal:** start it with `OLLAMA_HOST=0.0.0.0:11434`.
+- **llama.cpp:** `llama-server --host 0.0.0.0`. **vLLM / SGLang:** `--host 0.0.0.0`.
+- **LM Studio:** Developer → Settings → *Serve on Local Network*.
+
+The mesh is private (only the gateway can reach a garage), so listening on all interfaces is what
+we want. Learned: Ollama's internal runner has its own localhost port while a model is loaded;
+doctor before v0.2.3 reported it as a llama.cpp on localhost.
+
+### `ollama_host_not_persistent` (warning, macOS)
+Ollama listens on the network now, but will not after a restart. Use the Ollama app's *Expose
+Ollama to the network* setting, or start Ollama with `OLLAMA_HOST` set the way you always start it.
+
+Learned: `launchctl setenv` does not reach Ollama run by `brew services`; set it in the service's
+own environment, or use the app.
+
+### `small_context` (warning, Ollama)
+Ollama runs the model with a small context window (default 4096 tokens) and silently cuts longer
+prompts. Coding agents send far longer ones. Set `OLLAMA_CONTEXT_LENGTH` (doctor says how much this
+machine can take, e.g. 8192 on 8 GB) the same way as `OLLAMA_HOST`, and restart Ollama. The
+heartbeat reports the new window within 5 minutes; no need to connect again. Until then the gateway
+knows the real window and rejects longer prompts instead of letting them be cut.
+
+### `port_mismatch` (error)
+The garage is registered with one port, but the runtime answers on another. Start the runtime on
+the registered port, or run the connect command again with `--port`.
+
+### `needs_api_key` (info)
+The runtime wants an API key. Give it to connect with `--runtime-api-key`; the gateway uses it.
+
+### `no_cached_token_report` (info, vLLM)
+vLLM does not report cached prompt tokens, so buyers pay full price for prefix-cache hits. Add
+`--enable-prompt-tokens-details` to the vLLM command.
+
+## The heartbeat
+
+### `heartbeat_missing` / `heartbeat_stopped` (warning)
+The heartbeat reports the garage's models every 5 minutes; without it, a model you load or remove
+is not picked up. Run the connect command again. The Operations Center also warns when a garage
+answers but has sent no heartbeat for 20 minutes.
+
+### `heartbeat_rejected` (error)
+The portal rejects the heartbeat's token: it was replaced (a new command was made for this garage)
+or the garage was deleted. My garages → New command, run it here.
+
+Learned: do not paste the connect command (it contains the garage's token) into chats or tickets.
+If you did, make a new command: the old token stops working.
+
+### `service_binary_unsafe` (error)
+The heartbeat runs as root, from a file a normal user account can change: anything running as that
+user could get root. Run the install command again, which updates the service:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.sh | sh
+```
+
+or `sudo garageai install-service`. The service then runs its own root-only copy
+(`/Library/Application Support/GarageAI/garageai` on macOS, `/usr/local/lib/garageai/garageai` on
+Linux). Learned: Bridge rc1 set up services that ran the copy in the operator's home.
+
+## Updating Bridge
+
+Run the install command again. On a connected garage it asks for your password once and updates
+the heartbeat service too (`✓ The heartbeat service runs Bridge vX from ...`).
+
+## Mix-ups we have seen
+
+- **One garage name, two machines.** A garage was first set up on one laptop, whose settings were
+  then deleted, and later connected from another laptop under the same name. The token and the
+  setup key belonged to the first machine, so the second had to be paired again. Give every
+  machine its own garage (`garage-m2`, `garage-m3`, ...). Planned: Bridge sends a machine id, and
+  the portal warns when a garage suddenly comes from another machine.
+- **A garage that is "offline" though everything runs:** check that its models are not disabled
+  by an admin (Admin → Models); routing needs both.
