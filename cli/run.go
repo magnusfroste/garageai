@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/magnusfroste/garageai/cli/internal/machine"
 	"github.com/magnusfroste/garageai/cli/internal/portal"
 	"github.com/magnusfroste/garageai/cli/internal/profile"
 	rt "github.com/magnusfroste/garageai/cli/internal/runtime"
@@ -65,7 +66,7 @@ func heartbeat(cfg *service.Config, client *portal.Client) int {
 		models = []string{}
 	}
 	res, err := client.Heartbeat(context.Background(), portal.Registration{Name: cfg.Name, Port: cfg.Port, Runtime: cfg.Runtime,
-		Models: models, Contexts: nonEmpty(contexts), RuntimeAPIKey: cfg.RuntimeAPIKey, Agent: agent()})
+		Models: models, Contexts: nonEmpty(contexts), RuntimeAPIKey: cfg.RuntimeAPIKey, Agent: agent(), MachineID: machine.ID()})
 	stamp := time.Now().UTC().Format(time.RFC3339)
 	switch {
 	case errors.Is(err, portal.ErrRejected):

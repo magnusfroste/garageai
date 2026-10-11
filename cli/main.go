@@ -36,7 +36,7 @@ func main() {
 		fmt.Println("GarageAI Bridge", version)
 	case "doctor":
 		os.Exit(doctor(len(args) > 1 && args[1] == "--json"))
-	case "connect":
+	case "connect", "login":
 		os.Exit(connect(args[1:]))
 	case "__connect-as-root":
 		os.Exit(connectAsRoot())
@@ -81,6 +81,7 @@ func usage(code int) {
 
 usage:
   garageai connect [options]   join the mesh, check the runtime, register, install the heartbeat
+      Without options you approve this machine in the browser; nothing to copy.
       --setup-key KEY --management-url URL     (from the portal's command; the key is used once)
       --register-url URL --register-token TOK  (from the portal's command)
       --runtime ollama|lmstudio|llamacpp|vllm|sglang|paddock|unsloth|mlx|lemonade|other
