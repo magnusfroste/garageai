@@ -47,7 +47,9 @@ Buyers ──HTTPS──▶ LiteLLM gateway (EU) ──private WireGuard mesh─
 | [`infra/gateway/`](infra/gateway/README.md) | The core: NetBird mesh + LiteLLM on one VPS — setup, DNS, firewall, backups |
 | [`cli/`](cli/README.md) | GarageAI Bridge (`garageai`): connects a garage node to the mesh, the default since October 2026 |
 | [`scripts/garageai-connect.sh`](scripts/garageai-connect.sh) | The previous connect script, kept as a backup and reference (Windows: `garageai-connect.ps1`) |
+| [`docs/architecture.md`](docs/architecture.md) | Where logic lives: portal, gateway, Bridge, Operations Center; the control plane later |
 | [`docs/bridge.md`](docs/bridge.md) | Bridge's vision and roadmap |
+| [`docs/garage-troubleshooting.md`](docs/garage-troubleshooting.md) | What each problem Bridge reports means and how to fix it |
 | [`docs/inference-engines.md`](docs/inference-engines.md) | Support matrix for local inference engines |
 
 ```bash
