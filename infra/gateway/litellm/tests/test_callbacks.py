@@ -29,6 +29,11 @@ check("developer role counts as system", h([{"role": "developer", "content": "d"
 check("content parts kept", h([U("q"), {"role": "system", "content": [{"type": "text", "text": "x"}]}, S("y")]),
       [{"role": "system", "content": [{"type": "text", "text": "x"}, {"type": "text", "text": "y"}]}, U("q")])
 
+m = cb.unavailable_message("qwen/qwen3.8-27b")
+check("away: says temporarily unavailable", "temporarily unavailable" in m and "/v1/models" in m, True)
+check("away: suggests auto when it exists", "garageai/auto" in cb.unavailable_message("x", "garageai/auto"), True)
+e = cb.ModelTemporarilyUnavailable("qwen/qwen3.8-27b")
+check("away: 503 with Retry-After", (str(e.code), e.headers.get("Retry-After")), ("503", "60"))
 f = cb.fold_into_anthropic_system
 d = {"system": "base", "messages": [U("q"), S("late")]}
 check("anthropic: system message folded into system", (f(d), d), (1, {"system": "base\n\nlate", "messages": [U("q")]}))

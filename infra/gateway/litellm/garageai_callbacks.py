@@ -32,6 +32,7 @@
 import asyncio
 import hashlib
 import re
+import time
 
 import litellm
 from fastapi import HTTPException
@@ -104,6 +105,44 @@ def context_message(anthropic, prompt, output, limit):
     return (f"This model's maximum context length is {limit} tokens. However, you requested "
             f"{prompt + output} tokens ({prompt} in the messages, {output} in the completion). "
             "Please reduce the length of the messages or completion.")
+
+
+RETRY_AFTER = 60              # seconds an agent should wait before trying a model that is away
+KNOWN_FOR = "7 days"          # a model that answered within this is "away", not unknown
+_served = {"at": 0.0, "names": set()}
+
+
+async def recently_served(name):
+    """True when `name` answered requests within KNOWN_FOR (from the spend logs, cached 10 min).
+    Such a model is away for now (its garage is offline and the portal took it out of routing),
+    not a typo, and deserves a 503 instead of "model not found"."""
+    if time.time() - _served["at"] > 600:
+        try:
+            from litellm.proxy.proxy_server import prisma_client
+            rows = await prisma_client.db.query_raw(
+                'select distinct model_group from "LiteLLM_SpendLogs" '
+                f"where \"startTime\" > now() - interval '{KNOWN_FOR}' and status = 'success' and model_group not like 'probe/%'")
+            _served["names"] = {r.get("model_group") for r in rows if r.get("model_group")}
+            _served["at"] = time.time()
+        except Exception:  # noqa: BLE001 - without the list, answer as LiteLLM would
+            return False
+    return name in _served["names"]
+
+
+def unavailable_message(model, auto_name=None):
+    alt = f"use {auto_name}, which fails over automatically, or another model from /v1/models" if auto_name \
+        else "or use another model from /v1/models"
+    return (f"{model} is temporarily unavailable: the garage that serves it is offline. "
+            f"Retry in a minute, {alt}.")
+
+
+class ModelTemporarilyUnavailable(ProxyException):
+    """503 with Retry-After for a model whose garage is offline: SDKs and agents retry a 503 and
+    back off on Retry-After, while "model not found" (400) makes them give up."""
+
+    def __init__(self, model, auto_name=None):
+        super().__init__(message=unavailable_message(model, auto_name), type="service_unavailable", param="model",
+                         code=503, headers={"Retry-After": str(RETRY_AFTER)})
 
 
 class ContextLengthExceeded(ProxyException):
@@ -187,6 +226,17 @@ def _is_anthropic(call_type=None, request_data=None):
 
 class GarageAICallbacks(CustomLogger):
     async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
+        model = data.get("model")
+        if isinstance(model, str) and model and not model.startswith("probe/"):
+            try:
+                from litellm.proxy.proxy_server import llm_router
+                names = set(llm_router.get_model_names()) if llm_router else None
+            except Exception:  # noqa: BLE001 - never fail a request because we could not look
+                names = None
+            if names is not None and model not in names and await recently_served(model):
+                auto = "garageai/auto" if "garageai/auto" in names else None
+                print(f"garageai: {model} is away (not in routing, served within {KNOWN_FOR}): 503", flush=True)
+                raise ModelTemporarilyUnavailable(model, auto)
         if data.get("tools"):
             _add_missing_items(data["tools"])
         if _is_anthropic(call_type, data):
