@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/magnusfroste/garageai/cli/internal/portal"
+	"github.com/magnusfroste/garageai/cli/internal/profile"
 	rt "github.com/magnusfroste/garageai/cli/internal/runtime"
 	"github.com/magnusfroste/garageai/cli/internal/service"
 )
@@ -64,7 +65,7 @@ func heartbeat(cfg *service.Config, client *portal.Client) int {
 		models = []string{}
 	}
 	res, err := client.Heartbeat(context.Background(), portal.Registration{Name: cfg.Name, Port: cfg.Port, Runtime: cfg.Runtime,
-		Models: models, Contexts: nonEmpty(contexts), RuntimeAPIKey: cfg.RuntimeAPIKey})
+		Models: models, Contexts: nonEmpty(contexts), RuntimeAPIKey: cfg.RuntimeAPIKey, Agent: agent()})
 	stamp := time.Now().UTC().Format(time.RFC3339)
 	switch {
 	case errors.Is(err, portal.ErrRejected):
@@ -80,6 +81,25 @@ func heartbeat(cfg *service.Config, client *portal.Client) int {
 	}
 	fmt.Println(line)
 	return 0
+}
+
+// agent is Bridge's own report for the heartbeat: its version and what doctor finds right now.
+func agent() *portal.Agent {
+	p := profile.Build(version)
+	a := &portal.Agent{Tool: p.Tool, Version: version, OS: p.Machine.OS, Arch: p.Machine.Arch, Problems: []portal.AgentProblem{}}
+	for _, pr := range p.Problems {
+		// The heartbeat's own state is known where it arrives, and the log doctor reads it from is
+		// the previous run's.
+		if strings.HasPrefix(pr.Code, "heartbeat_") {
+			continue
+		}
+		msg := pr.Message
+		if len(msg) > 200 {
+			msg = msg[:200]
+		}
+		a.Problems = append(a.Problems, portal.AgentProblem{Severity: pr.Severity, Code: pr.Code, Message: msg})
+	}
+	return a
 }
 
 func nonEmpty(m map[string]int) map[string]int {

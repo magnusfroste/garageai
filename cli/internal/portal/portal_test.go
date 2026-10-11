@@ -93,3 +93,23 @@ func TestReportIsBestEffort(t *testing.T) {
 		t.Error("GARAGEAI_REPORT=0 still sent a report")
 	}
 }
+
+func TestHeartbeatCarriesTheAgent(t *testing.T) {
+	c, s := fakePortal(t, 200, `{"ok":true}`)
+	_, err := c.Heartbeat(context.Background(), Registration{Name: "g", Port: 11434, Runtime: "ollama", Models: []string{"m"},
+		Agent: &Agent{Tool: "garageai-bridge", Version: "v1", OS: "macOS 27.0", Arch: "arm64",
+			Problems: []AgentProblem{{Severity: "info", Code: "mac_sleeps", Message: "This Mac sleeps"}}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, _ := s.calls[0]["agent"].(map[string]any)
+	if a["version"] != "v1" || a["tool"] != "garageai-bridge" {
+		t.Fatalf("agent = %v", a)
+	}
+	if p, _ := a["problems"].([]any); len(p) != 1 || p[0].(map[string]any)["code"] != "mac_sleeps" {
+		t.Fatalf("problems = %v", a["problems"])
+	}
+	if _, ok := s.calls[0]["mesh_ip"]; ok {
+		t.Fatal("heartbeat sent mesh_ip")
+	}
+}

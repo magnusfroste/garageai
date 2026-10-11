@@ -40,6 +40,10 @@ What `connect` does, like the script:
 6. Install the heartbeat as a service (systemd timer or launchd daemon) running `garageai run --once`.
    The connect script's old heartbeat is removed, so there is one reporter with one token.
 
+The heartbeat also carries Bridge's own report (`agent`): its version, the OS and what `doctor` finds
+right now (severity, code and message; never keys). The portal keeps the latest one, and the
+Operations Center shows it per garage, so a garage is seen from the inside, not only from the mesh.
+
 Every step is reported to the portal (`onboarding-report`), with the garage profile at the start,
 on a failure and when done, so a stuck connect is visible in the wizard, the admin and the
 Operations Center.

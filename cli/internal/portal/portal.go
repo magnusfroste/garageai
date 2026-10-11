@@ -39,6 +39,23 @@ type Registration struct {
 	ContextLength int            `json:"context_length,omitempty"`
 	Contexts      map[string]int `json:"contexts,omitempty"`
 	RuntimeAPIKey string         `json:"runtime_api_key,omitempty"`
+	Agent         *Agent         `json:"agent,omitempty"`
+}
+
+// Agent is what the heartbeat tells the portal about Bridge itself and the machine it runs on, so
+// the Operations Center sees a garage from the inside too: which Bridge, and what doctor finds.
+type Agent struct {
+	Tool     string         `json:"tool"`
+	Version  string         `json:"version"`
+	OS       string         `json:"os"`
+	Arch     string         `json:"arch"`
+	Problems []AgentProblem `json:"problems"`
+}
+
+type AgentProblem struct {
+	Severity string `json:"severity"`
+	Code     string `json:"code"`
+	Message  string `json:"message"`
 }
 
 type Acceptance struct {
