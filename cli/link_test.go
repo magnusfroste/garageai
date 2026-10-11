@@ -19,6 +19,19 @@ func TestSuggestName(t *testing.T) {
 	}
 }
 
+// No runtime: link stops before contacting GarageAI.
+func TestLinkStopsWithoutRuntime(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { t.Fatal("contacted the portal") }))
+	defer srv.Close()
+	t.Setenv("GARAGEAI_PORTAL_API", srv.URL)
+	runtimeCheck = func(profile.Profile, int) bool { return false }
+	defer func() { runtimeCheck = hasRuntimeOn }()
+	o := Options{Name: "h", Runtime: "vllm", Port: 8000}
+	if code := link(&o, true); code != 1 {
+		t.Fatalf("exit %d, want 1", code)
+	}
+}
+
 func TestPickRuntime(t *testing.T) {
 	p := profile.Profile{Runtimes: []profile.Runtime{
 		{Kind: "llamacpp", Port: 8080},
@@ -60,6 +73,8 @@ func TestLinkFlow(t *testing.T) {
 		"GARAGEAI_MANAGEMENT_URL", "GARAGEAI_RUNTIME", "GARAGEAI_PORT"} {
 		t.Setenv(k, "")
 	}
+	runtimeCheck = func(profile.Profile, int) bool { return true }
+	defer func() { runtimeCheck = hasRuntimeOn }()
 	o := Options{Name: "testhost", Runtime: "vllm", Port: 8000}
 	if code := link(&o, true); code != 0 {
 		t.Fatalf("link exit %d", code)
