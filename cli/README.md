@@ -59,6 +59,29 @@ normal user can change, as Bridge before v0.2.4 could set up.
 
 What each problem means and how to fix it: [docs/garage-troubleshooting.md](../docs/garage-troubleshooting.md).
 
+## Your own agent: `garageai mcp`
+
+Bridge's tools as an MCP server over stdio, for the agent you already use (Claude Code, Claude
+Desktop, ChatGPT, opencode, ...). The tools only read; the agent tells you what to run.
+
+| Tool | What it gives the agent |
+|---|---|
+| `doctor` | The garage profile: machine, GPU, NetBird, heartbeat, runtimes and models, problems with fixes |
+| `explain_problem` | The knowledge base's section for a problem code |
+| `search_knowledge` | The best sections for a question in plain words |
+| `garage_status` | How the garage is connected, which binary the heartbeat runs, its latest log lines (no secrets) |
+
+The knowledge base is [docs/garage-troubleshooting.md](../docs/garage-troubleshooting.md), built
+into the binary (`cli/internal/kb`; a test keeps the copy equal to the doc and checks that every
+problem code doctor can report has a section).
+
+```sh
+claude mcp add garageai -- garageai mcp          # Claude Code
+```
+
+Claude Desktop and others: a server with `"command": "garageai", "args": ["mcp"]` (the full path,
+e.g. `/Users/you/.local/bin/garageai`, when the app does not see your shell's PATH).
+
 ## Implementation notes
 
 - Standard library only. One codebase for Linux, macOS and Windows (amd64 and arm64). The
