@@ -552,6 +552,17 @@ function renderPages(d) {
     ["Checks", r => r.checks.length ? r.checks.map(c => `<div class="${c.level}">${esc(c.text)}</div>`).join("") : '<span class="ok">ok</span>'],
   ], deps);
 
+  // What the garage says about itself: its heartbeat and, with Bridge, what doctor finds there.
+  const SEV = { error: "critical", warning: "warning", info: "muted" };
+  const insideCell = g => {
+    if (g.type === "provider") return "—";
+    const hb = g.heartbeat_min == null ? '<span class="small">no heartbeat yet</span>'
+      : `<span class="${g.heartbeat_min >= 20 ? "warning" : ""}">heartbeat ${g.heartbeat_min < 1 ? "just now" : g.heartbeat_min + " min ago"}</span>`;
+    const a = g.agent;
+    if (!a) return hb + '<div class="small">legacy script: no report</div>';
+    const probs = (a.problems || []).map(p => `<div class="small"><span class="${SEV[p.severity] || "muted"}">${esc(p.severity)}</span> ${esc(p.message || p.code)}</div>`).join("");
+    return `${hb}<div class="small">Bridge ${esc(a.version || "?")} · ${esc(a.os || "")}</div>` + (probs || '<div class="small ok">no problems reported</div>');
+  };
   $("garages").innerHTML = table([
     ["Name", g => `${dot(g.onboarding || d.silences?.[g.garage] ? "info" : g.runtime_ok && g.mesh !== false ? "ok" : "critical")}<b>${esc(g.garage)}</b>${d.silences?.[g.garage] ? " " + pill("info", "planned stop") : ""}`],
     ["Type", g => pill("muted", g.type)],
@@ -563,6 +574,7 @@ function renderPages(d) {
     ["Up 24 h", g => g.up_24h_pct == null ? "—" : `${g.up_24h_pct} %<div class="small">${Math.round(g.minutes_tracked/60)} h tracked</div>`, "num"],
     ["Load", g => g.vllm ? `${g.vllm.running} running, <span class="${g.queue_minutes >= 5 ? "warning" : ""}">${g.vllm.waiting} waiting${g.queue_minutes >= 2 ? ` for ${g.queue_minutes} min` : ""}</span><div class="small">KV cache ${g.vllm.kv_cache_pct} %${g.vllm.prompt_tok_s != null ? `, ${g.vllm.prompt_tok_s} in / ${g.vllm.gen_tok_s} out tok/s` : ""}</div>` : g.provider ? `<span class="small">${esc((g.provider.ips||[]).slice(0,2).join(", "))}${(g.provider.ips||[]).length > 2 ? ` +${g.provider.ips.length-2}` : ""}${g.provider.private_ip ? ' <span class="critical">private!</span>' : ""}</span>` : "—"],
     ["TLS", g => g.provider && g.provider.tls ? `${g.provider.tls.days_left ?? "?"} d` : "—", "num"],
+    ["From the garage", insideCell],
     ["Checked", g => ago(g.checked_at)],
   ], d.garages) + `<div class="note">Portal gateway-targets: ${d.portal.targets_status} in ${d.portal.targets_ms} ms, ${d.portal.garages_listed} listed.</div>`;
 
