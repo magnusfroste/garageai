@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/magnusfroste/garageai/cli/internal/service"
 )
 
 // KnownPorts are the default ports of the runtimes GarageAI supports; ports owned by a process
@@ -142,6 +144,13 @@ func problems(p Profile) []Problem {
 		add("warning", "heartbeat_missing", "The heartbeat is not installed", "Run the connect command from the portal again")
 	case p.Heartbeat.Installed && !p.Heartbeat.Active:
 		add("warning", "heartbeat_stopped", "The heartbeat is installed but not running", "Run the connect command from the portal again")
+	}
+	if prog := service.Program(); prog != "" {
+		if why := service.UnsafeProgram(prog); why != "" {
+			// Not heartbeat_*: this one must reach the Operations Center with the heartbeat.
+			add("error", "service_binary_unsafe", fmt.Sprintf("The heartbeat runs as root from %s, but %s: anything running as that user could get root", prog, why),
+				"Run the install command again (curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.sh | sh), or: sudo garageai install-service")
+		}
 	}
 	if strings.Contains(p.heartbeatLast, "401") || strings.Contains(strings.ToLower(p.heartbeatLast), "unauthorized") {
 		add("error", "heartbeat_rejected", "GarageAI rejects this garage's heartbeat (its token was replaced or revoked)",

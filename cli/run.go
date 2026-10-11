@@ -132,3 +132,28 @@ func uninstall(args []string) int {
 	fmt.Println("  To leave the mesh too: sudo netbird down. Finally, remove the garage under My garages in the portal.")
 	return 0
 }
+
+// installService makes the heartbeat service run this binary: a root-only copy of it, and the
+// service pointed at that copy. The installer runs it after an update, so `curl ... | sh` updates
+// the heartbeat too. It also moves a service that ran a copy in the operator's home (Bridge before
+// v0.2.4) to the safe place.
+func installService() int {
+	if service.Program() == "" {
+		fmt.Println("No heartbeat service on this machine: nothing to update. (Connect with the command from the portal.)")
+		return 0
+	}
+	if os.Geteuid() != 0 {
+		return asRootSimple("install-service", nil)
+	}
+	dest, err := serviceBinary()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Could not install Bridge for the heartbeat service:", err)
+		return 1
+	}
+	if err := service.Install(dest); err != nil {
+		fmt.Fprintln(os.Stderr, "Could not update the heartbeat service:", err)
+		return 1
+	}
+	fmt.Printf("✓ The heartbeat service runs Bridge %s from %s\n", version, dest)
+	return 0
+}

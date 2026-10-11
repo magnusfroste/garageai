@@ -69,6 +69,14 @@ case ":$PATH:" in
     echo "  echo 'export PATH=\"$(dirname "$dest"):\$PATH\"' >> ~/.zshrc && source ~/.zshrc"
     ;;
 esac
+# A garage already connected: the heartbeat service runs its own root-only copy of Bridge, so
+# update that one too (and move a service that ran the copy in the home directory, before v0.2.4).
+if [ -f /Library/LaunchDaemons/eu.garageai.bridge.plist ] || [ -f /etc/systemd/system/garageai-bridge.service ]; then
+  echo ""
+  echo "Updating the heartbeat service (it runs as root, so sudo may ask for your password)..."
+  if [ "$(id -u)" = 0 ]; then "$dest" install-service; else sudo "$dest" install-service; fi ||
+    echo "Could not update the heartbeat service. Run: sudo $dest install-service" >&2
+fi
 echo ""
 echo "Next:"
 echo "  garageai doctor     what runs on this machine, what is wrong, and how to fix it"

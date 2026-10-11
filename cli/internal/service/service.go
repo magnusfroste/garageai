@@ -131,4 +131,8 @@ func Remove() {
 		os.Remove(plistPath)
 	}
 	os.Remove(ConfigPath())
+	if runtime.GOOS != "windows" {
+		os.Remove(BinaryPath())
+		os.Remove(filepath.Dir(BinaryPath())) // only when empty
+	}
 }
