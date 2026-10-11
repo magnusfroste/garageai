@@ -755,7 +755,9 @@ def alerts(d):
             for pr in ag.get("problems", []):
                 # What the gateway sees from outside beats the garage's own view: on the mesh and
                 # answering through it means NetBird runs and the runtime listens on the network.
-                if pr.get("code", "").startswith("netbird_") and g["mesh"]:
+                # The gateway's own view of the mesh decides: up means the garage's view is wrong,
+                # down is already the "tunnel down" alert. Never a second alert for one outage.
+                if pr.get("code", "").startswith("netbird_"):
                     continue
                 if pr.get("code") == "localhost_only" and g["runtime_ok"]:
                     continue
