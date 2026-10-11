@@ -28,6 +28,17 @@ check("two leading systems: merged", h([S("a"), S("b"), U("q")]), [S("a\n\nb"), 
 check("developer role counts as system", h([{"role": "developer", "content": "d"}, U("q"), S("s")]), [S("d\n\ns"), U("q")])
 check("content parts kept", h([U("q"), {"role": "system", "content": [{"type": "text", "text": "x"}]}, S("y")]),
       [{"role": "system", "content": [{"type": "text", "text": "x"}, {"type": "text", "text": "y"}]}, U("q")])
+
+f = cb.fold_into_anthropic_system
+d = {"system": "base", "messages": [U("q"), S("late")]}
+check("anthropic: system message folded into system", (f(d), d), (1, {"system": "base\n\nlate", "messages": [U("q")]}))
+d = {"system": [{"type": "text", "text": "a", "cache_control": {"type": "ephemeral"}}], "messages": [U("q"), S("b")]}
+check("anthropic: blocks kept, cache_control too", (f(d), d["system"]),
+      (1, [{"type": "text", "text": "a", "cache_control": {"type": "ephemeral"}}, {"type": "text", "text": "b"}]))
+d = {"messages": [S("only"), U("q")]}
+check("anthropic: no system field yet", (f(d), d), (1, {"system": "only", "messages": [U("q")]}))
+d = {"system": "s", "messages": [U("q"), A("r")]}
+check("anthropic: regular request untouched", (f(d), d), (0, {"system": "s", "messages": [U("q"), A("r")]}))
 check("tool messages keep their order", h([S("a"), U("q"), {"role": "assistant", "tool_calls": [1]}, {"role": "tool", "content": "t"}, S("b")]),
       [S("a\n\nb"), U("q"), {"role": "assistant", "tool_calls": [1]}, {"role": "tool", "content": "t"}])
 print("all tests passed" if not fails else f"{fails} test(s) failed")
