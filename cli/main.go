@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/magnusfroste/garageai/cli/internal/profile"
@@ -23,6 +24,7 @@ import (
 var version = "dev"
 
 func main() {
+	completePath()
 	args := os.Args[1:]
 	if len(args) == 0 {
 		usage(2)
@@ -46,6 +48,26 @@ func main() {
 		fmt.Fprintf(os.Stderr, "unknown command %q\n", args[0])
 		usage(2)
 	}
+}
+
+// completePath adds the usual program directories to PATH. The heartbeat runs under launchd or
+// systemd with a minimal PATH (/usr/bin:/bin:/usr/sbin:/sbin), where netbird in /usr/local/bin or a
+// Homebrew tool is not found and doctor would report NetBird as missing.
+func completePath() {
+	have := map[string]bool{}
+	for _, d := range filepath.SplitList(os.Getenv("PATH")) {
+		have[d] = true
+	}
+	path := os.Getenv("PATH")
+	for _, d := range []string{"/usr/local/bin", "/usr/local/sbin", "/opt/homebrew/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"} {
+		if !have[d] {
+			if path != "" {
+				path += string(os.PathListSeparator)
+			}
+			path += d
+		}
+	}
+	os.Setenv("PATH", path)
 }
 
 func usage(code int) {

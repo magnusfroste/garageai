@@ -64,6 +64,10 @@ func probe(port int, binds []string, owner Listener) *Runtime {
 			rt.OllamaLoaded = ollamaLoaded(base)
 		}
 	}
+	if rt.Kind == "" && strings.Contains(strings.ToLower(owner.Process), "ollama") {
+		// Ollama's internal runner: a localhost port per loaded model, not the API buyers reach.
+		return nil
+	}
 	if rt.Kind == "" {
 		owned := ""
 		if len(rt.Models) > 0 && rt.Models[0].OwnedBy != nil {

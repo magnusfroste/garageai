@@ -263,12 +263,30 @@ func ollamaContextTarget(mem *int) int {
 
 // localFacts: the heartbeat's last output, whether OLLAMA_HOST is set for good on macOS (the
 // LaunchAgent the connect script offers), and after how many minutes a Mac goes to sleep.
+// userHomes is this user's home and, when running as root (the heartbeat under launchd, or sudo),
+// also the home of the user at the console or behind sudo: their settings are the ones that count.
+func userHomes() []string {
+	var homes []string
+	if home, err := os.UserHomeDir(); err == nil {
+		homes = append(homes, home)
+	}
+	if os.Geteuid() == 0 {
+		for _, u := range []string{os.Getenv("SUDO_USER"), strings.TrimSpace(run("stat", "-f", "%Su", "/dev/console"))} {
+			if u != "" && u != "root" && !strings.ContainsAny(u, "/.") {
+				homes = append(homes, filepath.Join("/Users", u))
+			}
+		}
+	}
+	return homes
+}
+
 func localFacts(hb Heartbeat) (last string, ollamaPersistent bool, sleepMin, displayMin int) {
 	switch runtime.GOOS {
 	case "darwin":
-		if home, err := os.UserHomeDir(); err == nil {
-			_, err := os.Stat(filepath.Join(home, "Library/LaunchAgents/eu.garageai.ollama-host.plist"))
-			ollamaPersistent = err == nil
+		for _, home := range userHomes() {
+			if _, err := os.Stat(filepath.Join(home, "Library/LaunchAgents/eu.garageai.ollama-host.plist")); err == nil {
+				ollamaPersistent = true
+			}
 		}
 		// pmset: "sleep N" is minutes after the display turns off ("displaysleep M"); 0 = never.
 		for _, line := range strings.Split(run("pmset", "-g"), "\n") {
