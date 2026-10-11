@@ -53,10 +53,26 @@ def owners():
 
 
 def garage_of(model_id, api_base):
+    if model_id and model_id.startswith("auto__"):
+        model_id = model_id[len("auto__"):]   # auto__<curated model id>: the garage is the next part
     if model_id and "__" in model_id:
         return model_id.split("__", 1)[0]
     m = re.search(r"//([^/:]+)", api_base or "")
     return m.group(1) if m else "?"
+
+
+def auto_entries(env):
+    """{deployment id: {order, garage, model}} for garageai/auto's deployments, from LiteLLM."""
+    code, body, _ = collect.http(f"{collect.LITELLM_URL}/v1/model/info", {"Authorization": f"Bearer {env.get('GARAGEAI_GATEWAY_KEY', '')}"}, timeout=15)
+    out = {}
+    if code != 200:
+        return out
+    for d in json.loads(body).get("data", []):
+        mi, lp = d.get("model_info") or {}, d.get("litellm_params") or {}
+        if mi.get("garage_tier") == "auto" or str(mi.get("id", "")).startswith("auto__"):
+            out[mi.get("id")] = {"order": mi.get("order", lp.get("order")), "garage": mi.get("garage"), "public": d.get("model_name"),
+                                 "model": str(lp.get("model", "")).split("/", 1)[-1]}
+    return out
 
 
 def ms(a, b):
@@ -66,7 +82,7 @@ def ms(a, b):
         return None
 
 
-def snapshot(keys):
+def snapshot(keys, autos=None):
     now = time.time()
     rows = collect.psql(
         'select to_char("startTime" at time zone \'UTC\', \'YYYY-MM-DD"T"HH24:MI:SS.MS\'), '
@@ -87,6 +103,7 @@ def snapshot(keys):
         if not k and key.endswith("master_key"):
             k = {"alias": "master key", "owner": "gateway admin / ops"}
         reqs.append({
+            "auto_order": (autos or {}).get(mid, {}).get("order"),
             "t": start + "Z", "key": k.get("alias") or alias.strip() or ("key …" + key[-6:] if key else "?"),
             "owner": k.get("owner"), "model": model, "garage": garage_of(mid, base),
             "tier": "dedicated" if model.startswith("garage/") else "pool",
@@ -122,6 +139,18 @@ def snapshot(keys):
         t = sorted(g.pop("ttft"))
         g["ttft_p50_ms"] = t[len(t) // 2] if t else None
     last_min = [r for r in reqs if age(r) < 60]
+    # garageai/auto: which place in the list answered, and how often it had to fall back.
+    auto = None
+    if autos:
+        best = min((a["order"] for a in autos.values() if a.get("order") is not None), default=None)
+        served = [r for r in reqs if r["auto_order"] is not None]
+        entries = []
+        for i, a in sorted(autos.items(), key=lambda kv: (kv[1].get("order") or 99)):
+            mine = [r for r in served if r["auto_order"] == a.get("order") and r["garage"] == a.get("garage")]
+            entries.append({"id": i, "order": a.get("order"), "garage": a.get("garage"), "model": a.get("model"), "public": a.get("public"),
+                            "n": len(mine), "last_s": round(min(age(r) for r in mine)) if mine else None})
+        auto = {"entries": entries, "requests": len(served), "fallbacks": sum(r["auto_order"] != best for r in served),
+                "first_choice": best}
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "window_minutes": WINDOW,
@@ -132,6 +161,7 @@ def snapshot(keys):
         "flows": sorted(flows.values(), key=lambda f: -f["n"]),
         "garages": garages,
         "keys": sorted(keyagg.values(), key=lambda k: -k["n"]),
+        "auto": auto,
     }
 
 
@@ -144,14 +174,17 @@ def write(data):
 
 
 def main():
-    keys, keys_at = {}, 0
+    keys, keys_at, autos, autos_at = {}, 0, {}, 0
+    env = collect.load_env()
     once = "--once" in sys.argv
     while True:
         t0 = time.time()
         try:
             if time.time() - keys_at > OWNERS_EVERY:
                 keys, keys_at = owners(), time.time()
-            write(snapshot(keys))
+            if time.time() - autos_at > 60:
+                autos, autos_at = auto_entries(env), time.time()
+            write(snapshot(keys, autos))
         except Exception as e:  # noqa: BLE001 - keep the live view running; the next round tries again
             print(f"live: {e}", file=sys.stderr, flush=True)
         if once:
