@@ -27,7 +27,7 @@ layers:
     icon: "🧭"
     title: "Portal"
     subtitle: "app.garageai.eu"
-    details: "Accounts, API keys, prepaid credits, chat, the operator onboarding wizard, the model catalogue and the automated acceptance tests that every model passes before it can be sold."
+    details: "Accounts, API keys, prepaid credits, chat, the page that connects an operator's computer, the model catalogue and the automated acceptance tests that every model passes before it can be sold."
     color: "var(--color-tertiary)"
 securityColumns:
   - icon: "✅"

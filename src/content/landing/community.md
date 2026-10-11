@@ -35,7 +35,7 @@ joinTitle: "Join Early"
 joinText: "The first garages are live. Offer your GPU, use the API, or follow along on GitHub."
 joinButtons:
   - text: "🚀 Offer Your GPU"
-    url: "https://app.garageai.eu/auth?intent=operator"
+    url: "https://app.garageai.eu/connect"
     variant: "primary"
   - text: "💬 GitHub Discussions"
     url: "https://github.com/magnusfroste/garageai/discussions"

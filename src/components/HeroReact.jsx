@@ -6,7 +6,7 @@ const defaultBadges = [
 ];
 
 const defaultButtons = [
-  { text: 'Offer Your GPU', url: 'https://app.garageai.eu/auth?intent=operator', variant: 'primary' },
+  { text: 'Offer Your GPU', url: 'https://app.garageai.eu/connect', variant: 'primary' },
   { text: 'Use AI', url: 'https://app.garageai.eu/auth?intent=buyer', variant: 'secondary' },
 ];
 

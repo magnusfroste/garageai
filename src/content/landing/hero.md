@@ -12,7 +12,7 @@ badges:
     color: "blue"
 buttons:
   - text: "Offer Your GPU"
-    url: "https://app.garageai.eu/auth?intent=operator"
+    url: "https://app.garageai.eu/connect"
     variant: "primary"
   - text: "Use AI"
     url: "https://app.garageai.eu/auth?intent=buyer"
@@ -24,7 +24,7 @@ secondaryLink:
 
 ## CTA Buttons
 
-- **Primary**: "Offer Your GPU" → https://app.garageai.eu/auth?intent=operator
+- **Primary**: "Offer Your GPU" → https://app.garageai.eu/connect
 - **Secondary**: "Use AI" → https://app.garageai.eu/auth?intent=buyer
 - **Text link**: "View the source on GitHub" → https://github.com/magnusfroste/garageai
 

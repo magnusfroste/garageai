@@ -30,7 +30,7 @@ phases:
       - "Payouts to operators"
       - "Bridge pauses your garage when you need the GPU yourself, and updates itself"
       - "Per-garage capacity limits"
-      - "Windows in the onboarding wizard (a Windows connect script is in beta)"
+      - "Windows in Bridge and the portal (a Windows beta script exists today)"
       - "Verified garages and data-processing agreements"
       - "Booked / reserved capacity"
     color: "var(--color-accent)"

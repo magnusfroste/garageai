@@ -26,7 +26,7 @@ setups:
         model: "Gemma 4 31B"
     steps:
       - "Install LM Studio, download the model and turn on \"Serve on Local Network\"."
-      - "Run our Windows connect script in PowerShell as administrator. It is in beta: email powerup@garageai.eu with the subject \"Windows beta\" and we help you through it."
+      - "Windows support in Bridge is coming soon. Until then a beta script runs in PowerShell as administrator: email powerup@garageai.eu with the subject \"Windows beta\" and we help you through it."
       - "Your models pass the acceptance test and appear in the catalogue. Leave the PC on when you are not gaming."
   - id: "mac"
     icon: "🍎"
@@ -46,8 +46,8 @@ setups:
         model: "gpt-oss-120b"
     steps:
       - "Install LM Studio or Ollama and download the model."
-      - "In the portal: Offer your GPU → macOS → copy the command into Terminal. Bridge checks that the runtime is reachable over the mesh and its context window, and says exactly what to change if not."
-      - "Keep the Mac awake. MacBook: Battery → Options → prevent sleeping on power adapter, and keep it plugged in. Mac Studio, mini or iMac: Energy → prevent sleeping when the display is off."
+      - "Connect your GPU: run the one line in Terminal and approve your Mac in the browser. Bridge checks that the runtime is reachable over the mesh and its context window, and says exactly what to change if not."
+      - "Keep the Mac awake. A MacBook is a garage while plugged in: Battery → Options → \"Prevent automatic sleeping on power adapter when the display is off\". Mac Studio, mini or iMac: Energy → \"Prevent automatic sleeping when the display is off\"."
   - id: "workstation"
     icon: "🖥️"
     title: "Linux workstation or AI box"
@@ -62,7 +62,7 @@ setups:
         model: "gpt-oss-120b, or Qwen3.8 27B with a 256k window"
     steps:
       - "Start vLLM with an API key and tool calling on (--api-key, --enable-auto-tool-choice and the model's tool parser)."
-      - "In the portal: Offer your GPU → Linux → vLLM, then run the command on the host with your vLLM key."
+      - "Connect your GPU: run the one line on the host and approve it in the browser. Bridge finds vLLM and its models; if vLLM uses an API key, Bridge tells you how to pass it."
       - "This is how our own DGX Spark garage runs today."
   - id: "amd"
     icon: "🔴"
@@ -79,7 +79,7 @@ setups:
         model: "gpt-oss-20b"
     steps:
       - "Install Lemonade (or build llama.cpp with Vulkan) and load the model."
-      - "In the portal: Offer your GPU → Linux → Lemonade or llama.cpp, then run the command."
+      - "Connect your GPU: run the one line and approve the machine in the browser."
       - "Tell us how it went: AMD garages are the least tested so far."
 benefitsTitle: "What you get"
 benefits:
@@ -93,7 +93,7 @@ benefits:
     title: "Earn per token"
     text: "You set the price and see every token in the portal. How much it adds up to depends on demand; there is no platform fee during launch."
 ctaText: "Offer your GPU"
-ctaUrl: "https://app.garageai.eu/auth?intent=operator"
+ctaUrl: "https://app.garageai.eu/connect"
 note: "Suggested models are popular open models that fit the memory listed. The wizard in the portal shows which models buyers are asking for right now."
 ---
 
