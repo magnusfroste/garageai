@@ -154,7 +154,7 @@ func problems(p Profile) []Problem {
 		}
 		if hasOllama && !p.ollamaHostPersistent {
 			add("warning", "ollama_host_not_persistent", "OLLAMA_HOST is not set permanently: after a restart Ollama listens on localhost again",
-				"Run the connect command again and accept the offer to make it permanent")
+				"Ollama app: Settings → 'Expose Ollama to the network'. Homebrew or terminal: start it with OLLAMA_HOST=0.0.0.0:11434")
 		}
 		if p.sleepMinutes > 0 {
 			msg := fmt.Sprintf("This Mac sleeps %d min after its display turns off", p.sleepMinutes)
