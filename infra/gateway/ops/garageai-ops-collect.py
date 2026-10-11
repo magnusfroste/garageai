@@ -513,6 +513,9 @@ def onboarding_funnel(d):
     return {
         **stats(sessions),
         "by_tool": {t: stats([s for s in sessions if tool(s) == t]) for t in ("bridge", "script")},
+        # Where it started: the website's Connect page, or the terminal first (the browser link
+        # records which). Older onboardings have none.
+        "by_entry": {e: stats([s for s in sessions if s.get("entry") == e]) for e in ("web", "terminal")},
         "failed_steps": top(failed), "problems": top(problems),
         "links": f.get("links") if isinstance(f.get("links"), dict) else None,
         "recent": sorted(sessions, key=lambda s: str(s.get("first_event_at") or ""), reverse=True)[:15],

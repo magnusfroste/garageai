@@ -533,6 +533,8 @@ function renderFunnel(f, dur) {
     kpi("Median time to live", dur(f.median_minutes), `90 % within ${dur(f.p90_minutes)}`),
     kpi("With Bridge", dur(t.bridge?.median_minutes), `${fmt(t.bridge?.live ?? 0)} of ${fmt(t.bridge?.sessions ?? 0)} live (median)`),
     kpi("With the script", dur(t.script?.median_minutes), `${fmt(t.script?.live ?? 0)} of ${fmt(t.script?.sessions ?? 0)} live (median)`),
+    ...["web", "terminal"].filter(e => f.by_entry?.[e]?.sessions).map(e => kpi(e === "web" ? "Started on the website" : "Started in the terminal",
+      dur(f.by_entry[e].median_minutes), `${fmt(f.by_entry[e].live)} of ${fmt(f.by_entry[e].sessions)} live (median)`)),
     l ? kpi("Browser links", `${fmt(l.picked_up ?? 0)} / ${fmt(l.started ?? 0)}`, `completed / started · ${fmt(l.expired ?? 0)} expired · ${fmt(l.denied ?? 0)} denied`) : "",
   ].join("");
   const counts = (title, rows, fmtKey) => `<h3 style="font-size:13px;margin:12px 0 6px">${title}</h3>` + (rows.length
@@ -542,6 +544,7 @@ function renderFunnel(f, dur) {
   $("onb-sessions").innerHTML = `<h3 style="font-size:13px;margin:12px 0 6px">Latest onboardings</h3>` + table([
     ["Garage", s => `<b>${esc(s.garage)}</b>`],
     ["Started", s => s.first_event_at ? ago(s.first_event_at) : "—"],
+    ["Entry", s => s.entry ? esc(s.entry) : "—"],
     ["With", s => /bridge/i.test(`${s.tool || ""} ${s.bridge_version || ""}`) ? esc(s.bridge_version || "Bridge") : "script"],
     ["Time to live", s => s.minutes_to_live == null ? '<span class="small">not live</span>' : dur(s.minutes_to_live), "num"],
     ["Reports", s => fmt(s.events ?? 0), "num"],
