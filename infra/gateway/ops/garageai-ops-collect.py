@@ -47,7 +47,7 @@ HEALTH_LAST = "/var/lib/garageai-health/last.json"
 BACKUP_DIR = "/var/backups/garageai"
 LITELLM_DIR = "/opt/garageai/litellm"
 CERT_HOSTS = ["llm.garageai.eu", "netbird.garageai.eu", "ops.garageai.eu", "app.garageai.eu", "www.garageai.eu"]
-TIMERS = ["garageai-health.timer", "garageai-backup.timer", "garageai-ops.timer", "garageai-guard.timer"]
+TIMERS = ["garageai-health.timer", "garageai-backup.timer", "garageai-ops.timer", "garageai-guard.timer", "garageai-ops-live.service"]
 GUARD_STATUS = "/var/lib/garageai-guard/status.json"
 EXPECTED_POLICIES = {"gateway-to-garages"}
 UA = "garageai-ops/1 (+https://garageai.eu)"
@@ -62,6 +62,8 @@ DEPLOYED = {
     "/usr/local/bin/garageai-health": "infra/gateway/health/garageai-health.py",
     "/usr/local/sbin/garageai-backup": "infra/gateway/backup/garageai-backup",
     "/usr/local/bin/garageai-ops-collect": "infra/gateway/ops/garageai-ops-collect.py",
+    "/usr/local/bin/garageai-ops-live": "infra/gateway/ops/garageai-ops-live.py",
+    "/etc/systemd/system/garageai-ops-live.service": "infra/gateway/ops/garageai-ops-live.service",
     "/var/lib/garageai-ops/www/index.html": "infra/gateway/ops/index.html",
     "/opt/garageai/ops/docker-compose.yml": "infra/gateway/ops/docker-compose.yml",
     "/opt/garageai/ops/nginx.conf.template": "infra/gateway/ops/nginx.conf.template",

@@ -86,6 +86,23 @@
   .hero.critical .ring { background:var(--crit-soft); color:var(--crit); }
   .hero .counts { display:flex; gap:18px; margin-left:auto; font-size:13px; color:var(--muted); }
   .hero .counts b { font-size:18px; color:var(--ink); display:block; font-variant-numeric:tabular-nums; }
+  .flow svg { width:100%; height:auto; display:block; }
+  .flow .node rect { fill:var(--panel); stroke:var(--line); }
+  .flow .node text { fill:var(--ink); font-size:12px; } .flow .node .sub { fill:var(--muted); font-size:10.5px; }
+  .flow .col { fill:var(--faint); font-size:11px; text-transform:uppercase; letter-spacing:.06em; }
+  .flow .link { fill:none; stroke:var(--series-1); stroke-opacity:.28; }
+  .flow .link.hot { stroke-opacity:.85; stroke-dasharray:7 7; animation:flowdash 0.9s linear infinite; }
+  .flow .link.fail { stroke:var(--crit); }
+  @keyframes flowdash { to { stroke-dashoffset:-28; } }
+  .gcards { display:grid; gap:12px; grid-template-columns:repeat(auto-fill,minmax(min(200px,100%),1fr)); }
+  .gcard { border:1px solid var(--line); border-radius:12px; padding:12px 14px; background:var(--panel); }
+  .gcard .name { font-weight:600; display:flex; align-items:center; gap:8px; }
+  .pulse { width:9px; height:9px; border-radius:50%; background:var(--faint); flex:none; }
+  .pulse.on { background:var(--ok); box-shadow:0 0 0 0 var(--ok); animation:pulse 1.6s infinite; }
+  @keyframes pulse { 0% { box-shadow:0 0 0 0 color-mix(in srgb, var(--ok) 60%, transparent); } 100% { box-shadow:0 0 0 10px transparent; } }
+  tr.fresh-row td { animation:freshrow 2.5s ease-out; }
+  @keyframes freshrow { from { background:var(--accent-soft); } to { background:transparent; } }
+  @media (prefers-reduced-motion: reduce) { .flow .link.hot, .pulse.on, tr.fresh-row td { animation:none; } }
   .kpis { display:grid; gap:12px; grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr)); margin-bottom:16px; }
   a.kpi { display:block; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; color:var(--ink); position:relative; border-top:3px solid var(--line); }
   a.kpi:hover { text-decoration:none; border-color:var(--accent); }
@@ -210,6 +227,7 @@
   <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></symbol>
   <symbol id="i-business" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
   <symbol id="i-onboarding" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16"/></symbol>
+  <symbol id="i-live" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8a6 6 0 0 1 0 8.4M7.8 16.2a6 6 0 0 1 0-8.4M19.1 4.9a10 10 0 0 1 0 14.2M4.9 19.1a10 10 0 0 1 0-14.2"/></symbol>
   <symbol id="i-events" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
 </svg>
@@ -317,6 +335,15 @@
           <div class="note">Context and output cap are what the gateway enforces. "Runtime" is the window the garage's runtime reports, read by the gateway over the mesh every 10 minutes. Prices are per million tokens.</div></div>
       </section>
 
+      <section class="page" data-page="live">
+        <div class="kpis" id="live-kpis"></div>
+        <div class="card flow"><h2>Keys → models → garages, last 15 minutes</h2><div class="sub">Line width is the number of requests. Moving lines had a request in the last minute; red ones had failures. Owners are masked e-mails; prompts and replies are never read.</div><div id="live-flow"></div></div>
+        <div class="card"><h2>Garages right now</h2><div class="gcards" id="live-garages"></div></div>
+        <div class="card"><h2>Requests as they happen</h2><div class="sub">Newest first, probes excluded.</div><div id="live-recent"></div></div>
+        <div class="card"><h2>Keys, last 15 minutes</h2><div id="live-keys"></div></div>
+        <div class="note" id="live-fresh"></div>
+      </section>
+
       <section class="page" data-page="traffic">
         <div id="alerts-traffic"></div>
         <div class="card"><h2>Requests per hour, last 7 days</h2><div class="sub">Probes excluded. Hover for failed requests and the split per garage.</div><div class="chart" id="ch-req"></div></div>
@@ -374,6 +401,7 @@
 <script>
 const PAGES = [
   { id: "dashboard", title: "Dashboard", icon: "dash", sub: "Operations status at a glance" },
+  { id: "live", title: "Live", icon: "live", sub: "Who uses what right now: keys → models → garages, every request as it happens (updated every 5 s)" },
   { id: "events", title: "Events", icon: "events", sub: "Timeline: alerts, deploys, restarts, merges and notes" },
   { group: "Platform" },
   { id: "supply", title: "Supply", icon: "supply", sub: "Garages and providers: tunnel, runtime, uptime, load" },
@@ -988,6 +1016,74 @@ async function chatSend(quick) {
 }
 
 /* ---------- data */
+/* ---------- live */
+let live = null, liveSeen = new Set(), liveTimer = null;
+const secs = s => s == null ? "—" : s < 60 ? `${s} s ago` : `${Math.round(s / 60)} min ago`;
+async function loadLive() {
+  try { const r = await fetch("live.json?t=" + Date.now(), { cache: "no-store" }); if (r.ok) { live = await r.json(); renderLive(); } } catch (e) {}
+}
+function liveTick() {
+  const on = (location.hash || "#dashboard").slice(1) === "live" && !document.hidden;
+  if (on && !liveTimer) { loadLive(); liveTimer = setInterval(loadLive, 5000); }
+  if (!on && liveTimer) { clearInterval(liveTimer); liveTimer = null; }
+}
+window.addEventListener("hashchange", liveTick); document.addEventListener("visibilitychange", liveTick);
+
+function flowSvg(flows) {
+  if (!flows.length) return '<div class="small">No requests in the last 15 minutes.</div>';
+  const top = (key, n = 8) => { const m = {}; flows.forEach(f => m[f[key]] = (m[f[key]] || 0) + f.n); return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, n).map(e => e[0]); };
+  const cols = [["key", top("key")], ["model", top("model")], ["garage", top("garage")]];
+  const W = 960, colX = [10, 360, 710], nodeW = 240, nodeH = 40, gap = 14;
+  const H = 40 + Math.max(...cols.map(c => c[1].length)) * (nodeH + gap);
+  const pos = {};
+  cols.forEach(([k, names], ci) => names.forEach((n, i) => pos[k + ":" + n] = { x: colX[ci], y: 34 + i * (nodeH + gap) }));
+  const agg = (a, b) => { const m = {}; flows.forEach(f => { const id = f[a] + "\u0000" + f[b]; const e = m[id] || (m[id] = { a: f[a], b: f[b], n: 0, hot: 0, fail: 0 }); e.n += f.n; e.hot += f.n_1m; e.fail += f.fail; }); return Object.values(m); };
+  const links = [...agg("key", "model").map(e => ({ ...e, ka: "key", kb: "model" })), ...agg("model", "garage").map(e => ({ ...e, ka: "model", kb: "garage" }))];
+  const max = Math.max(...links.map(l => l.n));
+  const paths = links.filter(l => pos[l.ka + ":" + l.a] && pos[l.kb + ":" + l.b]).map(l => {
+    const p = pos[l.ka + ":" + l.a], q = pos[l.kb + ":" + l.b];
+    const x1 = p.x + nodeW, y1 = p.y + nodeH / 2, x2 = q.x, y2 = q.y + nodeH / 2, mx = (x1 + x2) / 2;
+    const w = 2 + 10 * Math.sqrt(l.n / max);
+    return `<path class="link${l.hot ? " hot" : ""}${l.fail ? " fail" : ""}" stroke-width="${w.toFixed(1)}" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}"><title>${esc(l.a)} → ${esc(l.b)}: ${l.n} requests${l.hot ? `, ${l.hot} in the last minute` : ""}${l.fail ? `, ${l.fail} failed` : ""}</title></path>`;
+  }).join("");
+  const owner = n => (flows.find(f => f.key === n) || {}).owner;
+  const nodes = cols.map(([k, names]) => names.map(n => {
+    const p = pos[k + ":" + n], sub = k === "key" ? owner(n) : k === "garage" ? (live.garages[n] ? `${live.garages[n].n} req · ${secs(live.garages[n].last_s)}` : "") : "";
+    const label = n.length > 32 ? n.slice(0, 31) + "…" : n;
+    return `<g class="node"><rect x="${p.x}" y="${p.y}" width="${nodeW}" height="${nodeH}" rx="8"/><text x="${p.x + 10}" y="${p.y + (sub ? 17 : 25)}">${esc(label)}</text>${sub ? `<text class="sub" x="${p.x + 10}" y="${p.y + 32}">${esc(sub)}</text>` : ""}<title>${esc(n)}</title></g>`;
+  }).join("")).join("");
+  const heads = ["Key (owner)", "Model", "Garage"].map((t, i) => `<text class="col" x="${colX[i]}" y="18">${t}</text>`).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Requests from keys through models to garages">${heads}${paths}${nodes}</svg>`;
+}
+
+function renderLive() {
+  if (!live) return;
+  const n = live.now, kpi = (label, value, detail) => `<div class="kpi" style="display:block;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px"><div class="label">${label}</div><div class="value">${value}</div><div class="detail">${detail}</div></div>`;
+  $("live-kpis").innerHTML = [
+    kpi("Requests, last minute", fmt(n.requests_1m), `${fmt(n.requests_15m)} in 15 min${n.failed_15m ? ` · <span class="critical">${n.failed_15m} failed</span>` : ""}`),
+    kpi("Tokens, last minute", short(n.tokens_1m), "input + output"),
+    kpi("Active keys", fmt(n.keys_1m), `${live.keys.length} in 15 min`),
+    kpi("Busy garages", fmt(n.garages_1m), `${Object.keys(live.garages).length} served in 15 min`),
+  ].join("");
+  $("live-flow").innerHTML = flowSvg(live.flows || []);
+  const gs = Object.entries(live.garages || {}).sort((a, b) => (a[1].last_s ?? 1e9) - (b[1].last_s ?? 1e9));
+  $("live-garages").innerHTML = gs.length ? gs.map(([g, x]) => `<div class="gcard"><div class="name"><span class="pulse${x.last_s != null && x.last_s < 60 ? " on" : ""}"></span>${esc(g)}</div>
+    <div class="small">${x.n} requests · ${short(x.out_tokens)} tokens out · first token ${x.ttft_p50_ms != null ? (x.ttft_p50_ms / 1000).toFixed(1) + " s" : "—"}</div><div class="small">last ${secs(x.last_s)}</div></div>`).join("")
+    : '<div class="small">No garage served a request in the last 15 minutes.</div>';
+  const fresh = new Set();
+  const rows = (live.recent || []).map(r => { const id = r.t + r.key + r.garage; if (liveSeen.size && !liveSeen.has(id)) fresh.add(id); return { ...r, _id: id }; });
+  liveSeen = new Set(rows.map(r => r._id));
+  $("live-recent").innerHTML = rows.length ? `<table><tr><th>When</th><th>Key</th><th>Model → garage</th><th class="num">In / out</th><th class="num">First token</th><th class="num">Total</th><th></th></tr>${rows.map(r =>
+    `<tr class="${fresh.has(r._id) ? "fresh-row" : ""}"><td>${ago(r.t)}</td><td><b>${esc(r.key)}</b>${r.owner ? `<div class="small">${esc(r.owner)}</div>` : ""}</td><td><code>${esc(r.model)}</code><div class="small">→ ${esc(r.garage)}${r.tier === "dedicated" ? " (dedicated)" : ""}</div></td>
+    <td class="num">${short(r.in)} / ${short(r.out)}</td><td class="num">${r.ttft_ms != null ? (r.ttft_ms / 1000).toFixed(1) + " s" : "—"}</td><td class="num">${r.ms != null ? (r.ms / 1000).toFixed(1) + " s" : "—"}</td><td>${r.ok ? '<span class="ok">ok</span>' : '<span class="critical">failed</span>'}</td></tr>`).join("")}</table>`
+    : '<div class="small">No requests in the last 15 minutes.</div>';
+  $("live-keys").innerHTML = table([
+    ["Key", k => `<b>${esc(k.key)}</b>`], ["Owner", k => esc(k.owner || "—")], ["Requests", k => fmt(k.n), "num"],
+    ["Tokens", k => short(k.tokens), "num"], ["Spend", k => "$" + (k.spend ?? 0).toFixed(4), "num"], ["Last", k => secs(k.last_s)],
+  ], live.keys || []);
+  $("live-fresh").textContent = `Updated ${new Date(live.generated_at).toLocaleTimeString()} · every 5 s while this page is open`;
+}
+
 async function load(manual) {
   if (manual) $("refresh").classList.add("spin");
   try {
@@ -1013,7 +1109,7 @@ function logout() {
     <p class="small">You are signed out of the GarageAI Operations Center.</p><p><a href="/" onclick="location.replace('/');return false">Sign in again</a></p></div></div>`; };
   x.send();
 }
-renderNav([]); load(); loadHistory(); whoami(); setInterval(load, 30000); setInterval(loadHistory, 300000);
+renderNav([]); load(); loadHistory(); whoami(); liveTick(); setInterval(load, 30000); setInterval(loadHistory, 300000);
 setInterval(() => data && renderChrome(data), 10000);
 </script>
 </body>
