@@ -338,6 +338,7 @@
       <section class="page" data-page="live">
         <div class="kpis" id="live-kpis"></div>
         <div class="card flow"><h2>Keys → models → garages, last 15 minutes</h2><div class="sub">Line width is the number of requests. Moving lines had a request in the last minute; red ones had failures. Owners are masked e-mails; prompts and replies are never read.</div><div id="live-flow"></div></div>
+        <div class="card" id="live-auto-card" hidden><h2>garageai/auto</h2><div class="sub">The ordered list behind the auto model: the first healthy entry answers, the next takes over when it fails. Fallbacks are auto requests not answered by the first choice.</div><div id="live-auto"></div></div>
         <div class="card"><h2>Garages right now</h2><div class="gcards" id="live-garages"></div></div>
         <div class="card"><h2>Requests as they happen</h2><div class="sub">Newest first, probes excluded.</div><div id="live-recent"></div></div>
         <div class="card"><h2>Keys, last 15 minutes</h2><div id="live-keys"></div></div>
@@ -1066,6 +1067,12 @@ function renderLive() {
     kpi("Busy garages", fmt(n.garages_1m), `${Object.keys(live.garages).length} served in 15 min`),
   ].join("");
   $("live-flow").innerHTML = flowSvg(live.flows || []);
+  const au = live.auto;
+  $("live-auto-card").hidden = !au;
+  if (au) $("live-auto").innerHTML = `<div class="small" style="margin-bottom:8px">${fmt(au.requests)} auto requests in 15 min · ${au.fallbacks ? `<span class="warning">${fmt(au.fallbacks)} answered by a fallback</span>` : "all by the first choice"}</div>` + table([
+    ["#", e => e.order ?? "—", "num"], ["Garage", e => `${dot(e.last_s != null && e.last_s < 60 ? "ok" : "muted")}<b>${esc(e.garage)}</b>`], ["Model", e => `<code>${esc(e.model)}</code>`],
+    ["Answered", e => fmt(e.n), "num"], ["Last", e => secs(e.last_s)],
+  ], au.entries || []);
   const gs = Object.entries(live.garages || {}).sort((a, b) => (a[1].last_s ?? 1e9) - (b[1].last_s ?? 1e9));
   $("live-garages").innerHTML = gs.length ? gs.map(([g, x]) => `<div class="gcard"><div class="name"><span class="pulse${x.last_s != null && x.last_s < 60 ? " on" : ""}"></span>${esc(g)}</div>
     <div class="small">${x.n} requests · ${short(x.out_tokens)} tokens out · first token ${x.ttft_p50_ms != null ? (x.ttft_p50_ms / 1000).toFixed(1) + " s" : "—"}</div><div class="small">last ${secs(x.last_s)}</div></div>`).join("")
@@ -1074,7 +1081,7 @@ function renderLive() {
   const rows = (live.recent || []).map(r => { const id = r.t + r.key + r.garage; if (liveSeen.size && !liveSeen.has(id)) fresh.add(id); return { ...r, _id: id }; });
   liveSeen = new Set(rows.map(r => r._id));
   $("live-recent").innerHTML = rows.length ? `<table><tr><th>When</th><th>Key</th><th>Model → garage</th><th class="num">In / out</th><th class="num">First token</th><th class="num">Total</th><th></th></tr>${rows.map(r =>
-    `<tr class="${fresh.has(r._id) ? "fresh-row" : ""}"><td>${ago(r.t)}</td><td><b>${esc(r.key)}</b>${r.owner ? `<div class="small">${esc(r.owner)}</div>` : ""}</td><td><code>${esc(r.model)}</code><div class="small">→ ${esc(r.garage)}${r.tier === "dedicated" ? " (dedicated)" : ""}</div></td>
+    `<tr class="${fresh.has(r._id) ? "fresh-row" : ""}"><td>${ago(r.t)}</td><td><b>${esc(r.key)}</b>${r.owner ? `<div class="small">${esc(r.owner)}</div>` : ""}</td><td><code>${esc(r.model)}</code><div class="small">→ ${esc(r.garage)}${r.tier === "dedicated" ? " (dedicated)" : ""}${r.auto_order != null ? ` (auto #${r.auto_order})` : ""}</div></td>
     <td class="num">${short(r.in)} / ${short(r.out)}</td><td class="num">${r.ttft_ms != null ? (r.ttft_ms / 1000).toFixed(1) + " s" : "—"}</td><td class="num">${r.ms != null ? (r.ms / 1000).toFixed(1) + " s" : "—"}</td><td>${r.ok ? '<span class="ok">ok</span>' : '<span class="critical">failed</span>'}</td></tr>`).join("")}</table>`
     : '<div class="small">No requests in the last 15 minutes.</div>';
   $("live-keys").innerHTML = table([
