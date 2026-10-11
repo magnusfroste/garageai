@@ -23,6 +23,7 @@ TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID. One-way: the bot only sends to that cha
   garageai-ops-collect --telegram-setup   find the chat that messaged the bot and save its id
   garageai-ops-collect --telegram-test    send a test message
 """
+import fcntl
 import hashlib
 import json
 import os
@@ -67,6 +68,7 @@ DEPLOYED = {
     "/usr/local/sbin/garageai-guard": "infra/gateway/guard/garageai-guard.py",
 }
 LOG_ALERT_MB = 400
+HEARTBEAT_SILENT_MINUTES = 20  # heartbeats come every 5 minutes; four missed means the service stopped
 STUCK_MINUTES = 30            # an onboarding garage whose last step failed or waits this long is stuck
 OPS_URL = "https://ops.garageai.eu"
 HISTORY_DB = "/var/lib/garageai-ops/history.db"
@@ -313,6 +315,26 @@ def provider_checks(target):
     return info
 
 
+def minutes_since(ts):
+    if not ts:
+        return None
+    try:
+        return int((now() - datetime.fromisoformat(str(ts).replace("Z", "+00:00").replace(" ", "T"))).total_seconds() // 60)
+    except ValueError:
+        return None
+
+
+def agent_report(t):
+    """Bridge's latest report from the garage's heartbeat: version, OS and what doctor finds. None for
+    the legacy script, which sends none."""
+    a = t.get("agent")
+    if not isinstance(a, dict):
+        return None
+    return {"tool": a.get("tool"), "version": a.get("version"), "os": a.get("os"), "arch": a.get("arch"),
+            "age_min": minutes_since(t.get("agent_at")),
+            "problems": [p for p in (a.get("problems") or []) if isinstance(p, dict)][:20]}
+
+
 def garages(env, state, targets):
     health = read_json(HEALTH_LAST, {})
     if not health.get("results"):
@@ -348,6 +370,9 @@ def garages(env, state, targets):
             "up_1h_pct": round(100 * sum(last60) / len(last60), 1) if last60 else None,
             "up_24h_pct": round(100 * sum(last24) / len(last24), 1) if last24 else None,
             "minutes_tracked": len(last24),
+            # From the inside: the garage's own heartbeat and Bridge's report (gateway-targets).
+            "heartbeat_min": minutes_since(t.get("last_heartbeat_at")),
+            "agent": agent_report(t),
         }
         if t.get("endpoint"):
             row["provider"] = provider_checks(t)
@@ -675,6 +700,17 @@ def alerts(d):
         if not g["runtime_ok"] or g["mesh"] is False:
             add("critical", f"{g['garage']}: {'tunnel down' if g['mesh'] is False else 'runtime not answering'}"
                             + (f" ({g['error']})" if g.get("error") else ""), "supply")
+        if g["type"] == "mesh" and g["runtime_ok"] and g["mesh"] is not False and (g.get("heartbeat_min") or 0) >= HEARTBEAT_SILENT_MINUTES:
+            add("warning", f"{g['garage']}: no heartbeat for {g['heartbeat_min']} min although it answers"
+                           " (its heartbeat service stopped: model and context changes are not picked up)", "supply")
+        ag = g.get("agent") or {}
+        if ag and (ag.get("age_min") or 0) < HEARTBEAT_SILENT_MINUTES:
+            for pr in ag.get("problems", []):
+                # Bridge's errors are warnings here (the probes above say whether buyers are hurt);
+                # its warnings are info; its info is shown on the Supply page only.
+                level = {"error": "warning", "warning": "info"}.get(pr.get("severity"))
+                if level:
+                    add(level, f"{g['garage']}: Bridge reports: {pr.get('message') or pr.get('code')}", "supply")
         p = g.get("provider") or {}
         if p.get("private_ip"):
             add("critical", f"Provider {g['garage']} now resolves to a private address {p.get('ips')}", "supply")
@@ -817,7 +853,8 @@ def models(env, state, targets):
         cout = mi.get("output_cost_per_token", lp.get("output_cost_per_token"))
         ccache = lp.get("cache_read_input_token_cost", mi.get("cache_read_input_token_cost"))
         served = (health.get(garage) or {}).get("models")
-        rctx = (contexts.get(garage) or {}).get(runtime_model)
+        # The runtime's own answer, else what the garage's heartbeat reported (Ollama's /v1/models has none).
+        rctx = (contexts.get(garage) or {}).get(runtime_model) or ((by_garage.get(garage) or {}).get("contexts") or {}).get(runtime_model)
         max_in, max_out = mi.get("max_input_tokens"), mi.get("max_output_tokens")
         checks = []
         if not max_in:
@@ -1246,6 +1283,9 @@ def telegram_cli(arg):
 
 
 def main():
+    # One run at a time: a manual run during the timer's run would log every event twice.
+    lock = open("/run/garageai-ops.lock", "w")
+    fcntl.flock(lock, fcntl.LOCK_EX)
     env = load_env()
     state = read_json(STATE, {})
     t0 = time.time()
