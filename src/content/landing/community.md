@@ -3,7 +3,7 @@ section: "community"
 order: 10
 title: "Open Source & Community"
 subtitle: "Built in the open"
-description: "GarageAI is built on open-source software, and our own gateway setup and connect script are public. Read the code, run your own gateway, or help us build the platform."
+description: "GarageAI is built on open-source software, and our own gateway setup and GarageAI Bridge are public. Read the code, run your own gateway, or help us build the platform."
 quotes: []
 stats:
   - icon: "🔐"
@@ -22,7 +22,7 @@ githubDiscussionsUrl: "https://github.com/magnusfroste/garageai/discussions"
 buildTitle: "🛠️ Build & Contribute"
 buildItems:
   - "Read the gateway setup: infra/gateway/README.md"
-  - "Read or improve the connect script: scripts/garageai-connect.sh"
+  - "Read or improve GarageAI Bridge, the program that connects a garage: cli/"
   - "Report issues and ideas on GitHub"
   - "Share how you run your garage so others can learn from it"
 spreadTitle: "🌍 Spread the Vision"

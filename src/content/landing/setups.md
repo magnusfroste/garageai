@@ -3,7 +3,7 @@ section: "setups"
 order: 3
 title: "Pick Your Setup"
 subtitle: "Have a GPU but no runtime yet? Start here."
-description: "Most GPUs in garages were bought for games, design or work, not for serving AI. Tell us what you have and we suggest one runtime, a popular open model that fits, and three steps to go live. The connect script handles the rest, including setting the context window as large as your memory allows."
+description: "Most GPUs in garages were bought for games, design or work, not for serving AI. Tell us what you have and we suggest one runtime, a popular open model that fits, and three steps to go live. GarageAI Bridge handles the rest and tells you what to adjust, such as a context window that is too small."
 setups:
   - id: "gaming-pc"
     icon: "🎮"
@@ -46,8 +46,8 @@ setups:
         model: "gpt-oss-120b"
     steps:
       - "Install LM Studio or Ollama and download the model."
-      - "In the portal: Offer your GPU → macOS → copy the command into Terminal. It makes the runtime reachable over the mesh and sets the context window."
-      - "Keep the Mac awake: System Settings → Energy → prevent sleeping when the display is off."
+      - "In the portal: Offer your GPU → macOS → copy the command into Terminal. Bridge checks that the runtime is reachable over the mesh and its context window, and says exactly what to change if not."
+      - "Keep the Mac awake. MacBook: Battery → Options → prevent sleeping on power adapter, and keep it plugged in. Mac Studio, mini or iMac: Energy → prevent sleeping when the display is off."
   - id: "workstation"
     icon: "🖥️"
     title: "Linux workstation or AI box"
