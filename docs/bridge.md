@@ -30,6 +30,14 @@ script stays as an internal backup and reference. Phase 0 is done and phase 1 is
   Detection does not depend on a model.
 - **Read by default, act after a yes.** Diagnosing never changes anything. Restarting a runtime,
   changing a firewall or loading a model asks first, unless the operator has set it to automatic.
+- **Codes always, text only with consent.** What Bridge does is product data: the problem codes
+  doctor finds and whether they are gone by the next heartbeat, which knowledge-base sections are
+  looked up for which code, searches that found nothing (counted per code, not their words), and
+  which tools are called. That shows which fixes work and where the knowledge base has gaps, and
+  it feeds time to live. The operator's own words (questions to Bridge's agent) only with their
+  consent, asked once and changeable, redacted on the machine (tokens, keys, paths with user names,
+  e-mail) and kept 90 days. The operator's conversation with their own agent over MCP is never
+  ours: we see our tool calls only.
 - **Never prompts or keys.** Bridge sees metadata about the machine and the runtime, never buyers'
   prompts or replies. Keys and whole command lines are never reported.
 - **One binary, stdlib first.**
