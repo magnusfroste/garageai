@@ -70,7 +70,8 @@ func TestLinkFlow(t *testing.T) {
 	if os.Getenv("GARAGEAI_REGISTER_TOKEN") != "grg_t" || os.Getenv("GARAGEAI_PORT") != "8000" {
 		t.Fatal("environment for the root half not set")
 	}
-	if started["suggested_name"] != "testhost" || started["bridge_version"] == nil {
+	// On a Mac the computer's name (scutil) is used instead of the hostname.
+	if started["suggested_name"] != suggestName(computerName("testhost")) || started["bridge_version"] == nil {
 		t.Fatalf("start request: %v", started)
 	}
 }
