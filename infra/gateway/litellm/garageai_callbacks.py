@@ -147,6 +147,37 @@ def hoist_system_messages(messages):
     return [merged] + [m for i, m in enumerate(messages) if i not in moved]
 
 
+def _as_blocks(content):
+    if isinstance(content, list):
+        return [c for c in content if c]
+    return [{"type": "text", "text": content}] if content else []
+
+
+def fold_into_anthropic_system(data):
+    """An Anthropic request (/v1/messages) carries its system prompt in data["system"]; a
+    system/developer message inside data["messages"] on top of that reaches the runtime as a second
+    system message, which strict runtimes reject ("System message must be at the beginning", seen
+    from Claude Code on qwen3.8 via /v1/responses). Fold such messages into data["system"], in
+    order, after what is there. Returns how many were moved."""
+    messages = data.get("messages")
+    if not isinstance(messages, list):
+        return 0
+    idx = [i for i, m in enumerate(messages) if isinstance(m, dict) and m.get("role") in SYSTEM_ROLES]
+    if not idx:
+        return 0
+    extra = [messages[i].get("content") for i in idx]
+    current = data.get("system")
+    if (current is None or isinstance(current, str)) and all(c is None or isinstance(c, str) for c in extra):
+        data["system"] = "\n\n".join(c for c in [current, *extra] if c)
+    else:
+        blocks = _as_blocks(current)
+        for c in extra:
+            blocks.extend(_as_blocks(c))
+        data["system"] = blocks
+    data["messages"] = [m for i, m in enumerate(messages) if i not in set(idx)]
+    return len(idx)
+
+
 def _is_anthropic(call_type=None, request_data=None):
     if call_type == "anthropic_messages":
         return True
@@ -158,6 +189,12 @@ class GarageAICallbacks(CustomLogger):
     async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
         if data.get("tools"):
             _add_missing_items(data["tools"])
+        if _is_anthropic(call_type, data):
+            roles = ",".join(str(m.get("role", "?"))[:1] for m in data.get("messages") or [] if isinstance(m, dict))
+            moved = fold_into_anthropic_system(data)
+            if moved:
+                print(f"garageai: folded {moved} system message(s) into the Anthropic system field "
+                      f"model={data.get('model')} roles={roles[:80]}", flush=True)
         hoisted = hoist_system_messages(data.get("messages"))
         if hoisted is not None:
             moved = len(data["messages"]) - len(hoisted) + 1
