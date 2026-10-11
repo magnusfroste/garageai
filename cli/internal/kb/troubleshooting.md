@@ -55,6 +55,24 @@ setup key) and run it.
 Learned: a setup key is used once. Re-running an old command fails with "No setup key"; the portal
 makes a new one.
 
+### `other_vpn` (info)
+Tailscale (or ZeroTier) is installed. Operators worry that NetBird breaks it; it does not. GarageAI's
+mesh is `100.83.0.0/16`, and NetBird only routes that range. Tailscale uses addresses in
+`100.64.0.0/10` and keeps working: your tailnet, MagicDNS and exit nodes are untouched.
+
+- **The one exception:** a device of yours whose Tailscale address starts with `100.83.` is out of
+  reach from this machine while NetBird is on (the more specific route wins). Check with
+  `tailscale status`. If you have one, tell us: GarageAI can move its range.
+- **Exposing the runtime:** "listen on the network" (`OLLAMA_HOST=0.0.0.0`, "Expose Ollama to the
+  network") also makes it reachable from your tailnet and your local network, not only from GarageAI.
+  That is usually fine at home; if not, a firewall rule or binding to the NetBird address only
+  (it is in `garageai doctor`) narrows it.
+- Learned: the first operator with Tailscale (2026-10-11) stopped onboarding at the NetBird step
+  for this reason. Bridge before v0.3.2 could also take Tailscale's address for the mesh address
+  when it could not ask NetBird; it now only accepts addresses in `100.83.0.0/16`.
+- Later, Bridge's own tunnel (phase 1.5 in docs/bridge.md) adds no system route or interface, and
+  this question goes away.
+
 ## The runtime
 
 ### `no_runtime` (error)

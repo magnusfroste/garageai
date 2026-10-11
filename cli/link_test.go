@@ -12,8 +12,12 @@ import (
 )
 
 func TestSuggestName(t *testing.T) {
-	for in, want := range map[string]string{"Magnus’s MacBook Air": "magnuss-macbook-air", "dgx-city": "dgx-city", "A": "", "  --x y--  ": "x-y"} {
-		if got := suggestName(in); got != want {
+	for in, want := range map[string]string{
+		"Magnus’s MacBook Air": "macbook-air-ab12", "Mac mini som tillhör Erik Hedin": "mac-mini-ab12",
+		"dgx-city": "dgx-city", "Kontorets Mac Studio": "kontorets-mac-studio", "Ärlig Örn": "arlig-orn",
+		"A": "", "  --x y--  ": "x-y",
+	} {
+		if got := suggestName(in, "m_ab12cd"); got != want {
 			t.Errorf("suggestName(%q) = %q, want %q", in, got, want)
 		}
 	}
@@ -86,7 +90,8 @@ func TestLinkFlow(t *testing.T) {
 		t.Fatal("environment for the root half not set")
 	}
 	// On a Mac the computer's name (scutil) is used instead of the hostname.
-	if started["suggested_name"] != suggestName(computerName("testhost")) || started["bridge_version"] == nil {
+	mid, _ := started["machine_id"].(string)
+	if started["suggested_name"] != suggestName(computerName("testhost"), mid) || started["bridge_version"] == nil {
 		t.Fatalf("start request: %v", started)
 	}
 }

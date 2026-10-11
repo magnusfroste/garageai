@@ -606,7 +606,7 @@ mesh_ip_from_interfaces() {
     ip -4 -o addr show 2>/dev/null | awk '$2 ~ /^(wt|nb|utun)/ {print $4}'
   else
     ifconfig 2>/dev/null | awk '/^utun|^wt/ {iface=1; next} /^[a-z]/ {iface=0} iface && $1 == "inet" {print $2}'
-  fi | awk -F/ '{split($1, o, "."); if (o[1] == 100 && o[2] >= 64 && o[2] <= 127) {print $1; exit}}'
+  fi | awk -F/ '{split($1, o, "."); if (o[1] == 100 && o[2] == 83) {print $1; exit}}'
 }
 
 run_doctor() {
