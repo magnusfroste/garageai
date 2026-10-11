@@ -9,7 +9,15 @@
 # script says which, and whether that is on your PATH.
 #
 #   GARAGEAI_BRIDGE_VERSION=bridge-v0.1.0   a specific release instead of the newest
+#
+# With `sh -s -- connect` it goes on to connect this machine (garageai connect: approve it in the
+# browser), so one line installs and connects:
+#
+#   curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.sh | sh -s -- connect
 set -eu
+
+then=""
+[ "${1:-}" = "connect" ] && then=connect
 
 REPO="${GARAGEAI_BRIDGE_REPO:-magnusfroste/garageai}"
 VERSION="${GARAGEAI_BRIDGE_VERSION:-latest}"
@@ -78,5 +86,14 @@ if [ -f /Library/LaunchDaemons/eu.garageai.bridge.plist ] || [ -f /etc/systemd/s
     echo "Could not update the heartbeat service. Run: sudo $dest install-service" >&2
 fi
 echo ""
+if [ "$then" = connect ]; then
+  # stdin is the script itself (curl | sh): connect asks questions, so give it the terminal.
+  if (: </dev/tty) 2>/dev/null; then
+    exec "$dest" connect </dev/tty
+  fi
+  echo "No terminal to ask questions in: run  garageai connect" >&2
+  exit 1
+fi
 echo "Next:"
+echo "  garageai connect    connect this machine to GarageAI (you approve it in the browser)"
 echo "  garageai doctor     what runs on this machine, what is wrong, and how to fix it"
