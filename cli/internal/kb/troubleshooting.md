@@ -41,8 +41,8 @@ No GPU found (nvidia-smi, rocm-smi, Apple silicon). Fine for a test; a CPU garag
 ## NetBird (the mesh)
 
 ### `netbird_missing` (error)
-The NetBird client is not installed. Run the connect command from the portal: it installs the CLI
-client (no desktop app needed).
+The NetBird client is not installed. Run `garageai connect`: it installs the CLI client (no desktop
+app needed).
 
 Learned: before Bridge v0.2.3 the heartbeat (run by launchd with a minimal PATH) reported this
 falsely on Macs. The Operations Center ignores it while the gateway sees the garage on the mesh.
@@ -105,7 +105,7 @@ vLLM does not report cached prompt tokens, so buyers pay full price for prefix-c
 
 ### `heartbeat_missing` / `heartbeat_stopped` (warning)
 The heartbeat reports the garage's models every 5 minutes; without it, a model you load or remove
-is not picked up. Run the connect command again. The Operations Center also warns when a garage
+is not picked up. Run `garageai connect` again. The Operations Center also warns when a garage
 answers but has sent no heartbeat for 20 minutes.
 
 ### `heartbeat_rejected` (error)

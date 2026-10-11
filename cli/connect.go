@@ -145,11 +145,11 @@ type connectRun struct {
 	done    bool
 }
 
-func (c *connectRun) bold(s string) { fmt.Printf("\033[1m%s\033[0m\n", s) }
-func (c *connectRun) ok(s string)   { fmt.Printf("  \033[32m✓\033[0m %s\n", s) }
+func (c *connectRun) bold(s string) { fmt.Println(sgr("1", s)) }
+func (c *connectRun) ok(s string)   { fmt.Printf("  %s %s\n", sgr("32", "✓"), s) }
 func (c *connectRun) info(s string) { fmt.Printf("  %s\n", s) }
 func (c *connectRun) warn(s string) {
-	fmt.Fprintf(os.Stderr, "  \033[33m!\033[0m %s\n", s)
+	fmt.Fprintf(os.Stderr, "  %s %s\n", sgr("33", "!"), s)
 	c.report("warning", s, nil)
 }
 
@@ -189,7 +189,7 @@ func (c *connectRun) begin(step string) {
 
 // fail prints the error, reports it with the profile, and exits 1.
 func (c *connectRun) fail(msg string) {
-	fmt.Fprintf(os.Stderr, "  \033[31m✗\033[0m %s\n", msg)
+	fmt.Fprintf(os.Stderr, "  %s %s\n", sgr("31", "✗"), msg)
 	c.report("failed", msg, c.profile)
 	os.Exit(1)
 }

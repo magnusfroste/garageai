@@ -30,7 +30,13 @@ func link(o *Options, runtimeGiven bool) int {
 	if !runtimeGiven {
 		if kind, port, ok := pickRuntime(facts); ok {
 			o.Runtime, o.Port = kind, port
+		} else {
+			noRuntime("")
+			return 1
 		}
+	} else if !runtimeCheck(facts, o.Port) {
+		noRuntime(fmt.Sprintf(" on port %d", o.Port))
+		return 1
 	}
 	host := computerName(o.Name)
 	req := portal.LinkRequest{MachineID: machine.ID(), Hostname: host, OS: facts.Machine.OS, Arch: facts.Machine.Arch,
@@ -49,7 +55,8 @@ func link(o *Options, runtimeGiven bool) int {
 		}
 	}
 
-	fmt.Printf("\033[1mGarageAI Bridge %s — link this machine to your GarageAI account\033[0m\n\n", version)
+	fmt.Println(sgr("1", "GarageAI Bridge "+version+" — link this machine to your GarageAI account"))
+	fmt.Println()
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 	start, err := portal.StartLink(ctx, req)
@@ -58,18 +65,26 @@ func link(o *Options, runtimeGiven bool) int {
 		fmt.Fprintln(os.Stderr, "  Check the internet connection and run garageai connect again.")
 		return 1
 	}
-	fmt.Printf("  1. Open   %s\n", start.VerificationURL)
-	fmt.Printf("  2. Enter  \033[1m%s\033[0m\n", start.UserCode)
-	fmt.Println("  3. Check that it is this machine, choose the garage, and approve.")
+	fmt.Printf("  1. Open   %s\n", start.VerificationURLComplete)
+	fmt.Printf("     (or open %s and enter the code %s)\n", start.VerificationURL, sgr("1", start.UserCode))
+	fmt.Println("  2. Check that it is this machine, choose the garage, and approve.")
+	fmt.Println("     On a server without a browser, open the link on your laptop or phone.")
 	fmt.Println()
 	if openBrowser(start.VerificationURLComplete) {
 		fmt.Println("  (Opened in your browser. Signed out? Sign in, and the code is still filled in.)")
 	}
 	fmt.Println()
+	if !colorOn {
+		fmt.Println("  Waiting for your approval in the browser (10 minutes)...")
+	}
 	res, err := portal.WaitForLink(ctx, start, func(left time.Duration) {
-		fmt.Printf("\r  Waiting for your approval in the browser... %d:%02d left ", int(left.Minutes()), int(left.Seconds())%60)
+		if colorOn {
+			fmt.Printf("\r  Waiting for your approval in the browser... %d:%02d left ", int(left.Minutes()), int(left.Seconds())%60)
+		}
 	})
-	fmt.Print("\r\033[K")
+	if colorOn {
+		fmt.Print("\r\033[K")
+	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "  Stopped:", err)
 		return 130
@@ -86,7 +101,7 @@ func link(o *Options, runtimeGiven bool) int {
 		fmt.Printf("  The link ended (%s). Run garageai connect again.\n", res.Status)
 		return 1
 	}
-	fmt.Printf("  \033[32m✓\033[0m Approved: this machine is the garage \033[1m%s\033[0m\n\n", res.Garage.Name)
+	fmt.Printf("  %s Approved: this machine is the garage %s\n\n", sgr("32", "✓"), sgr("1", res.Garage.Name))
 
 	o.Name, o.RegisterURL, o.RegisterToken = res.Garage.Name, res.RegisterURL, res.RegisterToken
 	o.SetupKey, o.ManagementURL = res.SetupKey, res.ManagementURL
@@ -98,6 +113,28 @@ func link(o *Options, runtimeGiven bool) int {
 		os.Setenv(k, v)
 	}
 	return 0
+}
+
+// noRuntime stops before anything is sent to GarageAI: approving a machine that has nothing to sell
+// only costs the operator a round trip.
+func noRuntime(where string) {
+	fmt.Println(sgr("1", "GarageAI Bridge "+version))
+	fmt.Println()
+	fmt.Printf("  %s No inference runtime with a model answers on this machine%s.\n", sgr("31", "✗"), where)
+	fmt.Println("    Start one with a model loaded, then run garageai connect again. For example Ollama:")
+	fmt.Println("      install it from https://ollama.com/download, then: ollama pull qwen3:4b")
+	fmt.Println("    LM Studio, vLLM, llama.cpp and others work too; garageai doctor shows what it finds.")
+}
+
+var runtimeCheck = hasRuntimeOn // replaced in tests, which have no runtime
+
+func hasRuntimeOn(p profile.Profile, port int) bool {
+	for _, r := range p.Runtimes {
+		if r.Port == port {
+			return true
+		}
+	}
+	return false
 }
 
 var connectKinds = map[string]bool{"ollama": true, "lmstudio": true, "llamacpp": true, "vllm": true, "sglang": true,

@@ -122,7 +122,7 @@ func problems(p Profile) []Problem {
 	}
 	switch {
 	case !p.NetBird.Installed:
-		add("error", "netbird_missing", "NetBird is not installed", "Run the connect command from the GarageAI portal")
+		add("error", "netbird_missing", "NetBird is not installed", "Run: garageai connect (it installs NetBird)")
 	case !p.NetBird.Connected:
 		add("error", "netbird_disconnected", "NetBird is installed but not connected", "sudo netbird up, or get a new command from the portal")
 	}
@@ -142,9 +142,9 @@ func problems(p Profile) []Problem {
 	}
 	switch {
 	case p.GarageAI.ConfiguredRuntime != nil && !p.Heartbeat.Installed:
-		add("warning", "heartbeat_missing", "The heartbeat is not installed", "Run the connect command from the portal again")
+		add("warning", "heartbeat_missing", "The heartbeat is not installed", "Run: garageai connect")
 	case p.Heartbeat.Installed && !p.Heartbeat.Active:
-		add("warning", "heartbeat_stopped", "The heartbeat is installed but not running", "Run the connect command from the portal again")
+		add("warning", "heartbeat_stopped", "The heartbeat is installed but not running", "Run: garageai connect")
 	}
 	if prog := service.Program(); prog != "" {
 		if why := service.UnsafeProgram(prog); why != "" {

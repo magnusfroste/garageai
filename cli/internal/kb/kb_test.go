@@ -40,7 +40,7 @@ func TestSearch(t *testing.T) {
 	if len(got) == 0 || got[0].Code != "mac_sleeps" {
 		t.Fatalf("search: %+v", got)
 	}
-	if s := Explain("heartbeat_stopped"); len(s) != 1 || !strings.Contains(s[0].Body, "connect command") {
+	if s := Explain("heartbeat_stopped"); len(s) != 1 || !strings.Contains(s[0].Body, "garageai connect") {
 		t.Fatalf("explain heartbeat_stopped: %+v", s)
 	}
 }

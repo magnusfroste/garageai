@@ -76,6 +76,23 @@ func completePath() {
 	os.Setenv("PATH", path)
 }
 
+// colorOn: colours only on a terminal, and never with NO_COLOR (https://no-color.org).
+var colorOn = func() bool {
+	if os.Getenv("NO_COLOR") != "" || os.Getenv("TERM") == "dumb" {
+		return false
+	}
+	fi, err := os.Stdout.Stat()
+	return err == nil && fi.Mode()&os.ModeCharDevice != 0
+}()
+
+// sgr wraps s in an ANSI style (1 bold, 31 red, 32 green, 33 yellow) when colours are on.
+func sgr(code, s string) string {
+	if !colorOn {
+		return s
+	}
+	return "\033[" + code + "m" + s + "\033[0m"
+}
+
 func usage(code int) {
 	fmt.Fprintln(os.Stderr, `GarageAI Bridge — connects your GPU to the GarageAI network
 
