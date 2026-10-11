@@ -373,6 +373,8 @@ def garages(env, state, targets):
             # From the inside: the garage's own heartbeat and Bridge's report (gateway-targets).
             "heartbeat_min": minutes_since(t.get("last_heartbeat_at")),
             "agent": agent_report(t),
+            # The garage's heartbeat comes from another machine than the one it was linked to.
+            "machine_mismatch": t.get("machine_mismatch") is True,
         }
         if t.get("endpoint"):
             row["provider"] = provider_checks(t)
@@ -478,6 +480,48 @@ def ops_summary(env, state):
 
 
 # ---------------------------------------------------------------- onboarding
+def pctl(xs, p):
+    xs = sorted(xs)
+    return xs[min(len(xs) - 1, int(round(p * (len(xs) - 1))))] if xs else None
+
+
+def onboarding_funnel(d):
+    """How onboarding goes, from the portal's onboarding events (last 30 days): how many got live,
+    how long it took (Bridge and the script apart), where they failed and which problems doctor
+    found, and how the browser link went. The numbers every onboarding change is judged by."""
+    f = (d.get("business") or {}).get("onboarding_funnel")
+    if not isinstance(f, dict):
+        return None
+    sessions = [s for s in f.get("sessions") or [] if isinstance(s, dict)]
+    num = lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)
+
+    def stats(ss):
+        mins = [s["minutes_to_live"] for s in ss if num(s.get("minutes_to_live"))]
+        return {"sessions": len(ss), "live": len(mins), "median_minutes": pctl(mins, 0.5), "p90_minutes": pctl(mins, 0.9)}
+
+    def tool(s):
+        return "bridge" if "bridge" in f"{s.get('tool') or ''} {s.get('bridge_version') or ''}".lower() else "script"
+
+    failed, problems = {}, {}
+    for s in sessions:
+        for st in set(s.get("failed_steps") or []):
+            st = " ".join(str(st).split())
+            failed[st] = failed.get(st, 0) + 1
+        for c in set(s.get("problems") or []):
+            problems[str(c)] = problems.get(str(c), 0) + 1
+    top = lambda m: sorted(m.items(), key=lambda kv: -kv[1])[:8]
+    return {
+        **stats(sessions),
+        "by_tool": {t: stats([s for s in sessions if tool(s) == t]) for t in ("bridge", "script")},
+        # Where it started: the website's Connect page, or the terminal first (the browser link
+        # records which). Older onboardings have none.
+        "by_entry": {e: stats([s for s in sessions if s.get("entry") == e]) for e in ("web", "terminal")},
+        "failed_steps": top(failed), "problems": top(problems),
+        "links": f.get("links") if isinstance(f.get("links"), dict) else None,
+        "recent": sorted(sessions, key=lambda s: str(s.get("first_event_at") or ""), reverse=True)[:15],
+    }
+
+
 def onboarding(d):
     """Garages created in the portal but not registered yet: their last reported step, the problems
     from the garage profile, and how long they have been where they are."""
@@ -703,6 +747,9 @@ def alerts(d):
         if g["type"] == "mesh" and g["runtime_ok"] and g["mesh"] is not False and (g.get("heartbeat_min") or 0) >= HEARTBEAT_SILENT_MINUTES:
             add("warning", f"{g['garage']}: no heartbeat for {g['heartbeat_min']} min although it answers"
                            " (its heartbeat service stopped: model and context changes are not picked up)", "supply")
+        if g.get("machine_mismatch"):
+            add("warning", f"{g['garage']} reports from another machine than the one it was linked to"
+                           " (one garage name on two machines?)", "supply")
         ag = g.get("agent") or {}
         if ag and (ag.get("age_min") or 0) < HEARTBEAT_SILENT_MINUTES:
             for pr in ag.get("problems", []):
@@ -1313,6 +1360,7 @@ def main():
         "business": ops_summary(env, state),
     }
     data["onboarding"] = onboarding(data)
+    data["onboarding_funnel"] = onboarding_funnel(data)
     data["models"] = models(env, state, targets)
     data["quality_24h"] = {g: q["last_24h"] for g, q in (state.get("quality") or {}).items() if q.get("last_24h")}
     data["versions"] = versions(env, state, data["containers"])
