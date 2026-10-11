@@ -706,6 +706,12 @@ def alerts(d):
         ag = g.get("agent") or {}
         if ag and (ag.get("age_min") or 0) < HEARTBEAT_SILENT_MINUTES:
             for pr in ag.get("problems", []):
+                # What the gateway sees from outside beats the garage's own view: on the mesh and
+                # answering through it means NetBird runs and the runtime listens on the network.
+                if pr.get("code", "").startswith("netbird_") and g["mesh"]:
+                    continue
+                if pr.get("code") == "localhost_only" and g["runtime_ok"]:
+                    continue
                 # Bridge's errors are warnings here (the probes above say whether buyers are hurt);
                 # its warnings are info; its info is shown on the Supply page only.
                 level = {"error": "warning", "warning": "info"}.get(pr.get("severity"))
