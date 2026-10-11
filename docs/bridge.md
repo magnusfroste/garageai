@@ -68,6 +68,40 @@ heartbeat. Not yet: Windows service, pause, self-update, the firewall rule, embe
   norrivaagent's.
 - To explore: embed the NetBird client (Go, BSD-3) so connecting needs no separate NetBird install.
 
+### 1.5. Bridge tunnel — no NetBird on the garage, no sudo (decided 2026-10-10, spike first)
+
+Today a garage needs the NetBird client: a separate install, a system service with a login that
+can be lost (a macOS upgrade logged garage-m2 out), a tun device that needs root, and a runtime
+that listens on all addresses so the mesh can reach it. The model we want is cloudflared's: one
+program, an outbound tunnel, a local forward.
+
+- **Bridge terminates the tunnel itself:** WireGuard in user space (wireguard-go with its
+  netstack) inside Bridge. It connects outward to the gateway, accepts the gateway's requests on
+  the garage's mesh address inside its own stack, and forwards them to `127.0.0.1:<port>`.
+- **What that removes:** the NetBird install and login, the tun device and root, `OLLAMA_HOST`
+  and any exposure of the runtime to the home network, the firewall rule, and the difference
+  between Linux, macOS and Windows (netstack is pure Go). The heartbeat can run as a user
+  service. Onboarding becomes: run one command, no password.
+- **Hub, not mesh:** traffic only ever goes gateway ↔ garage, so the gateway runs one WireGuard
+  end with a public UDP port and every garage connects outward through its NAT. No STUN, signal
+  or relay. The portal hands out each garage's key pair and mesh address with the connect
+  command, and a blocked garage is a removed peer. A TCP fallback over 443 comes later for
+  networks that block UDP.
+- **What replaces NetBird's pieces:** peer status and last seen come from the WireGuard
+  handshake and Bridge's heartbeat; access rules are trivial (a garage sees only the gateway);
+  the dashboard is the Operations Center.
+- **Migration without a cut-over:** the gateway reaches old garages through NetBird and new ones
+  through the hub at the same time; a garage moves with one "New command". NetBird's management,
+  signal, relay and dashboard are switched off when the last garage has moved.
+- **Two ways were weighed.** Embedding NetBird's own client engine (netstack mode plus a
+  forwarder) keeps NetBird's server and dashboard but binds Bridge to internal APIs that change
+  often and a 40–60 MB binary. An own WireGuard hub is less code to depend on, less to run, and
+  fully ours. The hub was chosen as the end state.
+- **Spike (2–3 days) before building it:** wireguard-go netstack in Bridge against a WireGuard
+  end on the gateway, forward to a local runtime, measure throughput and reconnect behaviour,
+  and connect one real garage (the Mac) that way. The spike decides; if it holds, this is the
+  next big step and phase 2 follows on top of it.
+
 ### 2. Run the runtime — the right engine, configured right
 - **Recommend per hardware** (the engine-diversity principle, done by Bridge):
   - Ollama on a Mac, vLLM on NVIDIA with enough VRAM, llama.cpp for small cards.
@@ -143,5 +177,6 @@ heartbeat. Not yet: Windows service, pause, self-update, the firewall rule, embe
 | profile, onboarding reports | onboarding_events (+ profile), wizard progress, admin | Onboarding page, stuck alerts |
 | heartbeat with contexts | garage_models.context_length → LiteLLM limits | Models page checks against the runtime |
 | pause / planned stop | garage status *paused* | info, not critical; no reminders |
+| Bridge tunnel (hub) | key pair + mesh address per garage in the connect command | WireGuard end on the gateway; peer status from handshakes |
 | measured profile | routing facts, "verified" badge | quality per garage |
 | local endpoint, private garage | keys, sharing, billing | routing to private pools |
