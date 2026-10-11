@@ -9,7 +9,7 @@ const CTA = ({
   buttons = [
     {
       text: '🚀 Offer Your GPU',
-      url: 'https://app.garageai.eu/auth?intent=operator',
+      url: 'https://app.garageai.eu/connect',
       variant: 'primary',
     },
     {

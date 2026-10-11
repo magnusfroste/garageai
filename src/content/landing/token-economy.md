@@ -2,7 +2,7 @@
 section: "token-economy"
 title: "Pricing"
 subtitle: "Every garage sets its own price."
-description: "GarageAI has no price list of its own. Each garage sets a price per million tokens, input and output, for the models it offers. Buyers prepay credits and pay per token: the price of the garage that served the request. No subscriptions and no reserved-capacity contracts."
+description: "GarageAI has no price list of its own. Each garage sets a price per million tokens, input and output, for the models it offers. Buyers prepay credits and pay per token: the price of the garage that served the request. Cached input, a prompt prefix the garage has already processed, is billed at the garage's lower cache-read price. No subscriptions and no reserved-capacity contracts."
 order: 5
 buyOptions:
   - icon: "📍"
@@ -26,7 +26,7 @@ buyerNotes:
   - "Prepaid credits, topped up by card via Stripe"
   - "Usage is metered per API key and per model"
 operatorPoints:
-  - "You set your price per million tokens, input and output, when you create your garage"
+  - "You set your price per million tokens, input and output, plus a lower cache-read price for cached input, in the portal, and can change it any time"
   - "The same price applies when your garage serves requests through the pool"
   - "You earn your price for every token your garage serves. No platform fee during launch; a platform fee will be introduced later."
   - "Your earnings are tracked per token. Wallet and payouts are being built."

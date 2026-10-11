@@ -1,4 +1,41 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
+
+// A shell command with a copy button; long lines scroll inside the box, not the page.
+const CopyCommand = ({ command, note, color }) => {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(command);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+  return (
+    <div className="mt-3">
+      <div
+        className="flex items-stretch rounded-lg overflow-hidden"
+        style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.12)' }}
+      >
+        <pre className="flex-1 min-w-0 overflow-x-auto px-3 py-2 text-xs m-0" style={{ whiteSpace: 'pre', overflowWrap: 'normal' }}>
+          <code style={{ color: 'var(--color-text-primary)' }}>{command}</code>
+        </pre>
+        <button
+          type="button"
+          onClick={copy}
+          className="shrink-0 px-3 text-xs font-bold"
+          style={{ background: color, color: '#000' }}
+          aria-label="Copy command"
+        >
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+      </div>
+      {note && <p className="mt-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>{note}</p>}
+    </div>
+  );
+};
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -47,7 +84,7 @@ const HowItWorks = ({
               key={track.id}
               id={track.id}
               variants={itemVariants}
-              className="apple-card flex flex-col"
+              className="apple-card flex flex-col min-w-0"
               style={{ border: `1px solid ${track.color}` }}
             >
               <div className="flex items-center gap-3 mb-2">
@@ -55,6 +92,12 @@ const HowItWorks = ({
                 <h3 className="text-2xl font-black" style={{ color: track.color }}>{track.title}</h3>
               </div>
               <p className="text-sm mb-6" style={{ color: 'var(--color-text-muted)' }}>{track.tagline}</p>
+              {track.requirements && (
+                <p className="text-sm mb-6 -mt-3" style={{ color: 'var(--color-text-secondary)' }}>
+                  <strong style={{ color: 'var(--color-text-primary)' }}>You need: </strong>
+                  {track.requirements}
+                </p>
+              )}
 
               <ol className="space-y-5 flex-1">
                 {(track.steps || []).map((step, i) => (
@@ -65,9 +108,10 @@ const HowItWorks = ({
                     >
                       {i + 1}
                     </span>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <h4 className="font-bold mb-1" style={{ color: 'var(--color-text-primary)' }}>{step.title}</h4>
                       <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{step.text}</p>
+                      {step.command && <CopyCommand command={step.command} note={step.commandNote} color={track.color} />}
                     </div>
                   </li>
                 ))}

@@ -29,7 +29,7 @@ rows:
   - feature: "Operators open no inbound ports"
     values: ["yes", "partial", "no", "n/a"]
     note: "The garage opens one outgoing WireGuard tunnel; only the gateway can reach the runtime port."
-  - feature: "Onboarding from a web wizard in minutes"
+  - feature: "Live in minutes: one line, approve in the browser"
     values: ["yes", "partial", "no", "n/a"]
     note: "Create a garage, run one command, pass the acceptance test, go live."
 legend:

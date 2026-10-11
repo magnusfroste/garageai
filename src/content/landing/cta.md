@@ -7,7 +7,7 @@ secondaryText: "The mesh, the gateway and the portal are live, and the first gar
 icon: "🏠"
 buttons:
   - text: "🚀 Offer Your GPU"
-    url: "https://app.garageai.eu/auth?intent=operator"
+    url: "https://app.garageai.eu/connect"
     variant: "primary"
   - text: "⚡ Use AI"
     url: "https://app.garageai.eu/auth?intent=buyer"

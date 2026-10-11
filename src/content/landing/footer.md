@@ -10,7 +10,7 @@ links:
     url: "https://app.garageai.eu/auth"
   - icon: "🏠"
     text: "Offer Your GPU"
-    url: "https://app.garageai.eu/auth?intent=operator"
+    url: "https://app.garageai.eu/connect"
   - icon: "⚡"
     text: "Use AI"
     url: "https://app.garageai.eu/auth?intent=buyer"
