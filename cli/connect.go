@@ -300,6 +300,12 @@ func connect(args []string) int {
 		c.fail("netbird is not installed and --skip-install was given.")
 	} else {
 		c.info("NetBird is not installed. It will be installed from https://pkgs.netbird.io/install.sh")
+		for _, pr := range c.facts.Problems {
+			if pr.Code == "other_vpn" {
+				c.info(pr.Message + ".")
+				c.info("Your other VPN keeps working: " + pr.Fix + ".")
+			}
+		}
 		if !c.confirm("Install NetBird now?") {
 			c.fail("Aborted. Install NetBird yourself (https://netbird.io) and run the command again.")
 		}

@@ -128,25 +128,77 @@ func netbird() NetBird {
 	return nb
 }
 
-func meshIPFromInterfaces() string {
+// MeshNet is GarageAI's NetBird network. Only an address inside it is the garage's mesh address:
+// Tailscale and other WireGuard VPNs also hand out 100.64.0.0/10 addresses on utun interfaces, and
+// one of those must never be taken for the mesh (GARAGEAI_MESH_CIDR overrides, for other setups).
+func MeshNet() *net.IPNet {
+	cidr := os.Getenv("GARAGEAI_MESH_CIDR")
+	if cidr == "" {
+		cidr = "100.83.0.0/16"
+	}
+	_, n, err := net.ParseCIDR(cidr)
+	if err != nil {
+		_, n, _ = net.ParseCIDR("100.83.0.0/16")
+	}
+	return n
+}
+
+var cgnat = &net.IPNet{IP: net.IPv4(100, 64, 0, 0).To4(), Mask: net.CIDRMask(10, 32)}
+
+// tunnelAddrs: the IPv4 addresses on tunnel interfaces (wt*, nb*, utun*, tailscale*, zt*) in 100.64.0.0/10.
+func tunnelAddrs() []net.IP {
+	var out []net.IP
 	ifaces, err := net.Interfaces()
 	if err != nil {
-		return ""
+		return nil
 	}
 	for _, it := range ifaces {
-		if !(strings.HasPrefix(it.Name, "wt") || strings.HasPrefix(it.Name, "nb") || strings.HasPrefix(it.Name, "utun")) {
+		n := it.Name
+		if !(strings.HasPrefix(n, "wt") || strings.HasPrefix(n, "nb") || strings.HasPrefix(n, "utun") || strings.HasPrefix(n, "tailscale") || strings.HasPrefix(n, "zt")) {
 			continue
 		}
 		addrs, _ := it.Addrs()
 		for _, a := range addrs {
 			if ipn, ok := a.(*net.IPNet); ok {
-				if v4 := ipn.IP.To4(); v4 != nil && v4[0] == 100 && v4[1] >= 64 && v4[1] <= 127 {
-					return v4.String()
+				if v4 := ipn.IP.To4(); v4 != nil && cgnat.Contains(v4) {
+					out = append(out, v4)
 				}
 			}
 		}
 	}
+	return out
+}
+
+func meshIPFromInterfaces() string {
+	mesh := MeshNet()
+	for _, ip := range tunnelAddrs() {
+		if mesh.Contains(ip) {
+			return ip.String()
+		}
+	}
 	return ""
+}
+
+// otherVPNs names other mesh VPNs on this machine (Tailscale, ZeroTier): they run next to NetBird,
+// and operators worry that they do not.
+func otherVPNs() []string {
+	var out []string
+	_, tsApp := os.Stat("/Applications/Tailscale.app")
+	_, tsCLI := exec.LookPath("tailscale")
+	foreign := false
+	mesh := MeshNet()
+	for _, ip := range tunnelAddrs() {
+		if !mesh.Contains(ip) {
+			foreign = true
+		}
+	}
+	if tsApp == nil || tsCLI == nil || foreign {
+		out = append(out, "Tailscale")
+	}
+	if _, err := exec.LookPath("zerotier-cli"); err == nil {
+		out = append(out, "ZeroTier")
+	}
+	return out
 }
 
 func firewall() Firewall {

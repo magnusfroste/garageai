@@ -120,6 +120,10 @@ func problems(p Profile) []Problem {
 				"Add --enable-prompt-tokens-details to the vLLM command")
 		}
 	}
+	if vpns := otherVPNs(); len(vpns) > 0 {
+		add("info", "other_vpn", strings.Join(vpns, " and ")+" is installed: NetBird runs next to it and only routes GarageAI's "+MeshNet().String(),
+			"Nothing to do. Only a device of yours with an address in "+MeshNet().String()+" would be out of reach while NetBird is on")
+	}
 	switch {
 	case !p.NetBird.Installed:
 		add("error", "netbird_missing", "NetBird is not installed", "Run: garageai connect (it installs NetBird)")

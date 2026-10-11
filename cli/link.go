@@ -38,9 +38,9 @@ func link(o *Options, runtimeGiven bool) int {
 		noRuntime(fmt.Sprintf(" on port %d", o.Port))
 		return 1
 	}
-	host := computerName(o.Name)
-	req := portal.LinkRequest{MachineID: machine.ID(), Hostname: host, OS: facts.Machine.OS, Arch: facts.Machine.Arch,
-		BridgeVersion: version, Runtime: o.Runtime, SuggestedName: suggestName(host)}
+	host, mid := computerName(o.Name), machine.ID()
+	req := portal.LinkRequest{MachineID: mid, Hostname: host, OS: facts.Machine.OS, Arch: facts.Machine.Arch,
+		BridgeVersion: version, Runtime: o.Runtime, SuggestedName: suggestName(host, mid)}
 	if facts.Machine.MemoryGB != nil {
 		req.MemoryGB = *facts.Machine.MemoryGB
 	}
@@ -169,15 +169,38 @@ func pickRuntime(p profile.Profile) (string, int, bool) {
 
 var notName = regexp.MustCompile(`[^a-z0-9-]+`)
 
-// suggestName turns a hostname ("Magnus's MacBook Air") into a garage name ("magnuss-macbook-air").
-func suggestName(host string) string {
-	n := strings.NewReplacer(" ", "-", "’", "", "'", "").Replace(strings.ToLower(host))
-	n = strings.Trim(regexp.MustCompile(`-+`).ReplaceAllString(notName.ReplaceAllString(n, ""), "-"), "-")
-	if len(n) > 40 {
-		n = strings.Trim(n[:40], "-")
+var (
+	possessiveEN = regexp.MustCompile(`(?i)^.+?['’]s\s+(.+)$`)                        // "Magnus's MacBook Air"
+	possessiveSV = regexp.MustCompile(`(?i)^(.+?)\s+(som tillhör|tillhörande)\s+.+$`) // "Mac mini som tillhör Erik Hedin"
+	fold         = strings.NewReplacer("å", "a", "ä", "a", "ö", "o", "æ", "ae", "ø", "o", "é", "e", "è", "e", "ü", "u", "ß", "ss")
+)
+
+// suggestName turns the computer's name into a garage name. Garage names are public (they are in
+// the model names buyers see), so a person's name in it ("Magnus's MacBook Air", "Mac mini som
+// tillhör Erik Hedin") is dropped: the device stays, with four characters of the machine id to keep
+// it unique ("macbook-air-3f9a"). Letters like å, ä, ö become a, a, o.
+func suggestName(host, machineID string) string {
+	device, personal := host, false
+	if m := possessiveEN.FindStringSubmatch(host); m != nil {
+		device, personal = m[1], true
+	} else if m := possessiveSV.FindStringSubmatch(host); m != nil {
+		device, personal = m[1], true
+	}
+	n := name(device)
+	if personal && len(machineID) >= 6 {
+		n = strings.Trim(n+"-"+machineID[2:6], "-")
 	}
 	if len(n) < 2 {
 		return ""
+	}
+	return n
+}
+
+func name(s string) string {
+	n := strings.NewReplacer(" ", "-", "’", "", "'", "").Replace(fold.Replace(strings.ToLower(s)))
+	n = strings.Trim(regexp.MustCompile(`-+`).ReplaceAllString(notName.ReplaceAllString(n, ""), "-"), "-")
+	if len(n) > 35 {
+		n = strings.Trim(n[:35], "-")
 	}
 	return n
 }
