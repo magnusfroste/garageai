@@ -40,6 +40,7 @@ type Registration struct {
 	Contexts      map[string]int `json:"contexts,omitempty"`
 	RuntimeAPIKey string         `json:"runtime_api_key,omitempty"`
 	Agent         *Agent         `json:"agent,omitempty"`
+	MachineID     string         `json:"machine_id,omitempty"`
 }
 
 // Agent is what the heartbeat tells the portal about Bridge itself and the machine it runs on, so
@@ -144,6 +145,7 @@ type Report struct {
 	GPU           string          `json:"gpu"`
 	MemoryGB      string          `json:"memory_gb"`
 	Profile       json.RawMessage `json:"profile,omitempty"`
+	MachineID     string          `json:"machine_id,omitempty"`
 }
 
 func (c *Client) Report(r Report) {

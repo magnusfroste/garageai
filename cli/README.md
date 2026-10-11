@@ -9,8 +9,16 @@ step with Bridge by `scripts/tests/parity-doctor.sh`. The vision and the phases 
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.sh | sh
-garageai doctor
+garageai connect
 ```
+
+`garageai connect` without options links the machine in the browser: Bridge shows a code and opens
+app.garageai.eu/bridge/link, the operator checks that it is their machine, chooses the garage and
+approves, and Bridge picks up the garage's credentials itself. No command with a token is copied or
+shown. Bridge finds the runtime (one with models, preferably reachable over the mesh) unless
+`--runtime`/`--port` say otherwise, and suggests the garage name from the computer's name. Every
+report, registration and heartbeat carries a machine id (the OS's id, hashed), so the portal warns
+when a garage suddenly reports from another machine.
 
 ## Commands
 

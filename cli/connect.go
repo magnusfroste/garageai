@@ -17,6 +17,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/magnusfroste/garageai/cli/internal/machine"
 	"github.com/magnusfroste/garageai/cli/internal/netbird"
 	"github.com/magnusfroste/garageai/cli/internal/portal"
 	"github.com/magnusfroste/garageai/cli/internal/profile"
@@ -172,7 +173,7 @@ func (c *connectRun) report(status, msg string, prof json.RawMessage) {
 	}
 	c.portal.Report(portal.Report{Step: c.step, Status: status, Message: msg, ScriptVersion: version + " (bridge)",
 		NodeName: c.o.Name, Runtime: c.o.Runtime, Port: strconv.Itoa(c.o.Port), OS: c.facts.Machine.OS,
-		Arch: c.facts.Machine.Arch, GPU: gpu, MemoryGB: mem, Profile: prof})
+		Arch: c.facts.Machine.Arch, GPU: gpu, MemoryGB: mem, Profile: prof, MachineID: machine.ID()})
 }
 
 func (c *connectRun) begin(step string) {
@@ -261,6 +262,13 @@ func connect(args []string) int {
 		fmt.Fprintln(os.Stderr, "garageai connect:", err)
 		return 2
 	}
+	// No token: link this machine in the browser (the default since the portal stopped showing
+	// commands with tokens). It runs as the operator, before the root half.
+	if o.RegisterToken == "" && os.Getenv("GARAGEAI_NO_LINK") == "" {
+		if code := link(&o, runtimeGiven(args)); code != 0 {
+			return code
+		}
+	}
 	if os.Geteuid() != 0 && runtime.GOOS != "windows" {
 		return asRoot(args)
 	}
@@ -309,7 +317,7 @@ func connect(args []string) int {
 	case meshIP != "" && o.SetupKey == "":
 		c.ok("Already on the mesh (no setup key given, keeping the current connection)")
 	case o.SetupKey == "":
-		c.fail("This machine is not on the mesh and no setup key was given. Get a new command from the portal: My garages → New command (it includes a setup key when the garage is not connected).")
+		c.fail("This machine is not on the mesh and no setup key was given. Run garageai connect without options: you approve this machine in the browser and Bridge gets a setup key.")
 	case o.ManagementURL == "":
 		c.fail("No management URL. Pass --management-url (you get it from GarageAI).")
 	default:
@@ -412,7 +420,7 @@ func connect(args []string) int {
 	// 5. Register
 	c.begin("5/6  Register with GarageAI")
 	reg := portal.Registration{Name: o.Name, MeshIP: meshIP, Port: o.Port, Runtime: o.Runtime, Models: offered,
-		Contexts: onlyOffered(contexts, offered), RuntimeAPIKey: o.RuntimeAPIKey}
+		Contexts: onlyOffered(contexts, offered), RuntimeAPIKey: o.RuntimeAPIKey, MachineID: machine.ID()}
 	if c.portal == nil {
 		c.done = true
 		c.info("No --register-url given. Send these details to GarageAI to activate the node:")
