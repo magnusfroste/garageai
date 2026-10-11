@@ -64,7 +64,7 @@ func probe(port int, binds []string, owner Listener) *Runtime {
 			rt.OllamaLoaded = ollamaLoaded(base)
 		}
 	}
-	if rt.Kind == "" && strings.Contains(strings.ToLower(owner.Process), "ollama") {
+	if rt.Kind == "" && ollamaRunner(owner.Process, rt.Models) {
 		// Ollama's internal runner: a localhost port per loaded model, not the API buyers reach.
 		return nil
 	}
@@ -85,6 +85,21 @@ func probe(port int, binds []string, owner Listener) *Runtime {
 		}
 	}
 	return rt
+}
+
+// ollamaRunner: the process Ollama starts for a loaded model. Its name is "ollama" (Ollama's own
+// engine) or "llama-server" (llama.cpp), and its model is a file in Ollama's blob store.
+func ollamaRunner(process string, models []Model) bool {
+	if strings.Contains(strings.ToLower(process), "ollama") {
+		return true
+	}
+	for _, m := range models {
+		id := strings.ReplaceAll(m.ID, `\`, "/")
+		if strings.Contains(id, "/.ollama/models/blobs/") || strings.Contains(id, "/ollama/models/blobs/") {
+			return true
+		}
+	}
+	return false
 }
 
 func kindOf(s string) string {

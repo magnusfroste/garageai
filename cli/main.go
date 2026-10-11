@@ -163,12 +163,23 @@ func printHuman(p profile.Profile) {
 			reach = "reachable over the mesh"
 		}
 		fmt.Printf("  Runtime  %s on port %d (%s), %d model(s), listens on %s: %s\n", rt.Kind, rt.Port, rt.API, len(rt.Models), strings.Join(rt.Binds, " "), reach)
-		for _, m := range rt.Models {
-			ctx := "?"
-			if m.Context != nil {
-				ctx = fmt.Sprint(*m.Context)
+		loaded := map[string]int{}
+		for _, l := range rt.OllamaLoaded {
+			if l.Context != nil {
+				loaded[l.Name] = *l.Context
 			}
-			fmt.Printf("             %s (context %s)\n", m.ID, ctx)
+		}
+		for _, m := range rt.Models {
+			ctx := "context ?"
+			switch {
+			case m.Context != nil:
+				ctx = fmt.Sprintf("context %d", *m.Context)
+			case loaded[m.ID] > 0:
+				ctx = fmt.Sprintf("loaded, context %d", loaded[m.ID])
+			case rt.Kind == "ollama":
+				ctx = "not loaded; Ollama loads it on the first request"
+			}
+			fmt.Printf("             %s (%s)\n", m.ID, ctx)
 		}
 	}
 	fmt.Println()

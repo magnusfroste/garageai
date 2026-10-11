@@ -72,8 +72,9 @@ The runtime listens on 127.0.0.1 only, so the gateway cannot reach it over the m
 - **LM Studio:** Developer → Settings → *Serve on Local Network*.
 
 The mesh is private (only the gateway can reach a garage), so listening on all interfaces is what
-we want. Learned: Ollama's internal runner has its own localhost port while a model is loaded;
-doctor before v0.2.3 reported it as a llama.cpp on localhost.
+we want. Learned: Ollama's internal runner has its own localhost port while a model is loaded. It
+is a process called `ollama` or `llama-server`, and its model is a file in `~/.ollama/models/blobs/`.
+Doctor before v0.2.6 could report it as a llama.cpp on localhost: ignore that, it is not a problem.
 
 ### `ollama_host_not_persistent` (warning, macOS)
 Ollama listens on the network now, but will not after a restart. Use the Ollama app's *Expose

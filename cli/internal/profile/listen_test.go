@@ -174,3 +174,13 @@ func TestAirPlayIsNotARuntime(t *testing.T) {
 		t.Errorf("a runtime that wants a key was not found: %+v", rt)
 	}
 }
+
+func TestOllamaRunner(t *testing.T) {
+	blob := []Model{{ID: "/Users/mafr/.ollama/models/blobs/sha256-3e4c"}}
+	if !ollamaRunner("llama-server", blob) || !ollamaRunner("ollama", nil) {
+		t.Fatal("Ollama's runner not recognised")
+	}
+	if ollamaRunner("llama-server", []Model{{ID: "qwen2.5-7b-instruct-q4_k_m.gguf"}}) {
+		t.Fatal("a real llama-server taken for Ollama's runner")
+	}
+}
