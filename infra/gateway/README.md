@@ -190,7 +190,7 @@ LiteLLM's spend tracking per key and model is the basis for operator payouts.
 
 - **Back up:** `/opt/garageai/netbird/config.yaml`, `/opt/garageai/litellm/.env`, and the Docker
   volumes `netbird_data` and `pgdata`.
-- **Upgrade LiteLLM:** change `LITELLM_VERSION` in `.env`, then `docker compose pull && docker compose up -d`.
+- **Upgrade LiteLLM:** pull the new image first, run `tests/test_callbacks.py` inside it (`docker run --rm -i -v /opt/garageai/litellm/garageai_callbacks.py:/app/garageai_callbacks.py:ro --entrypoint python ghcr.io/berriai/litellm:vX - /app/garageai_callbacks.py < infra/gateway/litellm/tests/test_callbacks.py`), then in a quiet window change `LITELLM_VERSION` in `.env` and `docker compose up -d litellm` (about 50 s). Afterwards check every routed model answers, /v1/messages with a system message mid-conversation, streaming, and that no `x-litellm-*` or `llm_provider-*` header reaches the client. Rollback: set the old version back; the image is still cached.
 - **NetBird versions are pinned.** The installer writes `netbirdio/netbird-server:latest` and
   `netbirdio/dashboard:latest`; `/opt/garageai/netbird/docker-compose.yml` pins them to the
   versions that run (0.80.0 and v2.94.0 since 2026-10-09), so a restart never upgrades by

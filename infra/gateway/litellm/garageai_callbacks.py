@@ -268,6 +268,12 @@ class GarageAICallbacks(CustomLogger):
         return data
 
     async def async_post_call_success_hook(self, data, user_api_key_dict, response):
+        # The provider's raw response headers would reach the buyer as llm_provider-* headers
+        # (OpenRouter's x-generation-id names the provider, which buyers must never see). Drop them
+        # all here; Traefik strips the proxy's own x-litellm-* headers by name.
+        hp = getattr(response, "_hidden_params", None)
+        if isinstance(hp, dict) and hp.get("additional_headers"):
+            hp["additional_headers"] = {}
         rid = response.get("id") if isinstance(response, dict) else getattr(response, "id", None)
         if isinstance(rid, str) and rid.startswith("resp_") and _is_anthropic(request_data=data):
             neutral = "msg_" + hashlib.sha256(rid.encode()).hexdigest()[:24]
