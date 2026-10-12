@@ -57,6 +57,44 @@ func Save(c *Config) error {
 	if err := os.WriteFile(tmp, b, 0o600); err != nil {
 		return err
 	}
+	if err := os.Rename(tmp, p); err != nil {
+		return err
+	}
+	return WritePublic(c)
+}
+
+// Public is the configuration without secrets: what doctor, run as a normal user, may know.
+type Public struct {
+	Name        string `json:"name"`
+	Runtime     string `json:"runtime"`
+	Port        int    `json:"port"`
+	Transport   string `json:"transport,omitempty"`
+	MeshIP      string `json:"mesh_ip,omitempty"`
+	HubEndpoint string `json:"hub_endpoint,omitempty"`
+}
+
+func PublicPath() string {
+	if runtime.GOOS == "windows" {
+		return filepath.Join(os.Getenv("ProgramData"), "GarageAI", "bridge-public.json")
+	}
+	return "/etc/garageai/bridge-public.json"
+}
+
+func (c *Config) Public() Public {
+	return Public{Name: c.Name, Runtime: c.Runtime, Port: c.Port, Transport: c.Transport, MeshIP: c.MeshIP, HubEndpoint: c.HubEndpoint}
+}
+
+// WritePublic writes the secret-free configuration world-readable (0644), next to the root-only
+// one. bridge.json is 0600, so doctor run by the operator could not see the transport or the port
+// and reported NetBird problems on a tunnel garage (dgx-city, 2026-10-12). The heartbeat writes it
+// too, so garages set up before this file existed get it on their next run.
+func WritePublic(c *Config) error {
+	p := PublicPath()
+	b, _ := json.MarshalIndent(c.Public(), "", "  ")
+	tmp := p + ".tmp"
+	if err := os.WriteFile(tmp, b, 0o644); err != nil {
+		return err
+	}
 	return os.Rename(tmp, p)
 }
 
@@ -137,6 +175,7 @@ func Remove() {
 	}
 	RemoveTunnel()
 	os.Remove(ConfigPath())
+	os.Remove(PublicPath())
 	if runtime.GOOS != "windows" {
 		os.Remove(BinaryPath())
 		os.Remove(filepath.Dir(BinaryPath())) // only when empty

@@ -3,6 +3,7 @@
 package service
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -32,5 +33,21 @@ func TestProgramFromPlist(t *testing.T) {
 	unit := "[Service]\nType=oneshot\nExecStart=/usr/local/lib/garageai/garageai run --once\n"
 	if m := unitProgram.FindStringSubmatch(unit); m == nil || m[1] != "/usr/local/lib/garageai/garageai" {
 		t.Fatalf("unit: %v", m)
+	}
+}
+
+func TestPublicHasNoSecrets(t *testing.T) {
+	c := &Config{Name: "g", Runtime: "vllm", Port: 8000, RegisterToken: "grg_secret", RuntimeAPIKey: "sk-secret", Transport: "tunnel", MeshIP: "10.66.0.6", HubPublicKey: "hubpub", HubEndpoint: "api.garageai.eu:51830"}
+	b, _ := json.Marshal(c.Public())
+	s := string(b)
+	for _, secret := range []string{"grg_secret", "sk-secret", "hubpub"} {
+		if strings.Contains(s, secret) {
+			t.Fatalf("public config leaks %q: %s", secret, s)
+		}
+	}
+	for _, want := range []string{`"transport":"tunnel"`, `"mesh_ip":"10.66.0.6"`, `"port":8000`} {
+		if !strings.Contains(s, want) {
+			t.Fatalf("public config lacks %s: %s", want, s)
+		}
 	}
 }
