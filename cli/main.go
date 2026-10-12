@@ -48,6 +48,8 @@ func main() {
 		os.Exit(installService())
 	case "mcp":
 		os.Exit(mcpServe(os.Stdin, os.Stdout))
+	case "tunnel":
+		os.Exit(tunnelCmd())
 	case "help", "--help", "-h":
 		usage(0)
 	default:
@@ -103,12 +105,15 @@ usage:
       --register-url URL --register-token TOK  (from the portal's command)
       --runtime ollama|lmstudio|llamacpp|vllm|sglang|paddock|unsloth|mlx|lemonade|other
       --port N  --name NAME  --models a,b  --runtime-api-key KEY  --skip-install  --no-heartbeat  --yes
+      --tunnel bridge              Bridge carries the tunnel itself: no NetBird, no sudo for the network,
+                                   and the runtime can stay on localhost (default: netbird)
       Every option can also be given as GARAGEAI_SETUP_KEY, GARAGEAI_REGISTER_TOKEN, ... in the environment.
   garageai doctor [--json]     what runs on this machine, what is wrong, and how to fix it
   garageai run [--once]        the heartbeat: report the runtime's models (the service runs this)
   garageai uninstall           remove the heartbeat and Bridge's configuration
   garageai install-service     make the heartbeat service run this version (the installer does this)
   garageai mcp                 Bridge's tools for your own AI agent (MCP over stdio)
+  garageai tunnel              this garage's own tunnel to the gateway (the installed service runs this)
   garageai version`)
 	os.Exit(code)
 }

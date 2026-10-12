@@ -99,6 +99,8 @@ type Heartbeat struct {
 type GarageAI struct {
 	ConfiguredRuntime *string `json:"configured_runtime"`
 	ConfiguredPort    *int    `json:"configured_port"`
+	Transport         string  `json:"transport,omitempty"` // "tunnel" when Bridge carries the tunnel itself
+	TunnelIP          string  `json:"tunnel_ip,omitempty"`
 }
 
 type Problem struct {

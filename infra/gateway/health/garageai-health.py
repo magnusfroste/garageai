@@ -59,6 +59,22 @@ def load_targets(portal, gw_key, targets_file):
     return [], "none"
 
 
+HUB_STATUS = "/var/lib/garageai-hub/status.json"
+HUB_FRESH = 180   # a Bridge tunnel handshakes at least every 25 s (keepalive); silent 3 min is down
+
+
+def tunnel_connected():
+    """{tunnel ip: connected} from the Bridge tunnel hub's status, or None when the hub is not running."""
+    try:
+        with open(HUB_STATUS) as f:
+            st = json.load(f)
+    except (OSError, ValueError):
+        return None
+    now = time.time()
+    return {p["ip"]: bool(p.get("latest_handshake")) and now - p["latest_handshake"] < HUB_FRESH
+            for p in (st.get("peers") or {}).values() if p.get("ip")}
+
+
 def peers_connected(nb_url, nb_token):
     """{peer_id: connected, name: connected} from the NetBird management API, or None."""
     try:
@@ -97,6 +113,7 @@ def main():
     nb_token = os.environ.get("NETBIRD_API_TOKEN", "")
     targets, source = load_targets(portal, gw_key, os.environ.get("GARAGEAI_TARGETS_FILE"))
     connected = peers_connected(nb_url, nb_token) if nb_url and nb_token else None
+    tunnels = tunnel_connected()
 
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     results = []
@@ -106,6 +123,13 @@ def main():
             # A provider behind a public HTTPS endpoint: no tunnel to check.
             mesh = None
             runtime_ok, err, models = check_runtime(None, None, t.get("runtime_api_key"), url=t.get("url"))
+        elif t.get("transport") == "tunnel":
+            # A Bridge tunnel garage: the hub's latest handshake says whether it is connected.
+            mesh = None if tunnels is None else tunnels.get(t.get("host"), False)
+            if mesh is False:
+                runtime_ok, err, models = False, "tunnel_disconnected", None
+            else:
+                runtime_ok, err, models = check_runtime(t["host"], t["port"], t.get("runtime_api_key"))
         else:
             mesh = None if connected is None else connected.get(peer, connected.get("name:" + t["garage"], False))
             if mesh is False:

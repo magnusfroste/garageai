@@ -14,10 +14,14 @@
 # browser), so one line installs and connects:
 #
 #   curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.sh | sh -s -- connect
+#
+# Options after `connect` go to it, so one line also connects with the Bridge tunnel (no NetBird):
+#
+#   curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.sh | sh -s -- connect --tunnel bridge
 set -eu
 
 then=""
-[ "${1:-}" = "connect" ] && then=connect
+if [ "${1:-}" = "connect" ]; then then=connect; shift; fi   # the rest are connect's options (e.g. --tunnel bridge)
 
 REPO="${GARAGEAI_BRIDGE_REPO:-magnusfroste/garageai}"
 VERSION="${GARAGEAI_BRIDGE_VERSION:-latest}"
@@ -89,7 +93,7 @@ echo ""
 if [ "$then" = connect ]; then
   # stdin is the script itself (curl | sh): connect asks questions, so give it the terminal.
   if (: </dev/tty) 2>/dev/null; then
-    exec "$dest" connect </dev/tty
+    exec "$dest" connect "$@" </dev/tty
   fi
   echo "No terminal to ask questions in: run  garageai connect" >&2
   exit 1

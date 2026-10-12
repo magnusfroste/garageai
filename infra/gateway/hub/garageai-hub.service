@@ -1,0 +1,13 @@
+[Unit]
+Description=GarageAI Bridge tunnel hub (wg-hub, peers from the portal)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/garageai-hub
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

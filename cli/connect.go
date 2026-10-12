@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/netip"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -23,6 +24,7 @@ import (
 	"github.com/magnusfroste/garageai/cli/internal/profile"
 	rt "github.com/magnusfroste/garageai/cli/internal/runtime"
 	"github.com/magnusfroste/garageai/cli/internal/service"
+	"github.com/magnusfroste/garageai/cli/internal/tunnel"
 )
 
 // Options mirror garageai-connect.sh: every flag can also be given as GARAGEAI_* in the
@@ -41,6 +43,7 @@ type Options struct {
 	NoHeartbeat   bool
 	Yes           bool
 	MeshWait      time.Duration
+	Tunnel        string // "netbird" (default) or "bridge" (docs/bridge-tunnel.md)
 }
 
 func optionsFromEnv() Options {
@@ -53,7 +56,7 @@ func optionsFromEnv() Options {
 		Runtime: env("GARAGEAI_RUNTIME", "ollama"), Name: env("GARAGEAI_NODE_NAME", host),
 		RuntimeAPIKey: os.Getenv("GARAGEAI_RUNTIME_API_KEY"), Models: os.Getenv("GARAGEAI_MODELS"),
 		RegisterURL: os.Getenv("GARAGEAI_REGISTER_URL"), RegisterToken: os.Getenv("GARAGEAI_REGISTER_TOKEN"),
-		MeshWait: 90 * time.Second,
+		MeshWait: 90 * time.Second, Tunnel: env("GARAGEAI_TUNNEL", "netbird"),
 	}
 	o.Port, _ = strconv.Atoi(os.Getenv("GARAGEAI_PORT"))
 	if s, err := strconv.Atoi(os.Getenv("GARAGEAI_MESH_WAIT_SECONDS")); err == nil && s > 0 {
@@ -103,6 +106,8 @@ func parseConnectArgs(args []string, o *Options) error {
 			o.RegisterURL, err = next()
 		case "--register-token":
 			o.RegisterToken, err = next()
+		case "--tunnel":
+			o.Tunnel, err = next()
 		case "--skip-install":
 			o.SkipInstall = true
 		case "--no-heartbeat":
@@ -127,6 +132,9 @@ func parseConnectArgs(args []string, o *Options) error {
 	}
 	if strings.HasPrefix(o.RuntimeAPIKey, "<") || strings.HasPrefix(o.RuntimeAPIKey, "YOUR_") {
 		return errors.New("replace the placeholder in --runtime-api-key with your runtime's real API key, or leave it out")
+	}
+	if o.Tunnel != "netbird" && o.Tunnel != "bridge" {
+		return fmt.Errorf("--tunnel must be netbird or bridge, not %q", o.Tunnel)
 	}
 	if o.RegisterURL != "" && o.RegisterToken == "" {
 		return errors.New("--register-url given without --register-token (or GARAGEAI_REGISTER_TOKEN)")
@@ -219,7 +227,8 @@ func asRoot(args []string) int {
 		"GARAGEAI_PORT": os.Getenv("GARAGEAI_PORT"), "GARAGEAI_REGISTER_URL": os.Getenv("GARAGEAI_REGISTER_URL"),
 		"GARAGEAI_MANAGEMENT_URL": os.Getenv("GARAGEAI_MANAGEMENT_URL"), "GARAGEAI_REPORT": os.Getenv("GARAGEAI_REPORT"),
 		"GARAGEAI_MESH_WAIT_SECONDS": os.Getenv("GARAGEAI_MESH_WAIT_SECONDS"), "GARAGEAI_USER_HOME": os.Getenv("HOME"),
-		"ARGS": strings.Join(args, "\x00"),
+		"GARAGEAI_TUNNEL": os.Getenv("GARAGEAI_TUNNEL"),
+		"ARGS":            strings.Join(args, "\x00"),
 	})
 	cmd.Stdin = strings.NewReader(string(secrets) + "\n")
 	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
@@ -294,7 +303,9 @@ func connect(args []string) int {
 
 	// 1. NetBird client
 	c.begin("1/6  NetBird client")
-	if netbird.Installed() {
+	if o.Tunnel == "bridge" {
+		c.ok("Not needed: Bridge carries the tunnel itself (no NetBird, no network interface)")
+	} else if netbird.Installed() {
 		c.ok("netbird is installed (" + netbird.Version() + ")")
 	} else if o.SkipInstall {
 		c.fail("netbird is not installed and --skip-install was given.")
@@ -318,8 +329,19 @@ func connect(args []string) int {
 
 	// 2. Join the mesh
 	c.begin("2/6  Join the GarageAI mesh")
-	meshIP := netbird.MeshIP()
+	var meshIP string
+	var live *tunnel.Tunnel
+	var grant *portal.TunnelGrant
+	if o.Tunnel == "bridge" {
+		live, grant = c.bridgeTunnel()
+		meshIP = grant.TunnelIP
+		defer live.Close()
+	} else {
+		meshIP = netbird.MeshIP()
+	}
 	switch {
+	case o.Tunnel == "bridge":
+		c.ok("Bridge tunnel up: " + meshIP + " (this machine dials out to " + grant.HubEndpoint + "; nothing listens on your network)")
 	case meshIP != "" && o.SetupKey == "":
 		c.ok("Already on the mesh (no setup key given, keeping the current connection)")
 	case o.SetupKey == "":
@@ -370,6 +392,8 @@ func connect(args []string) int {
 	c.begin("4/6  Reachable over the mesh")
 	binds := profile.ListenAddrs(o.Port)
 	switch {
+	case o.Tunnel == "bridge":
+		c.ok(fmt.Sprintf("Bridge forwards %s:%d in the tunnel to 127.0.0.1:%d; the runtime can stay on localhost", meshIP, o.Port, o.Port))
 	case probeHost == meshIP:
 		c.ok(fmt.Sprintf("Reachable on %s:%d", meshIP, o.Port))
 	case len(binds) == 0:
@@ -381,7 +405,7 @@ func connect(args []string) int {
 		c.hintBind()
 		c.fail("Restart the runtime bound to 0.0.0.0 and run the command again.")
 	}
-	if hint := ufwBlocks(o.Port); hint != "" {
+	if hint := ufwBlocks(o.Port); hint != "" && o.Tunnel != "bridge" {
 		c.warn(fmt.Sprintf("ufw is active and has no rule for port %d, so the gateway may be blocked.", o.Port))
 		c.info("  → " + hint)
 	}
@@ -470,6 +494,9 @@ func connect(args []string) int {
 	cfg := &service.Config{HeartbeatURL: strings.TrimSuffix(o.RegisterURL, "/register-node") + "/node-heartbeat",
 		RegisterURL: o.RegisterURL, RegisterToken: o.RegisterToken, Name: o.Name, Runtime: o.Runtime, Port: o.Port,
 		RuntimeAPIKey: o.RuntimeAPIKey, MeshIP: meshIP}
+	if o.Tunnel == "bridge" {
+		cfg.Transport, cfg.HubPublicKey, cfg.HubEndpoint = "tunnel", grant.HubPublicKey, grant.HubEndpoint
+	}
 	if err := service.Save(cfg); err != nil {
 		c.fail("Could not write " + service.ConfigPath() + ": " + err.Error())
 	}
@@ -478,6 +505,15 @@ func connect(args []string) int {
 	}
 	if err := service.Install(self); err != nil {
 		c.fail("Could not install the heartbeat service: " + err.Error())
+	}
+	if o.Tunnel == "bridge" {
+		live.Close() // the service takes over the tunnel from here
+		if err := service.InstallTunnel(self); err != nil {
+			c.fail("Could not install the tunnel service: " + err.Error())
+		}
+		c.ok("Installed: the Bridge tunnel runs as a service and reconnects by itself after sleep or a network change.")
+	} else {
+		service.RemoveTunnel()
 	}
 	c.ok("Installed: Bridge reports your models every 5 minutes. Load a new model and it shows up")
 	c.info("  under My garages in the portal, where you choose to offer it. Remove with: garageai uninstall")
@@ -506,6 +542,57 @@ func (c *connectRun) notes() {
 		}
 		fmt.Printf("  %s %s\n      → %s\n", mark, pr.Message, pr.Fix)
 	}
+}
+
+// bridgeTunnel is step 2 with the Bridge tunnel: a key pair on this machine (kept across runs),
+// the public key to the portal, the tunnel address and the hub back, and the tunnel up so the
+// portal's acceptance test can reach the runtime through it.
+func (c *connectRun) bridgeTunnel() (*tunnel.Tunnel, *portal.TunnelGrant) {
+	if c.portal == nil {
+		c.fail("The Bridge tunnel needs the garage's registration (run garageai connect without options, or pass --register-url and --register-token).")
+	}
+	var priv, pub string
+	if b, err := os.ReadFile(service.TunnelKeyPath()); err == nil {
+		priv = strings.TrimSpace(string(b))
+		if pub, err = tunnel.PublicKey(priv); err != nil {
+			priv = ""
+		}
+	}
+	if priv == "" {
+		var err error
+		if priv, pub, err = tunnel.GenerateKey(); err != nil {
+			c.fail("Could not make a tunnel key: " + err.Error())
+		}
+		if err := service.SaveTunnelKey(priv); err != nil {
+			c.fail("Could not save the tunnel key: " + err.Error())
+		}
+		c.info("Made a tunnel key pair for this machine; only the public key goes to GarageAI.")
+	}
+	grant, err := c.portal.TunnelAssign(context.Background(), pub)
+	switch {
+	case errors.Is(err, portal.ErrRejected):
+		c.fail("GarageAI rejects this garage's token. Run garageai connect without options to link this machine again.")
+	case err != nil:
+		c.fail("Could not get a tunnel address from GarageAI: " + err.Error())
+	}
+	addr, err := netip.ParseAddr(grant.TunnelIP)
+	if err != nil {
+		c.fail("GarageAI sent an unusable tunnel address: " + grant.TunnelIP)
+	}
+	t, err := tunnel.Start(tunnel.Config{PrivateKey: priv, HubPublicKey: grant.HubPublicKey, HubEndpoint: grant.HubEndpoint, Address: addr,
+		Forwards: map[uint16]string{uint16(c.o.Port): fmt.Sprintf("127.0.0.1:%d", c.o.Port)}})
+	if err != nil {
+		c.fail("Could not start the tunnel: " + err.Error())
+	}
+	deadline := time.Now().Add(20 * time.Second)
+	for t.LastHandshake().IsZero() {
+		if time.Now().After(deadline) {
+			t.Close()
+			c.fail("No answer from the gateway's tunnel hub at " + grant.HubEndpoint + " within 20 s. Does this network allow UDP out? (A TCP fallback is planned.)")
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	return t, grant
 }
 
 // serviceBinary installs this binary as the heartbeat service's own root-only copy.

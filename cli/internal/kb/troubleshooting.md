@@ -73,6 +73,26 @@ mesh is `100.83.0.0/16`, and NetBird only routes that range. Tailscale uses addr
 - Later, Bridge's own tunnel (phase 1.5 in docs/bridge.md) adds no system route or interface, and
   this question goes away.
 
+## The Bridge tunnel
+
+Since v0.4.0 a garage can carry its own tunnel in Bridge (`garageai connect --tunnel bridge`,
+docs/bridge-tunnel.md): no NetBird, no network interface, no sudo for the network, and the runtime
+stays on `127.0.0.1`. Bridge dials out to the gateway over UDP 51830 and forwards the tunnel to the
+runtime locally.
+
+### `tunnel_missing` / `tunnel_stopped` (error)
+The garage is set up for the Bridge tunnel, but the tunnel service is not installed or not running,
+so the gateway cannot reach it. Restart it (`sudo systemctl restart garageai-tunnel` on Linux,
+`sudo launchctl kickstart -k system/eu.garageai.tunnel` on macOS), or run
+`garageai connect --tunnel bridge` again. The service log is `/var/log/garageai-tunnel.log` on
+macOS and `journalctl -u garageai-tunnel` on Linux.
+
+- **No handshake with the hub:** the network blocks UDP out (some offices and hotspots). A TCP
+  fallback is planned; until then use NetBird (`garageai connect` without `--tunnel`).
+- **After sleep or a network change** the tunnel reconnects by itself within a few seconds.
+- **The runtime on localhost is correct** for a tunnel garage: doctor does not report
+  `localhost_only` for the port Bridge forwards.
+
 ## The runtime
 
 ### `no_runtime` (error)

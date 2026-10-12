@@ -100,8 +100,12 @@ func problems(p Profile) []Problem {
 			case "llamacpp":
 				fix = "Restart llama-server with --host 0.0.0.0"
 			}
-			add("error", "localhost_only", fmt.Sprintf("%s on port %d only listens on %s, so the gateway cannot reach it",
-				rt.Kind, rt.Port, strings.Join(rt.Binds, ", ")), fix)
+			if p.GarageAI.Transport == "tunnel" && p.GarageAI.ConfiguredPort != nil && rt.Port == *p.GarageAI.ConfiguredPort {
+				// Bridge forwards the tunnel to 127.0.0.1: localhost is exactly right here.
+			} else {
+				add("error", "localhost_only", fmt.Sprintf("%s on port %d only listens on %s, so the gateway cannot reach it",
+					rt.Kind, rt.Port, strings.Join(rt.Binds, ", ")), fix)
+			}
 		}
 		if rt.API == "openai (needs API key)" {
 			add("info", "needs_api_key", fmt.Sprintf("%s on port %d requires an API key", rt.Kind, rt.Port),
@@ -149,6 +153,14 @@ func problems(p Profile) []Problem {
 		add("warning", "heartbeat_missing", "The heartbeat is not installed", "Run: garageai connect")
 	case p.Heartbeat.Installed && !p.Heartbeat.Active:
 		add("warning", "heartbeat_stopped", "The heartbeat is installed but not running", "Run: garageai connect")
+	}
+	if p.GarageAI.Transport == "tunnel" {
+		if inst, active := service.TunnelInstalled(); !inst {
+			add("error", "tunnel_missing", "This garage uses the Bridge tunnel, but the tunnel service is not installed", "Run: garageai connect --tunnel bridge")
+		} else if !active {
+			add("error", "tunnel_stopped", "The Bridge tunnel service is installed but not running, so the gateway cannot reach this garage",
+				"Linux: sudo systemctl restart garageai-tunnel. macOS: sudo launchctl kickstart -k system/eu.garageai.tunnel. Then: garageai doctor")
+		}
 	}
 	if prog := service.Program(); prog != "" {
 		if why := service.UnsafeProgram(prog); why != "" {
