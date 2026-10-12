@@ -167,8 +167,7 @@ const Hero = ({
           >
             <a
               href={secondaryLink.url}
-              target="_blank"
-              rel="noopener noreferrer"
+              {...(secondaryLink.url.startsWith('#') ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
               className="hover:text-cyan-400 transition"
               style={{ color: 'var(--color-text-muted)' }}
             >

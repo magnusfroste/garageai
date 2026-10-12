@@ -23,12 +23,12 @@ rows:
   - feature: "Pay in euros by card, invoice for companies"
     values: ["yes", "no", "yes", "yes"]
     note: "Crypto networks pay out and charge in tokens or wallets."
-  - feature: "EU gateway, self-hosted mesh, no US tunnel service in the path"
+  - feature: "EU gateway and our own encrypted tunnel, no US tunnel service in the path"
     values: ["yes", "no", "no", "partial"]
     note: "Where the request is processed is a first-class property, not a side effect."
   - feature: "Operators open no inbound ports"
     values: ["yes", "partial", "no", "n/a"]
-    note: "The garage opens one outgoing WireGuard tunnel; only the gateway can reach the runtime port."
+    note: "Bridge opens one outgoing WireGuard tunnel; only the gateway can reach the runtime port."
   - feature: "Live in minutes: one line, approve in the browser"
     values: ["yes", "partial", "no", "n/a"]
     note: "Create a garage, run one command, pass the acceptance test, go live."

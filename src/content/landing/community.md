@@ -7,8 +7,8 @@ description: "GarageAI is built on open-source software, and our own gateway set
 quotes: []
 stats:
   - icon: "🔐"
-    value: "NetBird"
-    label: "WireGuard mesh, self-hosted"
+    value: "WireGuard"
+    label: "Bridge's encrypted tunnel"
   - icon: "🔀"
     value: "LiteLLM"
     label: "OpenAI-compatible gateway"
