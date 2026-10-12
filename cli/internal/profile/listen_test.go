@@ -184,3 +184,31 @@ func TestOllamaRunner(t *testing.T) {
 		t.Fatal("a real llama-server taken for Ollama's runner")
 	}
 }
+
+// vLLM behind an API key (and Docker, so the process name says nothing) is still vLLM: /metrics
+// is open and says so; with the key, the model list is read too.
+func TestVLLMBehindKey(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/metrics":
+			w.Write([]byte("# HELP vllm:num_requests_running\nvllm:num_requests_running 0\n"))
+		case r.Header.Get("Authorization") == "Bearer k":
+			w.Write([]byte(`{"data":[{"id":"mimo","owned_by":"vllm","max_model_len":524288}]}`))
+		default:
+			w.WriteHeader(401)
+			w.Write([]byte(`{"error":"Unauthorized"}`))
+		}
+	}))
+	defer srv.Close()
+	port, _ := strconv.Atoi(srv.URL[strings.LastIndex(srv.URL, ":")+1:])
+	owner := Listener{Process: "docker-proxy"}
+	t.Setenv("GARAGEAI_RUNTIME_API_KEY", "")
+	if rt := probe(port, []string{"127.0.0.1"}, owner); rt == nil || rt.Kind != "vllm" {
+		t.Fatalf("without the key: %+v", rt)
+	}
+	t.Setenv("GARAGEAI_RUNTIME_API_KEY", "k")
+	rt := probe(port, []string{"127.0.0.1"}, owner)
+	if rt == nil || rt.Kind != "vllm" || len(rt.Models) != 1 || rt.Models[0].Context == nil || *rt.Models[0].Context != 524288 {
+		t.Fatalf("with the key: %+v", rt)
+	}
+}
