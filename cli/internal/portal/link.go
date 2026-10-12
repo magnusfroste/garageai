@@ -36,6 +36,7 @@ type LinkRequest struct {
 	GPU           string   `json:"gpu,omitempty"`
 	MemoryGB      int      `json:"memory_gb,omitempty"`
 	Runtime       string   `json:"runtime,omitempty"`
+	Transport     string   `json:"transport,omitempty"` // "tunnel" or "netbird": the portal skips the NetBird setup key for "tunnel"
 	Models        []string `json:"models,omitempty"`
 	SuggestedName string   `json:"suggested_name,omitempty"`
 }

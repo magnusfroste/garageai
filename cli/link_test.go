@@ -95,3 +95,29 @@ func TestLinkFlow(t *testing.T) {
 		t.Fatalf("start request: %v", started)
 	}
 }
+
+// The Bridge tunnel is the default; a NetBird setup key or --tunnel netbird means NetBird.
+func TestTunnelDefault(t *testing.T) {
+	t.Setenv("GARAGEAI_TUNNEL", "")
+	for _, c := range []struct {
+		args []string
+		want string
+	}{
+		{nil, "bridge"},
+		{[]string{"--setup-key", "SK", "--management-url", "https://nb"}, "netbird"},
+		{[]string{"--tunnel", "netbird"}, "netbird"},
+		{[]string{"--tunnel", "bridge", "--setup-key", "SK"}, "bridge"},
+	} {
+		o := optionsFromEnv()
+		if err := parseConnectArgs(c.args, &o); err != nil {
+			t.Fatalf("%v: %v", c.args, err)
+		}
+		if o.Tunnel != c.want {
+			t.Errorf("%v: tunnel %q, want %q", c.args, o.Tunnel, c.want)
+		}
+	}
+	o := optionsFromEnv()
+	if err := parseConnectArgs([]string{"--tunnel", "wireguard"}, &o); err == nil {
+		t.Error("accepted --tunnel wireguard")
+	}
+}

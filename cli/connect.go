@@ -56,7 +56,7 @@ func optionsFromEnv() Options {
 		Runtime: env("GARAGEAI_RUNTIME", "ollama"), Name: env("GARAGEAI_NODE_NAME", host),
 		RuntimeAPIKey: os.Getenv("GARAGEAI_RUNTIME_API_KEY"), Models: os.Getenv("GARAGEAI_MODELS"),
 		RegisterURL: os.Getenv("GARAGEAI_REGISTER_URL"), RegisterToken: os.Getenv("GARAGEAI_REGISTER_TOKEN"),
-		MeshWait: 90 * time.Second, Tunnel: env("GARAGEAI_TUNNEL", "netbird"),
+		MeshWait: 90 * time.Second, Tunnel: os.Getenv("GARAGEAI_TUNNEL"),
 	}
 	o.Port, _ = strconv.Atoi(os.Getenv("GARAGEAI_PORT"))
 	if s, err := strconv.Atoi(os.Getenv("GARAGEAI_MESH_WAIT_SECONDS")); err == nil && s > 0 {
@@ -133,8 +133,16 @@ func parseConnectArgs(args []string, o *Options) error {
 	if strings.HasPrefix(o.RuntimeAPIKey, "<") || strings.HasPrefix(o.RuntimeAPIKey, "YOUR_") {
 		return errors.New("replace the placeholder in --runtime-api-key with your runtime's real API key, or leave it out")
 	}
+	// The Bridge tunnel is the default since v0.4.2. A command that carries a NetBird setup key (the
+	// portal's legacy command) keeps meaning NetBird, and --tunnel netbird asks for it.
+	if o.Tunnel == "" {
+		o.Tunnel = "bridge"
+		if o.SetupKey != "" {
+			o.Tunnel = "netbird"
+		}
+	}
 	if o.Tunnel != "netbird" && o.Tunnel != "bridge" {
-		return fmt.Errorf("--tunnel must be netbird or bridge, not %q", o.Tunnel)
+		return fmt.Errorf("--tunnel must be bridge (the default) or netbird, not %q", o.Tunnel)
 	}
 	if o.RegisterURL != "" && o.RegisterToken == "" {
 		return errors.New("--register-url given without --register-token (or GARAGEAI_REGISTER_TOKEN)")
@@ -355,6 +363,10 @@ func connect(args []string) int {
 		defer live.Close()
 	} else {
 		meshIP = netbird.MeshIP()
+		if c.portal != nil {
+			// Back on NetBird (or never on the tunnel): the portal must route to the mesh address.
+			_ = c.portal.TunnelRelease(context.Background())
+		}
 	}
 	switch {
 	case o.Tunnel == "bridge":
@@ -608,7 +620,7 @@ func (c *connectRun) bridgeTunnel() (*tunnel.Tunnel, *portal.TunnelGrant) {
 	for t.LastHandshake().IsZero() {
 		if time.Now().After(deadline) {
 			t.Close()
-			c.fail("No answer from the gateway's tunnel hub at " + grant.HubEndpoint + " within 75 s. Does this network allow UDP out? Run the command again; if it fails the same way, this network blocks UDP (a TCP fallback is planned) and garageai connect without --tunnel uses NetBird.")
+			c.fail("No answer from the gateway's tunnel hub at " + grant.HubEndpoint + " within 75 s. Does this network allow UDP out? Run the command again; if it fails the same way, this network blocks UDP (a TCP fallback is planned): connect with NetBird instead, garageai connect --tunnel netbird.")
 		}
 		time.Sleep(200 * time.Millisecond)
 	}

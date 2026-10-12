@@ -4,7 +4,11 @@ Bridge carries the garage's tunnel to the gateway itself, in user space. There i
 client, no network interface on the garage, and no system routes. The runtime stays on
 `127.0.0.1`. This page is the design. Read it before the gateway hub (step C) is built.
 
-Status 2026-10-12:
+Status 2026-10-12, evening: **the default for new garages** (Bridge v0.4.2). garage-m1, garage-m2,
+garage-m4 and an outside operator's Mac mini (with Tailscale, Ollama on localhost) run on it, and so
+does dgx-city. NetBird stays as the fallback (`--tunnel netbird`) until the TCP fallback exists.
+
+Status 2026-10-12, morning:
 - **The spike holds over the internet** (`spikes/bridge-tunnel/README.md`). It was 16 ms vs
   NetBird's 28 ms, streamed the same, worked through carrier NAT, and came back ≤ 19 s after a Wi-Fi
   switch.

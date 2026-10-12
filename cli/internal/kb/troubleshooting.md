@@ -75,7 +75,7 @@ mesh is `100.83.0.0/16`, and NetBird only routes that range. Tailscale uses addr
 
 ## The Bridge tunnel
 
-Since v0.4.0 a garage can carry its own tunnel in Bridge (`garageai connect --tunnel bridge`,
+Since v0.4.2 the default (v0.4.0: opt-in with `--tunnel bridge`), a garage carries its own tunnel in Bridge (
 docs/bridge-tunnel.md): no NetBird, no network interface, no sudo for the network, and the runtime
 stays on `127.0.0.1`. Bridge dials out to the gateway over UDP 51830 and forwards the tunnel to the
 runtime locally.
@@ -88,7 +88,7 @@ so the gateway cannot reach it. Restart it (`sudo systemctl restart garageai-tun
 macOS and `journalctl -u garageai-tunnel` on Linux.
 
 - **No handshake with the hub:** the network blocks UDP out (some offices and hotspots). A TCP
-  fallback is planned; until then use NetBird (`garageai connect` without `--tunnel`).
+  fallback is planned; until then use NetBird: `garageai connect --tunnel netbird`.
 - **After sleep or a network change** the tunnel reconnects by itself within a few seconds.
 - **A new tunnel garage's first handshakes can go unanswered for a few seconds:** the hub learns
   about it from the portal on its next round (every 10 s). Bridge waits up to a minute and says so.

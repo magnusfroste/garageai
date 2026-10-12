@@ -105,8 +105,9 @@ usage:
       --register-url URL --register-token TOK  (from the portal's command)
       --runtime ollama|lmstudio|llamacpp|vllm|sglang|paddock|unsloth|mlx|lemonade|other
       --port N  --name NAME  --models a,b  --runtime-api-key KEY  --skip-install  --no-heartbeat  --yes
-      --tunnel bridge              Bridge carries the tunnel itself: no NetBird, no sudo for the network,
-                                   and the runtime can stay on localhost (default: netbird)
+      --tunnel bridge|netbird      bridge (default): Bridge carries the tunnel itself, no NetBird, and the
+                                   runtime can stay on localhost. netbird: the NetBird mesh, the fallback
+                                   for networks that block UDP
       Every option can also be given as GARAGEAI_SETUP_KEY, GARAGEAI_REGISTER_TOKEN, ... in the environment.
   garageai doctor [--json]     what runs on this machine, what is wrong, and how to fix it
   garageai run [--once]        the heartbeat: report the runtime's models (the service runs this)
