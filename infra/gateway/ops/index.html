@@ -103,6 +103,11 @@
   tr.fresh-row td { animation:freshrow 2.5s ease-out; }
   @keyframes freshrow { from { background:var(--accent-soft); } to { background:transparent; } }
   @media (prefers-reduced-motion: reduce) { .flow .link.hot, .pulse.on, tr.fresh-row td { animation:none; } }
+  .alert .act { margin-top:3px; color:var(--muted); } .alert .act a { margin-left:6px; }
+  .btn-sm { font:inherit; font-size:12px; padding:3px 9px; border:1px solid var(--line); border-radius:8px; background:var(--panel); color:var(--ink); cursor:pointer; white-space:nowrap; margin-left:8px; }
+  .btn-sm:hover { background:var(--hover); }
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:10px 16px; border-radius:10px; font-size:13px; z-index:50; box-shadow:0 6px 24px rgba(0,0,0,.25); }
+  .toast.bad { background:var(--crit); color:#fff; }
   .kpis { display:grid; gap:12px; grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr)); margin-bottom:16px; }
   a.kpi { display:block; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; color:var(--ink); position:relative; border-top:3px solid var(--line); }
   a.kpi:hover { text-decoration:none; border-color:var(--accent); }
@@ -269,6 +274,7 @@
         <div class="grid">
           <div class="card"><h2>Needs attention</h2><div id="dash-alerts"></div></div>
           <div class="card"><h2>Supply at a glance</h2><div id="dash-supply"></div></div>
+          <div class="card"><h2>Planned stops</h2><div class="sub">Silenced alerts: information instead of alarms, no Telegram, until the time runs out.</div><div id="silences"></div></div>
         </div>
         <div class="card"><h2>Recent events</h2><div id="dash-events"></div><div class="note"><a href="#events">All events →</a></div></div>
       </section>
@@ -460,8 +466,42 @@ function pageAlerts(id, alerts) {
   const mine = alerts.filter(a => a.page === id);
   $("alerts-" + id).innerHTML = mine.length ? `<div class="card"><h2>Alerts</h2>${mine.map(a => alertRow(a, false)).join("")}</div>` : "";
 }
-const alertRow = (a, link) => `<div class="alert ${a.level}">${dot(a.level)}<span class="txt">${esc(a.text)}</span>${
+const alertRow = (a, link) => `<div class="alert ${a.level}">${dot(a.level)}<span class="txt">${esc(a.text)}${
+    a.action ? `<div class="small act">→ ${esc(a.action)}${a.url ? ` <a href="${esc(a.url)}"${a.url.startsWith("#") ? "" : ' target="_blank" rel="noopener"'}>open</a>` : ""}</div>` : ""}</span>${
+  a.garage ? (a.silenced ? `<button class="btn-sm" onclick="unsilence('${esc(a.garage)}')">End silence</button>` : a.level !== "info" ? `<button class="btn-sm" onclick="silence('${esc(a.garage)}')">Silence…</button>` : "") : ""}${
   link && a.page ? `<a href="#${a.page}">${esc((PAGES.find(p => p.id === a.page) || {}).title || "")} →</a>` : ""}</div>`;
+
+/* ---------- silences: the page's one write, through /api/ (see garageai-ops-api) */
+async function api(path, body) {
+  const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || r.status);
+  return j;
+}
+async function silence(garage) {
+  const h = prompt(`Silence ${garage} for how many hours? (alerts become info, no Telegram)`, "24");
+  if (h == null) return;
+  const reason = prompt("Reason (shown with the alert):", "planned stop");
+  if (reason == null) return;
+  try { await api("api/silence", { garage, hours: Number(h), reason }); toast(`${garage} silenced for ${h} h; the page updates within a minute`); load(true); }
+  catch (e) { toast("Could not silence: " + e.message, true); }
+}
+async function unsilence(garage) {
+  try { await api("api/unsilence", { garage }); toast(`Silence of ${garage} ended; the page updates within a minute`); load(true); }
+  catch (e) { toast("Could not end it: " + e.message, true); }
+}
+function toast(msg, bad) {
+  const t = document.createElement("div"); t.className = "toast" + (bad ? " bad" : ""); t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 5000);
+}
+function renderSilences(d) {
+  const s = Object.entries(d.silences || {});
+  const el = $("silences"); if (!el) return;
+  el.innerHTML = s.length ? table([
+    ["Garage", ([g]) => `<b>${esc(g)}</b>`], ["Until", ([, v]) => esc(v.until.slice(0, 16).replace("T", " ")) + " UTC"],
+    ["Reason", ([, v]) => esc(v.reason)], ["", ([g]) => `<button class="btn-sm" onclick="unsilence('${esc(g)}')">End</button>`],
+  ], s) : '<div class="small">No planned stops. Silence an alert with its Silence… button.</div>';
+}
 
 /* ---------- top bar and sidebar */
 function renderChrome(d) {
@@ -604,6 +644,7 @@ function renderPages(d) {
     ["Traffic", p => `${p.rx_mb} MB in · ${p.tx_mb} MB out`],
   ], tu.peers) : '<div class="small">No garage uses the Bridge tunnel yet.</div>') + `<div class="note">UDP ${tu.port}${tu.stale ? ' · <span class="warning">hub status is stale</span>' : ""}</div>`;
   ["onboarding", "business", "supply", "models", "traffic", "mesh", "server", "updates", "logs"].forEach(p => pageAlerts(p, d.alerts));
+  renderSilences(d);
 
   const md = d.models || {}, deps = md.deployments || [];
   $("models-sub").textContent = md.error ? md.error : `${md.public_models} public names, ${deps.length} deployments${md.probes ? `, ${md.probes} probes not shown` : ""}`;

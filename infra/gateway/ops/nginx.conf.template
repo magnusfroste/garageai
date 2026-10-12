@@ -28,6 +28,14 @@ server {
         client_max_body_size 4m;
     }
     location /llm/ { return 404; }
+    # The page's only write: its own silences, kept by a small API on the host (garageai-ops-api).
+    # Traefik's basic auth guards it and supplies X-Ops-User, which the API requires.
+    location /api/ {
+        proxy_pass http://host.docker.internal:8781;
+        proxy_set_header X-Ops-User $http_x_ops_user;
+        proxy_set_header X-Ops-Api-Key "${OPS_API_KEY}";
+        client_max_body_size 4k;
+    }
 
     location / {
         try_files $uri $uri/ =404;
