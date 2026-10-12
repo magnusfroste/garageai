@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -21,6 +22,13 @@ func probe(port int, binds []string, owner Listener) *Runtime {
 	code, body := get(base + "/v1/models")
 	if code != 200 && code != 401 && code != 403 {
 		return nil
+	}
+	if (code == 401 || code == 403) && os.Getenv("GARAGEAI_RUNTIME_API_KEY") != "" {
+		// The operator gave the runtime's key (connect, or the heartbeat's config): with it the
+		// model list, windows and owner are visible, not just "needs a key".
+		if c2, b2 := getAuth(base+"/v1/models", os.Getenv("GARAGEAI_RUNTIME_API_KEY")); c2 == 200 {
+			code, body = c2, b2
+		}
 	}
 	var list struct {
 		Data []map[string]any `json:"data"`
@@ -74,6 +82,13 @@ func probe(port int, binds []string, owner Listener) *Runtime {
 			owned = *rt.Models[0].OwnedBy
 		}
 		rt.Kind = kindOf(owned + " " + strings.ToLower(owner.Process))
+		if rt.Kind == "other" {
+			// Behind Docker the process is docker-proxy, and with an API key the model list (and its
+			// owned_by) is hidden. vLLM and SGLang leave /metrics open: their metric names say who it is.
+			if k := metricsKind(base); k != "" {
+				rt.Kind = k
+			}
+		}
 	}
 	if owner.PID > 0 {
 		args := cmdline(owner.PID)
@@ -169,6 +184,37 @@ func ollamaLoaded(base string) []LoadedModel {
 		out = append(out, LoadedModel{Name: name, Context: firstInt(m, "context_length")})
 	}
 	return out
+}
+
+// metricsKind recognises vLLM and SGLang from their Prometheus metrics ("vllm:", "sglang:").
+func metricsKind(base string) string {
+	code, b := get(base + "/metrics")
+	if code != 200 {
+		return ""
+	}
+	s := string(b)
+	switch {
+	case strings.Contains(s, "vllm:"):
+		return "vllm"
+	case strings.Contains(s, "sglang:"):
+		return "sglang"
+	}
+	return ""
+}
+
+func getAuth(url, key string) (int, []byte) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return 0, nil
+	}
+	req.Header.Set("Authorization", "Bearer "+key)
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, nil
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
+	return resp.StatusCode, b
 }
 
 func get(url string) (int, []byte) {

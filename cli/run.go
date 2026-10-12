@@ -26,6 +26,9 @@ func run(args []string) int {
 		return 1
 	}
 	client := portal.New(cfg.RegisterURL, cfg.RegisterToken)
+	if cfg.RuntimeAPIKey != "" {
+		os.Setenv("GARAGEAI_RUNTIME_API_KEY", cfg.RuntimeAPIKey) // so doctor's probe sees past the key
+	}
 	for {
 		if code := heartbeat(cfg, client); code != 0 && once {
 			return code
@@ -65,8 +68,9 @@ func heartbeat(cfg *service.Config, client *portal.Client) int {
 	if models == nil {
 		models = []string{}
 	}
+	ag := agent(cfg) // first: it may correct cfg.Runtime
 	res, err := client.Heartbeat(context.Background(), portal.Registration{Name: cfg.Name, Port: cfg.Port, Runtime: cfg.Runtime,
-		Models: models, Contexts: nonEmpty(contexts), RuntimeAPIKey: cfg.RuntimeAPIKey, Agent: agent(), MachineID: machine.ID()})
+		Models: models, Contexts: nonEmpty(contexts), RuntimeAPIKey: cfg.RuntimeAPIKey, Agent: ag, MachineID: machine.ID()})
 	stamp := time.Now().UTC().Format(time.RFC3339)
 	switch {
 	case errors.Is(err, portal.ErrRejected):
@@ -85,8 +89,9 @@ func heartbeat(cfg *service.Config, client *portal.Client) int {
 }
 
 // agent is Bridge's own report for the heartbeat: its version and what doctor finds right now.
-func agent() *portal.Agent {
+func agent(cfg *service.Config) *portal.Agent {
 	p := profile.Build(version)
+	correctRuntime(cfg, p)
 	a := &portal.Agent{Tool: p.Tool, Version: version, OS: p.Machine.OS, Arch: p.Machine.Arch, Problems: []portal.AgentProblem{}}
 	for _, pr := range p.Problems {
 		// The heartbeat's own state is known where it arrives, and the log doctor reads it from is
@@ -101,6 +106,24 @@ func agent() *portal.Agent {
 		a.Problems = append(a.Problems, portal.AgentProblem{Severity: pr.Severity, Code: pr.Code, Message: msg})
 	}
 	return a
+}
+
+// correctRuntime fixes a garage registered as runtime "other" once doctor recognises the runtime on
+// its port (dgx-city's vLLM behind Docker and an API key was "other" before v0.4.3). The next
+// heartbeat carries the right runtime, and the portal updates the garage.
+func correctRuntime(cfg *service.Config, p profile.Profile) {
+	if cfg.Runtime != "other" {
+		return
+	}
+	for _, r := range p.Runtimes {
+		if r.Port == cfg.Port && connectKinds[r.Kind] {
+			cfg.Runtime = r.Kind
+			if err := service.Save(cfg); err == nil {
+				fmt.Printf("%s runtime recognised as %s (was other)\n", time.Now().UTC().Format(time.RFC3339), r.Kind)
+			}
+			return
+		}
+	}
 }
 
 func nonEmpty(m map[string]int) map[string]int {
