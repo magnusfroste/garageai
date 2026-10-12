@@ -124,11 +124,14 @@ func problems(p Profile) []Problem {
 				"Add --enable-prompt-tokens-details to the vLLM command")
 		}
 	}
-	if vpns := otherVPNs(); len(vpns) > 0 {
+	if vpns := otherVPNs(); len(vpns) > 0 && p.GarageAI.Transport != "tunnel" {
 		add("info", "other_vpn", strings.Join(vpns, " and ")+" is installed: NetBird runs next to it and only routes GarageAI's "+MeshNet().String(),
 			"Nothing to do. Only a device of yours with an address in "+MeshNet().String()+" would be out of reach while NetBird is on")
 	}
+	tunnel := p.GarageAI.Transport == "tunnel"
 	switch {
+	case tunnel:
+		// The Bridge tunnel replaces NetBird: whether NetBird is there does not matter.
 	case !p.NetBird.Installed:
 		add("error", "netbird_missing", "NetBird is not installed", "Run: garageai connect (it installs NetBird)")
 	case !p.NetBird.Connected:
@@ -178,7 +181,7 @@ func problems(p Profile) []Problem {
 		for _, rt := range p.Runtimes {
 			hasOllama = hasOllama || rt.Kind == "ollama"
 		}
-		if hasOllama && !p.ollamaHostPersistent {
+		if hasOllama && !p.ollamaHostPersistent && !tunnel {
 			add("warning", "ollama_host_not_persistent", "OLLAMA_HOST is not set permanently: after a restart Ollama listens on localhost again",
 				"Ollama app: Settings → 'Expose Ollama to the network'. Homebrew or terminal: start it with OLLAMA_HOST=0.0.0.0:11434")
 		}

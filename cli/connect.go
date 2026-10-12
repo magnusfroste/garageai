@@ -273,6 +273,16 @@ func connect(args []string) int {
 	}
 	// No token: link this machine in the browser (the default since the portal stopped showing
 	// commands with tokens). It runs as the operator, before the root half.
+	// Ask for the password now, before the browser opens: after approving, the terminal would
+	// otherwise sit behind the browser waiting for it, and nobody sees it.
+	if os.Geteuid() != 0 && runtime.GOOS != "windows" {
+		v := exec.Command("sudo", "-v", "-p", "  [sudo] password for %p (Bridge installs its service; asked now so the browser step is not interrupted): ")
+		v.Stdin, v.Stdout, v.Stderr = os.Stdin, os.Stdout, os.Stderr
+		if err := v.Run(); err != nil {
+			fmt.Fprintln(os.Stderr, "garageai connect: sudo is needed to install Bridge's service:", err)
+			return 1
+		}
+	}
 	if o.RegisterToken == "" && os.Getenv("GARAGEAI_NO_LINK") == "" {
 		if code := link(&o, runtimeGiven(args)); code != 0 {
 			return code
@@ -282,10 +292,17 @@ func connect(args []string) int {
 		return asRoot(args)
 	}
 	c := &connectRun{o: o}
+	if o.RegisterToken != "" && o.RegisterURL == "" {
+		o.RegisterURL = portal.API() + "/register-node" // a token alone (e.g. left in the shell): GarageAI's own portal
+		c.o.RegisterURL = o.RegisterURL
+	}
 	if o.RegisterURL != "" && o.RegisterToken != "" {
 		c.portal = portal.New(o.RegisterURL, o.RegisterToken)
 	}
 	c.facts = profile.Build(version)
+	if o.Tunnel == "bridge" {
+		c.facts.Problems = withoutTunnelMoot(c.facts.Problems)
+	}
 	c.step = "0/6  Start"
 	c.profile, _ = json.Marshal(c.facts)
 	c.report("started", "Bridge started", c.profile)
@@ -584,15 +601,32 @@ func (c *connectRun) bridgeTunnel() (*tunnel.Tunnel, *portal.TunnelGrant) {
 	if err != nil {
 		c.fail("Could not start the tunnel: " + err.Error())
 	}
-	deadline := time.Now().Add(20 * time.Second)
+	// The hub learns about a new garage from the portal on its next round (every 10 s), so the
+	// first handshakes of a new garage can go unanswered for a little while.
+	c.info("Waiting for the gateway to recognise this machine (usually a few seconds, at most a minute)...")
+	deadline := time.Now().Add(75 * time.Second)
 	for t.LastHandshake().IsZero() {
 		if time.Now().After(deadline) {
 			t.Close()
-			c.fail("No answer from the gateway's tunnel hub at " + grant.HubEndpoint + " within 20 s. Does this network allow UDP out? (A TCP fallback is planned.)")
+			c.fail("No answer from the gateway's tunnel hub at " + grant.HubEndpoint + " within 75 s. Does this network allow UDP out? Run the command again; if it fails the same way, this network blocks UDP (a TCP fallback is planned) and garageai connect without --tunnel uses NetBird.")
 		}
 		time.Sleep(200 * time.Millisecond)
 	}
 	return t, grant
+}
+
+// withoutTunnelMoot drops what the Bridge tunnel makes irrelevant: NetBird, and a runtime that only
+// listens on localhost (Bridge forwards to it there).
+func withoutTunnelMoot(ps []profile.Problem) []profile.Problem {
+	out := ps[:0:0]
+	for _, p := range ps {
+		switch p.Code {
+		case "netbird_missing", "netbird_disconnected", "localhost_only", "ollama_host_not_persistent", "other_vpn":
+			continue
+		}
+		out = append(out, p)
+	}
+	return out
 }
 
 // serviceBinary installs this binary as the heartbeat service's own root-only copy.
@@ -654,8 +688,12 @@ func (c *connectRun) hintBind() {
 }
 
 func (c *connectRun) hintOllamaContext(target int) {
-	c.info(fmt.Sprintf("  → set OLLAMA_CONTEXT_LENGTH=%d the same way you set OLLAMA_HOST, restart Ollama, and the heartbeat", target))
-	c.info("    picks the new window up within 5 minutes; no need to run this command again.")
+	if runtime.GOOS == "darwin" {
+		c.info(fmt.Sprintf("  → Ollama app: Settings → Context length → %dk or more. Homebrew or a terminal: start Ollama with OLLAMA_CONTEXT_LENGTH=%d.", target/1024, target))
+	} else {
+		c.info(fmt.Sprintf("  → start Ollama with OLLAMA_CONTEXT_LENGTH=%d (for the systemd service: sudo systemctl edit ollama, Environment=\"OLLAMA_CONTEXT_LENGTH=%d\").", target, target))
+	}
+	c.info("    The heartbeat picks the new window up within 5 minutes; no need to run this command again.")
 }
 
 func onlyOffered(contexts map[string]int, offered []string) map[string]int {
