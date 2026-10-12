@@ -53,3 +53,7 @@ func totalMemoryGB() *int {
 	}
 	return intp(int(m.TotalPhys / (1 << 30)))
 }
+
+func parentOf(int) (int, string) { return 0, "" }
+func processUID(int) int         { return -1 }
+func humanUsers() int            { return 0 }

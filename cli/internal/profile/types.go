@@ -76,6 +76,7 @@ type Runtime struct {
 	Port         int           `json:"port"`
 	Kind         string        `json:"kind"`
 	Process      *string       `json:"process"`
+	PID          int           `json:"-"`
 	API          string        `json:"api"`
 	Binds        []string      `json:"binds"`
 	Network      bool          `json:"network"`

@@ -45,7 +45,7 @@ func probe(port int, binds []string, owner Listener) *Runtime {
 			return nil
 		}
 	}
-	rt := &Runtime{Port: port, Binds: binds, Models: []Model{}, Process: strp(owner.Process)}
+	rt := &Runtime{Port: port, Binds: binds, Models: []Model{}, Process: strp(owner.Process), PID: owner.PID}
 	rt.API = "openai"
 	if code != 200 {
 		rt.API = "openai (needs API key)"

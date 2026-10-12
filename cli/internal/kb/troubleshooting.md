@@ -137,7 +137,26 @@ The garage is registered with one port, but the runtime answers on another. Star
 the registered port, or run the connect command again with `--port`.
 
 ### `needs_api_key` (info)
-The runtime wants an API key. Give it to connect with `--runtime-api-key`; the gateway uses it.
+The runtime wants an API key (vLLM and SGLang usually run with one, since they listen on the
+network by default; Ollama and LM Studio usually have none). Since v0.4.4 connect finds the key
+itself where the runtime was started (its command line `--api-key`, its environment, or the Docker
+container's command and environment) and otherwise asks for it with hidden input. Never paste it in
+a chat or a ticket. With the Bridge tunnel the runtime does not need to listen on the network at
+all: start vLLM with `--host 127.0.0.1` and the key becomes a second lock instead of the only one.
+
+### `runtime_in_terminal` (warning)
+The runtime runs in a terminal window (`ollama serve` typed into a shell, for example). It stops
+when that window is closed or the machine restarts, and the garage goes offline until someone
+starts it again. Run it as a service: the Ollama app keeps Ollama running (macOS), Linux has the
+`ollama` systemd service, vLLM runs as a systemd unit or in Docker with `--restart unless-stopped`.
+Learned: garage-m2 served buyers for two days from a terminal window nobody remembered.
+
+### `runtime_user_session` (info, macOS)
+The runtime runs as a LaunchAgent in your login session (Homebrew's `brew services`, or an agent you
+made), on a Mac with several user accounts. It stops when you log out. Another user logging in with
+fast user switching is fine, as long as your account stays logged in. For a shared Mac, run the
+runtime as a system service (a LaunchDaemon). Learned: garage-m4 went offline when another family
+member logged the operator out.
 
 ### `no_cached_token_report` (info, vLLM)
 vLLM does not report cached prompt tokens, so buyers pay full price for prefix-cache hits. Add
