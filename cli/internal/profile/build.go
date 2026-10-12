@@ -32,6 +32,10 @@ func Build(version string) Profile {
 	p.Runtimes = discover(listeners())
 	wg.Wait()
 	p.Heartbeat, p.GarageAI = hb, cfg
+	if cfg.Transport == "tunnel" {
+		inst, active := service.TunnelInstalled()
+		p.Tunnel = &Tunnel{IP: cfg.TunnelIP, Installed: inst, Active: active}
+	}
 	p.darwin = runtime.GOOS == "darwin"
 	p.heartbeatLast, p.ollamaHostPersistent, p.sleepMinutes, p.displayMinutes = localFacts(hb)
 	p.laptop = p.darwin && strings.Contains(run("pmset", "-g", "batt"), "InternalBattery")

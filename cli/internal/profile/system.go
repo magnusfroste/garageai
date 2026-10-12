@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/magnusfroste/garageai/cli/internal/service"
 )
 
 // run executes a command with a timeout and returns stdout; "" when it is missing or fails.
@@ -250,6 +252,9 @@ func heartbeatAndConfig() (Heartbeat, GarageAI) {
 		_, errBridge := os.Stat("/etc/garageai/bridge.json")
 		_, errScript := os.Stat("/usr/local/bin/garageai-heartbeat")
 		hb.Installed = errBridge == nil || errScript == nil
+		if inst, _ := service.TunnelInstalled(); inst && cfg.Transport == "" {
+			cfg.Transport = "tunnel" // the service is there even when no config is readable
+		}
 		if runtime.GOOS == "darwin" {
 			// launchctl may refuse a normal user the system domain: a log written in the last 15
 			// minutes (the heartbeat runs every 5) also proves it is running.
@@ -263,7 +268,11 @@ func heartbeatAndConfig() (Heartbeat, GarageAI) {
 			hb.Active = exec.Command("systemctl", "is-active", "--quiet", "garageai-bridge.timer").Run() == nil ||
 				exec.Command("systemctl", "is-active", "--quiet", "garageai-heartbeat.timer").Run() == nil
 		}
-		if b, err := os.ReadFile("/etc/garageai/bridge.json"); err == nil {
+		b, err := os.ReadFile("/etc/garageai/bridge.json")
+		if err != nil && os.IsPermission(err) {
+			b, err = os.ReadFile("/etc/garageai/bridge-public.json") // the secret-free copy, for doctor as a normal user
+		}
+		if err == nil {
 			var c struct {
 				Transport string `json:"transport"`
 				MeshIP    string `json:"mesh_ip"`

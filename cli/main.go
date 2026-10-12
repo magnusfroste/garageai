@@ -169,6 +169,17 @@ func printHuman(p profile.Profile) {
 			nb = "connected as " + *p.NetBird.MeshIP
 		}
 	}
+	if p.Tunnel != nil {
+		st := "service not installed"
+		if p.Tunnel.Installed {
+			st = "service installed, not running"
+			if p.Tunnel.Active {
+				st = "running"
+			}
+		}
+		fmt.Printf("  Tunnel   Bridge tunnel %s, %s\n", p.Tunnel.IP, st)
+		nb = "not needed (Bridge carries the tunnel)"
+	}
 	fmt.Println("  NetBird  " + nb)
 	hb := "not installed"
 	if p.Heartbeat.Installed {

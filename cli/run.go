@@ -29,6 +29,7 @@ func run(args []string) int {
 	if cfg.RuntimeAPIKey != "" {
 		os.Setenv("GARAGEAI_RUNTIME_API_KEY", cfg.RuntimeAPIKey) // so doctor's probe sees past the key
 	}
+	_ = service.WritePublic(cfg) // garages set up before v0.4.5 get the secret-free config for doctor
 	for {
 		if code := heartbeat(cfg, client); code != 0 && once {
 			return code

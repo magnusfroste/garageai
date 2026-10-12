@@ -17,6 +17,7 @@ type Profile struct {
 	Runtimes      []Runtime `json:"runtimes"`
 	Firewall      Firewall  `json:"firewall"`
 	Heartbeat     Heartbeat `json:"heartbeat"`
+	Tunnel        *Tunnel   `json:"tunnel,omitempty"`
 	GarageAI      GarageAI  `json:"garageai"`
 	Problems      []Problem `json:"problems"`
 	OK            bool      `json:"ok"`
@@ -95,6 +96,13 @@ type Firewall struct {
 type Heartbeat struct {
 	Installed bool `json:"installed"`
 	Active    bool `json:"active"`
+}
+
+// Tunnel is Bridge's own tunnel (docs/bridge-tunnel.md), when the garage uses it.
+type Tunnel struct {
+	IP        string `json:"ip"`
+	Installed bool   `json:"installed"`
+	Active    bool   `json:"active"`
 }
 
 type GarageAI struct {
