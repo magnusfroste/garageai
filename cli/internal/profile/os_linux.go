@@ -54,3 +54,45 @@ func cmdline(pid int) []string {
 	}
 	return strings.Split(strings.TrimRight(string(b), "\x00"), "\x00")
 }
+
+func parentOf(pid int) (int, string) {
+	b, err := os.ReadFile("/proc/" + strconv.Itoa(pid) + "/stat")
+	if err != nil {
+		return 0, ""
+	}
+	// pid (comm) state ppid ...: comm may contain spaces, so split after the last ")".
+	s := string(b)
+	i := strings.LastIndex(s, ")")
+	if i < 0 {
+		return 0, ""
+	}
+	f := strings.Fields(s[i+1:])
+	if len(f) < 2 {
+		return 0, ""
+	}
+	ppid, _ := strconv.Atoi(f[1])
+	args := cmdline(ppid)
+	if len(args) == 0 {
+		return ppid, ""
+	}
+	return ppid, args[0]
+}
+
+func processUID(pid int) int {
+	b, err := os.ReadFile("/proc/" + strconv.Itoa(pid) + "/status")
+	if err != nil {
+		return -1
+	}
+	for _, line := range strings.Split(string(b), "\n") {
+		if v, ok := strings.CutPrefix(line, "Uid:"); ok {
+			f := strings.Fields(v)
+			if len(f) > 0 {
+				n, _ := strconv.Atoi(f[0])
+				return n
+			}
+		}
+	}
+	return -1
+}
+
+func humanUsers() int { return 0 } // only matters on macOS

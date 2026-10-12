@@ -402,9 +402,35 @@ func connect(args []string) int {
 		}
 		if errors.Is(err, rt.ErrAuth) {
 			if o.RuntimeAPIKey != "" {
-				c.fail(fmt.Sprintf("%s answers on port %d but rejects the API key. Check GARAGEAI_RUNTIME_API_KEY: it must be exactly the key the runtime was started with.", o.Runtime, o.Port))
+				c.fail(fmt.Sprintf("%s answers on port %d but rejects the API key: it must be exactly the key the runtime was started with.", o.Runtime, o.Port))
 			}
-			c.fail(fmt.Sprintf("%s answers on port %d but requires an API key. Set it: export GARAGEAI_RUNTIME_API_KEY='<key>' and run again.", o.Runtime, o.Port))
+			// The runtime wants a key: find it where the runtime was started (command line,
+			// environment, Docker), and only ask the operator when that fails. Never on the
+			// command line: pasted keys end up in shell histories and chats.
+			if key, source := profile.FindRuntimeKey(o.Port); key != "" {
+				if ids, ctxs, err := rt.New(host, o.Port, key).Models(); err == nil {
+					o.RuntimeAPIKey, c.o.RuntimeAPIKey = key, key
+					c.info(fmt.Sprintf("%s on port %d requires an API key: found it in the %s.", o.Runtime, o.Port, source))
+					served, contexts, probeHost = ids, ctxs, host
+					break
+				}
+			}
+			for tries := 0; tries < 3 && probeHost == ""; tries++ {
+				key := askSecret(fmt.Sprintf("  %s on port %d requires an API key. Paste the key it was started with (not shown): ", o.Runtime, o.Port))
+				if key == "" {
+					break
+				}
+				if ids, ctxs, err := rt.New(host, o.Port, key).Models(); err == nil {
+					o.RuntimeAPIKey, c.o.RuntimeAPIKey = key, key
+					served, contexts, probeHost = ids, ctxs, host
+				} else {
+					c.warn("The runtime rejects that key.")
+				}
+			}
+			if probeHost == "" {
+				c.fail(fmt.Sprintf("%s answers on port %d but requires an API key, and Bridge could not find or get it. Run the command again and paste the key when asked.", o.Runtime, o.Port))
+			}
+			break
 		}
 	}
 	if probeHost == "" {

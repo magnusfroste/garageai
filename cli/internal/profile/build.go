@@ -157,6 +157,24 @@ func problems(p Profile) []Problem {
 	case p.Heartbeat.Installed && !p.Heartbeat.Active:
 		add("warning", "heartbeat_stopped", "The heartbeat is installed but not running", "Run: garageai connect")
 	}
+	// How the runtime is kept alive: a terminal window or a login session is not a garage that
+	// stays up. Only for the runtime the garage is configured with.
+	if cp := p.GarageAI.ConfiguredPort; cp != nil {
+		for _, rt := range p.Runtimes {
+			if rt.Port != *cp || rt.PID == 0 {
+				continue
+			}
+			h := howRun(rt.PID)
+			switch {
+			case h.Terminal != "":
+				add("warning", "runtime_in_terminal", fmt.Sprintf("%s runs in a terminal window (%s): it stops when the window is closed or the machine restarts, and the garage goes offline", rt.Kind, h.Terminal),
+					runAsServiceFix(rt.Kind))
+			case h.UserSess && p.darwin && humanUsers() > 1:
+				add("info", "runtime_user_session", fmt.Sprintf("%s runs in your login session on a Mac with several user accounts: it stops when you log out (another user logging in with fast user switching is fine)", rt.Kind),
+					"Keep your account logged in, or run "+rt.Kind+" as a system service (a LaunchDaemon). Bridge will be able to set that up")
+			}
+		}
+	}
 	if p.GarageAI.Transport == "tunnel" {
 		if inst, active := service.TunnelInstalled(); !inst {
 			add("error", "tunnel_missing", "This garage uses the Bridge tunnel, but the tunnel service is not installed", "Run: garageai connect --tunnel bridge")
@@ -210,6 +228,16 @@ func problems(p Profile) []Problem {
 func ListenAddrs(port int) []string {
 	_, addrs, _ := byPort(listeners())
 	return addrs[port]
+}
+
+func runAsServiceFix(kind string) string {
+	switch kind {
+	case "ollama":
+		return "Use the Ollama app (it keeps Ollama running), or on Linux the ollama systemd service; then close the terminal"
+	case "vllm", "sglang":
+		return "Run it as a service: a systemd unit, or Docker with --restart unless-stopped"
+	}
+	return "Run it as a service (systemd, launchd or Docker with --restart) instead of in a terminal"
 }
 
 // MeshIPFromInterfaces is the NetBird address on this machine's tunnel interface, or "".
