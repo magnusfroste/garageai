@@ -187,6 +187,9 @@ func problems(p Profile) []Problem {
 				"Linux: sudo systemctl restart garageai-tunnel. macOS: sudo launchctl kickstart -k system/eu.garageai.tunnel. Then: garageai doctor")
 		}
 	}
+	if st := service.LoadUpdateState(); st.LastError != "" {
+		add("warning", "update_failed", "Bridge could not update itself: "+st.LastError, "Run: garageai update. If it fails the same way, check the machine's internet access to github.com")
+	}
 	if prog := service.Program(); prog != "" {
 		if why := service.UnsafeProgram(prog); why != "" {
 			// Not heartbeat_*: this one must reach the Operations Center with the heartbeat.

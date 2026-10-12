@@ -59,7 +59,10 @@ Every step is reported to the portal (`onboarding-report`), with the garage prof
 on a failure and when done, so a stuck connect is visible in the wizard, the admin and the
 Operations Center.
 
-**Updating:** run the install command again. When the machine has the heartbeat service, the
+**Updating:** Bridge updates itself (since v0.5.0): the portal's heartbeat answer names the stable
+version, Bridge fetches that release, verifies SHA256SUMS, runs the binary once and then swaps the
+service's copy and restarts the tunnel. `garageai update [vX.Y.Z]` does it by hand;
+`garageai connect --no-auto-update` turns the automatic part off. The install command still works too: When the machine has the heartbeat service, the
 installer also runs `sudo garageai install-service`, which puts the new version in the service's
 root-only place, so the heartbeat runs it from the next report on. `doctor` reports
 `service_binary_unsafe` (and the Operations Center shows it) when a root service runs a binary a

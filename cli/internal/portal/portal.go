@@ -51,6 +51,15 @@ type Agent struct {
 	OS       string         `json:"os"`
 	Arch     string         `json:"arch"`
 	Problems []AgentProblem `json:"problems"`
+	Update   *AgentUpdate   `json:"update,omitempty"`
+}
+
+// AgentUpdate is Bridge's self-update state, for the portal and the Operations Center.
+type AgentUpdate struct {
+	Auto       bool   `json:"auto"`
+	LastCheck  string `json:"last_check,omitempty"`
+	LastUpdate string `json:"last_update,omitempty"`
+	LastError  string `json:"last_error,omitempty"`
 }
 
 type AgentProblem struct {
@@ -79,6 +88,9 @@ type HeartbeatResult struct {
 	ContextsChanged []string     `json:"contexts_changed"`
 	Acceptance      []Acceptance `json:"acceptance"`
 	Error           string       `json:"error"`
+	// Self-update (docs/bridge.md): the version the portal wants garages on, and where to get it.
+	BridgeStable       string `json:"bridge_stable"`
+	BridgeDownloadBase string `json:"bridge_download_base"`
 }
 
 func (c *Client) post(ctx context.Context, url string, body any, out any, timeout time.Duration) (int, error) {

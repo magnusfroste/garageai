@@ -190,8 +190,18 @@ Linux). Learned: Bridge rc1 set up services that ran the copy in the operator's 
 
 ## Updating Bridge
 
-Run the install command again. On a connected garage it asks for your password once and updates
-the heartbeat service too (`✓ The heartbeat service runs Bridge vX from ...`).
+Since v0.5.0 Bridge updates itself: the portal tells the heartbeat which version garages should run
+(the "stable" version, promoted by GarageAI after it has run on our own garages), and Bridge
+fetches that release, checks it against SHA256SUMS, runs the new binary once, and only then swaps
+the service's copy and restarts the tunnel. The heartbeat runs the new version from its next run.
+Your own `garageai` command is refreshed too when it is in `/usr/local/bin` or `~/.local/bin`.
+`garageai connect --no-auto-update` keeps a version until you run `garageai update` yourself.
+
+### `update_failed` (warning)
+The last self-update did not go through (the reason is in the message: no route to github.com, a
+checksum mismatch, or a binary that did not run). Run `garageai update`; if it fails the same way,
+check the machine's internet access to github.com. Nothing was replaced: Bridge keeps running the
+version it had.
 
 ## Mix-ups we have seen
 
