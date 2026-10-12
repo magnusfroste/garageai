@@ -27,7 +27,9 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"net/netip"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -149,6 +151,7 @@ func hub(args []string) {
 	port := fs.Int("port", 8001, "runtime port on the garage's tunnel address")
 	bulkMB := fs.Int("bulk-mb", 200, "MB to download for the throughput test")
 	rounds := fs.Int("rounds", 1, "repeat the checks this many times, 5 s apart (for reconnect tests)")
+	serve := fs.String("serve", "", "instead of the checks: serve the garage's runtime on this local address (e.g. 127.0.0.1:18890), as LiteLLM would reach it")
 	fs.Parse(args)
 
 	tnet, dev := stack(*addr)
@@ -163,6 +166,17 @@ func hub(args []string) {
 	}
 	client := &http.Client{Transport: &http.Transport{DialContext: tnet.DialContext}, Timeout: 120 * time.Second}
 	base := fmt.Sprintf("http://%s:%d", *garageAddr, *port)
+
+	if *serve != "" {
+		// A plain HTTP endpoint on the gateway in front of the tunnel: point curl (or LiteLLM's
+		// api_base) at it, and requests reach the runtime on the garage's localhost.
+		target, _ := url.Parse(base)
+		proxy := httputil.NewSingleHostReverseProxy(target)
+		proxy.Transport = &http.Transport{DialContext: tnet.DialContext, ResponseHeaderTimeout: 300 * time.Second}
+		proxy.FlushInterval = -1 // stream tokens as they come
+		log.Printf("hub: listening on UDP %d, serving the garage's runtime (%s) on http://%s", *listen, base, *serve)
+		log.Fatal(http.ListenAndServe(*serve, proxy))
+	}
 
 	for r := 1; r <= *rounds; r++ {
 		if r > 1 {
