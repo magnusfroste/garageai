@@ -16,13 +16,13 @@ Two sides, one marketplace. One account can do both, and can own several garages
 
 ```
 Buyers ──HTTPS──▶ LiteLLM gateway (EU) ──private WireGuard mesh──▶ garages
-                  llm.garageai.eu/v1                                Ollama · LM Studio · llama.cpp · vLLM · SGLang · Paddock
+                  api.garageai.eu/v1                                Ollama · LM Studio · llama.cpp · vLLM · SGLang · Paddock
 ```
 
 ### Use AI
 
 1. **Sign up and add credits** at [app.garageai.eu](https://app.garageai.eu/auth?intent=buyer) — prepaid, pay per token, no subscription.
-2. **Create an API key.** The API at `https://llm.garageai.eu/v1` is OpenAI-compatible: change the base URL and the OpenAI SDKs, agents and coding tools just work.
+2. **Create an API key.** The API at `https://api.garageai.eu/v1` is OpenAI-compatible: change the base URL and the OpenAI SDKs, agents and coding tools just work.
 3. **Pick a model and how to buy it** — **Pool** (one model name across every garage offering it; each request goes to one healthy garage and is billed at that garage's price, with automatic failover) or a **Specific garage** (a named garage, for example when location matters; you pay its price). Each garage sets its own price; GarageAI has no price list of its own.
 
 ### Offer your GPU

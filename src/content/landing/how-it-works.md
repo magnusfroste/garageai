@@ -14,7 +14,7 @@ tracks:
       - title: "Sign up and add credits"
         text: "Create an account at app.garageai.eu and top up prepaid credits by card (Stripe). You pay per token, with no subscription."
       - title: "Create an API key"
-        text: "Generate a key in the portal. The API at https://llm.garageai.eu/v1 is OpenAI-compatible, so the OpenAI SDKs, agents and coding tools work by changing the base URL."
+        text: "Generate a key in the portal. The API at https://api.garageai.eu/v1 is OpenAI-compatible, so the OpenAI SDKs, agents and coding tools work by changing the base URL."
       - title: "Pick a model and how to buy it"
         text: "Choose a Specific garage (you pay the price it has set, for example when location matters) or the Pool (one model name; each request goes to one of the garages offering the model and is billed at that garage's price, with automatic failover). Or just use the chat in the portal."
     ctaText: "Use AI"

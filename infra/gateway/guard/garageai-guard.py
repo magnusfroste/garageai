@@ -2,7 +2,7 @@
 """garageai-guard: block clients that guess API keys or probe the gateway.
 
 Runs every minute on the gateway (garageai-guard.timer). It reads the last few minutes of
-Traefik's access log for llm.garageai.eu and blocks a source IP for 24 h (7 days when it
+Traefik's access log for llm.garageai.eu and api.garageai.eu and blocks a source IP for 24 h (7 days when it
 comes back within a week) when, within 2 minutes, it gets:
   - 30 or more 401 answers (invalid API key), or
   - 60 or more 403 answers (paths the gateway does not serve: LiteLLM admin and pass-through routes).
@@ -33,7 +33,7 @@ STATE = f"{DIR}/state.json"
 STATUS = f"{DIR}/status.json"
 ENV = "/etc/garageai/guard.env"
 TRAEFIK = "netbird-traefik"
-ROUTERS = ("litellm@docker", "litellm-admin@docker", "litellm-deny@docker")
+ROUTERS = ("litellm@docker", "litellm-admin@docker", "litellm-deny@docker", "litellm-api@docker", "litellm-api-deny@docker")
 WINDOW = 120                      # seconds
 RULES = {401: (30, "invalid API keys"), 403: (60, "blocked paths")}
 BAN, REPEAT_BAN = 24 * 3600, 7 * 24 * 3600

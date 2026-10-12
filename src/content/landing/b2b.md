@@ -8,7 +8,7 @@ offerings:
   - icon: "🔌"
     title: "Use the API"
     color: "var(--color-accent)"
-    text: "Point your existing OpenAI-compatible tools, agents and internal apps at https://llm.garageai.eu/v1 and pay per token with prepaid credits."
+    text: "Point your existing OpenAI-compatible tools, agents and internal apps at https://api.garageai.eu/v1 and pay per token with prepaid credits."
   - icon: "🏢"
     title: "Run a private garage"
     color: "var(--color-primary)"

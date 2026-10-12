@@ -21,7 +21,7 @@ layers:
     icon: "🔀"
     title: "LiteLLM gateway"
     subtitle: "One OpenAI-compatible API"
-    details: "LiteLLM serves https://llm.garageai.eu/v1. It routes each request to a garage, retries and fails over within the pool, and meters usage per API key and per model. The gateway runs on an EU VPS (Hetzner, Helsinki)."
+    details: "LiteLLM serves https://api.garageai.eu/v1. It routes each request to a garage, retries and fails over within the pool, and meters usage per API key and per model. The gateway runs on an EU VPS (Hetzner, Helsinki)."
     color: "var(--color-warning)"
   - step: "04"
     icon: "🧭"
