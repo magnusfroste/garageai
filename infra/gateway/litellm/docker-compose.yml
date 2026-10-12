@@ -45,6 +45,17 @@ services:
       # Buyers must not learn which garage or provider served them: LiteLLM adds headers with
       # the upstream api_base, deployment id and runtime model name. Keep only the call id
       # (support) and the total cost. Provider headers (llm_provider-*) are disabled in config.yaml.
+      # LiteLLM 1.105 added these (and x-litellm-response-cost without a suffix).
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-call-id=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-cache-key=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-model-region=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-response-cost=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-response-cost-cache-read=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-response-cost-cache-creation=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-x-generation-id=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-permissions-policy=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-referrer-policy=
+      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-x-litellm-response-cost=
       - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-model-api-base=
       - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-model-id=
       - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-model-name=
