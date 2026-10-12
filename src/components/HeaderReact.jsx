@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 
-const Header = ({ logo = '🏠 GARAGE AI', ctaText = 'Get Started', ctaUrl = 'https://app.garageai.eu/auth', navLinks = [] } = {}) => {
+const Header = ({ logo = 'GarageAI', ctaText = 'Get Started', ctaUrl = 'https://app.garageai.eu/auth', navLinks = [] } = {}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const scrollToSection = (sectionId) => {
@@ -47,11 +47,12 @@ const Header = ({ logo = '🏠 GARAGE AI', ctaText = 'Get Started', ctaUrl = 'ht
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
         <motion.div
-          className="text-xl font-bold glow-text cursor-pointer"
-          style={{ color: 'var(--color-primary)' }}
+          className="flex items-center gap-2 text-xl font-extrabold cursor-pointer"
+          style={{ color: 'var(--color-text-primary)' }}
           whileHover={{ scale: 1.05 }}
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         >
+          <img src="/brand/mark.svg" alt="" width="28" height="28" className="block" />
           {logo}
         </motion.div>
 
