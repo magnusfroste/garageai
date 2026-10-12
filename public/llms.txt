@@ -4,7 +4,7 @@
 
 ## Key facts (what works today)
 
-- **For buyers:** Sign up at https://app.garageai.eu, create an API key and call the OpenAI-compatible API at https://llm.garageai.eu/v1 (works with OpenAI SDKs, agents and coding tools), or use the chat in the portal. Pay per token with prepaid credits (card via Stripe).
+- **For buyers:** Sign up at https://app.garageai.eu, create an API key and call the OpenAI-compatible API at https://api.garageai.eu/v1 (works with OpenAI SDKs, agents and coding tools), or use the chat in the portal. Pay per token with prepaid credits (card via Stripe).
 - **Pricing:** Each garage sets its own price per million tokens (input and output); GarageAI has no price list of its own. Buyers pay per token at the price of the garage that served the request; cached input is billed at the garage's lower cache-read price.
 - **Two ways to buy a model:** "Specific garage" (a named garage, e.g. for location; you pay its price) or "Pool" (one model name across every garage offering the model; each request goes to one healthy garage and is billed at that garage's price, with automatic failover). Both are shared, not exclusive, capacity.
 - **For operators:** Sign in at https://app.garageai.eu/connect ("Connect this computer") and run one line on the GPU machine: `curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.sh | sh -s -- connect` (no secrets in it). Requirements: a Mac (Apple silicon) or Linux machine with a GPU and a runtime running with a model loaded. Windows is coming soon; until then there is a beta PowerShell connect script for Ollama and LM Studio (https://github.com/magnusfroste/garageai/blob/main/scripts/garageai-connect.ps1), tested in CI but not yet on a real GPU machine, shown in the portal only as legacy instructions; beta testers can email powerup@garageai.eu with the subject "Windows beta". Supported runtimes: Ollama, LM Studio, llama.cpp, vLLM, SGLang and Paddock (beta). The line installs GarageAI Bridge (`garageai`, open source, in beta) and connects the garage in a few minutes: the operator confirms the machine in the browser (no token is copied), Bridge joins the encrypted NetBird mesh, checks the runtime and registers the models, and a heartbeat service keeps the models and their context windows in sync. Every model must pass an automated acceptance test (time-to-first-token, tokens/second) before it can be sold.
@@ -23,7 +23,7 @@ Garage nodes running largely on locally produced energy (rooftop solar, home bat
 
 - Website: https://www.garageai.eu
 - Portal (sign up): https://app.garageai.eu/auth
-- API base URL: https://llm.garageai.eu/v1
+- API base URL: https://api.garageai.eu/v1
 - Source code (GitHub): https://github.com/magnusfroste/garageai
 - Gateway setup: https://github.com/magnusfroste/garageai/blob/main/infra/gateway/README.md
 - Community discussions: https://github.com/magnusfroste/garageai/discussions

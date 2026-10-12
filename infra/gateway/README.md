@@ -110,7 +110,7 @@ cd /opt/garageai/litellm
 cp .env.example .env
 nano .env             # LITELLM_DOMAIN, NETBIRD_NETWORK, keys and password (see comments)
 docker compose up -d
-curl https://llm.garageai.eu/health/liveliness
+curl https://api.garageai.eu/health/liveliness
 ```
 
 `config.yaml` has no models: garages are added at runtime (step 6). Its router settings retry
@@ -136,7 +136,7 @@ rebind it if it only listens on localhost, and prints the node's details.
 From anywhere that can reach the LiteLLM API:
 
 ```bash
-export LITELLM_URL=https://llm.garageai.eu LITELLM_MASTER_KEY=sk-...
+export LITELLM_URL=https://llm.garageai.eu LITELLM_MASTER_KEY=sk-...   # admin API: llm only, never api
 infra/gateway/register-node.sh add garage-lund 100.92.1.7 11434 qwen3:32b gemma4:27b
 infra/gateway/register-node.sh list
 infra/gateway/register-node.sh remove garage-lund qwen3:32b     # when they stop sharing
@@ -474,14 +474,14 @@ external tester a key. All commands from the gateway; `$BUYER` is an ordinary bu
 1. **Nothing but the LLM API is public.** Expect 403 for the admin UI and routes, 401 for
    anonymous `/v1/models`:
    ```bash
-   for p in /ui /openapi.json /model/info /health /key/info; do printf "%-14s " $p; curl -s -o /dev/null -w "%{http_code}\n" https://llm.garageai.eu$p -H "Authorization: Bearer $BUYER"; done
-   curl -s -o /dev/null -w "%{http_code}\n" https://llm.garageai.eu/v1/models
+   for h in api llm; do for p in /ui /openapi.json /model/info /health /key/info; do printf "%-4s %-14s " $h $p; curl -s -o /dev/null -w "%{http_code}\n" https://$h.garageai.eu$p -H "Authorization: Bearer $BUYER"; done; done
+   curl -s -o /dev/null -w "%{http_code}\n" https://api.garageai.eu/v1/models
    ```
 2. **Responses do not reveal the garage or provider.** Read every header of one response per
    tier (pool and `garage/...`) and per provider. Only `x-litellm-call-id` and
    `x-litellm-response-cost` may remain; no `x-litellm-model-*`, no `llm_provider-*`:
    ```bash
-   curl -s -D - -o /dev/null https://llm.garageai.eu/v1/chat/completions -H "Authorization: Bearer $BUYER" \
+   curl -s -D - -o /dev/null https://api.garageai.eu/v1/chat/completions -H "Authorization: Bearer $BUYER" \
      -H "Content-Type: application/json" -d '{"model":"<model>","max_tokens":5,"messages":[{"role":"user","content":"hi"}]}' | grep -i "^x-\|^llm"
    ```
    A new header means the `llm_provider-*` list in `docker-compose.yml` needs that name.

@@ -68,4 +68,10 @@ move this translation into its own **control plane**:
 - **what stays in the portal:** the people's decisions and the data. The portal stops talking to
   LiteLLM directly.
 
+Part of the move: LiteLLM's admin API (the master key's `/key/*`, `/model/*`, `/ui`) leaves the
+public name. Today it is reachable on `llm.garageai.eu` (Traefik passes it only with the exact
+master-key header), because the portal's functions call it there. In the control plane it is reached
+only from inside (the control plane, the Operations Center), and `llm.garageai.eu` becomes a plain
+alias of `api.garageai.eu` for old clients. Noted 2026-10-12.
+
 Until then, keep the boundaries above, so that the move is a relocation and not a rewrite.
