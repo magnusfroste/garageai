@@ -56,6 +56,27 @@ measured lives in the Operations Center.
 - Everything that runs on the gateway is in this repo, and the Operations Center reports drift
   between main and what is deployed.
 
+## The pool: one name, several garages
+
+Decided 2026-10-12, after the OpenRouter comparison. Operators have no idea what to charge, and a
+pool price set by GarageAI would be administration that grows with the catalogue. So:
+
+- **Every garage model goes into the pool.** The public name (`qwen/qwen3-4b`) is the pool; the
+  dedicated name (`garage/<garage>/<model>`) is an address for pinning one garage, at that garage's
+  own price. There is no opt-in. A garage that wants out of the pool pauses.
+- **The price is prefilled** at onboarding from the market (OpenRouter's price for the same model,
+  or its size class). The operator can change it or go on. The portal sets each pool deployment's
+  `weight` from the price: cheaper garages get a larger share.
+- **The gateway distributes** each request among the garages that are up, in proportion to their
+  weights (`simple-shuffle`), skips garages whose context window does not fit the prompt, retries
+  once on another garage, and cools down a failing one. Not latency-based: that starved the slower
+  garages, and one slow request skewed it. Not strictly cheapest-first: that starves everyone but
+  one. Weighted distribution gives every garage that is up traffic and pay.
+- **The buyer sees** what OpenRouter shows: "from" (the cheapest garage), the expected price (the
+  weighted mean), and the cap (the most expensive garage), with the list of garages and their
+  prices. The buyer pays the price of the garage that answered.
+- `garageai/auto` is something else: a curated, ordered list across models, not a pool.
+
 ## Later: a control plane
 
 Today `syncModels`, a portal function, translates the portal's desired state into the gateway's

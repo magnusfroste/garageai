@@ -17,7 +17,13 @@ litellm_settings:
 # Residential nodes drop out more often than datacenter ones: retry on another
 # garage in the pool and take a failing garage out of rotation quickly.
 router_settings:
-  routing_strategy: latency-based-routing
+  # Pool routing (several garages behind one public name): each request goes to one of the
+  # garages that are up, in proportion to its `weight` (the portal sets it from the price:
+  # cheaper garages get a larger share). Every garage that is up gets traffic, nothing is
+  # measured that one slow request can skew, and the buyer's expected price is the weighted
+  # mean of the garages' prices. The same model as OpenRouter's provider routing.
+  # (latency-based-routing until 2026-10-12: it starved the slower garages.)
+  routing_strategy: simple-shuffle
   # Count tokens before calling the garage and answer 400 context_length_exceeded when the
   # prompt does not fit the model's window (model_info.max_input_tokens). Without this the
   # garage rejects it after the stream has started, and coding agents (Codex, Claude Code)
