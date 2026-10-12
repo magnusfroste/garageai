@@ -90,6 +90,10 @@ macOS and `journalctl -u garageai-tunnel` on Linux.
 - **No handshake with the hub:** the network blocks UDP out (some offices and hotspots). A TCP
   fallback is planned; until then use NetBird (`garageai connect` without `--tunnel`).
 - **After sleep or a network change** the tunnel reconnects by itself within a few seconds.
+- **A new tunnel garage's first handshakes can go unanswered for a few seconds:** the hub learns
+  about it from the portal on its next round (every 10 s). Bridge waits up to a minute and says so.
+  Before v0.4.1 it gave up after 20 s ("No answer from the gateway's tunnel hub"); running the
+  command again worked, because the hub knew the garage by then.
 - **The runtime on localhost is correct** for a tunnel garage: doctor does not report
   `localhost_only` for the port Bridge forwards.
 
@@ -171,6 +175,14 @@ Run the install command again. On a connected garage it asks for your password o
 the heartbeat service too (`✓ The heartbeat service runs Bridge vX from ...`).
 
 ## Mix-ups we have seen
+
+- **A register token left in the shell.** `export GARAGEAI_REGISTER_TOKEN=…` from an old connect
+  command stays in that terminal. Bridge then skips the browser link and uses the old token. Since
+  v0.4.1 it at least uses GarageAI's own portal address with it; to link afresh, open a new
+  terminal or `unset GARAGEAI_REGISTER_TOKEN GARAGEAI_REGISTER_URL GARAGEAI_SETUP_KEY GARAGEAI_MANAGEMENT_URL`.
+- **The terminal waits for a password behind the browser.** After approving in the browser, the
+  terminal asked for the sudo password, out of sight. Since v0.4.1 Bridge asks for it first, before
+  the browser opens.
 
 - **One garage name, two machines.** A garage was first set up on one laptop, whose settings were
   then deleted, and later connected from another laptop under the same name. The token and the

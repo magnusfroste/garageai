@@ -6,7 +6,7 @@ tunnel is one peer: its public key and its /32. There are no endpoints: the hub 
 address from its handshakes, whatever NAT it is behind. LiteLLM reaches garages at
 http://<tunnel ip>:<port>/v1 through the host, as it reaches NetBird's wt0.
 
-Every 30 s this service:
+Every 10 s this service:
 - reads the garages with transport "tunnel" from the portal (gateway-targets);
 - adds, updates and removes peers so that wg-hub matches. If the portal cannot be read, it keeps
   the peers it has and never empties the hub because of a failed read;
@@ -33,7 +33,7 @@ KEY = "/etc/wireguard/garageai-hub.key"   # AppArmor lets wg read keys only in /
 ENV = "/etc/garageai/gateway-health.env"
 STATUS = "/var/lib/garageai-hub/status.json"
 EXTRA = "/etc/garageai/hub-peers.json"   # optional static peers {pubkey: {"ip":..,"garage":..}}, for tests
-EVERY = 30
+EVERY = 10   # a new tunnel garage waits for this before its first handshake is accepted
 NFT = f"""
 table inet garageai_tunnel {{
   chain input {{
