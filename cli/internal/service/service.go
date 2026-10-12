@@ -141,11 +141,10 @@ func Install(self string) error {
 </dict>
 </plist>
 `, self, logPath, logPath)
-		_ = run("launchctl", "bootout", "system/eu.garageai.bridge")
 		if err := os.WriteFile(plistPath, []byte(plist), 0o644); err != nil {
 			return err
 		}
-		return run("launchctl", "bootstrap", "system", plistPath)
+		return launchdReplace("eu.garageai.bridge", plistPath)
 	}
 	return fmt.Errorf("the heartbeat service is not implemented on %s yet", runtime.GOOS)
 }

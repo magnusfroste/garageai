@@ -64,11 +64,10 @@ func InstallTunnel(self string) error {
 </dict>
 </plist>
 `, self, tunnelLogPath, tunnelLogPath)
-		_ = run("launchctl", "bootout", "system/eu.garageai.tunnel")
 		if err := os.WriteFile(tunnelPlistPath, []byte(plist), 0o644); err != nil {
 			return err
 		}
-		return run("launchctl", "bootstrap", "system", tunnelPlistPath)
+		return launchdReplace("eu.garageai.tunnel", tunnelPlistPath)
 	}
 	return fmt.Errorf("the tunnel service is not implemented on %s yet", runtime.GOOS)
 }

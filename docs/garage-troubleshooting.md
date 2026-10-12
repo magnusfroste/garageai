@@ -94,6 +94,13 @@ macOS and `journalctl -u garageai-tunnel` on Linux.
   about it from the portal on its next round (every 10 s). Bridge waits up to a minute and says so.
   Before v0.4.1 it gave up after 20 s ("No answer from the gateway's tunnel hub"); running the
   command again worked, because the hub knew the garage by then.
+- **"Could not install the tunnel service: launchctl bootstrap ... Bootstrap failed: 5: Input/output
+  error"** (macOS, connect run again over a running tunnel): launchd was still tearing the old
+  service down when Bridge registered the new one. Run
+  `sudo launchctl bootstrap system /Library/LaunchDaemons/eu.garageai.tunnel.plist` once the
+  tunnel is down for good, or run connect again. Since v0.5.1 Bridge waits for the teardown and
+  retries. Learned: garage-m1 and garage-m4 both hit it on 2026-10-12 when updating to v0.5.0 by
+  running the install command.
 - **The runtime on localhost is correct** for a tunnel garage: doctor does not report
   `localhost_only` for the port Bridge forwards.
 
