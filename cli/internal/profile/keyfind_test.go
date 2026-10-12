@@ -2,6 +2,7 @@ package profile
 
 import (
 	"net"
+	"os"
 	"os/exec"
 	goruntime "runtime"
 	"strconv"
@@ -37,30 +38,43 @@ func TestParentOf(t *testing.T) {
 	}
 }
 
+// TestHelperListen is not a test: the test binary re-runs itself with -test.run=^TestHelperListen$
+// to be a listening process started with "--api-key sk-from-args" on its command line.
+func TestHelperListen(t *testing.T) {
+	port := os.Getenv("GARAGEAI_TEST_LISTEN_PORT")
+	if port == "" {
+		t.Skip("helper")
+	}
+	l, err := net.Listen("tcp", "127.0.0.1:"+port)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+	time.Sleep(30 * time.Second)
+}
+
 // A real listening process started with --api-key: FindRuntimeKey reads it off its command line.
 func TestFindRuntimeKeyFromProcess(t *testing.T) {
 	if goruntime.GOOS == "windows" {
 		t.Skip("no cmdline on windows")
 	}
-	if _, err := exec.LookPath("python3"); err != nil {
-		t.Skip("no python3")
-	}
 	l, _ := net.Listen("tcp", "127.0.0.1:0")
 	port := l.Addr().(*net.TCPAddr).Port
 	l.Close()
-	cmd := exec.Command("python3", "-c", "import socket,sys,time\ns=socket.socket()\ns.bind(('127.0.0.1',int(sys.argv[1])))\ns.listen(1)\ntime.sleep(60)", strconv.Itoa(port), "--api-key", "sk-from-args")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestHelperListen$", "--", "--api-key", "sk-from-args")
+	cmd.Env = append(os.Environ(), "GARAGEAI_TEST_LISTEN_PORT="+strconv.Itoa(port))
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer cmd.Process.Kill()
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(20 * time.Second)
 	for {
 		if c, err := net.DialTimeout("tcp", "127.0.0.1:"+strconv.Itoa(port), 200*time.Millisecond); err == nil {
 			c.Close()
 			break
 		}
 		if time.Now().After(deadline) {
-			t.Fatal("the test process never listened")
+			t.Fatal("the helper process never listened")
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
