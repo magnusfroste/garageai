@@ -40,7 +40,7 @@ func link(o *Options, runtimeGiven bool) int {
 	}
 	host, mid := computerName(o.Name), machine.ID()
 	req := portal.LinkRequest{MachineID: mid, Hostname: host, OS: facts.Machine.OS, Arch: facts.Machine.Arch,
-		BridgeVersion: version, Runtime: o.Runtime, SuggestedName: suggestName(host, mid)}
+		BridgeVersion: version, Runtime: o.Runtime, SuggestedName: suggestName(host, mid), Transport: map[string]string{"bridge": "tunnel", "netbird": "netbird"}[o.Tunnel]}
 	if facts.Machine.MemoryGB != nil {
 		req.MemoryGB = *facts.Machine.MemoryGB
 	}

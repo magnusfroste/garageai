@@ -67,7 +67,7 @@ normal user can change, as Bridge before v0.2.4 could set up.
 
 What each problem means and how to fix it: [docs/garage-troubleshooting.md](../docs/garage-troubleshooting.md).
 
-## The Bridge tunnel: `garageai connect --tunnel bridge`
+## The Bridge tunnel (the default since v0.4.2)
 
 Bridge can carry the garage's tunnel to the gateway itself ([docs/bridge-tunnel.md](../docs/bridge-tunnel.md)):
 WireGuard in user space inside Bridge, no NetBird, no network interface, no routes, and the runtime
@@ -75,8 +75,11 @@ stays on `127.0.0.1`. Bridge makes a key pair on the machine and sends only the 
 portal (`tunnel-assign`), gets its tunnel address (10.66.x.y) and the hub's key back, dials out to
 the hub on UDP 51830 (any NAT works), and forwards the tunnel to the runtime locally. The tunnel runs
 as its own service (`garageai tunnel`: `garageai-tunnel.service` or `eu.garageai.tunnel`) and
-reconnects by itself after sleep or a network change. `garageai connect` without `--tunnel` keeps
-using NetBird; a garage can switch either way by running connect again.
+reconnects by itself after sleep or a network change. It is the default since v0.4.2, after four
+garages (one an outside operator's) ran on it on 2026-10-12. `garageai connect --tunnel netbird`
+uses the NetBird mesh instead: the fallback for networks that block UDP. A command that carries a
+NetBird setup key (the portal's legacy command) also means NetBird. A garage can switch either way
+by running connect again.
 
 ## Your own agent: `garageai mcp`
 
