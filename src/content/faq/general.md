@@ -5,7 +5,7 @@ description: "Practical answers about using GarageAI and offering your GPU."
 order: 11
 faqs:
   - question: "What is GarageAI?"
-    answer: "A two-sided marketplace for local AI inference. Garage owners (operators) connect a GPU they already own and offer open models on it. Buyers call those models through one OpenAI-compatible API at https://llm.garageai.eu/v1, or use the chat in the portal, and pay per token. The operator earns the token price for the requests their garage serves."
+    answer: "A two-sided marketplace for local AI inference. Garage owners (operators) connect a GPU they already own and offer open models on it. Buyers call those models through one OpenAI-compatible API at https://api.garageai.eu/v1, or use the chat in the portal, and pay per token. The operator earns the token price for the requests their garage serves."
   - question: "What hardware do I need to offer my GPU?"
     answer: "A machine that can run an open model with acceptable speed: typically a Mac with Apple silicon or a Linux machine with a capable GPU. There is no fixed minimum spec. Every model has to pass an automated acceptance test through the gateway, which measures time-to-first-token and tokens per second, before it can be sold."
   - question: "Which operating systems and runtimes are supported?"
@@ -39,7 +39,7 @@ faqs:
   - question: "How is GarageAI different from other decentralised GPU networks?"
     answer: "Residential GPUs selling inference is not new in itself: there are crypto-based inference networks, hourly GPU rental marketplaces and API aggregators. What we have not seen elsewhere is the combination: named garages you can pick plus a shared pool, local GPUs and verified datacenter providers in the same catalogue and API, payment in euros by card or invoice instead of tokens, a self-hosted EU mesh with no inbound ports, and onboarding that gets a garage live in minutes with one line and a click in the browser. If you know a European service that already does all of that, we would like to hear about it."
   - question: "Is it OpenAI-compatible?"
-    answer: "Yes. The API at https://llm.garageai.eu/v1 is OpenAI-compatible, so the OpenAI SDKs, agents and coding tools work by setting the base URL and your GarageAI API key."
+    answer: "Yes. The API at https://api.garageai.eu/v1 is OpenAI-compatible, so the OpenAI SDKs, agents and coding tools work by setting the base URL and your GarageAI API key."
   - question: "Can I be both a buyer and an operator?"
     answer: "Yes. One account can buy inference and offer GPUs, and you can register several garages under the same account."
   - question: "Is GarageAI open source?"

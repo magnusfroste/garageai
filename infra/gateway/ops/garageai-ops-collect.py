@@ -46,7 +46,7 @@ STATE = "/var/lib/garageai-ops/state.json"
 HEALTH_LAST = "/var/lib/garageai-health/last.json"
 BACKUP_DIR = "/var/backups/garageai"
 LITELLM_DIR = "/opt/garageai/litellm"
-CERT_HOSTS = ["llm.garageai.eu", "netbird.garageai.eu", "ops.garageai.eu", "app.garageai.eu", "www.garageai.eu"]
+CERT_HOSTS = ["api.garageai.eu", "llm.garageai.eu", "netbird.garageai.eu", "ops.garageai.eu", "app.garageai.eu", "www.garageai.eu"]
 TIMERS = ["garageai-health.timer", "garageai-backup.timer", "garageai-ops.timer", "garageai-guard.timer", "garageai-ops-live.service"]
 GUARD_STATUS = "/var/lib/garageai-guard/status.json"
 EXPECTED_POLICIES = {"gateway-to-garages"}
@@ -450,7 +450,7 @@ def gateway_log_counts():
 # ---------------------------------------------------------------- outside view
 def outside():
     rows = []
-    for name, url in (("gateway", "https://llm.garageai.eu/health/liveliness"), ("portal", "https://app.garageai.eu/"),
+    for name, url in (("gateway", "https://llm.garageai.eu/health/liveliness"), ("gateway (api)", "https://api.garageai.eu/health/liveliness"), ("portal", "https://app.garageai.eu/"),
                       ("site", "https://www.garageai.eu/"), ("netbird", "https://netbird.garageai.eu/")):
         code, _, ms = http(url, timeout=10)
         rows.append({"name": name, "url": url, "status": code, "ms": ms})

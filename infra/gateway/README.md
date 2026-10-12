@@ -10,7 +10,7 @@ The GarageAI core runs on a single EU VPS:
 
 ```
                            ┌──────────────── EU VPS (Docker) ─────────────────┐
- Buyers ──HTTPS──▶ :443 ──▶│ Traefik ─┬─▶ llm.garageai.eu     → LiteLLM ─▶ Postgres
+ Buyers ──HTTPS──▶ :443 ──▶│ Traefik ─┬─▶ api.garageai.eu     → LiteLLM ─▶ Postgres
                            │          └─▶ netbird.garageai.eu → NetBird server + dashboard
  Garages ─UDP 3478 (STUN)─▶│                                                     │
                            │ NetBird client on the host (wt0) ◀── LiteLLM routes │
@@ -34,7 +34,7 @@ The GarageAI core runs on a single EU VPS:
 
 - **VPS:** Hetzner CX22 (2 vCPU, 4 GB, ~€4/month) is enough for a PoC; CX32 gives headroom.
   Ubuntu 24.04, location Falkenstein, Nuremberg or Helsinki.
-- **DNS:** two A records pointing at the VPS: `netbird.garageai.eu` and `llm.garageai.eu`.
+- **DNS:** A records pointing at the VPS: `netbird.garageai.eu`, `api.garageai.eu` (the public API name in the docs since 2026-10-12) and `llm.garageai.eu` (the original name; it keeps working for existing clients, and it alone carries the master key's admin API).
 - **Hetzner Cloud Firewall, inbound:**
 
   | Port | Protocol | Purpose |
@@ -152,7 +152,7 @@ NODE_API_KEY=sk-... infra/gateway/register-node.sh add garage-lund 100.92.1.7 80
 First end-to-end test:
 
 ```bash
-curl https://llm.garageai.eu/v1/chat/completions \
+curl https://api.garageai.eu/v1/chat/completions \
   -H "Authorization: Bearer $LITELLM_MASTER_KEY" -H "Content-Type: application/json" \
   -d '{"model": "garage/garage-lund/qwen3:32b", "stream": true,
        "messages": [{"role": "user", "content": "Hej från GarageAI!"}]}'
