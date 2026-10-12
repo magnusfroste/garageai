@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -119,6 +120,61 @@ func (c *Client) OllamaLoadedContext(model string) int {
 		}
 	}
 	return 0
+}
+
+// OllamaShow reads a model's own context setting (num_ctx in its Modelfile, 0 if none) and the
+// model's maximum (the architecture's context_length) from /api/show. Works for idle models.
+func (c *Client) OllamaShow(model string) (numCtx, maxCtx int) {
+	req, _ := http.NewRequest("POST", c.base()+"/api/show", strings.NewReader(`{"model":`+strconv.Quote(model)+`}`))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return 0, 0
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
+	var show struct {
+		Parameters string                 `json:"parameters"`
+		ModelInfo  map[string]interface{} `json:"model_info"`
+	}
+	if resp.StatusCode != 200 || json.Unmarshal(b, &show) != nil {
+		return 0, 0
+	}
+	for _, line := range strings.Split(show.Parameters, "\n") {
+		f := strings.Fields(line)
+		if len(f) == 2 && f[0] == "num_ctx" {
+			numCtx, _ = strconv.Atoi(f[1])
+		}
+	}
+	for k, v := range show.ModelInfo {
+		if strings.HasSuffix(k, ".context_length") {
+			if n, ok := v.(float64); ok && n > 0 {
+				maxCtx = int(n)
+			}
+		}
+	}
+	return numCtx, maxCtx
+}
+
+// OllamaContext is the window Ollama runs model with: what it is loaded with now; else the model's
+// own num_ctx; else the server's default (OLLAMA_CONTEXT_LENGTH, or Ollama's 4096), capped by the
+// model's maximum. So idle models get a real window too, and the gateway can cap prompts for them.
+func (c *Client) OllamaContext(model string, serverDefault int) int {
+	if ctx := c.OllamaLoadedContext(model); ctx > 0 {
+		return ctx
+	}
+	numCtx, maxCtx := c.OllamaShow(model)
+	ctx := numCtx
+	if ctx == 0 {
+		ctx = serverDefault
+	}
+	if ctx == 0 {
+		ctx = 4096
+	}
+	if maxCtx > 0 && ctx > maxCtx {
+		ctx = maxCtx
+	}
+	return ctx
 }
 
 // UsageReported sends a 1-token streamed request and looks for a usage object in the stream.

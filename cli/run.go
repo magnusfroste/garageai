@@ -58,8 +58,11 @@ func heartbeat(cfg *service.Config, client *portal.Client) int {
 		}
 		models, contexts = ids, ctxs
 		if cfg.Runtime == "ollama" {
+			// Every model gets a window, loaded or not: Ollama only tells /api/ps for loaded ones,
+			// and a garage with ten idle models had no caps at the gateway (mac-mini-1cab).
+			def := profile.OllamaServerContext(cfg.Port)
 			for _, m := range ids {
-				if ctx := c.OllamaLoadedContext(m); ctx > 0 {
+				if ctx := c.OllamaContext(m, def); ctx > 0 {
 					contexts[m] = ctx
 				}
 			}
