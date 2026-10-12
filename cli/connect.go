@@ -44,6 +44,7 @@ type Options struct {
 	Yes           bool
 	MeshWait      time.Duration
 	Tunnel        string // "netbird" (default) or "bridge" (docs/bridge-tunnel.md)
+	NoAutoUpdate  bool   // keep this Bridge version until the operator updates by hand
 }
 
 func optionsFromEnv() Options {
@@ -108,6 +109,8 @@ func parseConnectArgs(args []string, o *Options) error {
 			o.RegisterToken, err = next()
 		case "--tunnel":
 			o.Tunnel, err = next()
+		case "--no-auto-update":
+			o.NoAutoUpdate = true
 		case "--skip-install":
 			o.SkipInstall = true
 		case "--no-heartbeat":
@@ -551,6 +554,10 @@ func connect(args []string) int {
 		RuntimeAPIKey: o.RuntimeAPIKey, MeshIP: meshIP}
 	if o.Tunnel == "bridge" {
 		cfg.Transport, cfg.HubPublicKey, cfg.HubEndpoint = "tunnel", grant.HubPublicKey, grant.HubEndpoint
+	}
+	if o.NoAutoUpdate {
+		f := false
+		cfg.AutoUpdate = &f
 	}
 	if err := service.Save(cfg); err != nil {
 		c.fail("Could not write " + service.ConfigPath() + ": " + err.Error())

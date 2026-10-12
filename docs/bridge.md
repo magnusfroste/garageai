@@ -59,7 +59,8 @@ script stays as an internal backup and reference. Phase 0 is done and phase 1 is
 Done: `garageai connect` (the six steps, same options, payloads and onboarding reports as the
 script, root through sudo with secrets on stdin), `garageai run` as a systemd timer or launchd
 daemon with `contexts` in every heartbeat, `garageai uninstall`, migration of the script's old
-heartbeat. Not yet: Windows service, pause, self-update, the firewall rule, embedded NetBird.
+heartbeat, self-update (v0.5.0: the portal's stable version, SHA256SUMS, run-before-swap, on by
+default, `--no-auto-update` to opt out). Not yet: Windows service, pause, the firewall rule.
 - `garageai connect`: join the mesh, find the runtime, register. Same onboarding reports, now
   with `version`.
 - `garageai run` as a service (systemd, launchd, Windows service):

@@ -50,6 +50,8 @@ func main() {
 		os.Exit(mcpServe(os.Stdin, os.Stdout))
 	case "tunnel":
 		os.Exit(tunnelCmd())
+	case "update":
+		os.Exit(updateCmd(args[1:]))
 	case "help", "--help", "-h":
 		usage(0)
 	default:
@@ -105,6 +107,7 @@ usage:
       --register-url URL --register-token TOK  (from the portal's command)
       --runtime ollama|lmstudio|llamacpp|vllm|sglang|paddock|unsloth|mlx|lemonade|other
       --port N  --name NAME  --models a,b  --runtime-api-key KEY  --skip-install  --no-heartbeat  --yes
+      --no-auto-update             keep this version until you run garageai update yourself
       --tunnel bridge|netbird      bridge (default): Bridge carries the tunnel itself, no NetBird, and the
                                    runtime can stay on localhost. netbird: the NetBird mesh, the fallback
                                    for networks that block UDP
@@ -115,6 +118,7 @@ usage:
   garageai install-service     make the heartbeat service run this version (the installer does this)
   garageai mcp                 Bridge's tools for your own AI agent (MCP over stdio)
   garageai tunnel              this garage's own tunnel to the gateway (the installed service runs this)
+  garageai update [vX.Y.Z]     update Bridge by hand (it updates itself to the portal's stable version otherwise)
   garageai version`)
 	os.Exit(code)
 }

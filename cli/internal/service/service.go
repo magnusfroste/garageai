@@ -22,6 +22,8 @@ type Config struct {
 	MeshIP        string `json:"mesh_ip,omitempty"`
 	// The Bridge tunnel (docs/bridge-tunnel.md) instead of NetBird: transport "tunnel", the
 	// garage's address in it, the hub's key and endpoint. The private key is in TunnelKeyPath().
+	// Self-update: nil means on. garageai connect --no-auto-update sets it to false.
+	AutoUpdate   *bool  `json:"auto_update,omitempty"`
 	Transport    string `json:"transport,omitempty"`
 	HubPublicKey string `json:"hub_public_key,omitempty"`
 	HubEndpoint  string `json:"hub_endpoint,omitempty"`

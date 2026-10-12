@@ -89,7 +89,32 @@ func heartbeat(cfg *service.Config, client *portal.Client) int {
 		line += fmt.Sprintf(", changed (added %s, removed %s, contexts %s)", strings.Join(res.Added, ","), strings.Join(res.Removed, ","), strings.Join(res.ContextsChanged, ","))
 	}
 	fmt.Println(line)
+	maybeSelfUpdate(cfg, res)
 	return 0
+}
+
+// maybeSelfUpdate: the portal's bridge_stable decides; Bridge moves there when it is newer, unless
+// the operator turned auto-update off. The outcome is recorded for the next heartbeat and doctor.
+func maybeSelfUpdate(cfg *service.Config, res *portal.HeartbeatResult) {
+	if cfg.AutoUpdate != nil && !*cfg.AutoUpdate {
+		return
+	}
+	st := service.LoadUpdateState()
+	st.LastCheck = service.Now()
+	if res.BridgeStable == "" || !newerVersion(version, res.BridgeStable) {
+		st.LastError = ""
+		service.SaveUpdateState(st)
+		return
+	}
+	fmt.Printf("%s updating Bridge %s → %s (the portal's stable version)\n", service.Now(), version, res.BridgeStable)
+	if err := selfUpdate(res.BridgeStable, res.BridgeDownloadBase); err != nil {
+		st.LastError = err.Error()
+		fmt.Printf("%s update failed: %v\n", service.Now(), err)
+	} else {
+		st.LastError, st.LastUpdate, st.Version = "", service.Now(), res.BridgeStable
+		fmt.Printf("%s Bridge %s installed; the next heartbeat runs it\n", service.Now(), res.BridgeStable)
+	}
+	service.SaveUpdateState(st)
 }
 
 // agent is Bridge's own report for the heartbeat: its version and what doctor finds right now.
@@ -97,6 +122,8 @@ func agent(cfg *service.Config) *portal.Agent {
 	p := profile.Build(version)
 	correctRuntime(cfg, p)
 	a := &portal.Agent{Tool: p.Tool, Version: version, OS: p.Machine.OS, Arch: p.Machine.Arch, Problems: []portal.AgentProblem{}}
+	ust := service.LoadUpdateState()
+	a.Update = &portal.AgentUpdate{Auto: cfg.AutoUpdate == nil || *cfg.AutoUpdate, LastCheck: ust.LastCheck, LastUpdate: ust.LastUpdate, LastError: ust.LastError}
 	for _, pr := range p.Problems {
 		// The heartbeat's own state is known where it arrives, and the log doctor reads it from is
 		// the previous run's.

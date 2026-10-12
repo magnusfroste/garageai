@@ -13,6 +13,9 @@ import (
 // installer puts the command they type) could be replaced by anything running as that user.
 // Not /usr/local/bin: with Homebrew on an Intel Mac that directory belongs to the user.
 func BinaryPath() string {
+	if p := os.Getenv("GARAGEAI_SERVICE_BINARY"); p != "" {
+		return p // tests and dry runs
+	}
 	switch runtime.GOOS {
 	case "darwin":
 		return "/Library/Application Support/GarageAI/garageai"
