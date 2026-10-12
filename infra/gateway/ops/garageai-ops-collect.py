@@ -47,7 +47,7 @@ HEALTH_LAST = "/var/lib/garageai-health/last.json"
 BACKUP_DIR = "/var/backups/garageai"
 LITELLM_DIR = "/opt/garageai/litellm"
 CERT_HOSTS = ["api.garageai.eu", "llm.garageai.eu", "netbird.garageai.eu", "ops.garageai.eu", "app.garageai.eu", "www.garageai.eu"]
-TIMERS = ["garageai-health.timer", "garageai-backup.timer", "garageai-ops.timer", "garageai-guard.timer", "garageai-ops-live.service"]
+TIMERS = ["garageai-health.timer", "garageai-backup.timer", "garageai-ops.timer", "garageai-guard.timer", "garageai-ops-live.service", "garageai-hub.service"]
 GUARD_STATUS = "/var/lib/garageai-guard/status.json"
 EXPECTED_POLICIES = {"gateway-to-garages"}
 UA = "garageai-ops/1 (+https://garageai.eu)"
@@ -63,6 +63,8 @@ DEPLOYED = {
     "/usr/local/sbin/garageai-backup": "infra/gateway/backup/garageai-backup",
     "/usr/local/bin/garageai-ops-collect": "infra/gateway/ops/garageai-ops-collect.py",
     "/usr/local/bin/garageai-ops-live": "infra/gateway/ops/garageai-ops-live.py",
+    "/usr/local/sbin/garageai-hub": "infra/gateway/hub/garageai-hub.py",
+    "/etc/systemd/system/garageai-hub.service": "infra/gateway/hub/garageai-hub.service",
     "/etc/systemd/system/garageai-ops-live.service": "infra/gateway/ops/garageai-ops-live.service",
     "/var/lib/garageai-ops/www/index.html": "infra/gateway/ops/index.html",
     "/opt/garageai/ops/docker-compose.yml": "infra/gateway/ops/docker-compose.yml",
@@ -481,7 +483,24 @@ def ops_summary(env, state):
     return value
 
 
-# ---------------------------------------------------------------- onboarding
+# ---------------------------------------------------------------- Bridge tunnel hub
+def tunnel_hub():
+    """The Bridge tunnel hub's peers (docs/bridge-tunnel.md): which garages use it, their latest
+    handshake and where they connect from. None when the hub is not running."""
+    st = read_json("/var/lib/garageai-hub/status.json", None)
+    if not isinstance(st, dict):
+        return None
+    now = time.time()
+    peers = []
+    for key, p in (st.get("peers") or {}).items():
+        hs = p.get("latest_handshake")
+        peers.append({"garage": p.get("garage") or key[:8] + "…", "ip": p.get("ip"), "endpoint": p.get("endpoint"),
+                      "connected": bool(hs) and now - hs < 180, "handshake_s": int(now - hs) if hs else None,
+                      "rx_mb": round((p.get("rx_bytes") or 0) / 1e6, 1), "tx_mb": round((p.get("tx_bytes") or 0) / 1e6, 1)})
+    return {"port": st.get("port"), "at": st.get("at"), "stale": now - (st.get("at") or 0) > 120,
+            "peers": sorted(peers, key=lambda p: (not p["connected"], p["garage"] or ""))}
+
+
 def pctl(xs, p):
     xs = sorted(xs)
     return xs[min(len(xs) - 1, int(round(p * (len(xs) - 1))))] if xs else None
@@ -745,6 +764,7 @@ def alerts(d):
             continue
         if not g["runtime_ok"] or g["mesh"] is False:
             add("critical", f"{g['garage']}: {'tunnel down' if g['mesh'] is False else 'runtime not answering'}"
+                            + (" (Bridge tunnel)" if g.get("error") == "tunnel_disconnected" else "")
                             + (f" ({g['error']})" if g.get("error") else ""), "supply")
         if g["type"] == "mesh" and g["runtime_ok"] and g["mesh"] is not False and (g.get("heartbeat_min") or 0) >= HEARTBEAT_SILENT_MINUTES:
             add("warning", f"{g['garage']}: no heartbeat for {g['heartbeat_min']} min although it answers"
@@ -1363,6 +1383,7 @@ def main():
         "guard": guard(),
         "business": ops_summary(env, state),
     }
+    data["tunnel"] = tunnel_hub()
     data["onboarding"] = onboarding(data)
     data["onboarding_funnel"] = onboarding_funnel(data)
     data["models"] = models(env, state, targets)

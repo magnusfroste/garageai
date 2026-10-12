@@ -357,6 +357,7 @@
 
       <section class="page" data-page="mesh">
         <div id="alerts-mesh"></div>
+        <div class="card" id="tunnel-card" hidden><h2>Bridge tunnel hub</h2><div class="sub">Garages that carry their own tunnel in Bridge (no NetBird): the hub learns each garage's address from its handshake.</div><div id="tunnel"></div></div>
         <div class="card"><h2>Gateway peer</h2><div id="mesh-local"></div></div>
         <div class="card"><h2>Peers</h2><div id="mesh-peers"></div></div>
         <div class="card"><h2>Access policies</h2><div id="mesh-policies"></div>
@@ -595,6 +596,13 @@ function renderPages(d) {
     ["Waiting", o => `${dur(o.minutes)}${o.stuck ? " " + pill("warning", "stuck") : ""}`, "num"],
   ], d.onboarding || []);
   renderFunnel(d.onboarding_funnel, dur);
+  const tu = d.tunnel;
+  $("tunnel-card").hidden = !tu;
+  if (tu) $("tunnel").innerHTML = (tu.peers.length ? table([
+    ["Garage", p => `${dot(p.connected ? "ok" : "critical")}<b>${esc(p.garage)}</b>`], ["Tunnel IP", p => `<code>${esc(p.ip)}</code>`],
+    ["Connects from", p => p.endpoint ? esc(p.endpoint) : "—"], ["Last handshake", p => p.handshake_s == null ? "never" : p.handshake_s < 60 ? `${p.handshake_s} s ago` : `${Math.round(p.handshake_s / 60)} min ago`],
+    ["Traffic", p => `${p.rx_mb} MB in · ${p.tx_mb} MB out`],
+  ], tu.peers) : '<div class="small">No garage uses the Bridge tunnel yet.</div>') + `<div class="note">UDP ${tu.port}${tu.stale ? ' · <span class="warning">hub status is stale</span>' : ""}</div>`;
   ["onboarding", "business", "supply", "models", "traffic", "mesh", "server", "updates", "logs"].forEach(p => pageAlerts(p, d.alerts));
 
   const md = d.models || {}, deps = md.deployments || [];

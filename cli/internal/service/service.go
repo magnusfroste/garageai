@@ -20,6 +20,11 @@ type Config struct {
 	Port          int    `json:"port"`
 	RuntimeAPIKey string `json:"runtime_api_key,omitempty"`
 	MeshIP        string `json:"mesh_ip,omitempty"`
+	// The Bridge tunnel (docs/bridge-tunnel.md) instead of NetBird: transport "tunnel", the
+	// garage's address in it, the hub's key and endpoint. The private key is in TunnelKeyPath().
+	Transport    string `json:"transport,omitempty"`
+	HubPublicKey string `json:"hub_public_key,omitempty"`
+	HubEndpoint  string `json:"hub_endpoint,omitempty"`
 }
 
 func ConfigPath() string {
@@ -130,6 +135,7 @@ func Remove() {
 		_ = run("launchctl", "bootout", "system/eu.garageai.bridge")
 		os.Remove(plistPath)
 	}
+	RemoveTunnel()
 	os.Remove(ConfigPath())
 	if runtime.GOOS != "windows" {
 		os.Remove(BinaryPath())

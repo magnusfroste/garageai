@@ -265,13 +265,18 @@ func heartbeatAndConfig() (Heartbeat, GarageAI) {
 		}
 		if b, err := os.ReadFile("/etc/garageai/bridge.json"); err == nil {
 			var c struct {
-				Runtime string `json:"runtime"`
-				Port    int    `json:"port"`
+				Transport string `json:"transport"`
+				MeshIP    string `json:"mesh_ip"`
+				Runtime   string `json:"runtime"`
+				Port      int    `json:"port"`
 			}
 			if json.Unmarshal(b, &c) == nil {
 				cfg.ConfiguredRuntime = strp(c.Runtime)
 				if c.Port > 0 {
 					cfg.ConfiguredPort = &c.Port
+				}
+				if c.Transport == "tunnel" {
+					cfg.Transport, cfg.TunnelIP = "tunnel", c.MeshIP
 				}
 			}
 		} else if b, err := os.ReadFile("/etc/garageai/heartbeat.env"); err == nil {
