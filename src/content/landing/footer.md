@@ -31,7 +31,7 @@ partners:
     url: "https://www.autoversio.com"
   - name: "Liteit"
     url: "https://www.liteit.se"
-credits: "Built on open source: NetBird and LiteLLM."
+credits: "Built on open source: WireGuard, LiteLLM and NetBird."
 copyright: "© 2026 Garage AI · MIT License · Made in Sweden 🇸🇪 · Built for Europe 🇪🇺"
 ---
 

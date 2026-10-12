@@ -12,7 +12,7 @@ phases:
     status: "current"
     items:
       - "Private beta completed in spring 2026"
-      - "Encrypted NetBird mesh and LiteLLM gateway on an EU VPS"
+      - "Bridge's own encrypted WireGuard tunnel and a LiteLLM gateway on an EU VPS"
       - "Portal with accounts, API keys, prepaid credits and chat"
       - "Self-service operator onboarding with GarageAI Bridge: one command, live in minutes, in beta (macOS and Linux; Ollama, LM Studio, llama.cpp, vLLM, SGLang, Paddock)"
       - "Automated acceptance tests for every model"
@@ -29,6 +29,7 @@ phases:
       - "Operator earnings dashboard and wallet"
       - "Payouts to operators"
       - "Bridge pauses your garage when you need the GPU yourself, and updates itself"
+      - "A TCP fallback for networks that block UDP (until then, the NetBird mesh)"
       - "Per-garage capacity limits"
       - "Windows in Bridge and the portal (a Windows beta script exists today)"
       - "Verified garages and data-processing agreements"

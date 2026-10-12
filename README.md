@@ -15,7 +15,7 @@ GarageAI is a marketplace for local AI inference. Garage owners offer GPUs they 
 Two sides, one marketplace. One account can do both, and can own several garages.
 
 ```
-Buyers ──HTTPS──▶ LiteLLM gateway (EU) ──private WireGuard mesh──▶ garages
+Buyers ──HTTPS──▶ LiteLLM gateway (EU) ──WireGuard tunnel (Bridge)──▶ garages
                   api.garageai.eu/v1                                Ollama · LM Studio · llama.cpp · vLLM · SGLang · Paddock
 ```
 
@@ -28,7 +28,7 @@ Buyers ──HTTPS──▶ LiteLLM gateway (EU) ──private WireGuard mesh─
 ### Offer your GPU
 
 1. **Start the "Offer your GPU" wizard** at [app.garageai.eu](https://app.garageai.eu/auth?intent=operator) — macOS or Linux with Ollama, LM Studio, llama.cpp, vLLM, SGLang or Paddock (beta). Create your garage and set your price per million tokens.
-2. **Run one command.** The wizard gives you a command that installs [GarageAI Bridge](cli/README.md), one small open-source program (`garageai`), and runs `garageai connect`. Bridge installs the [NetBird](https://netbird.io) client, joins your machine to the encrypted mesh, checks that your runtime is reachable, registers your models and installs a heartbeat service that keeps the offered models in sync. No inbound ports are opened. It asks for your password once. Every step is reported to the wizard, so if something stops you see what to fix; `garageai doctor` shows the same on the machine, and `garageai uninstall` removes it again.
+2. **Run one command.** The wizard gives you a command that installs [GarageAI Bridge](cli/README.md), one small open-source program (`garageai`), and runs `garageai connect`. Bridge opens its own encrypted WireGuard tunnel to the gateway (no VPN app, and your runtime can stay on localhost; [NetBird](https://netbird.io) is the fallback for networks that block UDP), checks your runtime, registers your models and installs a heartbeat service that keeps the offered models in sync. No inbound ports are opened. It asks for your password once. Every step is reported to the wizard, so if something stops you see what to fix; `garageai doctor` shows the same on the machine, and `garageai uninstall` removes it again.
 
    **Windows is in beta:** [`scripts/garageai-connect.ps1`](scripts/garageai-connect.ps1) supports Ollama and LM Studio and runs in PowerShell as administrator. It is tested in CI but not yet on a real GPU machine, and the wizard does not offer Windows yet. To try it, email powerup@garageai.eu with the subject "Windows beta" and your GPU and runtime.
 3. **Pass the acceptance test.** Every model is tested through the gateway with a real streamed request — time-to-first-token and tokens per second are measured before it can be sold.
@@ -36,7 +36,7 @@ Buyers ──HTTPS──▶ LiteLLM gateway (EU) ──private WireGuard mesh─
 
 ### Under the hood
 
-- **The mesh** — self-hosted NetBird gives every garage a private WireGuard connection to the gateway. Garages are never exposed to the public internet.
+- **The tunnel** — Bridge carries a WireGuard tunnel in user space from each garage out to a hub on the gateway ([design](docs/bridge-tunnel.md)); a self-hosted NetBird mesh is the fallback. Garages are never exposed to the public internet.
 - **The gateway** — [LiteLLM](https://github.com/BerriAI/litellm) on an EU VPS routes each request over the mesh, counts tokens per key and model, and handles retries and failover. Setup: [`infra/gateway/`](infra/gateway/README.md).
 
 ## Repository

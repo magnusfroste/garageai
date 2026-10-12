@@ -46,7 +46,7 @@ setups:
         model: "gpt-oss-120b"
     steps:
       - "Install LM Studio or Ollama and download the model."
-      - "Connect your GPU: run the one line in Terminal and approve your Mac in the browser. Bridge checks that the runtime is reachable over the mesh and its context window, and says exactly what to change if not."
+      - "Connect your GPU: run the one line in Terminal and approve your Mac in the browser. Ollama and LM Studio can stay on localhost; Bridge checks the context window and says exactly what to change (Ollama: the app's Context length)."
       - "Keep the Mac awake. A MacBook is a garage while plugged in: Battery → Options → \"Prevent automatic sleeping on power adapter when the display is off\". Mac Studio, mini or iMac: Energy → \"Prevent automatic sleeping when the display is off\"."
   - id: "workstation"
     icon: "🖥️"

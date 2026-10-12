@@ -3,7 +3,7 @@ section: "cta"
 title: "Your Garage Is Ready."
 subtitle: "Is Europe?"
 description: "Europe's AI capacity doesn't have to be only a billion-euro data centre somewhere. Part of it can be the GPUs people and companies already own, connected, local and paid."
-secondaryText: "The mesh, the gateway and the portal are live, and the first garages are serving models. Offer your GPU, or start using AI from European garages today."
+secondaryText: "GarageAI Bridge, the gateway and the portal are live, and the first garages are serving models. Offer your GPU, or start using AI from European garages today."
 icon: "🏠"
 buttons:
   - text: "🚀 Offer Your GPU"
