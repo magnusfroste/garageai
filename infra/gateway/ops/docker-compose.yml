@@ -1,9 +1,11 @@
 # GarageAI Operations Center: a static page plus ops.json, written every minute by
 # garageai-ops-collect on the host. Served by nginx behind NetBird's Traefik, with HTTPS
-# and basic auth. Read-only: the page cannot change anything.
+# and basic auth. Read-only, with one exception: the page can set and end its own silences, through
+# a small API on the host (/api/, garageai-ops-api).
 #
 # .env (root, 0600): OPS_DOMAIN=ops.garageai.eu, OPS_BASIC_AUTH='user:$apr1$...' (single quotes
-# keep the $ signs literal) and OPS_CHAT_KEY (a LiteLLM key with a small budget, for the Chat page). Create the hash with:
+# keep the $ signs literal), OPS_CHAT_KEY (a LiteLLM key with a small budget, for the Chat page) and
+# OPS_API_KEY (= /etc/garageai/ops-api.key, openssl rand -hex 32; nginx sends it to the ops API). Create the hash with:
 #   openssl passwd -apr1 "$(cat /etc/garageai/ops-password)"
 name: garageai-ops
 
@@ -18,11 +20,13 @@ services:
       - ./nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
     environment:
       OPS_CHAT_KEY: ${OPS_CHAT_KEY:?set OPS_CHAT_KEY in .env (a LiteLLM key for the Chat page)}
+      OPS_API_KEY: ${OPS_API_KEY:?set OPS_API_KEY in .env (the key in /etc/garageai/ops-api.key, for /api/)}
       NGINX_ENVSUBST_FILTER: ^OPS_
     logging:
       driver: json-file
       options: {max-size: "10m", max-file: "3"}
     networks: [netbird]
+    extra_hosts: ["host.docker.internal:host-gateway"]   # the host's ops API, for /api/
     labels:
       - traefik.enable=true
       - traefik.docker.network=netbird_netbird

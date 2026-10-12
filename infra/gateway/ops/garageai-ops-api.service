@@ -1,0 +1,13 @@
+[Unit]
+Description=GarageAI Operations Center API (silences from the page)
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/garageai-ops-api
+Restart=always
+RestartSec=5
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

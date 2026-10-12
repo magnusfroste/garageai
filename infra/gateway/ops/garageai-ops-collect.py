@@ -47,7 +47,7 @@ HEALTH_LAST = "/var/lib/garageai-health/last.json"
 BACKUP_DIR = "/var/backups/garageai"
 LITELLM_DIR = "/opt/garageai/litellm"
 CERT_HOSTS = ["api.garageai.eu", "llm.garageai.eu", "netbird.garageai.eu", "ops.garageai.eu", "app.garageai.eu", "www.garageai.eu"]
-TIMERS = ["garageai-health.timer", "garageai-backup.timer", "garageai-ops.timer", "garageai-guard.timer", "garageai-ops-live.service", "garageai-hub.service"]
+TIMERS = ["garageai-health.timer", "garageai-backup.timer", "garageai-ops.timer", "garageai-guard.timer", "garageai-ops-live.service", "garageai-hub.service", "garageai-ops-api.service"]
 GUARD_STATUS = "/var/lib/garageai-guard/status.json"
 EXPECTED_POLICIES = {"gateway-to-garages"}
 UA = "garageai-ops/1 (+https://garageai.eu)"
@@ -63,6 +63,8 @@ DEPLOYED = {
     "/usr/local/sbin/garageai-backup": "infra/gateway/backup/garageai-backup",
     "/usr/local/bin/garageai-ops-collect": "infra/gateway/ops/garageai-ops-collect.py",
     "/usr/local/bin/garageai-ops-live": "infra/gateway/ops/garageai-ops-live.py",
+    "/usr/local/bin/garageai-ops-api": "infra/gateway/ops/garageai-ops-api.py",
+    "/etc/systemd/system/garageai-ops-api.service": "infra/gateway/ops/garageai-ops-api.service",
     "/usr/local/sbin/garageai-hub": "infra/gateway/hub/garageai-hub.py",
     "/etc/systemd/system/garageai-hub.service": "infra/gateway/hub/garageai-hub.service",
     "/etc/systemd/system/garageai-ops-live.service": "infra/gateway/ops/garageai-ops-live.service",
@@ -379,6 +381,7 @@ def garages(env, state, targets):
             "agent": agent_report(t),
             # The garage's heartbeat comes from another machine than the one it was linked to.
             "machine_mismatch": t.get("machine_mismatch") is True,
+            "transport": t.get("transport") or ("provider" if t.get("endpoint") else "netbird"),
         }
         if t.get("endpoint"):
             row["provider"] = provider_checks(t)
@@ -690,11 +693,101 @@ def logs(conts):
 
 
 # ---------------------------------------------------------------- alerts
+KB = "https://github.com/magnusfroste/garageai/blob/main/docs/garage-troubleshooting.md"
+ADMIN = "https://app.garageai.eu/admin"
+
+
+def action_for(text, page, garage, code=None):
+    """What to do about an alert: a short instruction and, when there is one, a link. The point of
+    the Operations Center is to answer "what do I do now?", not only "what is wrong?"."""
+    t = text.lower()
+    g = garage or ""
+    if code:
+        return f"See {code} in the troubleshooting guide", f"{KB}#{code}"
+    if "tunnel down" in t or "runtime not answering" in t:
+        if "provider" in t or page == "supply" and g and d_is_provider(g):
+            return "A provider is down: pause it in Admin → Providers until it is back, then resume", f"{ADMIN}/providers"
+        return "Ask the operator; if it is planned, silence it here. The garage's page shows its last heartbeat and Bridge's report", f"{ADMIN}/garages?garage={g}"
+    if "no heartbeat" in t:
+        return "Bridge's heartbeat service stopped on the garage: the operator runs garageai doctor, then garageai connect", f"{KB}#heartbeat_missing--heartbeat_stopped-warning"
+    if "another machine" in t:
+        return "One garage name on two machines: see mix-ups in the guide", f"{KB}#mix-ups-we-have-seen"
+    if "is stuck at" in t or "has not reported a step" in t or "is onboarding" in t:
+        return "Open the garage's onboarding in Admin: the failed step and Bridge's profile say what is wrong on the machine", f"{ADMIN}/garages?garage={g}"
+    if "setup key" in t:
+        return "Unused NetBird keys: revoke them in the NetBird dashboard (tunnel garages need none)", "https://netbird.garageai.eu/setup-keys"
+    if "no context window" in t:
+        return "The window arrives with the heartbeat once the model is loaded; or set it in Admin → Models", f"{ADMIN}/models"
+    if "requests waiting" in t or "the garage is full" in t:
+        return "The garage is at capacity: more garages for the model, or a bigger max-num-seqs on vLLM", None
+    if "% of" in t and "succeeded" in t:
+        return "Open the garage's quality on Supply; mid-stream failures usually mean a sleeping Mac or memory pressure", "#supply"
+    if "disk" in t:
+        return "Free space: docker system prune, old backups in /var/backups/garageai, journalctl --vacuum-size=200M", None
+    if "memory available" in t or "swap in use" in t:
+        return "Check the LiteLLM container's memory (docker stats); restart it in a quiet window if it has grown", None
+    if "needs a reboot" in t:
+        return "Reboot in a quiet window (Live shows one): sudo reboot, about 2 minutes of downtime", "#live"
+    if "container" in t and (" is " in t and "running" not in t):
+        return "docker compose -f /opt/garageai/litellm/docker-compose.yml up -d (or the service's own compose file)", None
+    if "unpinned image" in t:
+        return "Pin the image tag in the compose file", None
+    if "last run exited" in t or (" is " in t and "timer" in t):
+        return "journalctl -u <unit> -n 50 shows why", None
+    if "backup" in t:
+        return "systemctl start garageai-backup, then journalctl -u garageai-backup", None
+    if "certificate" in t:
+        return "Traefik renews certificates itself; docker logs netbird-traefik shows ACME errors", None
+    if "netbird client is not connected" in t:
+        return "On the gateway: sudo netbird status, then sudo netbird up", None
+    if "policy" in t:
+        return "Check the policy in the NetBird dashboard; garages must never reach the gateway", "https://netbird.garageai.eu/acls"
+    if "gateway-targets answered" in t or "ops-summary" in t:
+        return "The portal's function failed: check its logs in Lovable/Supabase", None
+    if "unknown api key" in t:
+        return "garageai-guard blocks floods automatically; the Traffic page shows the sources", "#traffic"
+    if "timeouts" in t or "streams broke" in t or "server errors" in t:
+        return "Traffic page: which garage; usually a garage that sleeps, swaps or restarts", "#traffic"
+    if "stripe" in t:
+        return "Stripe dashboard → Developers → Webhooks: resend the failed events", "https://dashboard.stripe.com/webhooks"
+    if "credit" in t:
+        return "Buyers with low credit: they top up under Billing; nothing to do unless it is a partner", None
+    if "update available" in t:
+        return "Updates page: what changed, then update in a quiet window", "#updates"
+    if "differs from main" in t or "not deployed" in t or "ahead of" in t:
+        return "Deploy main to the gateway (see infra/gateway/README.md)", "#updates"
+    if "log for" in t:
+        return "Add a logging size limit to the compose file and recreate the container", None
+    if "garageai-guard" in t:
+        return "systemctl status garageai-guard.timer; journalctl -u garageai-guard", None
+    if "answered" in t and page == "server":
+        return "Something public is down: curl it, then docker ps and Traefik's logs", None
+    return None, None
+
+
+def d_is_provider(name):
+    return name in _PROVIDERS
+
+
+_PROVIDERS = set()
+
+
 def alerts(d):
     a = []
+    global _PROVIDERS
+    _PROVIDERS = {g["garage"] for g in d["garages"] if g.get("type") == "provider"}
     # page: the Operations Center page the alert belongs to (supply, traffic, mesh, server, updates, logs).
-    def add(level, text, page):
-        a.append({"level": level, "text": text, "page": page})
+    # garage: the garage or provider the alert is about, so it can be silenced by name.
+    def add(level, text, page, garage=None, code=None):
+        x = {"level": level, "text": text, "page": page}
+        if garage:
+            x["garage"] = garage
+        act, url = action_for(text, page, garage, code)
+        if act:
+            x["action"] = act
+            if url:
+                x["url"] = url
+        a.append(x)
     onboarding = {g["garage"] for g in d["garages"] if g.get("onboarding")}
     h = d["host"]
     if h["disk_used_pct"] >= 90:
@@ -750,28 +843,28 @@ def alerts(d):
     for o in d.get("onboarding", []):
         if o["stuck"] and o.get("last_report_at"):
             add("warning", f"{o['garage']} is stuck at {' '.join(str(o['step']).split())}"
-                           + (f" ({', '.join(o['problems'])})" if o["problems"] else "") + f": {o.get('message') or o['status']}", "onboarding")
+                           + (f" ({', '.join(o['problems'])})" if o["problems"] else "") + f": {o.get('message') or o['status']}", "onboarding", garage=o["garage"])
         elif o["stuck"] and (o["minutes"] or 0) >= 24 * 60:
-            add("info", f"{o['garage']} was created {o['minutes'] // 1440} d ago and has not reported a step yet", "onboarding")
+            add("info", f"{o['garage']} was created {o['minutes'] // 1440} d ago and has not reported a step yet", "onboarding", garage=o["garage"])
     for g in d["garages"]:
         if g.get("onboarding"):
             st = g.get("onboarding_step") or {}
             if st.get("status") in ("failed", "stopped"):
-                add("info", f"{g['garage']} is onboarding, stuck at {' '.join(str(st.get('step', '?')).split())}: {st.get('message', '')}", "onboarding")
+                add("info", f"{g['garage']} is onboarding, stuck at {' '.join(str(st.get('step', '?')).split())}: {st.get('message', '')}", "onboarding", garage=g["garage"])
             else:
                 add("info", f"{g['garage']} is onboarding: " + (f"{' '.join(str(st.get('step')).split())} ({st.get('status')})" if st.get("step")
-                    else f"{'joined the mesh, ' if g['mesh'] else ''}not registered with the portal yet"), "onboarding")
+                    else f"{'joined the mesh, ' if g['mesh'] else ''}not registered with the portal yet"), "onboarding", garage=g["garage"])
             continue
         if not g["runtime_ok"] or g["mesh"] is False:
             add("critical", f"{g['garage']}: {'tunnel down' if g['mesh'] is False else 'runtime not answering'}"
                             + (" (Bridge tunnel)" if g.get("error") == "tunnel_disconnected" else "")
-                            + (f" ({g['error']})" if g.get("error") else ""), "supply")
+                            + (f" ({g['error']})" if g.get("error") else ""), "supply", garage=g["garage"])
         if g["type"] == "mesh" and g["runtime_ok"] and g["mesh"] is not False and (g.get("heartbeat_min") or 0) >= HEARTBEAT_SILENT_MINUTES:
             add("warning", f"{g['garage']}: no heartbeat for {g['heartbeat_min']} min although it answers"
-                           " (its heartbeat service stopped: model and context changes are not picked up)", "supply")
+                           " (its heartbeat service stopped: model and context changes are not picked up)", "supply", garage=g["garage"])
         if g.get("machine_mismatch"):
             add("warning", f"{g['garage']} reports from another machine than the one it was linked to"
-                           " (one garage name on two machines?)", "supply")
+                           " (one garage name on two machines?)", "supply", garage=g["garage"])
         ag = g.get("agent") or {}
         if ag and (ag.get("age_min") or 0) < HEARTBEAT_SILENT_MINUTES:
             for pr in ag.get("problems", []):
@@ -781,19 +874,22 @@ def alerts(d):
                 # down is already the "tunnel down" alert. Never a second alert for one outage.
                 if pr.get("code", "").startswith("netbird_"):
                     continue
+                # A tunnel garage's runtime is meant to stay on localhost (older Bridges still report these).
+                if g.get("transport") == "tunnel" and pr.get("code") in ("localhost_only", "ollama_host_not_persistent", "other_vpn"):
+                    continue
                 if pr.get("code") == "localhost_only" and g["runtime_ok"]:
                     continue
                 # Bridge's errors are warnings here (the probes above say whether buyers are hurt);
                 # its warnings are info; its info is shown on the Supply page only.
                 level = {"error": "warning", "warning": "info"}.get(pr.get("severity"))
                 if level:
-                    add(level, f"{g['garage']}: Bridge reports: {pr.get('message') or pr.get('code')}", "supply")
+                    add(level, f"{g['garage']}: Bridge reports: {pr.get('message') or pr.get('code')}", "supply", garage=g["garage"], code=pr.get("code"))
         p = g.get("provider") or {}
         if p.get("private_ip"):
-            add("critical", f"Provider {g['garage']} now resolves to a private address {p.get('ips')}", "supply")
+            add("critical", f"Provider {g['garage']} now resolves to a private address {p.get('ips')}", "supply", garage=g["garage"])
         tls = p.get("tls") or {}
         if tls.get("days_left") is not None and tls["days_left"] < 14:
-            add("warning", f"Provider {g['garage']}: TLS certificate expires in {tls['days_left']} days", "supply")
+            add("warning", f"Provider {g['garage']}: TLS certificate expires in {tls['days_left']} days", "supply", garage=g["garage"])
     md = d.get("models") or {}
     if md.get("error"):
         add("warning", md["error"], "models")
@@ -804,13 +900,13 @@ def alerts(d):
                 continue
             seen.setdefault((r["public"], r["garage"], c["level"], c["text"]), []).append(r["tier"])
     for (public, garage, level, text), tiers in seen.items():
-        add(level, f"{public} on {garage} ({'/'.join(sorted(set(tiers)))}): {text}", "models")
+        add(level, f"{public} on {garage} ({'/'.join(sorted(set(tiers)))}): {text}", "models", garage=garage)
     for g in d["garages"]:
         if (g.get("queue_minutes") or 0) >= QUEUE_ALERT_MINUTES:
-            add("warning", f"{g['garage']} has had requests waiting for {g['queue_minutes']} min: the garage is full", "supply")
+            add("warning", f"{g['garage']} has had requests waiting for {g['queue_minutes']} min: the garage is full", "supply", garage=g["garage"])
     for g, q in (d.get("quality_24h") or {}).items():
         if (q.get("requests") or 0) >= 20 and q.get("success_pct") is not None and q["success_pct"] < 90:
-            add("warning", f"{g}: only {q['success_pct']} % of {q['requests']} requests succeeded in the last 24 h", "supply")
+            add("warning", f"{g}: only {q['success_pct']} % of {q['requests']} requests succeeded in the last 24 h", "supply", garage=g)
     for v in d.get("versions", []):
         if v.get("update"):
             add("info", f"Update available: {v['component']} {v['running']} -> {v['latest']}", "updates")
@@ -862,12 +958,14 @@ def alerts(d):
         add("warning", f"{e['server_errors_5xx']} server errors (5xx) in the last hour", "traffic")
     if d["host"]["updates_pending"]:
         add("info", f"{d['host']['updates_pending']} package updates pending (unattended-upgrades handles security updates)", "updates")
-    # Planned stops (--silence): a known outage is information, not an alarm, until it expires.
+    # Planned stops (--silence, or the page's Silence button): a known outage is information, not an
+    # alarm, until it expires.
     silenced = {g: v for g, v in (d.get("silences") or {}).items()}
     for x in a:
         for g, v in silenced.items():
-            # the exact garage name: "autoversio" must not match "autoversio-south"
-            if x["level"] != "info" and re.search(rf"(?<![\w-]){re.escape(g)}(?![\w-])", x["text"]):
+            # by the garage field when the alert has one, else the exact name in the text
+            # ("autoversio" must not match "autoversio-south")
+            if x["level"] != "info" and (x.get("garage") == g or (not x.get("garage") and re.search(rf"(?<![\w-]){re.escape(g)}(?![\w-])", x["text"]))):
                 x["silenced"] = {"level": x["level"], "text": x["text"]}
                 x["level"] = "info"
                 x["text"] += f" (silenced until {v['until'][:16].replace('T', ' ')} UTC: {v['reason']})"
@@ -1224,6 +1322,27 @@ def html(s):
     return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
+SILENCES = "/var/lib/garageai-ops/silences.json"
+
+
+def read_silences():
+    try:
+        with open(SILENCES) as f:
+            v = json.load(f)
+        return v if isinstance(v, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def write_silences(sil):
+    os.makedirs(os.path.dirname(SILENCES), exist_ok=True)
+    tmp = SILENCES + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(sil, f, indent=1)
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, SILENCES)
+
+
 def alert_key(a):
     # Numbers change from run to run ("backup is 27.3 h old"); the alert is the same.
     return a.get("page", "") + ":" + re.sub(r"\d+(?:\.\d+)?", "#", a["text"])
@@ -1392,8 +1511,12 @@ def main():
     data["source"] = source(state)
     data["logs"] = logs(data["containers"])
     now_iso = now().isoformat(timespec="seconds")
-    state["silences"] = {g: v for g, v in state.get("silences", {}).items() if v["until"] > now_iso}
-    data["silences"] = state["silences"]
+    # Silences live in SILENCES (written by --silence and by the page's API); state.silences from
+    # older versions is merged in once.
+    merged = {**state.pop("silences", {}), **read_silences()}
+    merged = {g: v for g, v in merged.items() if v.get("until", "") > now_iso}
+    write_silences(merged)
+    data["silences"] = merged
     data["alerts"] = alerts(data)
     notify(data, state)
     history(data, state)
@@ -1421,14 +1544,18 @@ if __name__ == "__main__":
         until = now() + timedelta(hours=int(m.group(1)) * (24 if m.group(2) == "d" else 1))
         reason = " ".join(sys.argv[4:]) or "planned stop"
         st = read_json(STATE, {})
-        st.setdefault("silences", {})[garage] = {"until": until.isoformat(timespec="seconds"), "reason": reason}
+        sil = read_silences()
+        sil[garage] = {"until": until.isoformat(timespec="seconds"), "reason": reason, "by": "cli"}
+        write_silences(sil)
         json.dump(st, open(STATE, "w"))
         with db_open() as db:
             add_event(db, "info", "note", "supply", f"{garage} silenced until {until:%Y-%m-%d %H:%M} UTC: {reason}")
         print(f"{garage} silenced until {until:%Y-%m-%d %H:%M} UTC.")
     elif len(sys.argv) == 3 and sys.argv[1] == "--unsilence":
         st = read_json(STATE, {})
-        st.get("silences", {}).pop(sys.argv[2], None)
+        sil = read_silences()
+        sil.pop(sys.argv[2], None)
+        write_silences(sil)
         json.dump(st, open(STATE, "w"))
         with db_open() as db:
             add_event(db, "info", "note", "supply", f"{sys.argv[2]}: silence ended")
