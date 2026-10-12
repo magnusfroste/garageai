@@ -571,7 +571,11 @@ func connect(args []string) int {
 		service.RemoveTunnel()
 	}
 	c.ok("Installed: Bridge reports your models every 5 minutes. Load a new model and it shows up")
-	c.info("  under My garages in the portal, where you choose to offer it. Remove with: garageai uninstall")
+	c.info("  under My garages in the portal within 5 minutes. Remove with: garageai uninstall")
+	fmt.Println()
+	c.bold("Next: the portal")
+	c.info("Which models you offer, and at what price, you decide under My garages at https://app.garageai.eu/dashboard/garages.")
+	c.info("A new model is not offered until you say so there.")
 	c.report("done", "Heartbeat installed", nil)
 	c.notes()
 	return 0
