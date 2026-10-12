@@ -93,3 +93,21 @@ func processEnv(pid int) []string {
 	out := run("ps", "eww", "-o", "command=", "-p", strconv.Itoa(pid))
 	return strings.Fields(out)
 }
+
+// OllamaServerContext is the server-wide default window of the Ollama on port: OLLAMA_CONTEXT_LENGTH
+// in its process environment (the app, brew services, a LaunchAgent or systemd all pass it that
+// way), or 0 when unset or unreadable (Ollama then uses 4096).
+func OllamaServerContext(port int) int {
+	_, _, owner := byPort(listeners())
+	l, ok := owner[port]
+	if !ok || l.PID == 0 {
+		return 0
+	}
+	for _, e := range processEnv(l.PID) {
+		if v, ok := strings.CutPrefix(strings.TrimSpace(e), "OLLAMA_CONTEXT_LENGTH="); ok {
+			n, _ := strconv.Atoi(strings.Trim(v, `"'`))
+			return n
+		}
+	}
+	return 0
+}
