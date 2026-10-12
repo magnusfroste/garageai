@@ -2,7 +2,7 @@
 section: "header"
 order: 0
 title: "Header"
-logo: "🏠 GARAGE AI"
+logo: "GarageAI"
 ctaText: "Get Started"
 ctaUrl: "https://app.garageai.eu/auth"
 navLinks:

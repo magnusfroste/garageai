@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 32">
+  <!-- GarageAI logo for dark backgrounds. Source: public/brand/ -->
+  <defs>
+    <linearGradient id="garageai-g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#00d4ff"/>
+      <stop offset="1" stop-color="#00c37a"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="8" fill="url(#garageai-g)"/>
+  <path d="M7 18 16 10l9 8" fill="none" stroke="#06121a" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="16" cy="22" r="2.6" fill="#06121a"/>
+  <text x="42" y="23" font-family="Inter, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="20" font-weight="800" fill="#ffffff">GarageAI</text>
+</svg>
