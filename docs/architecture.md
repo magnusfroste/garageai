@@ -77,6 +77,15 @@ pool price set by GarageAI would be administration that grows with the catalogue
   prices. The buyer pays the price of the garage that answered.
 - `garageai/auto` is something else: a curated, ordered list across models, not a pool.
 
+## Known gateway quirks, and where they are handled
+
+- **Ollama's response ids collide (fixed 2026-10-13 with a database trigger).** LiteLLM keys a
+  spend-log row by the provider's response id, Ollama answers `chatcmpl-<0..999>`, and LiteLLM
+  skips duplicate rows silently: 46 % of requests to Ollama garages left no spend-log row (payouts,
+  Ops Live and the quality figures read those rows; budgets read the daily tables, which were
+  complete). `infra/gateway/litellm/sql/spendlogs_unique_request_id.sql` rewrites the id on
+  insert. Found by a pool load test (60 requests, 35 rows). Reported upstream.
+
 ## Backups
 
 `garageai-backup.timer` (03:30 UTC nightly, `infra/gateway/backup/`) takes what cannot be
