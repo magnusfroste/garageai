@@ -1080,7 +1080,10 @@ def quality():
                     then completion_tokens / extract(epoch from ("endTime" - "completionStartTime")) end tps
         from "LiteLLM_SpendLogs"
         where "startTime" > now() - interval '{iv}' and model_group not like 'probe/%' and model_group not like 'garage-probe%'
-          and call_type not like '/%')
+          and call_type not like '/%'
+          -- a 4xx is the buyer's request being wrong (prompt longer than the window, bad parameters),
+          -- not the garage failing: it does not count against the garage (Erik's 88 %, 2026-10-13)
+          and not (status = 'failure' and coalesce(metadata->'error_information'->>'error_code', '') like '4%'))
       select g, {bucket}, count(*), count(*) filter (where status = 'success'),
              round((percentile_cont(0.5) within group (order by ttft) filter (where status = 'success'))::numeric, 2),
              round((percentile_cont(0.95) within group (order by ttft) filter (where status = 'success'))::numeric, 2),
