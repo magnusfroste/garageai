@@ -140,6 +140,16 @@ program, an outbound tunnel, a local forward.
      - **Guard rails set once by the operator:** how much disk GarageAI may use (e.g. 60 GB);
        models the operator added themselves are never touched. Opt-in, in plain words: "we
        download on your bandwidth and disk, you get traffic".
+     - **A set that fits in memory at once.** A garage offering 14 models that cannot all be
+       loaded (Erik's Mac mini, 2026-10-13) reloads on every switch, and buyers wait for the
+       load. Smart chooses a set that fits together (1 to 3 on a Mac) and takes the rest out of
+       the pool (still on disk, still a dedicated address). `OLLAMA_KEEP_ALIVE` of hours, so a
+       loaded model stays loaded between requests.
+     - **Prefer warm garages (gateway side, not Bridge):** the heartbeat already reports which
+       models are loaded; the portal gives a pool deployment whose model is cold a lower weight,
+       so requests go to a garage that has the model in memory and a cold one gets traffic when
+       the warm ones are full or down. No lock on a garage: a lock takes its other models out
+       of the pool and only moves the reload to the next window.
      - First test: garage-m4 (16 GB, gemma4 12B only today) gets qwen3-4b, and that pool has
        three garages.
   Build order: Bridge first (wanted list in the heartbeat answer, pull with progress, report);
