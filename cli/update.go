@@ -25,6 +25,24 @@ import (
 
 const releasesBase = "https://github.com/magnusfroste/garageai/releases/download/bridge-"
 
+// trustedBase is where the release is fetched from. The portal may say so (bridge_download_base),
+// but only within this repository's GitHub releases: SHA256SUMS comes from the same place as the
+// binary, so whoever picks the place picks what runs as root on every garage. A portal that is
+// wrong or compromised must not be able to point Bridge anywhere else (found in the 2026-10-13
+// security review). An unacceptable base is ignored, and the release's own directory is used.
+func trustedBase(stable, base string) string {
+	own := releasesBase + stable
+	if base == "" {
+		return own
+	}
+	b := strings.TrimSuffix(base, "/")
+	if b == own || strings.HasPrefix(b, releasesBase) && !strings.ContainsAny(strings.TrimPrefix(b, releasesBase), "/?#") {
+		return b
+	}
+	fmt.Printf("%s ignoring download base %q from the portal: not a GitHub release of this repository\n", service.Now(), base)
+	return own
+}
+
 // newerVersion reports whether b (vX.Y.Z) is newer than a. Non-release versions ("dev", "v0.4.0-rc1")
 // never update automatically.
 func newerVersion(a, b string) bool {
@@ -122,9 +140,7 @@ func selfUpdate(stable, base string) error {
 	if !newerVersion(version, stable) {
 		return nil
 	}
-	if base == "" {
-		base = releasesBase + stable
-	}
+	base = trustedBase(stable, base)
 	dir := filepath.Dir(service.BinaryPath())
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
