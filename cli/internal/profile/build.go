@@ -2,6 +2,7 @@ package profile
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"runtime"
 	"sort"
@@ -104,16 +105,22 @@ func problems(p Profile) []Problem {
 			case "llamacpp":
 				fix = "Restart llama-server with --host 0.0.0.0"
 			}
-			if p.GarageAI.Transport == "tunnel" && p.GarageAI.ConfiguredPort != nil && rt.Port == *p.GarageAI.ConfiguredPort {
-				// Bridge forwards the tunnel to 127.0.0.1: localhost is exactly right here.
+			if p.GarageAI.Transport == "tunnel" {
+				// Bridge forwards the tunnel to 127.0.0.1: localhost is exactly right for the runtime,
+				// and anything else on localhost (Ollama's own runner, a second runtime) is out of the
+				// gateway's reach anyway. Before v0.6.2 doctor flagged Ollama's runner on garage-m1/m4.
 			} else {
 				add("error", "localhost_only", fmt.Sprintf("%s on port %d only listens on %s, so the gateway cannot reach it",
 					rt.Kind, rt.Port, strings.Join(rt.Binds, ", ")), fix)
 			}
 		}
 		if rt.API == "openai (needs API key)" {
-			add("info", "needs_api_key", fmt.Sprintf("%s on port %d requires an API key", rt.Kind, rt.Port),
-				"Pass the same key with --runtime-api-key when you connect")
+			fix := "Pass the same key with --runtime-api-key when you connect"
+			if os.Geteuid() != 0 && p.GarageAI.ConfiguredPort != nil && rt.Port == *p.GarageAI.ConfiguredPort {
+				// The key is in the root-only config; as a user, doctor cannot use it (dgx-city, 2026-10-13).
+				fix = "The key is in Bridge's root-only configuration: run `sudo garageai doctor` to probe with it. The heartbeat (root) uses it already"
+			}
+			add("info", "needs_api_key", fmt.Sprintf("%s on port %d requires an API key", rt.Kind, rt.Port), fix)
 		}
 		if rt.Kind == "ollama" {
 			for _, m := range rt.OllamaLoaded {
