@@ -77,6 +77,23 @@ pool price set by GarageAI would be administration that grows with the catalogue
   prices. The buyer pays the price of the garage that answered.
 - `garageai/auto` is something else: a curated, ordered list across models, not a pool.
 
+## Backups
+
+`garageai-backup.timer` (03:30 UTC nightly, `infra/gateway/backup/`) takes what cannot be
+recreated: LiteLLM's Postgres (keys, deployments, spend), LiteLLM's `.env` (master and salt key),
+the tunnel hub's key, `/etc/garageai`, the ops `.env`, NetBird's config and volumes, the
+certificates. Encrypted with the passphrase in `/etc/garageai/backup.env` and copied to the S3
+bucket in `BACKUP_S3_REMOTE` once that is set (decision 2026-10-13: Hetzner snapshots of the VPS
+until there are more customers, then the bucket); 7 days kept locally. The Operations Center warns
+when the newest is older than 26 h or a configured off-site copy failed. **The passphrase lives in Magnus's password manager
+too**: without it the off-site copies are noise.
+
+Restore on a new server, in short: install Docker and the gateway from this repo
+(`infra/gateway/`), `gpg -d garageai-<stamp>.tgz.gpg | tar -xz`, put `litellm.env` and
+`garageai-hub.key` and `etc-garageai.tgz` back where they came from, start Postgres and
+`pg_restore -U litellm -d litellm litellm.pgdump`, start the rest. Garages reconnect by themselves:
+the hub key and the gateway's names are the same. Point the DNS names at the new address.
+
 ## Later: a control plane
 
 Today `syncModels`, a portal function, translates the portal's desired state into the gateway's

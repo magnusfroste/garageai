@@ -566,7 +566,7 @@ function renderDashboard(d) {
       value: `${memPct}<small> % memory</small>`, detail: `disk ${h.disk_used_pct} % · load ${h.load[0]} on ${h.cpus} CPUs${h.reboot_required ? ' · <span class="warning">reboot</span>' : ""}`,
       extra: hist?.host?.length > 4 ? spark(hist.host.slice(-96).map(r => [r[0], r[1]]), 100) : bar(memPct, memPct > 90 ? "critical" : memPct > 80 ? "warning" : "") },
     { page: "server", icon: "shield", label: "Backup and TLS", status: lvl("server") === "critical" ? "critical" : (d.backup.age_hours > 26 || certMin < 14) ? "warning" : "ok",
-      value: d.backup.newest ? `${d.backup.age_hours}<small> h old</small>` : '<span class="critical">none</span>', detail: `${d.backup.count} backups kept · certificates ≥ ${certMin} d` },
+      value: d.backup.newest ? `${d.backup.age_hours}<small> h old</small>` : '<span class="critical">none</span>', detail: `${d.backup.count} backups kept · ${d.backup.encrypted ? "encrypted" : "not encrypted"} · ${d.backup.offsite && d.backup.offsite !== "none" && d.backup.offsite !== "failed" ? "off-site" : "on this server only"} · certificates ≥ ${certMin} d` },
     { page: "updates", icon: "updates", label: "Updates", status: drift ? "warning" : updates ? "info" : "ok",
       value: `${updates}<small> available</small>`, detail: `${drift ? `<span class="warning">${drift} files differ from main</span>` : "deployed files match main"} · ${h.updates_pending} OS packages` },
     { page: "logs", icon: "logs", label: "Logs", status: lvl("logs"),

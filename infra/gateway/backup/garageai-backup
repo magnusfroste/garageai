@@ -1,12 +1,22 @@
 #!/usr/bin/env bash
-# garageai-backup — nightly local backup of the GarageAI gateway state.
+# garageai-backup — nightly backup of the GarageAI gateway state.
 # Contents: LiteLLM Postgres (keys, budgets, models, spend), LiteLLM .env (master and
-# salt key), NetBird config.yaml (store encryption key) and data volume, Let's Encrypt
-# certificates. Kept 7 days in /var/backups/garageai (root only). Copy off-site too:
-# a local backup does not survive losing this server.
+# salt key), the Bridge tunnel hub's key (/etc/wireguard/garageai-hub.key: lose it and every
+# garage must connect again), /etc/garageai (gateway-health.env, ops-api.key, hub-peers.json),
+# the ops .env, NetBird config.yaml (store encryption key) and data volume, Let's Encrypt
+# certificates. Kept 7 days in /var/backups/garageai (root only).
+#
+# Off the machine (since 2026-10-13): with BACKUP_PASSPHRASE in /etc/garageai/backup.env the
+# archive is encrypted (gpg, AES256) and, with BACKUP_S3_REMOTE (an rclone remote in
+# /etc/garageai/rclone.conf, e.g. hetzner:garageai-backup), copied there. The passphrase must
+# also live outside this server (a password manager): a backup only readable with a key on the
+# machine it backs up does not survive losing that machine. Restore: docs/architecture.md.
 set -euo pipefail
 umask 077
 DEST=/var/backups/garageai
+ENV=/etc/garageai/backup.env
+# shellcheck disable=SC1090
+[[ -f $ENV ]] && . "$ENV"
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
@@ -15,12 +25,34 @@ mkdir -p "$DEST"
 docker exec garageai-litellm-postgres-1 pg_dump -U litellm -d litellm -Fc > "$WORK/litellm.pgdump"
 cp /opt/garageai/litellm/.env "$WORK/litellm.env"
 cp /opt/garageai/litellm/config.yaml /opt/garageai/litellm/docker-compose.yml "$WORK/"
+cp /etc/wireguard/garageai-hub.key "$WORK/garageai-hub.key"
+tar -C /etc -czf "$WORK/etc-garageai.tgz" garageai
+[[ -f /opt/garageai/ops/.env ]] && cp /opt/garageai/ops/.env "$WORK/ops.env"
 cp /opt/garageai/netbird/config.yaml "$WORK/netbird-config.yaml"
 cp /opt/garageai/netbird/docker-compose.yml "$WORK/netbird-docker-compose.yml"
 for vol in netbird_netbird_data netbird_netbird_traefik_letsencrypt; do
   docker run --rm -v "$vol":/data:ro -v "$WORK":/out alpine:3 tar -C /data -czf "/out/$vol.tgz" .
 done
 
-tar -C "$WORK" -czf "$DEST/garageai-$STAMP.tgz" .
-find "$DEST" -name 'garageai-*.tgz' -mtime +7 -delete
-echo "backup ok: $DEST/garageai-$STAMP.tgz ($(du -h "$DEST/garageai-$STAMP.tgz" | cut -f1))"
+if [[ -n ${BACKUP_PASSPHRASE:-} ]]; then
+  OUT="$DEST/garageai-$STAMP.tgz.gpg"
+  tar -C "$WORK" -czf - . | gpg --batch --yes --symmetric --cipher-algo AES256 --pinentry-mode loopback \
+    --passphrase "$BACKUP_PASSPHRASE" -o "$OUT"
+else
+  OUT="$DEST/garageai-$STAMP.tgz"
+  tar -C "$WORK" -czf "$OUT" .
+fi
+offsite=none
+if [[ -n ${BACKUP_S3_REMOTE:-} ]]; then
+  if [[ $OUT == *.gpg ]] && rclone --config /etc/garageai/rclone.conf copy "$OUT" "$BACKUP_S3_REMOTE/"; then
+    offsite=$BACKUP_S3_REMOTE
+  else
+    offsite=failed   # unencrypted archives never leave the machine
+  fi
+fi
+find "$DEST" \( -name 'garageai-*.tgz' -o -name 'garageai-*.tgz.gpg' \) -mtime +7 -delete
+# For the Operations Center: what the last run produced and whether it left the machine.
+printf '{"file":"%s","size_mb":%s,"encrypted":%s,"offsite":"%s","at":"%s"}\n' "$(basename "$OUT")" \
+  "$(( $(stat -c %s "$OUT") / 1000000 ))" "$([[ $OUT == *.gpg ]] && echo true || echo false)" "$offsite" "$STAMP" > "$DEST/last.json"
+chmod 644 "$DEST/last.json"
+echo "backup ok: $OUT ($(du -h "$OUT" | cut -f1)), off-site: $offsite"

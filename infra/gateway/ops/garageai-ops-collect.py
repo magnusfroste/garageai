@@ -180,14 +180,20 @@ def timers():
 
 def backup_info():
     try:
-        files = sorted((os.path.join(BACKUP_DIR, f) for f in os.listdir(BACKUP_DIR) if f.endswith(".tgz")), key=os.path.getmtime)
+        files = sorted((os.path.join(BACKUP_DIR, f) for f in os.listdir(BACKUP_DIR) if f.endswith((".tgz", ".tgz.gpg"))), key=os.path.getmtime)
     except OSError:
         return {"newest": None}
     if not files:
         return {"newest": None}
     newest = files[-1]
-    return {"newest": os.path.basename(newest), "age_hours": round((time.time() - os.path.getmtime(newest)) / 3600, 1),
+    info = {"newest": os.path.basename(newest), "age_hours": round((time.time() - os.path.getmtime(newest)) / 3600, 1),
             "size_mb": round(os.path.getsize(newest) / 1e6, 1), "count": len(files)}
+    try:  # written by garageai-backup since 2026-10-13: encrypted? copied off the machine?
+        last = json.load(open(os.path.join(BACKUP_DIR, "last.json")))
+        info.update(encrypted=last.get("encrypted"), offsite=last.get("offsite"))
+    except (OSError, ValueError):
+        info.update(encrypted=None, offsite=None)
+    return info
 
 
 def cert_days(host):
@@ -815,6 +821,8 @@ def alerts(d):
         add("critical", "No backup found", "server")
     elif b["age_hours"] > 26:
         add("warning", f"Newest backup is {b['age_hours']} h old", "server")
+    elif b.get("offsite") == "failed":   # not configured is a decision (Hetzner snapshots until there are more customers), failed is not
+        add("warning", "The newest backup did not reach the off-site bucket", "server")
     for c in d["certs"]:
         if c.get("days_left") is None:
             add("warning", f"Could not read the certificate for {c['host']}", "server")
