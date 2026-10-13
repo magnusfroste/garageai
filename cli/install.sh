@@ -89,6 +89,11 @@ else
 fi
 
 echo "Installed $("$dest" version) -> $dest (checksum verified)"
+# A copy from before 2026-10-13 in ~/.local/bin would shadow this one on a PATH that lists it
+# first, and `garageai doctor` would keep running the old version while the heartbeat runs the new.
+if [ "$dest" = /usr/local/bin/garageai ] && [ -f "$HOME/.local/bin/garageai" ]; then
+  rm -f "$HOME/.local/bin/garageai" && echo "Removed the old copy in ~/.local/bin (this one is in /usr/local/bin now)"
+fi
 case ":$PATH:" in
   *":$(dirname "$dest"):"*) ;;
   *)

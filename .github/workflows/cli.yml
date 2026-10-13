@@ -54,8 +54,10 @@ jobs:
           go run ./internal/testutil/fileserver "$RUNNER_TEMP/dl" 127.0.0.1:8765 &
           sleep 1
           sudo chown root /usr/local/bin && sudo chmod 755 /usr/local/bin && ! test -w /usr/local/bin
+          mkdir -p ~/.local/bin && echo '#!/bin/sh' > ~/.local/bin/garageai && chmod +x ~/.local/bin/garageai   # an old copy, as on Macs updated before
           GARAGEAI_BRIDGE_DOWNLOAD_BASE=http://127.0.0.1:8765 sh install.sh < /dev/null
           env -i PATH=/usr/local/bin:/usr/bin:/bin garageai version
+          ! test -e ~/.local/bin/garageai   # the old copy must be gone, or it shadows the new one
 
   build:
     # One codebase, six binaries. Uploaded as an artifact for trying; no release yet.
