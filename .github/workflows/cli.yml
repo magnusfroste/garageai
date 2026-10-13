@@ -42,6 +42,20 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: /bin/bash ../scripts/tests/parity-doctor.sh "$PWD/garageai"
+      - name: install.sh ends in a working state (a new shell finds garageai)
+        # As on an operator's Mac: /usr/local/bin is not writable without sudo, and the operator's
+        # next command is `garageai doctor` in a shell with the default PATH. Found 2026-10-13 on
+        # garage-m4: the script had fallen back to ~/.local/bin, which a Mac's PATH does not have.
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/dl" && cp garageai "$RUNNER_TEMP/dl/garageai-$(go env GOOS)-$(go env GOARCH)"
+          (cd "$RUNNER_TEMP/dl" && shasum -a 256 garageai-* > SHA256SUMS)
+          go run ./internal/testutil/fileserver "$RUNNER_TEMP/dl" 127.0.0.1:8765 &
+          sleep 1
+          sudo chown root /usr/local/bin && sudo chmod 755 /usr/local/bin && ! test -w /usr/local/bin
+          GARAGEAI_BRIDGE_DOWNLOAD_BASE=http://127.0.0.1:8765 sh install.sh < /dev/null
+          env -i PATH=/usr/local/bin:/usr/bin:/bin garageai version
 
   build:
     # One codebase, six binaries. Uploaded as an artifact for trying; no release yet.
