@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/magnusfroste/garageai/cli/internal/portal"
 	"github.com/magnusfroste/garageai/cli/internal/service"
 )
 
@@ -84,9 +85,17 @@ func assetName() string {
 	return name
 }
 
-var updateHTTP = &http.Client{Timeout: 5 * time.Minute}
+var updateHTTP = &http.Client{Timeout: 5 * time.Minute, CheckRedirect: func(req *http.Request, via []*http.Request) error {
+	if !portal.SecureURL(req.URL.String()) {
+		return errors.New("redirect to " + req.URL.Scheme + " refused")
+	}
+	return nil
+}}
 
 func fetch(url string, max int64) ([]byte, error) {
+	if !portal.SecureURL(url) {
+		return nil, errors.New("not https: " + url)
+	}
 	resp, err := updateHTTP.Get(url)
 	if err != nil {
 		return nil, err
@@ -163,33 +172,34 @@ func selfUpdate(stable, base string) error {
 	return nil
 }
 
-// updateOperatorCopies refreshes the operator's own garageai (what they type), when it is the
-// usual install location, so `garageai doctor` and the service agree. Best effort, keeps owners.
+// updateOperatorCopies refreshes the operator's own garageai (what they type) in /usr/local/bin,
+// so `garageai doctor` and the service agree. Only there, and only when that directory and file
+// are root's and the file is a regular file: this runs as root, and writing into a user's
+// directory from root (as before v0.6.1, into ~/.local/bin of every home) let that user plant a
+// symlink and have root write, and chown, any file on the machine (2026-10-13 security review).
+// A copy elsewhere (Homebrew's user-owned /usr/local/bin, ~/.local/bin) is left alone; the
+// installer replaces it, and doctor says when it is older than the service.
 func updateOperatorCopies(src string) {
+	if runtime.GOOS == "windows" {
+		return
+	}
+	p := "/usr/local/bin/garageai"
+	if !rootOwnedRegular(p) || !rootOwnedDir(filepath.Dir(p)) {
+		return
+	}
 	b, err := os.ReadFile(src)
 	if err != nil {
 		return
 	}
-	var paths []string
-	if runtime.GOOS != "windows" {
-		paths = append(paths, "/usr/local/bin/garageai")
-		for _, h := range operatorHomes() {
-			paths = append(paths, filepath.Join(h, ".local", "bin", "garageai"))
-		}
+	tmp := p + ".new"
+	os.Remove(tmp)
+	f, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_EXCL|noFollow, 0o755)
+	if err != nil {
+		return
 	}
-	for _, p := range paths {
-		fi, err := os.Stat(p)
-		if err != nil || fi.IsDir() {
-			continue
-		}
-		tmp := p + ".new"
-		if os.WriteFile(tmp, b, fi.Mode().Perm()) != nil {
-			continue
-		}
-		_ = chownLike(tmp, fi)
-		if os.Rename(tmp, p) != nil {
-			os.Remove(tmp)
-		}
+	_, werr := f.Write(b)
+	if f.Close() != nil || werr != nil || os.Rename(tmp, p) != nil {
+		os.Remove(tmp)
 	}
 }
 

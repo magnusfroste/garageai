@@ -200,6 +200,23 @@ program, an outbound tunnel, a local forward.
   - The portal can show a *verified* badge.
 - **Location:** confirm the garage is in the EU, backing the sovereignty promise.
 
+### Security backlog (from the 2026-10-13 review; fixed items in docs/garage-security.md)
+- **Signed releases:** sign SHA256SUMS (minisign/ed25519) with a key kept off CI, embed the
+  public key in Bridge, verify before writing the new binary. Until then a GitHub account or a
+  compromised Actions workflow can ship a release that the portal's `bridge_stable` then rolls
+  out. Two-person rule for releases.
+- **Tunnel as its own user:** `garageai` system user, `User=`/`UserName`, `NoNewPrivileges`,
+  `ProtectSystem=strict`, `ProtectHome`, no capabilities. Nothing in the tunnel needs root.
+- **Inference-only forward:** an HTTP reverse proxy in Bridge with a path allowlist
+  (`/v1/chat/completions`, `/v1/completions`, `/v1/embeddings`, `/v1/models`, `/api/ps`,
+  `/api/version`) instead of a raw TCP forward, so the gateway cannot reach Ollama's pull/delete.
+- **Windows:** `bridge.json` and `tunnel.key` need an explicit DACL (Administrators + SYSTEM);
+  do not write them before the service exists.
+- **install.sh:** when `/usr/local/bin` is user-writable (Intel Homebrew), still `sudo install`,
+  and have the root half warn when it runs from a user-writable file.
+- **Managed models:** check free space on the filesystem Ollama's model directory is on (not `/`),
+  and cap the total with the operator's disk limit from the portal.
+
 ### 3. Help — the agent in Bridge
 - `garageai login` (the norrivaagent pattern):
   - the browser page hands over the operator's session and model access;

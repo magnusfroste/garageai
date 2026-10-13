@@ -51,10 +51,12 @@ func MeshIP() string {
 	return profile.MeshIPFromInterfaces()
 }
 
-// Up joins the mesh with a setup key. The key goes in the environment, not on the command line,
-// so it does not show up in the process list. Needs root: run through sudo when we are not.
+// Up joins the mesh with a setup key. The key goes in on stdin and into netbird's environment,
+// never on a command line (the `env NB_SETUP_KEY=... netbird` form before v0.6.1 was visible in
+// the process list). Needs root: run through sudo when we are not.
 func Up(setupKey, managementURL, hostname string, sudo func(name string, args ...string) *exec.Cmd) error {
-	cmd := sudo("env", "NB_SETUP_KEY="+setupKey, "netbird", "up", "--management-url", managementURL, "--hostname", hostname)
+	cmd := sudo("sh", "-c", `IFS= read -r NB_SETUP_KEY; export NB_SETUP_KEY; exec netbird up --management-url "$1" --hostname "$2"`, "netbird-up", managementURL, hostname)
+	cmd.Stdin = strings.NewReader(setupKey + "\n")
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }

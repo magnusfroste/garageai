@@ -202,11 +202,12 @@ func TestVLLMBehindKey(t *testing.T) {
 	defer srv.Close()
 	port, _ := strconv.Atoi(srv.URL[strings.LastIndex(srv.URL, ":")+1:])
 	owner := Listener{Process: "docker-proxy"}
-	t.Setenv("GARAGEAI_RUNTIME_API_KEY", "")
+	RuntimeKey, RuntimeKeyPort = "", 0
+	defer func() { RuntimeKey = "" }()
 	if rt := probe(port, []string{"127.0.0.1"}, owner); rt == nil || rt.Kind != "vllm" {
 		t.Fatalf("without the key: %+v", rt)
 	}
-	t.Setenv("GARAGEAI_RUNTIME_API_KEY", "k")
+	RuntimeKey = "k"
 	rt := probe(port, []string{"127.0.0.1"}, owner)
 	if rt == nil || rt.Kind != "vllm" || len(rt.Models) != 1 || rt.Models[0].Context == nil || *rt.Models[0].Context != 524288 {
 		t.Fatalf("with the key: %+v", rt)

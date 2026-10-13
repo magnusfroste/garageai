@@ -26,10 +26,8 @@ func run(args []string) int {
 		return 1
 	}
 	client := portal.New(cfg.RegisterURL, cfg.RegisterToken)
-	if cfg.RuntimeAPIKey != "" {
-		os.Setenv("GARAGEAI_RUNTIME_API_KEY", cfg.RuntimeAPIKey) // so doctor's probe sees past the key
-	}
-	_ = service.WritePublic(cfg) // garages set up before v0.4.5 get the secret-free config for doctor
+	profile.RuntimeKey, profile.RuntimeKeyPort = cfg.RuntimeAPIKey, cfg.Port // so doctor's probe sees past the key, on that port only
+	_ = service.WritePublic(cfg)                                             // garages set up before v0.4.5 get the secret-free config for doctor
 	for {
 		if code := heartbeat(cfg, client); code != 0 && once {
 			return code

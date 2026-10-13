@@ -4,10 +4,18 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"os"
+	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
+)
+
+// RuntimeKey is the runtime's API key (from connect or the heartbeat's config), used only when
+// probing RuntimeKeyPort (0: any port, during connect before the port is known).
+var (
+	RuntimeKey     string
+	RuntimeKeyPort int
 )
 
 var client = &http.Client{Timeout: 3 * time.Second}
@@ -23,10 +31,11 @@ func probe(port int, binds []string, owner Listener) *Runtime {
 	if code != 200 && code != 401 && code != 403 {
 		return nil
 	}
-	if (code == 401 || code == 403) && os.Getenv("GARAGEAI_RUNTIME_API_KEY") != "" {
+	if (code == 401 || code == 403) && RuntimeKey != "" && (RuntimeKeyPort == 0 || port == RuntimeKeyPort) {
 		// The operator gave the runtime's key (connect, or the heartbeat's config): with it the
-		// model list, windows and owner are visible, not just "needs a key".
-		if c2, b2 := getAuth(base+"/v1/models", os.Getenv("GARAGEAI_RUNTIME_API_KEY")); c2 == 200 {
+		// model list, windows and owner are visible, not just "needs a key". Only to the configured
+		// port: any local process could answer 401 on another port and collect the key.
+		if c2, b2 := getAuth(base+"/v1/models", RuntimeKey); c2 == 200 {
 			code, body = c2, b2
 		}
 	}
@@ -52,6 +61,11 @@ func probe(port int, binds []string, owner Listener) *Runtime {
 	}
 	for _, m := range list.Data {
 		id, _ := m["id"].(string)
+		// llama.cpp and LM Studio report file paths as ids; the path (with the user's name) stays
+		// here, the file name is what the profile carries.
+		if strings.HasPrefix(id, "/") || strings.HasPrefix(id, "~") || regexp.MustCompile(`^[A-Za-z]:\\`).MatchString(id) {
+			id = filepath.Base(id)
+		}
 		md := Model{ID: id, Context: firstInt(m, "max_model_len", "context_length", "context_window")}
 		if md.Context == nil {
 			if meta, ok := m["meta"].(map[string]any); ok {
