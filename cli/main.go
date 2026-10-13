@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/magnusfroste/garageai/cli/internal/profile"
+	"github.com/magnusfroste/garageai/cli/internal/service"
 )
 
 // version is set at build time: -ldflags "-X main.version=..."
@@ -50,6 +51,8 @@ func main() {
 		os.Exit(mcpServe(os.Stdin, os.Stdout))
 	case "tunnel":
 		os.Exit(tunnelCmd())
+	case "models":
+		os.Exit(modelsCmd())
 	case "update":
 		os.Exit(updateCmd(args[1:]))
 	case "help", "--help", "-h":
@@ -118,6 +121,7 @@ usage:
   garageai install-service     make the heartbeat service run this version (the installer does this)
   garageai mcp                 Bridge's tools for your own AI agent (MCP over stdio)
   garageai tunnel              this garage's own tunnel to the gateway (the installed service runs this)
+  garageai models              models the portal asked this garage to fetch or remove, and how that went
   garageai update [vX.Y.Z]     update Bridge by hand (it updates itself to the portal's stable version otherwise)
   garageai version`)
 	os.Exit(code)
@@ -193,6 +197,11 @@ func printHuman(p profile.Profile) {
 		}
 	}
 	fmt.Println("  Heartbeat " + hb)
+	for _, m := range service.ModelStates(service.LoadModelsState()) {
+		if m.Status == "downloading" {
+			fmt.Printf("  Fetching %s: %d of %d MB (asked for by %s)\n", m.Model, m.CompletedMB, m.TotalMB, orUnknown(m.By))
+		}
+	}
 	if len(p.Runtimes) == 0 {
 		fmt.Println("  Runtime  none found")
 	}

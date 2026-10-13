@@ -90,6 +90,12 @@ func heartbeat(cfg *service.Config, client *portal.Client) int {
 	}
 	fmt.Println(line)
 	maybeSelfUpdate(cfg, res)
+	// Managed models: fetch or remove what the portal wants. keepalive re-sends the heartbeat
+	// during a long pull, so the garage does not look dead meanwhile.
+	reconcileModels(cfg, res, models, rt.New("127.0.0.1", cfg.Port, cfg.RuntimeAPIKey), func() {
+		_, _ = client.Heartbeat(context.Background(), portal.Registration{Name: cfg.Name, Port: cfg.Port, Runtime: cfg.Runtime,
+			Models: models, Contexts: nonEmpty(contexts), RuntimeAPIKey: cfg.RuntimeAPIKey, Agent: agent(cfg), MachineID: machine.ID()})
+	})
 	return 0
 }
 
@@ -124,6 +130,9 @@ func agent(cfg *service.Config) *portal.Agent {
 	a := &portal.Agent{Tool: p.Tool, Version: version, OS: p.Machine.OS, Arch: p.Machine.Arch, Problems: []portal.AgentProblem{}}
 	ust := service.LoadUpdateState()
 	a.Update = &portal.AgentUpdate{Auto: cfg.AutoUpdate == nil || *cfg.AutoUpdate, LastCheck: ust.LastCheck, LastUpdate: ust.LastUpdate, LastError: ust.LastError}
+	for _, m := range service.ModelStates(service.LoadModelsState()) {
+		a.Models = append(a.Models, portal.AgentModel{Model: m.Model, Status: m.Status, By: m.By, CompletedMB: m.CompletedMB, TotalMB: m.TotalMB, Error: m.Error, At: m.At})
+	}
 	for _, pr := range p.Problems {
 		// The heartbeat's own state is known where it arrives, and the log doctor reads it from is
 		// the previous run's.

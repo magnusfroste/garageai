@@ -190,6 +190,12 @@ func problems(p Profile) []Problem {
 	if st := service.LoadUpdateState(); st.LastError != "" {
 		add("warning", "update_failed", "Bridge could not update itself: "+st.LastError, "Run: garageai update. If it fails the same way, check the machine's internet access to github.com")
 	}
+	for _, m := range service.ModelStates(service.LoadModelsState()) {
+		if m.Status == "failed" {
+			add("warning", "model_pull_failed", "GarageAI asked this garage to fetch "+m.Model+", but it failed: "+m.Error,
+				"Check the disk and the internet access to ollama.com; Bridge retries after an hour. See: garageai models")
+		}
+	}
 	if prog := service.Program(); prog != "" {
 		if why := service.UnsafeProgram(prog); why != "" {
 			// Not heartbeat_*: this one must reach the Operations Center with the heartbeat.
