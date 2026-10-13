@@ -52,6 +52,11 @@ func reconcileModels(cfg *service.Config, res *portal.HeartbeatResult, served []
 		st.Model, st.By = w.Model, w.By
 		switch w.Action {
 		case "pull":
+			if why := untrustedModel(w.Model); why != "" {
+				st.Status, st.Error, st.At = "refused", why, service.Now()
+				states[w.Model] = st
+				continue
+			}
 			if have[w.Model] {
 				if st.Status != "ready" {
 					st.Status, st.Error, st.At = "ready", "", service.Now()
@@ -132,6 +137,20 @@ func pullWithProgress(client puller, model string, progress rt.PullProgress, kee
 		return diskErr
 	}
 	return err
+}
+
+// untrustedModel: Ollama pulls from any registry named in the model ("evil.example/x/y"), so
+// only its own library ("name:tag", "user/name:tag") and Hugging Face are accepted; a model from
+// anywhere else carries whatever system prompt and template its publisher chose.
+func untrustedModel(name string) string {
+	if name == "" || strings.ContainsAny(name, " \t\n") {
+		return "not a model name"
+	}
+	first, _, _ := strings.Cut(name, "/")
+	if strings.Contains(first, ".") && first != "hf.co" && first != "huggingface.co" {
+		return "models are fetched from Ollama's library or Hugging Face only, not from " + first
+	}
+	return ""
 }
 
 func recent(stamp string, within time.Duration) bool {

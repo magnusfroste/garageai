@@ -1,6 +1,6 @@
 package main
 
-import "os"
+const noFollow = 0
 
-func chownLike(string, os.FileInfo) error { return nil }
-func operatorHomes() []string             { return nil }
+func rootOwnedDir(string) bool     { return true }
+func rootOwnedRegular(string) bool { return false }

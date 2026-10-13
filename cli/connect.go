@@ -60,6 +60,14 @@ func optionsFromEnv() Options {
 		MeshWait: 90 * time.Second, Tunnel: os.Getenv("GARAGEAI_TUNNEL"),
 	}
 	o.Port, _ = strconv.Atoi(os.Getenv("GARAGEAI_PORT"))
+	profile.RuntimeKey = o.RuntimeAPIKey
+	if os.Geteuid() == 0 {
+		// The root half has what it needs in o: the secrets leave the environment so that no
+		// child (netbird's installer, lsof, docker, ...) inherits them.
+		for _, k := range []string{"GARAGEAI_REGISTER_TOKEN", "GARAGEAI_SETUP_KEY", "GARAGEAI_RUNTIME_API_KEY"} {
+			os.Unsetenv(k)
+		}
+	}
 	if s, err := strconv.Atoi(os.Getenv("GARAGEAI_MESH_WAIT_SECONDS")); err == nil && s > 0 {
 		o.MeshWait = time.Duration(s) * time.Second
 	}
@@ -237,9 +245,9 @@ func asRoot(args []string) int {
 		"GARAGEAI_NODE_NAME": os.Getenv("GARAGEAI_NODE_NAME"), "GARAGEAI_RUNTIME": os.Getenv("GARAGEAI_RUNTIME"),
 		"GARAGEAI_PORT": os.Getenv("GARAGEAI_PORT"), "GARAGEAI_REGISTER_URL": os.Getenv("GARAGEAI_REGISTER_URL"),
 		"GARAGEAI_MANAGEMENT_URL": os.Getenv("GARAGEAI_MANAGEMENT_URL"), "GARAGEAI_REPORT": os.Getenv("GARAGEAI_REPORT"),
-		"GARAGEAI_MESH_WAIT_SECONDS": os.Getenv("GARAGEAI_MESH_WAIT_SECONDS"), "GARAGEAI_USER_HOME": os.Getenv("HOME"),
-		"GARAGEAI_TUNNEL": os.Getenv("GARAGEAI_TUNNEL"),
-		"ARGS":            strings.Join(args, "\x00"),
+		"GARAGEAI_MESH_WAIT_SECONDS": os.Getenv("GARAGEAI_MESH_WAIT_SECONDS"),
+		"GARAGEAI_TUNNEL":            os.Getenv("GARAGEAI_TUNNEL"),
+		"ARGS":                       strings.Join(args, "\x00"),
 	})
 	cmd.Stdin = strings.NewReader(string(secrets) + "\n")
 	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
@@ -306,6 +314,10 @@ func connect(args []string) int {
 	if o.RegisterToken != "" && o.RegisterURL == "" {
 		o.RegisterURL = portal.API() + "/register-node" // a token alone (e.g. left in the shell): GarageAI's own portal
 		c.o.RegisterURL = o.RegisterURL
+	}
+	if o.RegisterURL != "" && !portal.SecureURL(o.RegisterURL) {
+		fmt.Fprintln(os.Stderr, "garageai connect: the portal address must be https:", o.RegisterURL)
+		return 2
 	}
 	if o.RegisterURL != "" && o.RegisterToken != "" {
 		c.portal = portal.New(o.RegisterURL, o.RegisterToken)
@@ -413,6 +425,8 @@ func connect(args []string) int {
 			if key, source := profile.FindRuntimeKey(o.Port); key != "" {
 				if ids, ctxs, err := rt.New(host, o.Port, key).Models(); err == nil {
 					o.RuntimeAPIKey, c.o.RuntimeAPIKey = key, key
+					profile.RuntimeKey = key
+					profile.RuntimeKey = key
 					c.info(fmt.Sprintf("%s on port %d requires an API key: found it in the %s.", o.Runtime, o.Port, source))
 					served, contexts, probeHost = ids, ctxs, host
 					break

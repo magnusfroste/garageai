@@ -95,6 +95,17 @@ func TestReconcileRemovesOnlyWhatBridgePulled(t *testing.T) {
 	}
 }
 
+func TestReconcileRefusesOtherRegistries(t *testing.T) {
+	useTempState(t)
+	f := &fakeRuntime{total: 1 << 30}
+	res := &portal.HeartbeatResult{WantedModels: []portal.WantedModel{{Model: "evil.example/x/y:1", Action: "pull"}, {Model: "hf.co/org/model:Q4", Action: "pull"}}}
+	reconcileModels(&service.Config{Runtime: "ollama"}, res, nil, f, nil)
+	st := service.LoadModelsState()
+	if len(f.pulled) != 1 || f.pulled[0] != "hf.co/org/model:Q4" || st["evil.example/x/y:1"].Status != "refused" {
+		t.Fatalf("pulled %v, states %+v", f.pulled, st)
+	}
+}
+
 func TestReconcileRefusesOtherRuntimes(t *testing.T) {
 	useTempState(t)
 	f := &fakeRuntime{}

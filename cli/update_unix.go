@@ -4,35 +4,28 @@ package main
 
 import (
 	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 	"syscall"
 )
 
-func chownLike(path string, fi os.FileInfo) error {
-	if st, ok := fi.Sys().(*syscall.Stat_t); ok {
-		return os.Chown(path, int(st.Uid), int(st.Gid))
+const noFollow = syscall.O_NOFOLLOW
+
+// rootOwnedDir: the directory belongs to root and nobody else can write in it. What root may
+// trust on PATH, and where it may write.
+func rootOwnedDir(d string) bool {
+	fi, err := os.Lstat(d)
+	if err != nil || !fi.IsDir() {
+		return false
 	}
-	return nil
+	st, ok := fi.Sys().(*syscall.Stat_t)
+	return ok && st.Uid == 0 && fi.Mode().Perm()&0o022 == 0
 }
 
-// operatorHomes: the home directories of the human users on this machine (where ~/.local/bin lives).
-func operatorHomes() []string {
-	var homes []string
-	if h := os.Getenv("GARAGEAI_USER_HOME"); h != "" {
-		homes = append(homes, h)
+// rootOwnedRegular: a regular file (not a symlink) owned by root.
+func rootOwnedRegular(p string) bool {
+	fi, err := os.Lstat(p)
+	if err != nil || !fi.Mode().IsRegular() {
+		return false
 	}
-	for _, base := range []string{"/Users", "/home"} {
-		entries, _ := os.ReadDir(base)
-		for _, e := range entries {
-			if e.IsDir() && !strings.HasPrefix(e.Name(), ".") && e.Name() != "Shared" {
-				homes = append(homes, filepath.Join(base, e.Name()))
-			}
-		}
-	}
-	if u := strings.TrimSpace(func() string { o, _ := exec.Command("stat", "-f", "%Su", "/dev/console").Output(); return string(o) }()); u != "" && u != "root" {
-		homes = append(homes, filepath.Join("/Users", u))
-	}
-	return homes
+	st, ok := fi.Sys().(*syscall.Stat_t)
+	return ok && st.Uid == 0
 }

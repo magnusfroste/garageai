@@ -73,6 +73,11 @@ func completePath() {
 	}
 	path := os.Getenv("PATH")
 	for _, d := range []string{"/usr/local/bin", "/usr/local/sbin", "/opt/homebrew/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"} {
+		// As root (the heartbeat, connect's root half) only directories nobody else can write in:
+		// Homebrew's are the user's, and a planted nvidia-smi there would run as root every 5 minutes.
+		if os.Geteuid() == 0 && !rootOwnedDir(d) {
+			continue
+		}
 		if !have[d] {
 			if path != "" {
 				path += string(os.PathListSeparator)

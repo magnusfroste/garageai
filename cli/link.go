@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	neturl "net/url"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -216,7 +217,23 @@ func computerName(host string) string {
 	return host
 }
 
+// portalLink: the link the portal gave us is only opened when it is the portal's own https
+// address. A wrong or compromised portal must not get `open <anything>` run on the operator's
+// machine (2026-10-13 security review).
+func portalLink(raw string) bool {
+	u, err := neturl.Parse(raw)
+	if err != nil || u.Scheme != "https" {
+		return false
+	}
+	api, _ := neturl.Parse(portal.API())
+	host := strings.ToLower(u.Hostname())
+	return host == "app.garageai.eu" || host == "garageai.eu" || strings.HasSuffix(host, ".garageai.eu") || (api != nil && host == strings.ToLower(api.Hostname()))
+}
+
 func openBrowser(url string) bool {
+	if !portalLink(url) {
+		return false
+	}
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "darwin":

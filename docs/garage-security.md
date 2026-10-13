@@ -21,14 +21,18 @@ connect command (GarageAI Bridge) installs, who can reach your machine, and what
                              your machine opened this tunnel, outwards
 ```
 
-Your machine joins a private WireGuard network using [NetBird](https://netbird.io), an open
-source project from Berlin. GarageAI runs its own NetBird server in the EU, so no third-party
-tunnel service sits in the path. Because your machine is the one that connects out, it works
-behind a home router, behind NAT and with an IP address that changes.
+Since Bridge v0.4.2 the tunnel is Bridge's own: WireGuard, run inside the `garageai` program
+(no network interface, no VPN client, no route on your machine). Bridge dials out to the
+gateway's hub on UDP 51830, and inside that tunnel it accepts connections on one port and passes
+them to your runtime on `127.0.0.1`. Your runtime keeps listening on localhost only. The tunnel
+is keyed: only the hub's key is accepted, so nothing but the gateway can send anything through
+it. Bridge does keep a UDP socket open for the tunnel, but WireGuard answers nothing it cannot
+authenticate, so from the internet it looks like nothing at all. Because your machine is the one
+that connects out, it works behind a home router, behind NAT, on a laptop that changes network.
 
-The network has one rule: **the gateway may connect to garages on the runtime ports**. There
-is no rule that lets a garage connect to another garage or to the gateway, so those connections
-are dropped.
+The earlier setup, a [NetBird](https://netbird.io) mesh with a network interface, is still
+available as a fallback (`garageai connect --tunnel netbird`), with the same one rule: **the
+gateway may connect to garages on the runtime ports**, nothing else.
 
 ## Why not port forwarding, ngrok or a personal VPN?
 
@@ -46,51 +50,84 @@ The command installs **GarageAI Bridge**, one small program called `garageai`, a
 The install downloads a build for your system and checks it against the release's checksum.
 Bridge asks for your password once (`sudo`) because these things need administrator rights:
 
-1. **The NetBird client** (command line only, no desktop app), which creates the tunnel and a
-   network interface for it.
-2. **A heartbeat service** (`garageai run`, a systemd timer on Linux or a launchd daemon on
-   macOS) that tells GarageAI every 5 minutes which models your runtime serves and their context
-   windows. It sends your garage's name, the runtime type, the port and the model names. It does
-   not send prompts, files or anything else. Its settings, including your garage's token, are in
-   `/etc/garageai/bridge.json`, readable only by administrators. The program itself is copied to
-   `/usr/local/bin/garageai`, owned by root, so the service never runs a file your user can edit.
+1. **The tunnel service** (`garageai tunnel`, a systemd service on Linux, a launchd daemon on
+   macOS) that keeps the tunnel up and reconnects by itself after sleep or a network change. Its
+   key is in `/etc/garageai/tunnel.key`, readable only by administrators, and never leaves the
+   machine (only the public half is sent to GarageAI).
+2. **A heartbeat service** (`garageai run`, every 5 minutes) that tells GarageAI which models your
+   runtime serves and their context windows, and reports what `garageai doctor` finds (so support
+   can see what you see). It sends your garage's name, the runtime type, the port, the model names
+   and Bridge's own version. It does not send prompts, files or anything else. Its settings,
+   including your garage's token, are in `/etc/garageai/bridge.json`, readable only by
+   administrators (`bridge-public.json` holds the same without secrets, for doctor). The service
+   runs its own copy of the program in a directory only root can write (`/Library/Application
+   Support/GarageAI` on macOS, `/usr/local/lib/garageai` on Linux), never the file in your PATH,
+   so nothing running as your user can change what runs as root.
 3. **Progress reports.** While connecting, Bridge tells GarageAI which step it is on and, when
    a step fails, what it found on the machine: operating system, GPU, memory, which inference
-   runtimes answer on which ports and addresses, NetBird and firewall state. Never keys, prompts
-   or command lines. This is what the wizard shows you when something stops.
+   runtimes answer on which ports and addresses, firewall state. Never keys, prompts or command
+   lines; file paths are reduced to file names.
 
-On Linux your runtime listens on all addresses so the mesh can reach it, which also lets every
-device on your home network use it (Ollama has no password). Bridge warns when `ufw` would block
-the mesh, and prints the rule to allow it. The previous connect script
-([`scripts/garageai-connect.sh`](../scripts/garageai-connect.sh)) could also close the port to
-your local network for you; Bridge does not do that yet, so restrict the port with your firewall
-if you share the network. The Windows script adds a firewall rule that only allows the mesh.
-
-Bridge does not change your router, Docker or other software. The NetBird client does two
-things on the machine itself: it adds firewall rules for its own interface (`wt0`) so that only
-the gateway can reach the runtime port, and it may register a DNS resolver for the mesh's
-`.netbird.selfhosted` names with systemd-resolved. `garageai uninstall` removes the heartbeat
-and Bridge's settings; `sudo netbird down` leaves the mesh.
+Bridge does not change your router, firewall, Docker or other software. `garageai uninstall`
+removes the services and Bridge's settings.
 
 ## What GarageAI can and cannot do on your machine
 
-**Can:** send requests to your runtime's port through the tunnel. In practice GarageAI calls
-two things: the model list, and chat completions on behalf of buyers.
+**Can:**
 
-**Cannot:** log in to your machine (remote shell over the tunnel is turned off), read your
-files, see your screen, reach other ports, or reach other devices on your home network.
+- **Send requests to your runtime's port** through the tunnel. In practice the gateway calls two
+  things: the model list, and chat completions on behalf of buyers.
+- **Update Bridge** (since v0.5.0). The portal names a version it has run on GarageAI's own
+  garages first; Bridge fetches it from this repository's GitHub releases only (no other address
+  is accepted, whatever the portal says), checks it against the release's checksums, runs it
+  once, and only then replaces the service's copy. `garageai connect --no-auto-update` turns this
+  off; `garageai update` does it by hand.
+- **Fetch or remove models in Ollama** (since v0.6.0), when you add a model under My garages or
+  let GarageAI choose. Only from Ollama's library or Hugging Face, one at a time, with 10 GB kept
+  free on the disk; a model you installed yourself is never removed by Bridge. `garageai models`
+  shows what was asked and what happened.
+
+**Cannot:** log in to your machine, run commands, read your files, see your screen, reach other
+ports, or reach other devices on your home network. Bridge runs nothing the portal sends: the
+portal can only choose among the actions above, and each has its own limits in Bridge's code.
 
 Two things you should know, because they follow from how runtimes work:
 
 - **The gateway can reach everything your runtime serves on that port.** For Ollama, that port
-  also carries its model management commands (pull, delete). GarageAI does not call them; the
-  portal and the gateway code are open source so this can be checked. If you want a hard
-  guarantee, run a runtime that only serves inference on that port, such as `llama-server` or
-  vLLM.
-- **Listening on `0.0.0.0` also opens the runtime to your own home network** (not to the
-  internet). On a shared or office network, bind the runtime to your mesh address instead, or
-  restrict the port with your firewall. `garageai doctor` shows your mesh address. The Windows
-  script adds a firewall rule that only allows the mesh.
+  also carries its model management commands (pull, delete). GarageAI's gateway does not call
+  them; the portal and the gateway code are open source so this can be checked. Planned: Bridge
+  will pass only the inference paths through the tunnel, so this becomes a property of your
+  machine rather than a promise. If you want a hard guarantee today, run a runtime that only
+  serves inference on that port, such as `llama-server` or vLLM.
+- **With the NetBird fallback the runtime listens on `0.0.0.0`**, which also opens it to your own
+  home network (not to the internet). With the Bridge tunnel (the default) it stays on localhost.
+
+## Security review
+
+Bridge was reviewed on 2026-10-13 (an independent read of all of `cli/`, threat model: a
+compromised portal, a local user on the machine, a network attacker, a buyer, and the operator's
+own secrets). Fixed the same day (v0.6.1):
+
+- The portal could name the address Bridge fetched updates from, and the checksums came from the
+  same address: a compromised portal could have run anything as root on every garage. Now only
+  this repository's GitHub releases are accepted.
+- After an update, Bridge (as root) refreshed the `garageai` command in every user's `~/.local/bin`
+  by following whatever was there, including a symlink a local user could have planted. It now
+  touches only `/usr/local/bin/garageai`, and only when that file and directory are root's.
+- As root, Bridge searched Homebrew's user-owned directories for tools such as `nvidia-smi`; a
+  file planted there by anything running as your user would have run as root every 5 minutes.
+  Root now only uses directories nobody else can write in.
+- The runtime's API key was offered to any local port that answered "unauthorized"; now only to
+  the configured runtime port, and it is no longer placed in the environment where child
+  programs would inherit it. The NetBird setup key no longer appears on a command line.
+- A link the portal sends is only opened in the browser when it is GarageAI's own https address.
+- Portal addresses must be https; redirects to plain http are refused.
+- Model fetches are limited to Ollama's library and Hugging Face.
+
+Still open, in order: signing the release checksums with a key kept off GitHub (so a compromised
+GitHub account cannot ship a release); running the tunnel service as its own unprivileged user;
+Windows file permissions (Bridge's Windows service is not finished); an inference-only path
+filter in the tunnel. The findings and their status are tracked in docs/bridge.md.
 
 ## Other people's prompts run on your machine
 

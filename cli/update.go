@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/magnusfroste/garageai/cli/internal/portal"
 	"github.com/magnusfroste/garageai/cli/internal/service"
 )
 
@@ -24,6 +25,24 @@ import (
 // from "latest": a bad release must not reach every garage at once.
 
 const releasesBase = "https://github.com/magnusfroste/garageai/releases/download/bridge-"
+
+// trustedBase is where the release is fetched from. The portal may say so (bridge_download_base),
+// but only within this repository's GitHub releases: SHA256SUMS comes from the same place as the
+// binary, so whoever picks the place picks what runs as root on every garage. A portal that is
+// wrong or compromised must not be able to point Bridge anywhere else (found in the 2026-10-13
+// security review). An unacceptable base is ignored, and the release's own directory is used.
+func trustedBase(stable, base string) string {
+	own := releasesBase + stable
+	if base == "" {
+		return own
+	}
+	b := strings.TrimSuffix(base, "/")
+	if b == own || strings.HasPrefix(b, releasesBase) && !strings.ContainsAny(strings.TrimPrefix(b, releasesBase), "/?#") {
+		return b
+	}
+	fmt.Printf("%s ignoring download base %q from the portal: not a GitHub release of this repository\n", service.Now(), base)
+	return own
+}
 
 // newerVersion reports whether b (vX.Y.Z) is newer than a. Non-release versions ("dev", "v0.4.0-rc1")
 // never update automatically.
@@ -66,9 +85,17 @@ func assetName() string {
 	return name
 }
 
-var updateHTTP = &http.Client{Timeout: 5 * time.Minute}
+var updateHTTP = &http.Client{Timeout: 5 * time.Minute, CheckRedirect: func(req *http.Request, via []*http.Request) error {
+	if !portal.SecureURL(req.URL.String()) {
+		return errors.New("redirect to " + req.URL.Scheme + " refused")
+	}
+	return nil
+}}
 
 func fetch(url string, max int64) ([]byte, error) {
+	if !portal.SecureURL(url) {
+		return nil, errors.New("not https: " + url)
+	}
 	resp, err := updateHTTP.Get(url)
 	if err != nil {
 		return nil, err
@@ -122,9 +149,7 @@ func selfUpdate(stable, base string) error {
 	if !newerVersion(version, stable) {
 		return nil
 	}
-	if base == "" {
-		base = releasesBase + stable
-	}
+	base = trustedBase(stable, base)
 	dir := filepath.Dir(service.BinaryPath())
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
@@ -147,33 +172,34 @@ func selfUpdate(stable, base string) error {
 	return nil
 }
 
-// updateOperatorCopies refreshes the operator's own garageai (what they type), when it is the
-// usual install location, so `garageai doctor` and the service agree. Best effort, keeps owners.
+// updateOperatorCopies refreshes the operator's own garageai (what they type) in /usr/local/bin,
+// so `garageai doctor` and the service agree. Only there, and only when that directory and file
+// are root's and the file is a regular file: this runs as root, and writing into a user's
+// directory from root (as before v0.6.1, into ~/.local/bin of every home) let that user plant a
+// symlink and have root write, and chown, any file on the machine (2026-10-13 security review).
+// A copy elsewhere (Homebrew's user-owned /usr/local/bin, ~/.local/bin) is left alone; the
+// installer replaces it, and doctor says when it is older than the service.
 func updateOperatorCopies(src string) {
+	if runtime.GOOS == "windows" {
+		return
+	}
+	p := "/usr/local/bin/garageai"
+	if !rootOwnedRegular(p) || !rootOwnedDir(filepath.Dir(p)) {
+		return
+	}
 	b, err := os.ReadFile(src)
 	if err != nil {
 		return
 	}
-	var paths []string
-	if runtime.GOOS != "windows" {
-		paths = append(paths, "/usr/local/bin/garageai")
-		for _, h := range operatorHomes() {
-			paths = append(paths, filepath.Join(h, ".local", "bin", "garageai"))
-		}
+	tmp := p + ".new"
+	os.Remove(tmp)
+	f, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_EXCL|noFollow, 0o755)
+	if err != nil {
+		return
 	}
-	for _, p := range paths {
-		fi, err := os.Stat(p)
-		if err != nil || fi.IsDir() {
-			continue
-		}
-		tmp := p + ".new"
-		if os.WriteFile(tmp, b, fi.Mode().Perm()) != nil {
-			continue
-		}
-		_ = chownLike(tmp, fi)
-		if os.Rename(tmp, p) != nil {
-			os.Remove(tmp)
-		}
+	_, werr := f.Write(b)
+	if f.Close() != nil || werr != nil || os.Rename(tmp, p) != nil {
+		os.Remove(tmp)
 	}
 }
 

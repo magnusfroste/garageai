@@ -57,3 +57,22 @@ func TestDownloadVerified(t *testing.T) {
 		t.Fatal("a missing SHA256SUMS was accepted")
 	}
 }
+
+func TestTrustedBaseOnlyGitHubReleases(t *testing.T) {
+	own := "https://github.com/magnusfroste/garageai/releases/download/bridge-v0.6.1"
+	for _, c := range []struct{ base, want string }{
+		{"", own},
+		{own, own},
+		{own + "/", own},
+		{"https://github.com/magnusfroste/garageai/releases/download/bridge-v0.6.2", "https://github.com/magnusfroste/garageai/releases/download/bridge-v0.6.2"},
+		{"https://evil.example/releases", own},
+		{"http://github.com/magnusfroste/garageai/releases/download/bridge-v0.6.1", own},
+		{"https://github.com/magnusfroste/garageai/releases/download/bridge-v0.6.1/../../../other/releases/download/x", own},
+		{"https://github.com/magnusfroste/garageai/releases/download/bridge-v0.6.1?x=1", own},
+		{"https://github.com/someone-else/garageai/releases/download/bridge-v0.6.1", own},
+	} {
+		if got := trustedBase("v0.6.1", c.base); got != c.want {
+			t.Errorf("trustedBase(%q) = %q, want %q", c.base, got, c.want)
+		}
+	}
+}
