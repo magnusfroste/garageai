@@ -821,8 +821,8 @@ def alerts(d):
         add("critical", "No backup found", "server")
     elif b["age_hours"] > 26:
         add("warning", f"Newest backup is {b['age_hours']} h old", "server")
-    elif b.get("offsite") in (None, "none", "failed"):
-        add("warning", "The newest backup is only on this server" + (" (the off-site copy failed)" if b.get("offsite") == "failed" else " (no off-site copy set up: BACKUP_S3_REMOTE)"), "server")
+    elif b.get("offsite") == "failed":   # not configured is a decision (Hetzner snapshots until there are more customers), failed is not
+        add("warning", "The newest backup did not reach the off-site bucket", "server")
     for c in d["certs"]:
         if c.get("days_left") is None:
             add("warning", f"Could not read the certificate for {c['host']}", "server")

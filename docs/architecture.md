@@ -83,8 +83,9 @@ pool price set by GarageAI would be administration that grows with the catalogue
 recreated: LiteLLM's Postgres (keys, deployments, spend), LiteLLM's `.env` (master and salt key),
 the tunnel hub's key, `/etc/garageai`, the ops `.env`, NetBird's config and volumes, the
 certificates. Encrypted with the passphrase in `/etc/garageai/backup.env` and copied to the S3
-bucket in `BACKUP_S3_REMOTE`; 7 days kept locally. The Operations Center warns when the newest is
-older than 26 h or never left the server. **The passphrase lives in Magnus's password manager
+bucket in `BACKUP_S3_REMOTE` once that is set (decision 2026-10-13: Hetzner snapshots of the VPS
+until there are more customers, then the bucket); 7 days kept locally. The Operations Center warns
+when the newest is older than 26 h or a configured off-site copy failed. **The passphrase lives in Magnus's password manager
 too**: without it the off-site copies are noise.
 
 Restore on a new server, in short: install Docker and the gateway from this repo
