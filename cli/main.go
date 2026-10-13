@@ -198,7 +198,9 @@ func printHuman(p profile.Profile) {
 	}
 	for _, rt := range p.Runtimes {
 		reach := "only this machine"
-		if rt.Network {
+		if p.Tunnel != nil {
+			reach = "reached through the Bridge tunnel" // the tunnel forwards to localhost: listening wider is not needed
+		} else if rt.Network {
 			reach = "reachable over the mesh"
 		}
 		fmt.Printf("  Runtime  %s on port %d (%s), %d model(s), listens on %s: %s\n", rt.Kind, rt.Port, rt.API, len(rt.Models), strings.Join(rt.Binds, " "), reach)

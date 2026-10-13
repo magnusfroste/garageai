@@ -67,11 +67,20 @@ chmod +x "$tmp/$asset"
 # /usr/local/bin is on everyone's PATH; ~/.local/bin is the last resort (on macOS it is not on
 # the PATH, and garage-m4's operator could not find `garageai` after installing, 2026-10-13).
 # connect needs sudo anyway, so asking for it here costs nothing: sudo caches the password.
+sudo_install() {
+  if sudo -n true 2>/dev/null; then   # no password needed (CI, some servers)
+    sudo mkdir -p /usr/local/bin && sudo install -m 755 "$tmp/$asset" "$dest"
+  elif (: </dev/tty) 2>/dev/null; then   # curl | sh: stdin is the script, so sudo asks on the terminal
+    echo "Installing to /usr/local/bin (sudo may ask for your password)..."
+    { sudo mkdir -p /usr/local/bin && sudo install -m 755 "$tmp/$asset" "$dest"; } </dev/tty
+  else
+    return 1
+  fi
+}
 dest=/usr/local/bin/garageai
 if [ -w /usr/local/bin ]; then
   mv "$tmp/$asset" "$dest"
-elif [ "$(id -u)" != 0 ] && command -v sudo >/dev/null 2>&1 && (: </dev/tty) 2>/dev/null &&
-     { echo "Installing to /usr/local/bin (sudo may ask for your password)..."; sudo mkdir -p /usr/local/bin && sudo install -m 755 "$tmp/$asset" "$dest"; } </dev/tty; then
+elif [ "$(id -u)" != 0 ] && command -v sudo >/dev/null 2>&1 && sudo_install; then
   :
 else
   mkdir -p "$HOME/.local/bin"
