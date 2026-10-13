@@ -233,3 +233,74 @@ func Offer(served []string, wanted string) (offered, skipped []string) {
 	}
 	return
 }
+
+// PullProgress is called while OllamaPull downloads: bytes so far and in total (0 until known).
+type PullProgress func(completed, total int64)
+
+// OllamaPull asks Ollama to fetch a model (POST /api/pull, streamed), reporting progress. It
+// returns when the model is there or Ollama gives up. No timeout of its own: the caller's context
+// bounds it (a 20 GB model on home broadband takes an hour).
+func (c *Client) OllamaPull(ctx context.Context, model string, progress PullProgress) error {
+	body, _ := json.Marshal(map[string]any{"model": model, "stream": true})
+	req, _ := http.NewRequestWithContext(ctx, "POST", c.base()+"/api/pull", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	if c.Key != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Key)
+	}
+	resp, err := (&http.Client{}).Do(req) // not c.HTTP: its 5 s timeout is for probes
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return fmt.Errorf("pull %s: HTTP %d: %s", model, resp.StatusCode, strings.TrimSpace(string(b)))
+	}
+	dec := json.NewDecoder(resp.Body)
+	var status string
+	for {
+		var line struct {
+			Status    string `json:"status"`
+			Error     string `json:"error"`
+			Total     int64  `json:"total"`
+			Completed int64  `json:"completed"`
+		}
+		if err := dec.Decode(&line); err != nil {
+			if err == io.EOF {
+				break
+			}
+			return fmt.Errorf("pull %s: %v", model, err)
+		}
+		if line.Error != "" {
+			return fmt.Errorf("pull %s: %s", model, line.Error)
+		}
+		status = line.Status
+		if progress != nil && line.Total > 0 {
+			progress(line.Completed, line.Total)
+		}
+	}
+	if status != "success" {
+		return fmt.Errorf("pull %s: ended with %q", model, status)
+	}
+	return nil
+}
+
+// OllamaDelete removes a model from Ollama (DELETE /api/delete).
+func (c *Client) OllamaDelete(model string) error {
+	body, _ := json.Marshal(map[string]string{"model": model})
+	req, _ := http.NewRequest("DELETE", c.base()+"/api/delete", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	if c.Key != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Key)
+	}
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return fmt.Errorf("delete %s: HTTP %d: %s", model, resp.StatusCode, strings.TrimSpace(string(b)))
+	}
+	return nil
+}

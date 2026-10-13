@@ -52,6 +52,28 @@ type Agent struct {
 	Arch     string         `json:"arch"`
 	Problems []AgentProblem `json:"problems"`
 	Update   *AgentUpdate   `json:"update,omitempty"`
+	// Models the portal asked Bridge to fetch or remove, and how that went (docs/bridge.md).
+	Models []AgentModel `json:"models,omitempty"`
+}
+
+// AgentModel is Bridge's report on one managed model.
+type AgentModel struct {
+	Model       string `json:"model"`
+	Status      string `json:"status"` // downloading, ready, failed, removed, refused
+	By          string `json:"by,omitempty"`
+	CompletedMB int64  `json:"completed_mb,omitempty"`
+	TotalMB     int64  `json:"total_mb,omitempty"`
+	Error       string `json:"error,omitempty"`
+	At          string `json:"at,omitempty"`
+}
+
+// WantedModel is one line of the portal's wish list for this garage: pull it or remove it, in the
+// runtime's own naming (an Ollama tag such as qwen3:4b). Filled by the operator (Add on My
+// garages) or by GarageAI Smart; Bridge does not care which.
+type WantedModel struct {
+	Model  string `json:"model"`
+	Action string `json:"action"` // pull, remove
+	By     string `json:"by,omitempty"`
 }
 
 // AgentUpdate is Bridge's self-update state, for the portal and the Operations Center.
@@ -91,6 +113,8 @@ type HeartbeatResult struct {
 	// Self-update (docs/bridge.md): the version the portal wants garages on, and where to get it.
 	BridgeStable       string `json:"bridge_stable"`
 	BridgeDownloadBase string `json:"bridge_download_base"`
+	// Managed models (docs/bridge.md): what the portal wants fetched or removed on this garage.
+	WantedModels []WantedModel `json:"wanted_models"`
 }
 
 func (c *Client) post(ctx context.Context, url string, body any, out any, timeout time.Duration) (int, error) {

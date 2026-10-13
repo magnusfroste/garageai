@@ -169,6 +169,22 @@ member logged the operator out.
 vLLM does not report cached prompt tokens, so buyers pay full price for prefix-cache hits. Add
 `--enable-prompt-tokens-details` to the vLLM command.
 
+## Models managed by GarageAI
+
+Since v0.6.0 the portal can ask a garage to fetch or remove a model (My garages → Add, or
+GarageAI Smart choosing in-demand models for the machine; docs/bridge.md). The heartbeat carries
+the wish list, Bridge asks Ollama to pull (`/api/pull`), reports progress ("2.1 of 4.7 GB") and,
+when it is there, the next heartbeat offers the model. `garageai models` shows the list and how
+each went. Ollama only for now. A model the operator added themselves is never removed by Bridge
+("refused" in the list); one Bridge fetched can be. Bridge keeps 10 GB free on the disk and
+refuses a pull that would not.
+
+### `model_pull_failed` (warning)
+GarageAI asked this garage to fetch a model and Ollama could not (the reason is in the message:
+no route to ollama.com, not enough disk, a model name that does not exist). Bridge tries again
+after an hour, not every 5 minutes. Check the disk (`df -h`) and that `ollama pull <model>` works
+by hand; if it does, the next retry will too. `garageai models` shows the state.
+
 ## The heartbeat
 
 ### `heartbeat_missing` / `heartbeat_stopped` (warning)

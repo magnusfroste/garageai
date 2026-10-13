@@ -127,7 +127,7 @@ program, an outbound tunnel, a local forward.
      know at onboarding.
   2. **GarageAI suggests**: "we would like qwen3-4b on garage-m4" is a proposal the operator
      accepts with one click. Their disk and bandwidth, so never without a yes.
-  3. **GarageAI Smart (opt-in):** "Let GarageAI choose my models." GarageAI picks models that
+  3. **GarageAI Smart (on from the start, can be turned off):** "GarageAI manages my models." GarageAI picks models that
      are in demand and fit the machine, fetches them, puts them in the pool at the market price,
      and tells the operator why ("180 requests/day, two garages were not enough"). This is what
      makes GarageAI a marketplace that can steer supply towards demand, which OpenRouter's
@@ -138,7 +138,7 @@ program, an outbound tunnel, a local forward.
        costs the operator bandwidth and wears the disk, and a model that keeps being swapped
        serves nobody. A model goes out only after 14 days without traffic.
      - **Guard rails set once by the operator:** how much disk GarageAI may use (e.g. 60 GB);
-       models the operator added themselves are never touched. Opt-in, in plain words: "we
+       models the operator added themselves are never touched. On from the start, in plain words: "we
        download on your bandwidth and disk, you get traffic".
      - **A set that fits in memory at once.** A garage offering 14 models that cannot all be
        loaded (Erik's Mac mini, 2026-10-13) reloads on every switch, and buyers wait for the
@@ -155,6 +155,21 @@ program, an outbound tunnel, a local forward.
   Build order: Bridge first (wanted list in the heartbeat answer, pull with progress, report);
   the contract is the same whoever fills the list. Then the portal: the Add button, then the
   Smart choice with the demand rule as a nightly function.
+  **Smart's first day downloads nothing (Magnus, 2026-10-13).** The garage goes live with the
+  model it has, and earns from the first minute if that model has demand. Downloads come later,
+  from days of demand, at the macro pace: never a question without an answer at onboarding, never
+  a 5 GB download as the first impression. First get going, then optimise and curate.
+  **Smart is on from the start: like a Mac, it works at once with sensible choices, and a pro
+  can change everything.** So the page after the first heartbeat is not a question but a notice,
+  with the Smart switch and the disk limit visible for whoever wants them off.
+  **Bridge side built 2026-10-13 (v0.6.0), the contract:** the heartbeat answer carries
+  `wanted_models: [{"model": "qwen3:4b", "action": "pull" | "remove", "by": "operator" | "garageai"}]`
+  in the runtime's naming. Bridge reports `agent.models: [{model, status: downloading | ready |
+  failed | removed | refused, by, completed_mb, total_mb, error, at}]` with every heartbeat and
+  keeps the state in `/etc/garageai/models.json`. One pull per heartbeat run (a pull blocks the
+  run; a heartbeat is re-sent every 2 minutes meanwhile), a failed pull is retried after an hour,
+  10 GB are kept free, a model the operator added is never removed (`refused`), Ollama only.
+  Doctor: `model_pull_failed`. `garageai models` lists the state.
 - **Onboarding: three moments (decided 2026-10-13).** We cannot give good advice before we have
   seen the machine, so the teaching happens after the first heartbeat, not at signup.
   1. **Signup (30 seconds):** one sentence on what a garage is ("your computer answers AI
@@ -164,9 +179,9 @@ program, an outbound tunnel, a local forward.
      12B). A page appears once and stays under My garages as "What should my garage offer?":
      *your machine* in two lines ("16 GB: models up to ~14B at good speed"); *recommended for
      you*, 2 to 3 models chosen on hardware and demand, with "N garages have it, X requests a
-     day"; *how the pool works* in one sentence; and the choice: **Let GarageAI manage my models**
-     (Smart, opt-in, pre-ticked, with the disk guard rail beside it) or *I choose myself*. This is
-     where the important setting lives, because this is where it means something. The page is
+     day"; *how the pool works* in one sentence; and the notice that Smart is on: what it will
+     do and why, with the switch and the disk limit beside it for whoever wants to take over.
+     This is where the setting lives, because this is where it means something. The page is
      the wizard, without steps: whoever comes back sees the current recommendation for the
      current machine.
   3. **The chat:** not teaching, proof. "Your gemma4 answered in 1.2 s." House default
