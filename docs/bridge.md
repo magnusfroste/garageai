@@ -155,6 +155,26 @@ program, an outbound tunnel, a local forward.
   Build order: Bridge first (wanted list in the heartbeat answer, pull with progress, report);
   the contract is the same whoever fills the list. Then the portal: the Add button, then the
   Smart choice with the demand rule as a nightly function.
+- **Onboarding: three moments (decided 2026-10-13).** We cannot give good advice before we have
+  seen the machine, so the teaching happens after the first heartbeat, not at signup.
+  1. **Signup (30 seconds):** one sentence on what a garage is ("your computer answers AI
+     requests from others when it is idle, and you are paid per token") and one action: connect
+     a computer. A chat key is created silently here, so the chat just works later.
+  2. **The first heartbeat (the big moment):** now we know the machine (16 GB, Ollama, gemma4
+     12B). A page appears once and stays under My garages as "What should my garage offer?":
+     *your machine* in two lines ("16 GB: models up to ~14B at good speed"); *recommended for
+     you*, 2 to 3 models chosen on hardware and demand, with "N garages have it, X requests a
+     day"; *how the pool works* in one sentence; and the choice: **Let GarageAI manage my models**
+     (Smart, opt-in, pre-ticked, with the disk guard rail beside it) or *I choose myself*. This is
+     where the important setting lives, because this is where it means something. The page is
+     the wizard, without steps: whoever comes back sees the current recommendation for the
+     current machine.
+  3. **The chat:** not teaching, proof. "Your gemma4 answered in 1.2 s." House default
+     preselected, key already there. Nobody is sent there from onboarding.
+  Erik's 14 models are not wrong, they are not a product: with Smart on, "3 of your 14 fit at
+  once and 2 have demand: we offer qwen3-coder-30b and gemma4-26b in the pool, the rest stay on
+  disk". Smart means we do the work and say why; that is what separates GarageAI from a list.
+  Smart is a success factor, not a feature among others (Magnus, 2026-10-13).
 - **Measured profile:**
   - Bridge benchmarks prefill and decode, the practical maximum prompt, and the time to first
     token at typical agent prompt sizes, then reports them.
