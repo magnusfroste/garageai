@@ -212,6 +212,12 @@ version it had.
 
 ## Mix-ups we have seen
 
+- **`garageai: command not found` right after installing.** Before 2026-10-13 the installer put
+  Bridge in `~/.local/bin` whenever `/usr/local/bin` was not writable (always, on a Mac), and that
+  directory is not on a Mac's PATH. Either add it
+  (`echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc`) or run the install
+  command again: it now installs to `/usr/local/bin` with sudo. The heartbeat and the tunnel were
+  never affected; they run the root-only copy.
 - **A register token left in the shell.** `export GARAGEAI_REGISTER_TOKEN=…` from an old connect
   command stays in that terminal. Bridge then skips the browser link and uses the old token. Since
   v0.4.1 it at least uses GarageAI's own portal address with it; to link afresh, open a new

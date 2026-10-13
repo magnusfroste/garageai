@@ -5,8 +5,8 @@
 #
 # One binary, no runtime, nothing else installed. Downloaded with curl, so macOS puts no quarantine
 # flag on it and Gatekeeper does not stop it. The download is checked against the release's
-# SHA256SUMS. It goes to /usr/local/bin when that is writable, otherwise to ~/.local/bin, and the
-# script says which, and whether that is on your PATH.
+# SHA256SUMS. It goes to /usr/local/bin (with sudo when needed), and only without a terminal or
+# sudo to ~/.local/bin; the script says which, and whether that is on your PATH.
 #
 #   GARAGEAI_BRIDGE_VERSION=bridge-v0.1.0   a specific release instead of the newest
 #
@@ -64,13 +64,20 @@ else have=$(shasum -a 256 "$tmp/$asset" | awk '{print $1}'); fi
 [ -n "$want" ] && [ "$want" = "$have" ] || { echo "garageai: checksum mismatch for $asset, not installing" >&2; exit 1; }
 chmod +x "$tmp/$asset"
 
+# /usr/local/bin is on everyone's PATH; ~/.local/bin is the last resort (on macOS it is not on
+# the PATH, and garage-m4's operator could not find `garageai` after installing, 2026-10-13).
+# connect needs sudo anyway, so asking for it here costs nothing: sudo caches the password.
+dest=/usr/local/bin/garageai
 if [ -w /usr/local/bin ]; then
-  dest=/usr/local/bin/garageai
+  mv "$tmp/$asset" "$dest"
+elif [ "$(id -u)" != 0 ] && command -v sudo >/dev/null 2>&1 && (: </dev/tty) 2>/dev/null &&
+     { echo "Installing to /usr/local/bin (sudo may ask for your password)..."; sudo mkdir -p /usr/local/bin && sudo install -m 755 "$tmp/$asset" "$dest"; } </dev/tty; then
+  :
 else
   mkdir -p "$HOME/.local/bin"
   dest="$HOME/.local/bin/garageai"
+  mv "$tmp/$asset" "$dest"
 fi
-mv "$tmp/$asset" "$dest"
 
 echo "Installed $("$dest" version) -> $dest (checksum verified)"
 case ":$PATH:" in
