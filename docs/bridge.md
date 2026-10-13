@@ -224,6 +224,13 @@ program, an outbound tunnel, a local forward.
   later in case there is a reason to split.
 
 ### 4. Earn smart
+- **A laptop is a garage while it is plugged in (backlog 2026-10-13).** garage-m2 was away
+  53 minutes when Magnus unplugged it and took it along; Ops paged "tunnel down" within three
+  minutes, as it does every time a laptop leaves. Bridge knows the power state (`pmset -g batt`
+  on macOS, `/sys/class/power_supply` on Linux) and reports it in the heartbeat; the portal and
+  Ops treat a laptop on battery as *away*, not *down*: no alert, the pool skips it, and the
+  garage page says "away since 10:10 (on battery)". When it is plugged in again it is a garage
+  again. The operator sees it as the deal it is: a garage while charging.
 - **Schedule:** sell when the machine is idle (nights, workdays), not while the operator games or
   works.
 - **Electricity price:** sell only when the spot price is below what the tokens pay. This is a
