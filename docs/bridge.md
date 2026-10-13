@@ -117,8 +117,64 @@ program, an outbound tunnel, a local forward.
   - Each with the right flags from the start: context window, prefix cache,
     `--enable-prompt-tokens-details` (so cached tokens bill at the cache price), bind to the mesh.
 - `garageai runtime install|start|stop`, and `garageai models pull|load|unload`.
-- **Demand-driven model suggestions:** "the network needs qwen3.8-27b, you have VRAM for it, load
-  it?". Supply follows what buyers actually call.
+- **Models chosen in the portal, fetched by Bridge (next, decided 2026-10-13).** The heartbeat
+  answer carries the garage's wanted models; Bridge asks Ollama to pull them (`/api/pull`, no sudo,
+  no terminal), reports progress in the heartbeat ("downloading, 2.1 of 4.7 GB"), and the model is
+  normalized and priced as today once it is there. Removal the same way. Ollama first (every Mac
+  garage runs it); LM Studio and vLLM later. Three callers of the same mechanism:
+  1. **The operator** picks from "models that fit your machine" on My garages (GPU and memory from
+     the heartbeat, market price, "N garages have it already"), and clicks Add. No model names to
+     know at onboarding.
+  2. **GarageAI suggests**: "we would like qwen3-4b on garage-m4" is a proposal the operator
+     accepts with one click. Their disk and bandwidth, so never without a yes.
+  3. **GarageAI Smart (opt-in):** "Let GarageAI choose my models." GarageAI picks models that
+     are in demand and fit the machine, fetches them, puts them in the pool at the market price,
+     and tells the operator why ("180 requests/day, two garages were not enough"). This is what
+     makes GarageAI a marketplace that can steer supply towards demand, which OpenRouter's
+     providers cannot do for it.
+     - **Macro, not micro.** Decisions come from days of demand (requests per model, waits and
+       503s when a pool is full, pool depth against traffic), not from the last hour, and a
+       garage's set of models changes at most once a day and only when it matters: every pull
+       costs the operator bandwidth and wears the disk, and a model that keeps being swapped
+       serves nobody. A model goes out only after 14 days without traffic.
+     - **Guard rails set once by the operator:** how much disk GarageAI may use (e.g. 60 GB);
+       models the operator added themselves are never touched. Opt-in, in plain words: "we
+       download on your bandwidth and disk, you get traffic".
+     - **A set that fits in memory at once.** A garage offering 14 models that cannot all be
+       loaded (Erik's Mac mini, 2026-10-13) reloads on every switch, and buyers wait for the
+       load. Smart chooses a set that fits together (1 to 3 on a Mac) and takes the rest out of
+       the pool (still on disk, still a dedicated address). `OLLAMA_KEEP_ALIVE` of hours, so a
+       loaded model stays loaded between requests.
+     - **Prefer warm garages (gateway side, not Bridge):** the heartbeat already reports which
+       models are loaded; the portal gives a pool deployment whose model is cold a lower weight,
+       so requests go to a garage that has the model in memory and a cold one gets traffic when
+       the warm ones are full or down. No lock on a garage: a lock takes its other models out
+       of the pool and only moves the reload to the next window.
+     - First test: garage-m4 (16 GB, gemma4 12B only today) gets qwen3-4b, and that pool has
+       three garages.
+  Build order: Bridge first (wanted list in the heartbeat answer, pull with progress, report);
+  the contract is the same whoever fills the list. Then the portal: the Add button, then the
+  Smart choice with the demand rule as a nightly function.
+- **Onboarding: three moments (decided 2026-10-13).** We cannot give good advice before we have
+  seen the machine, so the teaching happens after the first heartbeat, not at signup.
+  1. **Signup (30 seconds):** one sentence on what a garage is ("your computer answers AI
+     requests from others when it is idle, and you are paid per token") and one action: connect
+     a computer. A chat key is created silently here, so the chat just works later.
+  2. **The first heartbeat (the big moment):** now we know the machine (16 GB, Ollama, gemma4
+     12B). A page appears once and stays under My garages as "What should my garage offer?":
+     *your machine* in two lines ("16 GB: models up to ~14B at good speed"); *recommended for
+     you*, 2 to 3 models chosen on hardware and demand, with "N garages have it, X requests a
+     day"; *how the pool works* in one sentence; and the choice: **Let GarageAI manage my models**
+     (Smart, opt-in, pre-ticked, with the disk guard rail beside it) or *I choose myself*. This is
+     where the important setting lives, because this is where it means something. The page is
+     the wizard, without steps: whoever comes back sees the current recommendation for the
+     current machine.
+  3. **The chat:** not teaching, proof. "Your gemma4 answered in 1.2 s." House default
+     preselected, key already there. Nobody is sent there from onboarding.
+  Erik's 14 models are not wrong, they are not a product: with Smart on, "3 of your 14 fit at
+  once and 2 have demand: we offer qwen3-coder-30b and gemma4-26b in the pool, the rest stay on
+  disk". Smart means we do the work and say why; that is what separates GarageAI from a list.
+  Smart is a success factor, not a feature among others (Magnus, 2026-10-13).
 - **Measured profile:**
   - Bridge benchmarks prefill and decode, the practical maximum prompt, and the time to first
     token at typical agent prompt sizes, then reports them.
