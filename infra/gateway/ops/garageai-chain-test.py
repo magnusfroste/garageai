@@ -156,7 +156,9 @@ def run(env):
     steps = []
     log(f"chain test on {GARAGE} with {MODEL}")
     st = portal.status()
-    if managed(st, MODEL) or garage_model(st, MODEL).get("installed"):
+    # A leftover is a model still on the garage (installed) or a request still in flight; a
+    # finished history row (removed, failed, refused) is not one (run 6 skipped itself on one).
+    if managed(st, MODEL).get("status") in ("wanted", "downloading", "ready") or garage_model(st, MODEL).get("installed"):
         # Left over from a failed night: clean up first, then test from a clean state next night.
         log(f"  {MODEL} is already on {GARAGE} (left over?): asking for removal, test skipped")
         portal.want(MODEL, "remove")
