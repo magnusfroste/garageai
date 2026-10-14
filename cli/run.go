@@ -41,11 +41,45 @@ func run(args []string) int {
 }
 
 func heartbeat(cfg *service.Config, client *portal.Client) int {
-	// The heartbeat reports everything the runtime serves (the inventory); which models are
-	// offered is decided in the portal. If the runtime does not answer, it reports no models so
-	// buyers are not routed here.
-	var models []string
-	contexts := map[string]int{}
+	models, contexts := inventory(cfg)
+	ag := agent(cfg) // first: it may correct cfg.Runtime
+	res, err := client.Heartbeat(context.Background(), portal.Registration{Name: cfg.Name, Port: cfg.Port, Runtime: cfg.Runtime,
+		Models: models, Contexts: nonEmpty(contexts), RuntimeAPIKey: cfg.RuntimeAPIKey, Agent: ag, MachineID: machine.ID()})
+	stamp := time.Now().UTC().Format(time.RFC3339)
+	switch {
+	case errors.Is(err, portal.ErrRejected):
+		fmt.Printf("%s heartbeat rejected: %v (My garages → New command, and run it here)\n", stamp, err)
+		return 2
+	case err != nil:
+		fmt.Printf("%s heartbeat failed: %v\n", stamp, err)
+		return 1
+	}
+	line := fmt.Sprintf("%s heartbeat ok: %d model(s)", stamp, len(models))
+	if res.Changed {
+		line += fmt.Sprintf(", changed (added %s, removed %s, contexts %s)", strings.Join(res.Added, ","), strings.Join(res.Removed, ","), strings.Join(res.ContextsChanged, ","))
+	}
+	fmt.Println(line)
+	maybeSelfUpdate(cfg, res)
+	// Managed models: fetch or remove what the portal wants. beat re-reads the inventory and
+	// re-sends the heartbeat: during a long pull so the garage does not look dead, and after a
+	// reconcile that changed anything so the portal sees the outcome and the new model together
+	// (it offers a fetched model when the report says ready and the inventory lists it).
+	beat := func() {
+		m, c := inventory(cfg)
+		_, _ = client.Heartbeat(context.Background(), portal.Registration{Name: cfg.Name, Port: cfg.Port, Runtime: cfg.Runtime,
+			Models: m, Contexts: nonEmpty(c), RuntimeAPIKey: cfg.RuntimeAPIKey, Agent: agent(cfg), MachineID: machine.ID()})
+	}
+	if reconcileModels(cfg, res, models, rt.New("127.0.0.1", cfg.Port, cfg.RuntimeAPIKey), beat) {
+		beat()
+	}
+	return 0
+}
+
+// inventory is everything the runtime serves right now, and each model's context window; which
+// models are offered is decided in the portal. If the runtime does not answer it is empty, so
+// buyers are not routed here.
+func inventory(cfg *service.Config) (models []string, contexts map[string]int) {
+	contexts = map[string]int{}
 	for _, host := range []string{"127.0.0.1", cfg.MeshIP} {
 		if host == "" {
 			continue
@@ -71,31 +105,7 @@ func heartbeat(cfg *service.Config, client *portal.Client) int {
 	if models == nil {
 		models = []string{}
 	}
-	ag := agent(cfg) // first: it may correct cfg.Runtime
-	res, err := client.Heartbeat(context.Background(), portal.Registration{Name: cfg.Name, Port: cfg.Port, Runtime: cfg.Runtime,
-		Models: models, Contexts: nonEmpty(contexts), RuntimeAPIKey: cfg.RuntimeAPIKey, Agent: ag, MachineID: machine.ID()})
-	stamp := time.Now().UTC().Format(time.RFC3339)
-	switch {
-	case errors.Is(err, portal.ErrRejected):
-		fmt.Printf("%s heartbeat rejected: %v (My garages → New command, and run it here)\n", stamp, err)
-		return 2
-	case err != nil:
-		fmt.Printf("%s heartbeat failed: %v\n", stamp, err)
-		return 1
-	}
-	line := fmt.Sprintf("%s heartbeat ok: %d model(s)", stamp, len(models))
-	if res.Changed {
-		line += fmt.Sprintf(", changed (added %s, removed %s, contexts %s)", strings.Join(res.Added, ","), strings.Join(res.Removed, ","), strings.Join(res.ContextsChanged, ","))
-	}
-	fmt.Println(line)
-	maybeSelfUpdate(cfg, res)
-	// Managed models: fetch or remove what the portal wants. keepalive re-sends the heartbeat
-	// during a long pull, so the garage does not look dead meanwhile.
-	reconcileModels(cfg, res, models, rt.New("127.0.0.1", cfg.Port, cfg.RuntimeAPIKey), func() {
-		_, _ = client.Heartbeat(context.Background(), portal.Registration{Name: cfg.Name, Port: cfg.Port, Runtime: cfg.Runtime,
-			Models: models, Contexts: nonEmpty(contexts), RuntimeAPIKey: cfg.RuntimeAPIKey, Agent: agent(cfg), MachineID: machine.ID()})
-	})
-	return 0
+	return models, contexts
 }
 
 // maybeSelfUpdate: the portal's bridge_stable decides; Bridge moves there when it is newer, unless
