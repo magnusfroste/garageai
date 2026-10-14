@@ -20,6 +20,7 @@ Legend: Y = yes, N = no, ? = unverified. "Bind flag" is the exact way to listen 
 | **llama.cpp** `llama-server` b11401 | Y [S10] | `--host 0.0.0.0` (default 127.0.0.1) [S10] | 8080 [S10] | Y, `--api-key` / `LLAMA_API_KEY` [S10] | Y [S10] | `-np N` slots + continuous batching; router mode for several models [S10] | Y/Y/Y | MIT [S0] | Supported now (hint tweak) |
 | **vLLM** v0.30.0 | Y [S11] | `--host 0.0.0.0` [S11] | 8000 [S11] | Y, `--api-key` (protects /v1 only) [S11] | Y [S12] | Continuous batching, `--tensor-parallel-size` [S11] | Y / via vllm-metal plugin [S13] / N | Apache-2.0 [S0] | Supported now |
 | **Paddock** (Truespar) v0.1.13 | Y [S14][S15] | runner binds **0.0.0.0 by default**; `--host` / `PADDOCK_HOST` [S16] | **11540** (runner); manager/Studio 11500 on localhost [S16][S17] | Y, `--api-key` / `PADDOCK_API_KEY`; a key is **auto-generated and required** on a network bind [S16] | Y, always sends a final usage chunk [S18] | Continuous batching, `--max-batch`; single GPU only (no tensor parallelism yet) [S14] | Y/Y (pre-release, macOS 26+)/Y [S14] | MIT or Apache-2.0 [S14] | Supported with small change |
+| **Xyntetik Runner** v1.2.1 (Joakim Palm) | Y: `/v1/models`, chat SSE, plus Responses, Anthropic Messages, embeddings, rerank [S34] | none: localhost only by design ("remote bind" not implemented); the server rejects a non-loopback `Host` [S34] | 8080 [S34] | N (local-only, no auth) [S34] | `usage.prompt_tokens_details.cached_tokens` on prefix-cache hits [S34] | `--parallel N` slots + continuous batching [S34] | Y/Y/Y (CPU, CUDA, Metal; one binary, no deps) [S34] | Apache-2.0 [S34] | **Under evaluation** (partner candidate, 2026-10-14): Bridge recognises it (`/metrics` `runner_` prefix, process `runner`); needs the tunnel, and the tunnel must rewrite `Host` (see §8) |
 | **Unsloth Studio / `unsloth run`** | Y (built on llama-server) [S19][S20] | `-H 0.0.0.0 -p 8888` [S19][S21] | **8888** [S21] | Y, `sk-unsloth-…` keys created in the UI [S19] | ? (llama-server backend, not checked) | Comes from llama-server | Y/Y/Y [S19] | Core Apache-2.0, Studio AGPL-3.0 [S22] | Supported with small change |
 | **SGLang** v0.5.21 | Y [S23] | `--host 0.0.0.0` (default 127.0.0.1) [S23] | **30000** [S23] | Y, `--api-key` [S23] | Y, `include_usage` + `continuous_usage_stats` [S24] | Continuous batching, `--tp N` [S23] | Y/N/N | Apache-2.0 [S0] | Supported with small change |
 | **TensorRT-LLM** `trtllm-serve` | Y [S25] | `--host` [S25] | 8000 in the examples [S25] | ? | ? | Y, tp/pp/ep sizes [S25] | Y/N/N | Apache-2.0 | Supported now as `other` (expert users) |
@@ -201,7 +202,31 @@ Today: 11434, 1234, 8080, 8000.
 
 ---
 
+## 8. Engines under evaluation (partner candidates)
+
+Engines we are talking to the authors of, in the order they came up. "Evaluated" means: run as a
+garage on one of our Macs next to Ollama, measured with the acceptance tests (time to first token,
+tokens/s, context, cached tokens), and the operator experience written up. Recommended in the
+onboarding only after that.
+
+- **Paddock** (Jens Nylander, Truespar): section 6. Status: supported with a small change; not
+  yet measured side by side.
+- **Xyntetik Runner** (Joakim Palm, [repo](https://github.com/Joakimpalm-Zen/xyntetik-runner)):
+  a single-binary GGUF engine in C, CPU/CUDA/Metal, OpenAI + Anthropic + Responses APIs,
+  prefix cache with `cached_tokens` in usage, `--parallel` batching, signed/replayable run
+  transcripts, Apache-2.0. Why it matters to us: Bridge phase 2 (Bridge installs and runs the
+  runtime as a system service) wants exactly a dependency-free binary on all three platforms; Ollama
+  as an app in the login session is what breaks (garage-m4). His model
+  [Xyntetik-Kvist-14B](https://huggingface.co/Joakimpalm-Zen/Xyntetik-Kvist-14B) (tool-calling
+  agent model for 24 GB cards) is a curated-catalogue candidate. Open points: the server validates
+  `Host` and rejects non-loopback authorities, so through our tunnel LiteLLM's `Host:
+  10.66.0.x:8080` would be refused; Bridge's forward must become HTTP-aware and rewrite `Host` to
+  `127.0.0.1:<port>` (this is the inference-only HTTP forward already in the security backlog, so
+  one change serves both). Status 2026-10-14: recognised by Bridge v0.6.2 (`xyntetik`), not yet
+  run as a garage; first step is the author connecting his own machine.
+
 ## 7. Sources
+- [S34] Xyntetik Runner README and MANUAL (Endpoints table, Serving and APIs), read 2026-10-14: https://github.com/Joakimpalm-Zen/xyntetik-runner
 
 - [S0] GitHub REST API, `GET /repos/{owner}/{repo}` and `/releases`, queried 2026-10-05. Gives latest tags, licenses and archived status. Repos: vllm-project/vllm, sgl-project/sglang, ollama/ollama, ggml-org/llama.cpp, mudler/LocalAI, janhq/jan, LostRuins/koboldcpp, oobabooga/text-generation-webui, ml-explore/mlx-lm, exo-explore/exo, mozilla-ai/llamafile, aphrodite-engine/aphrodite-engine, InternLM/lmdeploy, xorbitsai/inference, gpustack/gpustack, lemonade-sdk/lemonade, huggingface/text-generation-inference, truespar/paddock. Example: https://api.github.com/repos/huggingface/text-generation-inference
 - [S1] Ollama OpenAI compatibility: https://docs.ollama.com/api/openai-compatibility

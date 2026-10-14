@@ -38,6 +38,9 @@ Buyers ──HTTPS──▶ LiteLLM gateway (EU) ──WireGuard tunnel (Bridge)
 
 - **The tunnel** — Bridge carries a WireGuard tunnel in user space from each garage out to a hub on the gateway ([design](docs/bridge-tunnel.md)); a self-hosted NetBird mesh is the fallback. Garages are never exposed to the public internet.
 - **The gateway** — [LiteLLM](https://github.com/BerriAI/litellm) on an EU VPS routes each request over the mesh, counts tokens per key and model, and handles retries and failover. Setup: [`infra/gateway/`](infra/gateway/README.md).
+- **Bridge** — the `garageai` binary on each garage ([`cli/`](cli/README.md)): doctor, connect (browser link, no tokens to paste), the tunnel, a heartbeat that reports models and context windows, self-update, and models fetched on the portal's request ([vision and phases](docs/bridge.md)).
+- **Where logic lives** — the portal decides, the gateway executes within seconds, Bridge sees the machine, the Operations Center measures ([architecture](docs/architecture.md)). Security for garage owners: [what runs on your machine](docs/garage-security.md).
+- **For engine builders** — any runtime that speaks the OpenAI API is a garage: `GET /v1/models`, `POST /v1/chat/completions` with SSE streaming, usage in the last chunk (`prompt_tokens_details.cached_tokens` lets buyers pay the cache price), and ideally `/metrics` so Bridge can tell engines apart. Listening on `127.0.0.1` is enough: the tunnel reaches it there. The support matrix and the engines under evaluation: [docs/inference-engines.md](docs/inference-engines.md).
 
 ## Repository
 

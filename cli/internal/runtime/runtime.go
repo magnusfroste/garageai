@@ -22,7 +22,7 @@ var NonChat = regexp.MustCompile(`(?i)embed|rerank|bge-|e5-|minilm|clip|whisper|
 
 func DefaultPort(runtime string) int {
 	return map[string]int{"ollama": 11434, "lmstudio": 1234, "llamacpp": 8080, "vllm": 8000, "sglang": 30000,
-		"paddock": 11540, "unsloth": 8888, "mlx": 8080, "lemonade": 13305}[runtime]
+		"paddock": 11540, "unsloth": 8888, "mlx": 8080, "lemonade": 13305, "xyntetik": 8080}[runtime]
 }
 
 type Client struct {

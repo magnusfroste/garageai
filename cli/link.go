@@ -139,7 +139,7 @@ func hasRuntimeOn(p profile.Profile, port int) bool {
 }
 
 var connectKinds = map[string]bool{"ollama": true, "lmstudio": true, "llamacpp": true, "vllm": true, "sglang": true,
-	"paddock": true, "unsloth": true, "mlx": true, "lemonade": true}
+	"paddock": true, "unsloth": true, "mlx": true, "lemonade": true, "xyntetik": true}
 
 // pickRuntime chooses the runtime to connect when the operator named none: one with models, and
 // of those the one the mesh can already reach.

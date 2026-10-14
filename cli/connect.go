@@ -733,6 +733,8 @@ func (c *connectRun) hintRuntime() {
 		c.info(fmt.Sprintf("  vLLM: vllm serve <model> --host 0.0.0.0 --port %d --enable-prompt-tokens-details", c.o.Port))
 	case "llamacpp":
 		c.info(fmt.Sprintf("  llama.cpp: llama-server -m <model> --host 0.0.0.0 --port %d", c.o.Port))
+	case "xyntetik":
+		c.info(fmt.Sprintf("  Xyntetik Runner: runner -m <model.gguf> --serve --port %d --parallel 2   (localhost only; the Bridge tunnel reaches it)", c.o.Port))
 	}
 }
 
