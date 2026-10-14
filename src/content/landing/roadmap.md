@@ -17,6 +17,8 @@ phases:
       - "Self-service operator onboarding with GarageAI Bridge: one command, live in minutes, in beta (macOS and Linux; Ollama, LM Studio, llama.cpp, vLLM, SGLang, Paddock)"
       - "Automated acceptance tests for every model"
       - "Garages report their models and context windows automatically, every 5 minutes"
+      - "Bridge updates itself, and garageai pause takes a garage off the market for a while"
+      - "Weighted pool routing: every healthy garage gets a share"
       - "Pool and specific-garage routing"
     color: "var(--color-primary)"
   - flag: "🛠️"
@@ -28,7 +30,8 @@ phases:
     items:
       - "Operator earnings dashboard and wallet"
       - "Payouts to operators"
-      - "Bridge pauses your garage when you need the GPU yourself, and updates itself"
+      - "Bridge pauses automatically when you game or render"
+      - "GarageAI Smart: models in demand that fit your machine, downloaded by Bridge"
       - "A TCP fallback for networks that block UDP (until then, the NetBird mesh)"
       - "Per-garage capacity limits"
       - "Windows in Bridge and the portal (a Windows beta script exists today)"
