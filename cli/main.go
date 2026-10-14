@@ -18,6 +18,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/magnusfroste/garageai/cli/internal/machine"
 	"github.com/magnusfroste/garageai/cli/internal/profile"
@@ -54,6 +55,10 @@ func main() {
 		os.Exit(tunnelCmd())
 	case "models":
 		os.Exit(modelsCmd())
+	case "pause":
+		os.Exit(pauseCmd(args[1:]))
+	case "resume":
+		os.Exit(resumeCmd())
 	case "update":
 		os.Exit(updateCmd(args[1:]))
 	case "help", "--help", "-h":
@@ -128,6 +133,9 @@ usage:
   garageai mcp                 Bridge's tools for your own AI agent (MCP over stdio)
   garageai tunnel              this garage's own tunnel to the gateway (the installed service runs this)
   garageai models              models the portal asked this garage to fetch or remove, and how that went
+  garageai pause [--reason "redeploy"] [--for 15m]
+                               planned absence: the portal drains this garage, buyers go elsewhere, no alerts
+  garageai resume              offer the garage again
   garageai update [vX.Y.Z]     update Bridge by hand (it updates itself to the portal's stable version otherwise)
   garageai version`)
 	os.Exit(code)
@@ -203,6 +211,29 @@ func printHuman(p profile.Profile) {
 		}
 	}
 	fmt.Println("  Heartbeat " + hb)
+	if st, nodes, ignored, panel := effectiveState(time.Now()); st != nil || ignored != "" || len(nodes) > 0 {
+		if st != nil {
+			line := fmt.Sprintf("  State    %s", st.Kind)
+			if st.Reason != "" {
+				line += " (" + st.Reason + ")"
+			}
+			if st.Since != nil {
+				line += " since " + st.Since.Local().Format("15:04")
+			}
+			if st.Until != nil {
+				line += ", until ~" + st.Until.Local().Format("15:04")
+			}
+			fmt.Println(line + ", by " + st.Source + ": the portal sends buyers elsewhere meanwhile")
+		} else if panel != nil {
+			fmt.Printf("  Manager  %s says %s\n", panel.Panel, panel.State.Kind)
+		}
+		for _, n := range nodes {
+			fmt.Printf("  Node     %s (%s): %s%s\n", n.Name, n.Role, map[bool]string{true: "ok", false: "not ok"}[n.OK], nodeDetail(n))
+		}
+		if ignored != "" {
+			fmt.Println("  Manager  state file ignored: " + ignored)
+		}
+	}
 	if tel := machine.Collect(); tel.LoadPct != nil || tel.Power != "" {
 		line := "  Now     "
 		if tel.LoadPct != nil {
@@ -225,6 +256,15 @@ func printHuman(p profile.Profile) {
 		}
 		if tel.GPUUtilPct != nil {
 			line += fmt.Sprintf(", GPU %d %%", *tel.GPUUtilPct)
+			if tel.GPUTempC != nil {
+				line += fmt.Sprintf(" %d °C", *tel.GPUTempC)
+			}
+			if tel.GPUPowerW != nil {
+				line += fmt.Sprintf(" %d W", *tel.GPUPowerW)
+			}
+			if tel.GPUUnified {
+				line += " (unified memory: the free memory above is the GPU's headroom)"
+			}
 		}
 		fmt.Println(line)
 	}
@@ -279,4 +319,18 @@ func pctText(p *int) string {
 		return "?"
 	}
 	return fmt.Sprintf("%d %%", *p)
+}
+
+func nodeDetail(n machine.Node) string {
+	out := ""
+	if n.GPUTempC != nil {
+		out += fmt.Sprintf(", GPU %.0f °C", *n.GPUTempC)
+	}
+	if n.GPUPowerW != nil {
+		out += fmt.Sprintf(", %.0f W", *n.GPUPowerW)
+	}
+	if n.MemAvailableMB != nil {
+		out += fmt.Sprintf(", %d GB memory available", *n.MemAvailableMB/1024)
+	}
+	return out
 }

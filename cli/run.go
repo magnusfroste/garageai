@@ -141,6 +141,7 @@ func agent(cfg *service.Config) *portal.Agent {
 	a.Update = &portal.AgentUpdate{Auto: cfg.AutoUpdate == nil || *cfg.AutoUpdate, LastCheck: ust.LastCheck, LastUpdate: ust.LastUpdate, LastError: ust.LastError}
 	tel := machine.Collect()
 	a.Machine = &tel
+	a.State, a.Nodes, _, _ = effectiveState(time.Now())
 	if cfg.Transport == "tunnel" {
 		a.Requests = tunnel.ReadSummary(5 * time.Minute)
 	}

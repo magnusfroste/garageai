@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/netip"
 	"os"
+	"os/exec"
 	"os/signal"
 	"strings"
 	"syscall"
@@ -42,6 +43,7 @@ func tunnelCmd() int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	go tunnel.FlushStatsEvery(30*time.Second, ctx.Done()) // the garage's own request timings, for the heartbeat
+	go watchState(ctx, logf)                              // a pause or a manager's state change: heartbeat at once
 	for ctx.Err() == nil {
 		t, err := tunnel.Start(tunnel.Config{PrivateKey: strings.TrimSpace(string(key)), HubPublicKey: cfg.HubPublicKey, HubEndpoint: cfg.HubEndpoint,
 			Address: addr, Forwards: map[uint16]string{uint16(cfg.Port): fmt.Sprintf("127.0.0.1:%d", cfg.Port)}, Logf: logf})
@@ -88,4 +90,26 @@ func tunnelCmd() int {
 	}
 	logf("tunnel stopped")
 	return 0
+}
+
+// watchState polls the lifecycle state every 10 s and runs one heartbeat when it changes, so the
+// portal drains the garage before a redeploy stops the runtime (vLLM Panel waits ≥ 15 s).
+func watchState(ctx context.Context, logf func(string, ...any)) {
+	last := stateKey(time.Now())
+	t := time.NewTicker(10 * time.Second)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			if k := stateKey(time.Now()); k != last {
+				logf("state %s → %s: heartbeat now", last, k)
+				last = k
+				cmd := exec.CommandContext(ctx, service.BinaryPath(), "run", "--once")
+				cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+				_ = cmd.Run()
+			}
+		}
+	}
 }

@@ -196,6 +196,26 @@ no route to ollama.com, not enough disk, a model name that does not exist). Brid
 after an hour, not every 5 minutes. Check the disk (`df -h`) and that `ollama pull <model>` works
 by hand; if it does, the next retry will too. `garageai models` shows the state.
 
+## Planned absences: pause, and a runtime manager's state
+
+Since v0.6.5 a garage can say that it is away on purpose, and the portal then sends buyers
+elsewhere, finishes requests in flight, and raises no alert:
+
+- **`sudo garageai pause --reason "redeploy" --for 15m`** / **`sudo garageai resume`**: for a
+  reboot, a model change, a GPU you need yourself for a while. Without `--for` it lasts until
+  resume. The heartbeat goes out at once, so the portal reacts within seconds.
+- **A runtime manager's state file** (vLLM Panel 1.28.0 and later writes
+  `~/.local/state/vllm-panel/state.json`): Bridge reads it and treats `maintenance`,
+  `starting` and `stopped` as planned absences, with the manager's reason and ETA. Doctor shows
+  "State maintenance (redeploy) since 21:11, until ~21:26, by vLLM Panel". The tunnel service
+  checks it every 10 seconds. A stale file (older than 3 minutes: the panel's agent is gone) is
+  ignored and doctor says so.
+
+### `runtime_manager_failed` (error)
+The runtime manager (vLLM Panel) reports that the model failed to start or the container exited;
+its reason is in the message. Open the panel for the log. Buyers are not routed here until the
+model serves again.
+
 ## The heartbeat
 
 ### `heartbeat_missing` / `heartbeat_stopped` (warning)
