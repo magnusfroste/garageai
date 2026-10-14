@@ -67,6 +67,15 @@ The hub's private key lives only on the gateway (`/etc/garageai/hub.key`, 0600).
 
 ## Security
 
+**The forward is an HTTP proxy, not a TCP copy (v0.6.2).** Bridge accepts connections on its
+tunnel address and proxies them to the runtime on 127.0.0.1 with a path allowlist (inference
+paths, `/v1/models`, the read-only Ollama endpoints the health check uses, `/metrics`); anything
+else, such as Ollama's pull/delete, gets a 403 from Bridge. The Host header is rewritten to the
+runtime's own address, which runtimes that accept loopback authorities only (Xyntetik Runner)
+require. Streaming passes through unbuffered; the wait for the first byte allows a long prefill.
+`cli/internal/tunnel/forward.go`.
+
+
 - **Only the gateway may open connections:** a garage cannot reach the gateway or another
   garage. nftables on `wg-hub`:
   - **inbound** from 10.66/16 to the host: only replies to connections the gateway opened

@@ -93,12 +93,13 @@ portal can only choose among the actions above, and each has its own limits in B
 
 Two things you should know, because they follow from how runtimes work:
 
-- **The gateway can reach everything your runtime serves on that port.** For Ollama, that port
-  also carries its model management commands (pull, delete). GarageAI's gateway does not call
-  them; the portal and the gateway code are open source so this can be checked. Planned: Bridge
-  will pass only the inference paths through the tunnel, so this becomes a property of your
-  machine rather than a promise. If you want a hard guarantee today, run a runtime that only
-  serves inference on that port, such as `llama-server` or vLLM.
+- **Only inference passes through the tunnel (since Bridge v0.6.2).** Bridge forwards the
+  OpenAI-style inference paths (`/v1/chat/completions`, `/v1/models`, embeddings, the Anthropic
+  and Responses variants), the read-only Ollama endpoints the health check uses, and `/metrics`.
+  Ollama's management commands (pull, delete, create) and anything else on the port answer 403
+  from Bridge itself and never reach the runtime. This is a property of your machine, not a
+  promise about the gateway. (With the NetBird fallback the runtime is reached directly, so there
+  the promise still applies.)
 - **With the NetBird fallback the runtime listens on `0.0.0.0`**, which also opens it to your own
   home network (not to the internet). With the Bridge tunnel (the default) it stays on localhost.
 

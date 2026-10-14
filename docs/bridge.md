@@ -207,9 +207,8 @@ program, an outbound tunnel, a local forward.
   out. Two-person rule for releases.
 - **Tunnel as its own user:** `garageai` system user, `User=`/`UserName`, `NoNewPrivileges`,
   `ProtectSystem=strict`, `ProtectHome`, no capabilities. Nothing in the tunnel needs root.
-- **Inference-only forward:** an HTTP reverse proxy in Bridge with a path allowlist
-  (`/v1/chat/completions`, `/v1/completions`, `/v1/embeddings`, `/v1/models`, `/api/ps`,
-  `/api/version`) instead of a raw TCP forward, so the gateway cannot reach Ollama's pull/delete.
+- ~~Inference-only forward~~ done in v0.6.2 (`cli/internal/tunnel/forward.go`): an HTTP reverse
+  proxy with a path allowlist and the Host rewritten to the runtime's own address.
 - **Windows:** `bridge.json` and `tunnel.key` need an explicit DACL (Administrators + SYSTEM);
   do not write them before the service exists.
 - **install.sh:** when `/usr/local/bin` is user-writable (Intel Homebrew), still `sudo install`,
