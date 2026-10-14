@@ -249,6 +249,22 @@ program, an outbound tunnel, a local forward.
   garage" and treats a tunnel that drops on a laptop on battery as *away* (info), not down.
   Next: the portal and the pool use them (prefer idle and warm garages, skip a laptop on battery,
   Smart's fit check), and the gateway's timings next to the garage's separate network from model.
+- **From the vLLM Panel sync (2026-10-14, Joakim's session on dgx-city), in order:**
+  1. *Unified memory:* when nvidia-smi reports N/A (DGX Spark / GB10), treat the GPU as unified
+     and let `machine.mem_free_mb` (MemAvailable) be the headroom; add `gpu_temp_c` and
+     `gpu_power_w` (work on GB10, feed the energy idea).
+  2. *Lifecycle states:* `garageai pause --reason "redeploy" --for 15m` / `garageai resume` →
+     `agent.state = {kind: maintenance|draining, reason, until}`; the portal drains the garage
+     instead of failing requests, the owner page says "redeploying since 21:11", Ops does not
+     page. A derived `starting` state when the port is closed or /health is 503 while the runtime
+     process exists (a 2-node vLLM start takes 6–13 min). The panel's node agent calls the local
+     command before a redeploy: Bridge's command is the contract, no panel code in Bridge.
+  3. *Engine facts* as a compact `agent.engine` from the runtime's /metrics when it has one:
+     prefix-cache hit rate, measured prefill tok/s (the practical max prompt), inter-token
+     latency, preemptions, finished-reason counts (length/abort/error), max_num_seqs and KV
+     capacity in tokens. Owner-vs-garage traffic = engine totals minus what the forward saw.
+  4. *Later:* multi-node (read `nodes[]` from a panel endpoint on 127.0.0.1 when present) and
+     energy (tokens per kWh from power.draw; the spot-price rule in phase 4).
 - **A laptop is a garage while it is plugged in (backlog 2026-10-13).** garage-m2 was away
   53 minutes when Magnus unplugged it and took it along; Ops paged "tunnel down" within three
   minutes, as it does every time a laptop leaves. Bridge knows the power state (`pmset -g batt`
