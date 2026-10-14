@@ -51,15 +51,24 @@ class Portal:
         self.key = env.get("GARAGEAI_GATEWAY_KEY", "")
 
     def call(self, body):
-        req = urllib.request.Request(self.url, data=json.dumps(body).encode(), method="POST",
-                                     headers={"Content-Type": "application/json", "x-gateway-key": self.key, "User-Agent": collect.UA})
-        try:
-            with urllib.request.urlopen(req, timeout=20) as r:
-                return r.status, json.loads(r.read() or b"{}")
-        except urllib.error.HTTPError as e:
-            return e.code, {"error": e.read().decode(errors="replace")[:300]}
-        except Exception as e:  # noqa: BLE001
-            return None, {"error": str(e)[:300]}
+        # An edge function that has been idle starts cold (the first want timed out at 20 s on
+        # 2026-10-14): a long timeout, and one retry for timeouts and 5xx.
+        last = (None, {"error": "no attempt"})
+        for attempt in range(2):
+            req = urllib.request.Request(self.url, data=json.dumps(body).encode(), method="POST",
+                                         headers={"Content-Type": "application/json", "x-gateway-key": self.key, "User-Agent": collect.UA})
+            try:
+                with urllib.request.urlopen(req, timeout=60) as r:
+                    return r.status, json.loads(r.read() or b"{}")
+            except urllib.error.HTTPError as e:
+                last = (e.code, {"error": e.read().decode(errors="replace")[:300]})
+                if e.code < 500:
+                    return last
+            except Exception as e:  # noqa: BLE001
+                last = (None, {"error": str(e)[:300]})
+            if attempt == 0:
+                time.sleep(5)
+        return last
 
     def want(self, model, action):
         return self.call({"op": "want", "garage": GARAGE, "model": model, "action": action})
