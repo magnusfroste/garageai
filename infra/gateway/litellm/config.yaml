@@ -29,10 +29,12 @@ router_settings:
   # garage rejects it after the stream has started, and coding agents (Codex, Claude Code)
   # see a broken stream instead of the error they know how to recover from (by compacting).
   enable_pre_call_checks: true
-  # Streaming: give up when a garage sends nothing for 300 s. This includes the wait for
+  # Streaming: give up when a garage sends nothing for 600 s. This includes the wait for
   # the first token: coding agents send prompts of 100k+ tokens, and prefilling those takes
-  # minutes on home GPUs and on busy providers (120 s cut 3 % of agent requests).
-  stream_timeout: 300
+  # minutes on home GPUs and on busy providers (120 s cut 3 % of agent requests; a fresh
+  # 270k-token Hermes prompt on dgx-city needs ~285 s at 950 tok/s prefill, 2026-10-14).
+  # A dead garage is taken out by the health check and the cooldown, not by this timeout.
+  stream_timeout: 600
   # One retry: with a single garage per model a second retry only hits the same
   # dead garage again and keeps the buyer waiting.
   num_retries: 1
