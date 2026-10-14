@@ -234,5 +234,12 @@ func installService() int {
 		return 1
 	}
 	fmt.Printf("✓ The heartbeat service runs Bridge %s from %s\n", version, dest)
+	// The tunnel service is a long-running process of the same binary: without a restart it keeps
+	// the old version (dgx-city ran a v0.6.1 tunnel under a v0.6.5 heartbeat, 2026-10-14, so the
+	// 10 s state poll never ran). A restart reconnects within seconds; requests in flight break.
+	if inst, _ := service.TunnelInstalled(); inst {
+		service.RestartTunnel()
+		fmt.Println("✓ The tunnel service was restarted on the new version (reconnects within seconds)")
+	}
 	return 0
 }
