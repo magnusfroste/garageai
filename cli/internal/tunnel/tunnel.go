@@ -12,8 +12,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	"net"
+	"net/http"
 	"net/netip"
 	"sort"
 	"strings"
@@ -71,12 +71,13 @@ func hexKey(b64 string) (string, error) {
 
 // Tunnel is a running tunnel.
 type Tunnel struct {
-	cfg  Config
-	dev  *device.Device
-	tnet *netstack.Net
-	hub  device.NoisePublicKey
-	mu   sync.Mutex
-	lns  []net.Listener
+	cfg     Config
+	dev     *device.Device
+	tnet    *netstack.Net
+	hub     device.NoisePublicKey
+	mu      sync.Mutex
+	lns     []net.Listener
+	servers []*http.Server // one HTTP forward per listener (forward.go)
 }
 
 // Start brings the tunnel up and starts forwarding. Close it to stop.
@@ -131,7 +132,7 @@ func Start(cfg Config) (*Tunnel, error) {
 			return nil, fmt.Errorf("listen on %s:%d in the tunnel: %w", cfg.Address, p, err)
 		}
 		t.lns = append(t.lns, ln)
-		go t.forward(ln, cfg.Forwards[uint16(p)])
+		go t.serveForward(ln, cfg.Forwards[uint16(p)])
 		cfg.Logf("forwarding %s:%d in the tunnel to %s", cfg.Address, p, cfg.Forwards[uint16(p)])
 	}
 	// Handshake at once, and again shortly after: the first one can go out before the receive side
@@ -147,28 +148,6 @@ func Start(cfg Config) (*Tunnel, error) {
 		}
 	}()
 	return t, nil
-}
-
-func (t *Tunnel) forward(ln net.Listener, local string) {
-	for {
-		c, err := ln.Accept()
-		if err != nil {
-			return
-		}
-		go func() {
-			defer c.Close()
-			up, err := net.DialTimeout("tcp", local, 10*time.Second)
-			if err != nil {
-				t.cfg.Logf("forward to %s: %v", local, err)
-				return
-			}
-			defer up.Close()
-			done := make(chan struct{}, 2)
-			go func() { io.Copy(up, c); done <- struct{}{} }()
-			go func() { io.Copy(c, up); done <- struct{}{} }()
-			<-done
-		}()
-	}
 }
 
 // Handshake sends a handshake to the hub now, instead of waiting for the next keepalive. It is sent
@@ -253,6 +232,8 @@ func addrFingerprint() string {
 func (t *Tunnel) Close() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	closeServers(t.servers)
+	t.servers = nil
 	for _, ln := range t.lns {
 		ln.Close()
 	}

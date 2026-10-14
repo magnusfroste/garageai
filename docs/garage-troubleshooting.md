@@ -169,6 +169,13 @@ fast user switching is fine, as long as your account stays logged in. For a shar
 runtime as a system service (a LaunchDaemon). Learned: garage-m4 went offline when another family
 member logged the operator out.
 
+### Xyntetik Runner
+Recognised since v0.6.2 (`runner` process, `runner_` counters on `/metrics`), default port 8080.
+It serves localhost only by design and rejects requests whose `Host` is not loopback, so it works
+with the Bridge tunnel (the default), never with the NetBird fallback. Start it with
+`runner -m <model.gguf> --serve --port 8080 --parallel 2`; it reports cached prompt tokens by
+itself. Under evaluation as a recommended engine (docs/inference-engines.md §8).
+
 ### `no_cached_token_report` (info, vLLM)
 vLLM does not report cached prompt tokens, so buyers pay full price for prefix-cache hits. Add
 `--enable-prompt-tokens-details` to the vLLM command.

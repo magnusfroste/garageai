@@ -143,6 +143,8 @@ func kindOf(s string) string {
 		return "lmstudio"
 	case strings.Contains(s, "lemonade"):
 		return "lemonade"
+	case strings.Contains(s, "xyntetik") || s == "runner" || strings.HasSuffix(s, "/runner") || strings.HasPrefix(s, "runner "):
+		return "xyntetik" // Xyntetik Runner: a single binary called `runner`
 	case strings.Contains(s, "mlx"):
 		return "mlx"
 	case strings.Contains(s, "unsloth"):
@@ -212,6 +214,8 @@ func metricsKind(base string) string {
 		return "vllm"
 	case strings.Contains(s, "sglang:"):
 		return "sglang"
+	case strings.Contains(s, "runner_"):
+		return "xyntetik" // Xyntetik Runner exports its counters under the runner_ prefix
 	}
 	return ""
 }
