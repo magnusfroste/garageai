@@ -257,8 +257,18 @@ program, an outbound tunnel, a local forward.
      `agent.state = {kind: maintenance|draining, reason, until}`; the portal drains the garage
      instead of failing requests, the owner page says "redeploying since 21:11", Ops does not
      page. A derived `starting` state when the port is closed or /health is 503 while the runtime
-     process exists (a 2-node vLLM start takes 6–13 min). The panel's node agent calls the local
-     command before a redeploy: Bridge's command is the contract, no panel code in Bridge.
+     process exists (a 2-node vLLM start takes 6–13 min). Two sources of state: `garageai
+     pause/resume` (humans and tools with sudo; writes under /etc/garageai) and a **state file**
+     a runtime manager writes without sudo, agreed with vLLM Panel 1.28.0 (2026-10-14):
+     `~<user>/.local/state/vllm-panel/state.json`, schema 1, `{panel, updated, state {kind:
+     serving|starting|maintenance|stopped|failed, reason, since, until}, model {served_name,
+     max_model_len}, nodes [{name, role, ok, container, gpu_temp_c, gpu_power_w,
+     mem_available_mb}]}`, rewritten at least every 60 s. Bridge reads it as root with care
+     (regular file only, ≤ 64 KB, `updated` within 180 s, else ignored and said in doctor) and
+     honours only states that reduce traffic (maintenance → maintenance, starting → starting,
+     stopped → away; failed → a doctor problem with the panel's reason). The tunnel service polls
+     the file every 10 s and runs the heartbeat at once on a change; the portal takes the garage
+     out of routing on that heartbeat (admin-pause path), in-flight requests finish (the drain).
   3. *Engine facts* as a compact `agent.engine` from the runtime's /metrics when it has one:
      prefix-cache hit rate, measured prefill tok/s (the practical max prompt), inter-token
      latency, preemptions, finished-reason counts (length/abort/error), max_num_seqs and KV
