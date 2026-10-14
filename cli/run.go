@@ -13,6 +13,7 @@ import (
 	"github.com/magnusfroste/garageai/cli/internal/profile"
 	rt "github.com/magnusfroste/garageai/cli/internal/runtime"
 	"github.com/magnusfroste/garageai/cli/internal/service"
+	"github.com/magnusfroste/garageai/cli/internal/tunnel"
 )
 
 // run is the heartbeat: every 5 minutes it reports what the runtime serves, and each model's
@@ -128,6 +129,11 @@ func agent(cfg *service.Config) *portal.Agent {
 	a := &portal.Agent{Tool: p.Tool, Version: version, OS: p.Machine.OS, Arch: p.Machine.Arch, Problems: []portal.AgentProblem{}}
 	ust := service.LoadUpdateState()
 	a.Update = &portal.AgentUpdate{Auto: cfg.AutoUpdate == nil || *cfg.AutoUpdate, LastCheck: ust.LastCheck, LastUpdate: ust.LastUpdate, LastError: ust.LastError}
+	tel := machine.Collect()
+	a.Machine = &tel
+	if cfg.Transport == "tunnel" {
+		a.Requests = tunnel.ReadSummary(5 * time.Minute)
+	}
 	for _, m := range service.ModelStates(service.LoadModelsState()) {
 		a.Models = append(a.Models, portal.AgentModel{Model: m.Model, Status: m.Status, By: m.By, CompletedMB: m.CompletedMB, TotalMB: m.TotalMB, Error: m.Error, At: m.At})
 	}

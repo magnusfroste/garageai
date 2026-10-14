@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/magnusfroste/garageai/cli/internal/machine"
+	"github.com/magnusfroste/garageai/cli/internal/tunnel"
 	"io"
 	"net/http"
 	"os"
@@ -54,6 +56,10 @@ type Agent struct {
 	Update   *AgentUpdate   `json:"update,omitempty"`
 	// Models the portal asked Bridge to fetch or remove, and how that went (docs/bridge.md).
 	Models []AgentModel `json:"models,omitempty"`
+	// The machine right now (load, memory, disk, power, a person at the keyboard, GPU), and the
+	// garage's own timing of the requests that came through the tunnel in the last 5 minutes.
+	Machine  *machine.Telemetry `json:"machine,omitempty"`
+	Requests *tunnel.Summary    `json:"requests,omitempty"`
 }
 
 // AgentModel is Bridge's report on one managed model.

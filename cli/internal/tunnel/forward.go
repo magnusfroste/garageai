@@ -70,7 +70,7 @@ func ForwardHandler(local string, logf func(format string, args ...any)) http.Ha
 		}
 		writeJSON(w, http.StatusBadGateway, "the runtime did not answer: "+err.Error())
 	}
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return recordRequests(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !Allowed(r.URL.Path) {
 			if logf != nil {
 				logf("refused %s %s through the tunnel (not an inference path)", r.Method, r.URL.Path)
@@ -79,7 +79,7 @@ func ForwardHandler(local string, logf func(format string, args ...any)) http.Ha
 			return
 		}
 		proxy.ServeHTTP(w, r)
-	})
+	}))
 }
 
 func writeJSON(w http.ResponseWriter, code int, msg string) {
