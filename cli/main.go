@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/magnusfroste/garageai/cli/internal/machine"
 	"github.com/magnusfroste/garageai/cli/internal/profile"
 	"github.com/magnusfroste/garageai/cli/internal/service"
 )
@@ -202,6 +203,31 @@ func printHuman(p profile.Profile) {
 		}
 	}
 	fmt.Println("  Heartbeat " + hb)
+	if tel := machine.Collect(); tel.LoadPct != nil || tel.Power != "" {
+		line := "  Now     "
+		if tel.LoadPct != nil {
+			line += fmt.Sprintf(" load %d %%", *tel.LoadPct)
+		}
+		if tel.MemFreeMB != nil && tel.MemTotalMB != nil {
+			line += fmt.Sprintf(", %d of %d GB memory free", *tel.MemFreeMB/1024, *tel.MemTotalMB/1024)
+		}
+		if tel.DiskFreeGB != nil {
+			line += fmt.Sprintf(", %d GB disk free", *tel.DiskFreeGB)
+		}
+		switch tel.Power {
+		case "battery":
+			line += fmt.Sprintf(", on battery (%s): away for buyers until plugged in", pctText(tel.BatteryPct))
+		case "ac":
+			line += ", on power"
+		}
+		if tel.UserActive != nil && *tel.UserActive {
+			line += ", someone is using this machine"
+		}
+		if tel.GPUUtilPct != nil {
+			line += fmt.Sprintf(", GPU %d %%", *tel.GPUUtilPct)
+		}
+		fmt.Println(line)
+	}
 	for _, m := range service.ModelStates(service.LoadModelsState()) {
 		if m.Status == "downloading" {
 			fmt.Printf("  Fetching %s: %d of %d MB (asked for by %s)\n", m.Model, m.CompletedMB, m.TotalMB, orUnknown(m.By))
@@ -246,4 +272,11 @@ func printHuman(p profile.Profile) {
 	for _, pr := range p.Problems {
 		fmt.Printf("  %s %s\n      → %s\n", mark[pr.Severity], pr.Message, pr.Fix)
 	}
+}
+
+func pctText(p *int) string {
+	if p == nil {
+		return "?"
+	}
+	return fmt.Sprintf("%d %%", *p)
 }

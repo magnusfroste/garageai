@@ -240,6 +240,15 @@ program, an outbound tunnel, a local forward.
   later in case there is a reason to split.
 
 ### 4. Earn smart
+- **Machine telemetry and the garage's own request timings (Bridge v0.6.3, 2026-10-14).** The
+  heartbeat carries `agent.machine` (`load_pct`, `mem_total_mb`, `mem_free_mb`, `disk_free_gb`,
+  `power` = ac | battery | "", `battery_pct`, `user_active`, and on NVIDIA `gpu_util_pct`,
+  `vram_used_mb`, `vram_total_mb`) and `agent.requests` (the last 5 minutes as the forward saw
+  them: `requests`, `inference`, `errors` (5xx), `streamed`, `cold_starts`, `ttfb_p50_ms`,
+  `ttfb_p95_ms`, `total_p50_ms`). Doctor prints a "Now" line. Ops shows both in "From the
+  garage" and treats a tunnel that drops on a laptop on battery as *away* (info), not down.
+  Next: the portal and the pool use them (prefer idle and warm garages, skip a laptop on battery,
+  Smart's fit check), and the gateway's timings next to the garage's separate network from model.
 - **A laptop is a garage while it is plugged in (backlog 2026-10-13).** garage-m2 was away
   53 minutes when Magnus unplugged it and took it along; Ops paged "tunnel down" within three
   minutes, as it does every time a laptop leaves. Bridge knows the power state (`pmset -g batt`
