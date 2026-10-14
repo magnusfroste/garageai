@@ -177,7 +177,10 @@ def run(env):
         portal.cancel(MODEL)
         return {"ok": False, "steps": steps, "error": "pull"}
 
-    steps.append(wait_for("offered", lambda: (lambda g: g.get("offered") and g.get("status") == "live" and "offered, live")(garage_model(portal.status(), MODEL)), LIMITS["offered"]))
+    # Offered = the portal decided to sell it (any test status; "routed" below checks the gateway).
+    steps.append(wait_for("offered", lambda: (lambda g: g.get("offered") and f"offered, status {g.get('status')}")(garage_model(portal.status(), MODEL)), LIMITS["offered"]))
+    if not steps[-1]["ok"]:
+        steps[-1]["detail"] += f" (garage_models row: {garage_model(portal.status(), MODEL) or 'none'})"
     steps.append(wait_for("routed", lambda: (lambda d: d and f"{len(d)} deployment(s): " + ", ".join(n for n, _ in d))(deployments(env, MODEL)), LIMITS["routed"]))
     if steps[-1]["ok"]:
         name = next((n for n, _ in deployments(env, MODEL) if n.startswith("garage/")), None) or deployments(env, MODEL)[0][0]
