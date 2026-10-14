@@ -115,8 +115,9 @@ def ask(env, public_name):
         return None, round(time.time() - t0, 1)
 
 
-def wait_for(name, check, limit):
-    """Polls check() until it returns a truthy detail or the limit passes. Returns a step dict."""
+def wait_for(name, check, limit, give_up=None):
+    """Polls check() until it returns a truthy detail or the limit passes. give_up() returning a
+    reason ends the wait at once as a failure (a pull refused by Bridge will not become ready)."""
     t0 = time.time()
     while True:
         detail = check()
@@ -124,6 +125,9 @@ def wait_for(name, check, limit):
             s = round(time.time() - t0)
             log(f"  ✓ {name} after {s} s: {detail}")
             return {"name": name, "ok": True, "seconds": s, "detail": detail}
+        if give_up and (why := give_up()):
+            log(f"  ✗ {name}: {why}")
+            return {"name": name, "ok": False, "seconds": round(time.time() - t0), "detail": why}
         if time.time() - t0 > limit:
             log(f"  ✗ {name}: not within {limit // 60} min")
             return {"name": name, "ok": False, "seconds": round(time.time() - t0), "detail": f"not within {limit // 60} min"}
@@ -146,7 +150,8 @@ def run(env):
     if code != 200:
         return {"ok": False, "steps": steps, "error": f"want: HTTP {code} {body.get('error', '')}"}
 
-    steps.append(wait_for("pull", lambda: (lambda m: m.get("status") == "ready" and f"ready, {m.get('total_mb') or '?'} MB")(managed(portal.status(), MODEL)), LIMITS["pull"]))
+    steps.append(wait_for("pull", lambda: (lambda m: m.get("status") == "ready" and f"ready, {m.get('total_mb') or '?'} MB")(managed(portal.status(), MODEL)), LIMITS["pull"],
+                          give_up=lambda: (lambda m: m.get("status") in ("failed", "refused") and f"{m.get('status')}: {m.get('error') or '-'}")(managed(portal.status(), MODEL))))
     if not steps[-1]["ok"]:
         m = managed(portal.status(), MODEL)
         steps[-1]["detail"] += f" (status {m.get('status')}: {m.get('error') or '-'})"

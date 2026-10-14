@@ -106,6 +106,15 @@ func TestReconcileRefusesOtherRegistries(t *testing.T) {
 	}
 }
 
+func TestUntrustedModelNames(t *testing.T) {
+	for name, refused := range map[string]bool{"qwen3:0.6b": false, "qwen3:4b": false, "gemma4:12b-it-qat": false, "user/model:q4": false,
+		"hf.co/org/model:Q4_K_M": false, "huggingface.co/org/model": false, "evil.example/x/y:1": true, "registry.local:5000/x/y": true, "": true, "a b": true} {
+		if got := untrustedModel(name) != ""; got != refused {
+			t.Errorf("untrustedModel(%q): refused=%v, want %v", name, got, refused)
+		}
+	}
+}
+
 func TestReconcileRefusesOtherRuntimes(t *testing.T) {
 	useTempState(t)
 	f := &fakeRuntime{}

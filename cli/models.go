@@ -146,8 +146,9 @@ func untrustedModel(name string) string {
 	if name == "" || strings.ContainsAny(name, " \t\n") {
 		return "not a model name"
 	}
-	first, _, _ := strings.Cut(name, "/")
-	if strings.Contains(first, ".") && first != "hf.co" && first != "huggingface.co" {
+	// A registry host is only the first segment of a name with a slash ("host/user/model:tag");
+	// "qwen3:0.6b" has a dot in its tag and no slash, and must pass (chain test, 2026-10-14).
+	if first, _, hasSlash := strings.Cut(name, "/"); hasSlash && strings.Contains(first, ".") && first != "hf.co" && first != "huggingface.co" {
 		return "models are fetched from Ollama's library or Hugging Face only, not from " + first
 	}
 	return ""
