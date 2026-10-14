@@ -97,9 +97,11 @@ def managed(status, model):
 
 
 def garage_model(status, model):
+    """The portal's garage_models row for the model: {installed, offered, status} (the status op
+    nests it under "garage_model"; runs 7 and 8 read the outer entry and never saw "offered")."""
     for m in status.get("models", status.get("garage_models", []) or []):
         if m.get("model") == model:
-            return m
+            return m.get("garage_model") or {}
     return {}
 
 
@@ -178,8 +180,7 @@ def run(env):
         return {"ok": False, "steps": steps, "error": "pull"}
 
     # Offered = the portal decided to sell it (any test status; "routed" below checks the gateway).
-    # The gateway having a deployment is the portal's decision carried out, so it counts as offered too
-    # (the status op's garage_models join missed the model on 2026-10-14; reported to Lovable).
+    # The gateway having a deployment is the portal's decision carried out, so it counts as offered too.
     steps.append(wait_for("offered", lambda: (lambda g: g.get("offered") and f"offered, status {g.get('status')}")(garage_model(portal.status(), MODEL))
                           or (deployments(env, MODEL) and "offered (the gateway has its deployment)"), LIMITS["offered"]))
     if not steps[-1]["ok"]:
