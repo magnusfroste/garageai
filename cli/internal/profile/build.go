@@ -16,7 +16,7 @@ import (
 // that looks like a runtime are probed too, so an unexpected port is still found.
 var KnownPorts = []int{11434, 1234, 8080, 8000, 30000, 11540, 8888, 13305, 5000, 5001, 8001}
 
-var runtimeProc = regexp.MustCompile(`(?i)ollama|vllm|sglang|llama|lms|lm studio|lmstudio|lemonade|mlx|unsloth|paddock|python|uvicorn|docker-proxy|koboldcpp|tabby|text-generation|tgi|aphrodite|exllama`)
+var runtimeProc = regexp.MustCompile(`(?i)ollama|vllm|sglang|llama|lms|lm studio|lmstudio|lemonade|mlx|unsloth|paddock|xyntetik|^runner$|python|uvicorn|docker-proxy|koboldcpp|tabby|text-generation|tgi|aphrodite|exllama`)
 
 // Build discovers this machine and returns its garage profile.
 func Build(version string) Profile {
@@ -103,6 +103,8 @@ func problems(p Profile) []Problem {
 				fix = "Restart it with --host 0.0.0.0"
 			case "llamacpp":
 				fix = "Restart llama-server with --host 0.0.0.0"
+			case "xyntetik":
+				fix = "Xyntetik Runner serves localhost only by design: connect with the Bridge tunnel (the default), which reaches it on 127.0.0.1"
 			}
 			if p.GarageAI.Transport == "tunnel" && p.GarageAI.ConfiguredPort != nil && rt.Port == *p.GarageAI.ConfiguredPort {
 				// Bridge forwards the tunnel to 127.0.0.1: localhost is exactly right here.
