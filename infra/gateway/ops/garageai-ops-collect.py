@@ -360,7 +360,10 @@ def agent_report(t):
         return None
     return {"tool": a.get("tool"), "version": a.get("version"), "os": a.get("os"), "arch": a.get("arch"),
             "age_min": minutes_since(t.get("agent_at")),
-            "problems": [p for p in (a.get("problems") or []) if isinstance(p, dict)][:20]}
+            "problems": [p for p in (a.get("problems") or []) if isinstance(p, dict)][:20],
+            # Bridge v0.6.3: the machine right now, and the garage's own timing of the last 5 minutes' requests.
+            "machine": a.get("machine") if isinstance(a.get("machine"), dict) else None,
+            "requests": a.get("requests") if isinstance(a.get("requests"), dict) else None}
 
 
 def garages(env, state, targets):
@@ -886,9 +889,14 @@ def alerts(d):
                     else f"{'joined the mesh, ' if g['mesh'] else ''}not registered with the portal yet"), "onboarding", garage=g["garage"])
             continue
         if not g["runtime_ok"] or g["mesh"] is False:
-            add("critical", f"{g['garage']}: {'tunnel down' if g['mesh'] is False else 'runtime not answering'}"
-                            + (" (Bridge tunnel)" if g.get("error") == "tunnel_disconnected" else "")
-                            + (f" ({g['error']})" if g.get("error") else ""), "supply", garage=g["garage"])
+            machine = ((g.get("agent") or {}).get("machine") or {})
+            if g["mesh"] is False and machine.get("power") == "battery" and ((g.get("agent") or {}).get("age_min") or 999) < 60:
+                # A laptop that was unplugged and closed: away, not down (docs/bridge.md, phase 4).
+                add("info", f"{g['garage']} is away: a laptop on battery (last report {machine.get('battery_pct', '?')} %); a garage again when plugged in", "supply", garage=g["garage"])
+            else:
+                add("critical", f"{g['garage']}: {'tunnel down' if g['mesh'] is False else 'runtime not answering'}"
+                                + (" (Bridge tunnel)" if g.get("error") == "tunnel_disconnected" else "")
+                                + (f" ({g['error']})" if g.get("error") else ""), "supply", garage=g["garage"])
         if g["type"] == "mesh" and g["runtime_ok"] and g["mesh"] is not False and (g.get("heartbeat_min") or 0) >= HEARTBEAT_SILENT_MINUTES:
             add("warning", f"{g['garage']}: no heartbeat for {g['heartbeat_min']} min although it answers"
                            " (its heartbeat service stopped: model and context changes are not picked up)", "supply", garage=g["garage"])

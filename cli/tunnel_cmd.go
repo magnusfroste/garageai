@@ -41,6 +41,7 @@ func tunnelCmd() int {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	go tunnel.FlushStatsEvery(30*time.Second, ctx.Done()) // the garage's own request timings, for the heartbeat
 	for ctx.Err() == nil {
 		t, err := tunnel.Start(tunnel.Config{PrivateKey: strings.TrimSpace(string(key)), HubPublicKey: cfg.HubPublicKey, HubEndpoint: cfg.HubEndpoint,
 			Address: addr, Forwards: map[uint16]string{uint16(cfg.Port): fmt.Sprintf("127.0.0.1:%d", cfg.Port)}, Logf: logf})

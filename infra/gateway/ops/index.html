@@ -676,7 +676,10 @@ function renderPages(d) {
     const a = g.agent;
     if (!a) return hb + '<div class="small">legacy script: no report</div>';
     const probs = (a.problems || []).map(p => `<div class="small"><span class="${SEV[p.severity] || "muted"}">${esc(p.severity)}</span> ${esc(p.message || p.code)}</div>`).join("");
-    return `${hb}<div class="small">Bridge ${esc(a.version || "?")} · ${esc(a.os || "")}</div>` + (probs || '<div class="small ok">no problems reported</div>');
+    const m = a.machine || {}, rq = a.requests;
+    const machine = (m.load_pct != null || m.power) ? `<div class="small">${m.power === "battery" ? `<span class="warning">on battery ${m.battery_pct ?? "?"} %</span> · ` : ""}${m.load_pct != null ? `load ${m.load_pct} %` : ""}${m.mem_free_mb != null ? ` · ${Math.round(m.mem_free_mb/1024)} of ${Math.round((m.mem_total_mb||0)/1024)} GB free` : ""}${m.gpu_util_pct != null ? ` · GPU ${m.gpu_util_pct} %` : ""}${m.user_active ? " · someone at the keyboard" : ""}</div>` : "";
+    const reqs = rq && rq.requests ? `<div class="small">garage saw ${rq.requests} req/5 min${rq.inference ? `, first byte p50 ${rq.ttfb_p50_ms} ms` : ""}${rq.cold_starts ? `, ${rq.cold_starts} cold start${rq.cold_starts > 1 ? "s" : ""}` : ""}${rq.errors ? ` · <span class="warning">${rq.errors} errors</span>` : ""}</div>` : "";
+    return `${hb}<div class="small">Bridge ${esc(a.version || "?")} · ${esc(a.os || "")}</div>${machine}${reqs}` + (probs || '<div class="small ok">no problems reported</div>');
   };
   $("garages").innerHTML = table([
     ["Name", g => `${dot(g.onboarding || d.silences?.[g.garage] ? "info" : g.runtime_ok && g.mesh !== false ? "ok" : "critical")}<b>${esc(g.garage)}</b>${d.silences?.[g.garage] ? " " + pill("info", "planned stop") : ""}`],
