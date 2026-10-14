@@ -47,7 +47,7 @@ HEALTH_LAST = "/var/lib/garageai-health/last.json"
 BACKUP_DIR = "/var/backups/garageai"
 LITELLM_DIR = "/opt/garageai/litellm"
 CERT_HOSTS = ["api.garageai.eu", "llm.garageai.eu", "netbird.garageai.eu", "ops.garageai.eu", "app.garageai.eu", "www.garageai.eu"]
-TIMERS = ["garageai-health.timer", "garageai-backup.timer", "garageai-ops.timer", "garageai-guard.timer", "garageai-ops-live.service", "garageai-hub.service", "garageai-ops-api.service"]
+TIMERS = ["garageai-health.timer", "garageai-backup.timer", "garageai-chain-test.timer", "garageai-ops.timer", "garageai-guard.timer", "garageai-ops-live.service", "garageai-hub.service", "garageai-ops-api.service"]
 GUARD_STATUS = "/var/lib/garageai-guard/status.json"
 EXPECTED_POLICIES = {"gateway-to-garages"}
 UA = "garageai-ops/1 (+https://garageai.eu)"
@@ -64,6 +64,8 @@ DEPLOYED = {
     "/usr/local/bin/garageai-ops-collect": "infra/gateway/ops/garageai-ops-collect.py",
     "/usr/local/bin/garageai-ops-live": "infra/gateway/ops/garageai-ops-live.py",
     "/usr/local/bin/garageai-ops-api": "infra/gateway/ops/garageai-ops-api.py",
+    "/usr/local/bin/garageai-chain-test": "infra/gateway/ops/garageai-chain-test.py",
+    "/etc/systemd/system/garageai-chain-test.timer": "infra/gateway/ops/garageai-chain-test.timer",
     "/etc/systemd/system/garageai-ops-api.service": "infra/gateway/ops/garageai-ops-api.service",
     "/usr/local/sbin/garageai-hub": "infra/gateway/hub/garageai-hub.py",
     "/etc/systemd/system/garageai-hub.service": "infra/gateway/hub/garageai-hub.service",
@@ -176,6 +178,20 @@ def timers():
         show = dict(line.split("=", 1) for line in sh(["systemctl", "show", svc, "-p", "ExecMainStatus", "-p", "ExecMainExitTimestamp"]).splitlines() if "=" in line)
         rows.append({"unit": unit, "active": active, "last_exit": show.get("ExecMainStatus"), "last_run": show.get("ExecMainExitTimestamp") or None})
     return rows
+
+
+def chain_test_info():
+    """The nightly managed-models chain test's last result (garageai-chain-test writes chain-test.json)."""
+    try:
+        d = json.load(open(os.path.join(OUT_DIR, "chain-test.json")))
+    except (OSError, ValueError):
+        return {"last": None}
+    last = d.get("last") or {}
+    try:
+        age = round((time.time() - datetime.fromisoformat(last["at"]).timestamp()) / 3600, 1)
+    except (KeyError, ValueError, TypeError):
+        age = None
+    return {"last": last, "age_hours": age, "runs": d.get("runs"), "passed": d.get("passed"), "history": d.get("history", [])[-14:]}
 
 
 def backup_info():
@@ -821,6 +837,12 @@ def alerts(d):
         add("critical", "No backup found", "server")
     elif b["age_hours"] > 26:
         add("warning", f"Newest backup is {b['age_hours']} h old", "server")
+    ct = d.get("chain_test") or {}
+    if ct.get("last") and not ct["last"].get("ok") and not ct["last"].get("skipped"):
+        failed = [st["name"] for st in ct["last"].get("steps", []) if not st.get("ok")]
+        add("warning", f"Managed-models chain test failed last night at: {', '.join(failed) or ct['last'].get('error', '?')}", "supply", garage=ct["last"].get("garage"))
+    elif ct.get("age_hours") is not None and ct["age_hours"] > 30:
+        add("warning", f"Managed-models chain test has not run for {ct['age_hours']} h", "server")
     elif b.get("offsite") == "failed":   # not configured is a decision (Hetzner snapshots until there are more customers), failed is not
         add("warning", "The newest backup did not reach the off-site bucket", "server")
     for c in d["certs"]:
@@ -1502,6 +1524,7 @@ def main():
         "host": {**host_info(), "updates_pending": pending_updates(state)},
         "timers": timers(),
         "backup": backup_info(),
+        "chain_test": chain_test_info(),
         "certs": [cert_days(h) for h in CERT_HOSTS],
         "containers": containers(),
         "mesh": mesh(env),
