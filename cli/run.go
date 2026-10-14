@@ -91,10 +91,15 @@ func heartbeat(cfg *service.Config, client *portal.Client) int {
 	maybeSelfUpdate(cfg, res)
 	// Managed models: fetch or remove what the portal wants. keepalive re-sends the heartbeat
 	// during a long pull, so the garage does not look dead meanwhile.
-	reconcileModels(cfg, res, models, rt.New("127.0.0.1", cfg.Port, cfg.RuntimeAPIKey), func() {
+	beat := func() {
 		_, _ = client.Heartbeat(context.Background(), portal.Registration{Name: cfg.Name, Port: cfg.Port, Runtime: cfg.Runtime,
 			Models: models, Contexts: nonEmpty(contexts), RuntimeAPIKey: cfg.RuntimeAPIKey, Agent: agent(cfg), MachineID: machine.ID()})
-	})
+	}
+	if reconcileModels(cfg, res, models, rt.New("127.0.0.1", cfg.Port, cfg.RuntimeAPIKey), beat) {
+		// The report above went out before the wish list was acted on: send the outcome now, so the
+		// portal does not sit on a stale verdict for five minutes (the chain test's 4th run).
+		beat()
+	}
 	return 0
 }
 

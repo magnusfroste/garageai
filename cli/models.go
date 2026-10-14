@@ -29,9 +29,9 @@ var pullTimeout = 3 * time.Hour
 // minFreeGB is what a pull must leave on the disk the models live on.
 const minFreeGB = 10
 
-func reconcileModels(cfg *service.Config, res *portal.HeartbeatResult, served []string, client puller, keepalive func()) {
+func reconcileModels(cfg *service.Config, res *portal.HeartbeatResult, served []string, client puller, keepalive func()) (changed bool) {
 	if len(res.WantedModels) == 0 {
-		return
+		return false
 	}
 	states := service.LoadModelsState()
 	have := map[string]bool{}
@@ -44,7 +44,7 @@ func reconcileModels(cfg *service.Config, res *portal.HeartbeatResult, served []
 				Error: "Bridge can fetch models for Ollama only (this garage runs " + cfg.Runtime + ")"}
 		}
 		service.SaveModelsState(states)
-		return
+		return true
 	}
 	pulled := false
 	for _, w := range res.WantedModels {
@@ -53,9 +53,15 @@ func reconcileModels(cfg *service.Config, res *portal.HeartbeatResult, served []
 		switch w.Action {
 		case "pull":
 			if why := untrustedModel(w.Model); why != "" {
-				st.Status, st.Error, st.At = "refused", why, service.Now()
-				states[w.Model] = st
+				if st.Status != "refused" || st.Error != why {
+					st.Status, st.Error, st.At, changed = "refused", why, service.Now(), true
+					states[w.Model] = st
+				}
 				continue
+			}
+			if st.Status == "refused" {
+				// An earlier verdict that no longer applies (a Bridge fix, a renamed model): start afresh.
+				st.Status, st.Error = "", ""
 			}
 			if have[w.Model] {
 				if st.Status != "ready" {
@@ -67,7 +73,7 @@ func reconcileModels(cfg *service.Config, res *portal.HeartbeatResult, served []
 			if pulled || (st.Status == "failed" && recent(st.At, time.Hour)) {
 				continue // one pull per run; a failed one is retried after an hour, not every 5 minutes
 			}
-			pulled = true
+			pulled, changed = true, true
 			fmt.Printf("%s fetching %s (wanted by %s)\n", service.Now(), w.Model, orUnknown(w.By))
 			st.Status, st.Error, st.At, st.Pulled = "downloading", "", service.Now(), true
 			states[w.Model] = st
@@ -89,16 +95,19 @@ func reconcileModels(cfg *service.Config, res *portal.HeartbeatResult, served []
 		case "remove":
 			if !have[w.Model] {
 				if st.Status != "removed" {
-					st.Status, st.At = "removed", service.Now()
+					st.Status, st.At, changed = "removed", service.Now(), true
 					states[w.Model] = st
 				}
 				continue
 			}
 			if !st.Pulled {
-				st.Status, st.Error, st.At = "refused", "added by the operator, not by GarageAI: remove it yourself (ollama rm "+w.Model+")", service.Now()
-				states[w.Model] = st
+				if st.Status != "refused" {
+					st.Status, st.Error, st.At, changed = "refused", "added by the operator, not by GarageAI: remove it yourself (ollama rm "+w.Model+")", service.Now(), true
+					states[w.Model] = st
+				}
 				continue
 			}
+			changed = true
 			if err := client.OllamaDelete(w.Model); err != nil {
 				st.Status, st.Error, st.At = "failed", err.Error(), service.Now()
 			} else {
@@ -109,6 +118,7 @@ func reconcileModels(cfg *service.Config, res *portal.HeartbeatResult, served []
 		}
 	}
 	service.SaveModelsState(states)
+	return changed
 }
 
 // pullWithProgress runs one pull with the timeout, checks the disk once the size is known, and
