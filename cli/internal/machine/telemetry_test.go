@@ -67,11 +67,16 @@ func TestLinuxPower(t *testing.T) {
 }
 
 func TestParseNvidia(t *testing.T) {
-	u, used, total, ok := parseNvidia("37, 12034, 24576\n")
-	if !ok || u != 37 || used != 12034 || total != 24576 {
-		t.Fatalf("got %d %d %d %v", u, used, total, ok)
+	g, ok := parseNvidia("37, 12034, 24576, 61, 142.50\n")
+	if !ok || g.util != 37 || g.usedMB != 12034 || g.totalMB != 24576 || g.tempC != 61 || g.powerW != 142 || g.unified {
+		t.Fatalf("got %+v %v", g, ok)
 	}
-	if _, _, _, ok := parseNvidia(""); ok {
+	// DGX Spark / GB10: unified memory, nvidia-smi answers [N/A] for memory.
+	g, ok = parseNvidia("0, [N/A], [N/A], 47, 13.58\n")
+	if !ok || !g.unified || g.util != 0 || g.tempC != 47 || g.powerW != 13 || g.usedMB != 0 {
+		t.Fatalf("spark: %+v %v", g, ok)
+	}
+	if _, ok := parseNvidia(""); ok {
 		t.Fatal("no nvidia-smi must be !ok")
 	}
 }

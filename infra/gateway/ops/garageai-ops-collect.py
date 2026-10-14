@@ -363,7 +363,10 @@ def agent_report(t):
             "problems": [p for p in (a.get("problems") or []) if isinstance(p, dict)][:20],
             # Bridge v0.6.3: the machine right now, and the garage's own timing of the last 5 minutes' requests.
             "machine": a.get("machine") if isinstance(a.get("machine"), dict) else None,
-            "requests": a.get("requests") if isinstance(a.get("requests"), dict) else None}
+            "requests": a.get("requests") if isinstance(a.get("requests"), dict) else None,
+            # Bridge v0.6.5: a planned absence (garageai pause, or a runtime manager's state file) and the manager's nodes.
+            "state": a.get("state") if isinstance(a.get("state"), dict) else None,
+            "nodes": [n for n in (a.get("nodes") or []) if isinstance(n, dict)][:8]}
 
 
 def garages(env, state, targets):
@@ -890,7 +893,12 @@ def alerts(d):
             continue
         if not g["runtime_ok"] or g["mesh"] is False:
             machine = ((g.get("agent") or {}).get("machine") or {})
-            if g["mesh"] is False and machine.get("power") == "battery" and ((g.get("agent") or {}).get("age_min") or 999) < 60:
+            state = ((g.get("agent") or {}).get("state") or {})
+            if state.get("kind") in ("maintenance", "starting", "away") and ((g.get("agent") or {}).get("age_min") or 999) < 60:
+                # A planned absence: the garage said so itself (garageai pause, or vLLM Panel's state file).
+                add("info", f"{g['garage']} is {state['kind']}" + (f" ({state.get('reason')})" if state.get("reason") else "")
+                    + (f" until ~{str(state.get('until'))[11:16]} UTC" if state.get("until") else "") + f", by {state.get('source') or 'Bridge'}: no alert", "supply", garage=g["garage"])
+            elif g["mesh"] is False and machine.get("power") == "battery" and ((g.get("agent") or {}).get("age_min") or 999) < 60:
                 # A laptop that was unplugged and closed: away, not down (docs/bridge.md, phase 4).
                 add("info", f"{g['garage']} is away: a laptop on battery (last report {machine.get('battery_pct', '?')} %); a garage again when plugged in", "supply", garage=g["garage"])
             else:

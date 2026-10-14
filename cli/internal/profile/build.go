@@ -2,6 +2,7 @@ package profile
 
 import (
 	"fmt"
+	gmachine "github.com/magnusfroste/garageai/cli/internal/machine"
 	"os"
 	"regexp"
 	"runtime"
@@ -198,6 +199,9 @@ func problems(p Profile) []Problem {
 	}
 	if st := service.LoadUpdateState(); st.LastError != "" {
 		add("warning", "update_failed", "Bridge could not update itself: "+st.LastError, "Run: garageai update. If it fails the same way, check the machine's internet access to github.com")
+	}
+	if ps, _ := gmachine.ReadPanelState(time.Now()); ps != nil && ps.State.Kind == "failed" {
+		add("error", "runtime_manager_failed", ps.Panel+" reports a failed runtime: "+ps.State.Reason, "Open the runtime manager (vLLM Panel) for the cause; the garage is down for buyers until the model serves again")
 	}
 	for _, m := range service.ModelStates(service.LoadModelsState()) {
 		if m.Status == "failed" {

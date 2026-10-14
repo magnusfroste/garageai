@@ -60,6 +60,21 @@ type Agent struct {
 	// garage's own timing of the requests that came through the tunnel in the last 5 minutes.
 	Machine  *machine.Telemetry `json:"machine,omitempty"`
 	Requests *tunnel.Summary    `json:"requests,omitempty"`
+	// Lifecycle: a planned absence (garageai pause, or a runtime manager's state file), and the
+	// nodes of a multi-node runtime as its manager sees them. Absent = serving.
+	State *AgentState    `json:"state,omitempty"`
+	Nodes []machine.Node `json:"nodes,omitempty"`
+}
+
+// AgentState is why the garage should not get traffic right now: maintenance (a redeploy, a
+// stop), starting (the runtime is loading), away (stopped on purpose). The portal drains the
+// garage and puts it back when the state clears; Ops does not page.
+type AgentState struct {
+	Kind   string     `json:"kind"` // maintenance, starting, away
+	Reason string     `json:"reason,omitempty"`
+	Since  *time.Time `json:"since,omitempty"`
+	Until  *time.Time `json:"until,omitempty"`
+	Source string     `json:"source,omitempty"` // "garageai pause" or the manager's name
 }
 
 // AgentModel is Bridge's report on one managed model.
