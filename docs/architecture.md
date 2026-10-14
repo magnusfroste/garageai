@@ -84,7 +84,7 @@ pool price set by GarageAI would be administration that grows with the catalogue
   skips duplicate rows silently: 46 % of requests to Ollama garages left no spend-log row (payouts,
   Ops Live and the quality figures read those rows; budgets read the daily tables, which were
   complete). `infra/gateway/litellm/sql/spendlogs_unique_request_id.sql` rewrites the id on
-  insert. Found by a pool load test (60 requests, 35 rows). Reported upstream.
+  insert. Found by a pool load test (60 requests, 35 rows). Reported upstream: [BerriAI/litellm#46403](https://github.com/BerriAI/litellm/issues/46403) (key spend logs on `litellm_call_id`) and [ollama/ollama#18996](https://github.com/ollama/ollama/issues/18996) (unique ids); remove the trigger when both ship and the gateway runs those versions.
 
 ## Backups
 
