@@ -97,9 +97,11 @@ def managed(status, model):
 
 
 def garage_model(status, model):
+    """The portal's garage_models row for the model: {installed, offered, status} (the status op
+    nests it under "garage_model"; runs 7 and 8 read the outer entry and never saw "offered")."""
     for m in status.get("models", status.get("garage_models", []) or []):
         if m.get("model") == model:
-            return m
+            return m.get("garage_model") or {}
     return {}
 
 
@@ -156,7 +158,9 @@ def run(env):
     steps = []
     log(f"chain test on {GARAGE} with {MODEL}")
     st = portal.status()
-    if managed(st, MODEL) or garage_model(st, MODEL).get("installed"):
+    # A leftover is a model still on the garage (installed) or a request still in flight; a
+    # finished history row (removed, failed, refused) is not one (run 6 skipped itself on one).
+    if managed(st, MODEL).get("status") in ("wanted", "downloading", "ready") or garage_model(st, MODEL).get("installed"):
         # Left over from a failed night: clean up first, then test from a clean state next night.
         log(f"  {MODEL} is already on {GARAGE} (left over?): asking for removal, test skipped")
         portal.want(MODEL, "remove")
@@ -175,7 +179,12 @@ def run(env):
         portal.cancel(MODEL)
         return {"ok": False, "steps": steps, "error": "pull"}
 
-    steps.append(wait_for("offered", lambda: (lambda g: g.get("offered") and g.get("status") == "live" and "offered, live")(garage_model(portal.status(), MODEL)), LIMITS["offered"]))
+    # Offered = the portal decided to sell it (any test status; "routed" below checks the gateway).
+    # The gateway having a deployment is the portal's decision carried out, so it counts as offered too.
+    steps.append(wait_for("offered", lambda: (lambda g: g.get("offered") and f"offered, status {g.get('status')}")(garage_model(portal.status(), MODEL))
+                          or (deployments(env, MODEL) and "offered (the gateway has its deployment)"), LIMITS["offered"]))
+    if not steps[-1]["ok"]:
+        steps[-1]["detail"] += f" (garage_models row: {garage_model(portal.status(), MODEL) or 'none'})"
     steps.append(wait_for("routed", lambda: (lambda d: d and f"{len(d)} deployment(s): " + ", ".join(n for n, _ in d))(deployments(env, MODEL)), LIMITS["routed"]))
     if steps[-1]["ok"]:
         name = next((n for n, _ in deployments(env, MODEL) if n.startswith("garage/")), None) or deployments(env, MODEL)[0][0]
