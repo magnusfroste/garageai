@@ -81,6 +81,14 @@ class Portal:
         return body if code == 200 else {}
 
 
+def fresh(row):
+    """A failed/refused report counts only when Bridge reported it after this request was made:
+    Bridge reports its state before it acts on the wish list, so the first heartbeat after a new
+    request can still carry a stale verdict from an earlier one (2026-10-14, run 4)."""
+    rep, req = row.get("reported_at"), row.get("requested_at")
+    return bool(rep and req and str(rep) > str(req))
+
+
 def managed(status, model):
     for m in status.get("managed", status.get("managed_models", []) or []):
         if m.get("model") == model:
@@ -160,7 +168,7 @@ def run(env):
         return {"ok": False, "steps": steps, "error": f"want: HTTP {code} {body.get('error', '')}"}
 
     steps.append(wait_for("pull", lambda: (lambda m: m.get("status") == "ready" and f"ready, {m.get('total_mb') or '?'} MB")(managed(portal.status(), MODEL)), LIMITS["pull"],
-                          give_up=lambda: (lambda m: m.get("status") in ("failed", "refused") and f"{m.get('status')}: {m.get('error') or '-'}")(managed(portal.status(), MODEL))))
+                          give_up=lambda: (lambda m: m.get("status") in ("failed", "refused") and fresh(m) and f"{m.get('status')}: {m.get('error') or '-'}")(managed(portal.status(), MODEL))))
     if not steps[-1]["ok"]:
         m = managed(portal.status(), MODEL)
         steps[-1]["detail"] += f" (status {m.get('status')}: {m.get('error') or '-'})"
