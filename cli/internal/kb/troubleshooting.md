@@ -102,7 +102,8 @@ macOS and `journalctl -u garageai-tunnel` on Linux.
   retries. Learned: garage-m1 and garage-m4 both hit it on 2026-10-12 when updating to v0.5.0 by
   running the install command.
 - **The runtime on localhost is correct** for a tunnel garage: doctor does not report
-  `localhost_only` for the port Bridge forwards.
+  `localhost_only` at all on a tunnel garage (since v0.6.2; before, Ollama's internal runner on a
+  random localhost port was flagged as "llamacpp only listens on 127.0.0.1": ignore that).
 
 ## The runtime
 
@@ -147,7 +148,10 @@ the registered port, or run the connect command again with `--port`.
 The runtime wants an API key (vLLM and SGLang usually run with one, since they listen on the
 network by default; Ollama and LM Studio usually have none). Since v0.4.4 connect finds the key
 itself where the runtime was started (its command line `--api-key`, its environment, or the Docker
-container's command and environment) and otherwise asks for it with hidden input. Never paste it in
+container's command and environment) and otherwise asks for it with hidden input. `garageai doctor`
+run as a normal user cannot read the key (Bridge's configuration is root-only), so it reports
+`needs_api_key` and 0 models: run `sudo garageai doctor` to probe with the key; the heartbeat, which
+runs as root, uses it already. Never paste it in
 a chat or a ticket. With the Bridge tunnel the runtime does not need to listen on the network at
 all: start vLLM with `--host 127.0.0.1` and the key becomes a second lock instead of the only one.
 
