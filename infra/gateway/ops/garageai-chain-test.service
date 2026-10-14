@@ -1,0 +1,7 @@
+[Unit]
+Description=GarageAI Operations Center: managed-models chain test (end to end, on one of our garages)
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/garageai-chain-test

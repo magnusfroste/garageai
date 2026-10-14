@@ -385,6 +385,7 @@
         <div class="card"><h2>Notifications</h2><div id="notify"></div></div>
         <div class="grid">
           <div class="card"><h2>Timers and backup</h2><div id="timers"></div></div>
+          <div class="card"><h2>Managed-models chain, nightly</h2><div id="chain"></div></div>
           <div class="card"><h2>Certificates</h2><div id="certs"></div></div>
         </div>
       </section>
@@ -751,6 +752,10 @@ function renderPages(d) {
   const b = d.backup;
   $("timers").innerHTML = table([["Timer", t => `${dot(t.active === "active" ? "ok" : "critical")}${esc(t.unit)}`], ["Last exit", t => t.last_exit ?? "—", "num"], ["Last run", t => esc(t.last_run)]], d.timers)
     + `<div class="kv" style="margin-top:12px"><div>Newest backup</div><div>${b.newest ? `${esc(b.newest)}<div class="small">${b.age_hours} h old · ${b.size_mb} MB · ${b.count} kept</div>` : '<span class="critical">none</span>'}</div></div>`;
+  const ct = d.chain_test || {};
+  $("chain").innerHTML = !ct.last ? '<div class="small">No run yet (garageai-chain-test.timer, 04:00 UTC: a wanted model on one of our garages → Bridge fetches → offered → routed → answers → removed).</div>'
+    : `<div class="kv"><div>Last run</div><div>${ct.last.ok ? pill("ok", "passed") : ct.last.skipped ? pill("warning", "skipped") : pill("critical", "failed")} <span class="small">${esc(ct.last.at)} · ${esc(ct.last.garage)} · ${esc(ct.last.model)} · ${ct.last.total_seconds} s · ${ct.passed ?? 0} of ${ct.runs ?? 0} nights passed</span>${ct.last.skipped ? `<div class="small">${esc(ct.last.skipped)}</div>` : ""}${ct.last.error ? `<div class="small critical">${esc(ct.last.error)}</div>` : ""}</div></div>`
+      + table([["Step", s => `${dot(s.ok ? "ok" : "critical")}${esc(s.name)}`], ["Seconds", s => s.seconds, "num"], ["Detail", s => esc(s.detail)]], ct.last.steps || []);
   $("certs").innerHTML = table([["Host", c => esc(c.host)], ["Days left", c => c.days_left == null ? `<span class="warning">${esc(c.error)}</span>` : `<span class="${c.days_left < 14 ? "warning" : ""}">${c.days_left}</span>`, "num"], ["Expires", c => esc(c.expires)]], d.certs);
 
   $("versions").innerHTML = table([
