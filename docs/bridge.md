@@ -269,6 +269,14 @@ program, an outbound tunnel, a local forward.
      stopped → away; failed → a doctor problem with the panel's reason). The tunnel service polls
      the file every 10 s and runs the heartbeat at once on a change; the portal takes the garage
      out of routing on that heartbeat (admin-pause path), in-flight requests finish (the drain).
+     **Measured 2026-10-15 (dgx-city, vLLM Panel 1.28.2, Bridge v0.6.5, a real MiMo redeploy):**
+     maintenance written 11:30:01 → Bridge saw it 11:30:03 → heartbeat 11:30:11 → both
+     deployments gone 11:30:14 (13 s, 20 s before the container stopped); starting 11:31:02;
+     serving 11:42:24 → heartbeat 11:42:32 → deployments back 11:43:06 (42 s, of which ~30 s an
+     acceptance test the portal will now skip for a model that was live before). No alert, no
+     request affected. The first test the night before ran on the slow path (the tunnel service
+     still had the old binary, fixed by v0.6.6): out after 84 s via the health check, back after
+     3 min via the 5-minute heartbeat.
   3. *Engine facts* as a compact `agent.engine` from the runtime's /metrics when it has one:
      prefix-cache hit rate, measured prefill tok/s (the practical max prompt), inter-token
      latency, preemptions, finished-reason counts (length/abort/error), max_num_seqs and KV
