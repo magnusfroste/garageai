@@ -925,6 +925,8 @@ def alerts(d):
                     continue
                 if pr.get("code") == "localhost_only" and g["runtime_ok"]:
                     continue
+                if ((g.get("agent") or {}).get("state") or {}).get("kind") in ("maintenance", "starting", "away") and pr.get("code") in ("no_runtime", "port_mismatch", "runtime_in_terminal", "small_context"):
+                    continue  # the runtime is away on purpose: doctor's "no runtime answers" is expected, not news
                 # Bridge's errors are warnings here (the probes above say whether buyers are hurt);
                 # its warnings are info; its info is shown on the Supply page only.
                 level = {"error": "warning", "warning": "info"}.get(pr.get("severity"))
