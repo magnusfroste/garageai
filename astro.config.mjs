@@ -11,7 +11,11 @@ export default defineConfig({
     react(),
     mdx(),
     // /partners is unlisted: reachable by link, not in the sitemap.
-    sitemap({ filter: (page) => !page.includes('/partners') }),
+    // lastmod is the build date: the site is rebuilt on every content change.
+    sitemap({
+      filter: (page) => !page.includes('/partners'),
+      lastmod: new Date(),
+    }),
   ],
   vite: {
     ssr: {

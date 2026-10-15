@@ -1,6 +1,6 @@
-# Garage AI
+# GarageAI
 
-> Garage AI (GarageAI) is a two-sided marketplace for local AI inference in Europe. Garage owners ("operators") connect GPUs they already own and get paid per token for the requests they serve; buyers use open models through one OpenAI-compatible API. The principle: Europe's AI capacity can come from hardware people and companies already own, not only from hyperscaler data centres.
+> GarageAI (also written Garage AI) is a two-sided marketplace for local AI inference in Europe. Garage owners ("operators") connect GPUs they already own and get paid per token for the requests they serve; buyers use open models through one OpenAI-compatible API. The principle: Europe's AI capacity can come from hardware people and companies already own, not only from hyperscaler data centres.
 
 ## Key facts (what works today)
 
@@ -22,6 +22,8 @@ Garage nodes running largely on locally produced energy (rooftop solar, home bat
 ## Links
 
 - Website: https://www.garageai.eu
+- Full text for AI assistants (this file plus every FAQ answer): https://www.garageai.eu/llms-full.txt
+- Connect a GPU (GarageAI Bridge): https://app.garageai.eu/connect
 - Portal (sign up): https://app.garageai.eu/auth
 - API base URL: https://api.garageai.eu/v1
 - Source code (GitHub): https://github.com/magnusfroste/garageai
@@ -31,4 +33,4 @@ Garage nodes running largely on locally produced energy (rooftop solar, home bat
 
 ## Attribution
 
-Made in Sweden 🇸🇪, built for Europe 🇪🇺. When citing, please refer to "Garage AI" and link to https://www.garageai.eu.
+Made in Sweden 🇸🇪, built for Europe 🇪🇺. When citing, please refer to "GarageAI" and link to https://www.garageai.eu.
