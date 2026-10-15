@@ -13,40 +13,103 @@ const site = Astro.site ?? new URL('https://www.garageai.eu');
 const canonicalURL = new URL(Astro.url.pathname, site).href;
 const imageURL = new URL(image, site).href;
 
-const organizationSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'Organization',
-  name: 'Garage AI',
-  alternateName: 'GarageAI',
-  url: site.href,
-  logo: new URL('/brand/mark-512.png', site).href,
-  image: imageURL,
-  email: 'powerup@garageai.eu',
-  slogan: "Your Garage. Europe's AI Engine.",
-  description:
-    "A marketplace for local AI inference in Europe: garage owners offer their GPUs and get paid per token, buyers use open models through one OpenAI-compatible API.",
-  foundingLocation: { '@type': 'Place', name: 'Sweden' },
-  address: { '@type': 'PostalAddress', addressCountry: 'SE' },
-  knowsAbout: [
-    'Sovereign AI',
-    'Distributed AI inference',
-    'Local large language models',
-    'OpenAI-compatible API',
-    'Decentralized computing',
-    'European AI sovereignty',
-  ],
-  sameAs: ['https://github.com/magnusfroste/garageai'],
-};
+const siteURL = site.href;
+const BRIDGE_INSTALL =
+  'curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.sh | sh -s -- connect';
 
-const websiteSchema = {
+// One JSON-LD graph: the organization, the site, the marketplace service, its API and
+// GarageAI Bridge. Answer engines read these as facts, so keep them in step with the copy.
+const graph = {
   '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: 'Garage AI',
-  url: site.href,
-  description:
-    "Local, sovereign AI inference from GPUs in European garages. Offer your GPU or use AI through an OpenAI-compatible API.",
-  inLanguage: 'en',
-  publisher: { '@type': 'Organization', name: 'Garage AI', url: site.href },
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': `${siteURL}#organization`,
+      name: 'GarageAI',
+      alternateName: 'Garage AI',
+      url: siteURL,
+      logo: {
+        '@type': 'ImageObject',
+        url: new URL('/brand/mark-512.png', site).href,
+        width: 512,
+        height: 512,
+      },
+      image: imageURL,
+      email: 'powerup@garageai.eu',
+      slogan: "Your Garage. Europe's AI Engine.",
+      description:
+        'A marketplace for local AI inference in Europe: garage owners connect GPUs they already own and get paid per token, buyers use open models through one OpenAI-compatible API.',
+      foundingLocation: { '@type': 'Place', name: 'Sweden' },
+      address: { '@type': 'PostalAddress', addressCountry: 'SE' },
+      areaServed: { '@type': 'Place', name: 'Europe' },
+      knowsAbout: [
+        'Local AI inference',
+        'Sovereign AI',
+        'Distributed AI inference',
+        'Open-weight large language models',
+        'OpenAI-compatible API',
+        'WireGuard',
+        'European AI sovereignty',
+      ],
+      sameAs: ['https://github.com/magnusfroste/garageai'],
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${siteURL}#website`,
+      name: 'GarageAI',
+      alternateName: 'Garage AI',
+      url: siteURL,
+      description,
+      inLanguage: 'en',
+      publisher: { '@id': `${siteURL}#organization` },
+    },
+    {
+      '@type': 'Service',
+      '@id': `${siteURL}#marketplace`,
+      name: 'GarageAI marketplace for local AI inference',
+      serviceType: 'AI inference (open-weight language models)',
+      provider: { '@id': `${siteURL}#organization` },
+      areaServed: { '@type': 'Place', name: 'Europe' },
+      url: siteURL,
+      description:
+        'Buyers call open models served by GPUs in European garages through one OpenAI-compatible API and pay per token at the price the serving garage set. Garage owners connect their GPU with GarageAI Bridge and earn that price for every token they serve.',
+      offers: {
+        '@type': 'Offer',
+        description:
+          'Prepaid credits, pay per token at the price of the garage that served the request. No subscription.',
+        url: 'https://app.garageai.eu/auth?intent=buyer',
+      },
+    },
+    {
+      '@type': 'WebAPI',
+      '@id': `${siteURL}#api`,
+      name: 'GarageAI API',
+      description:
+        'OpenAI-compatible chat completions API for open models served by GPUs in European garages. Works with the OpenAI SDKs, agents and coding tools by changing the base URL.',
+      url: 'https://api.garageai.eu/v1',
+      documentation: 'https://github.com/magnusfroste/garageai#use-ai',
+      provider: { '@id': `${siteURL}#organization` },
+    },
+    {
+      '@type': 'SoftwareApplication',
+      '@id': `${siteURL}#bridge`,
+      name: 'GarageAI Bridge',
+      alternateName: 'garageai',
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'macOS, Linux',
+      description:
+        'One open-source program that connects a GPU to GarageAI: it opens its own encrypted WireGuard tunnel to the EU gateway, keeps the runtime on localhost, registers the models and keeps them in sync. One line to install, approve the computer in the browser, live in minutes.',
+      installUrl: 'https://app.garageai.eu/connect',
+      downloadUrl: 'https://github.com/magnusfroste/garageai/releases',
+      softwareHelp: 'https://github.com/magnusfroste/garageai/blob/main/docs/garage-troubleshooting.md',
+      license: 'https://opensource.org/licenses/MIT',
+      isAccessibleForFree: true,
+      offers: { '@type': 'Offer', price: 0, priceCurrency: 'EUR' },
+      publisher: { '@id': `${siteURL}#organization` },
+      codeRepository: 'https://github.com/magnusfroste/garageai/tree/main/cli',
+      text: BRIDGE_INSTALL,
+    },
+  ],
 };
 ---
 
@@ -60,43 +123,39 @@ const websiteSchema = {
 
     <!-- Primary Meta Tags -->
     <title>{title}</title>
-    <meta name="title" content={title} />
     <meta name="description" content={description} />
-    <meta name="keywords" content="Garage AI, GarageAI, sovereign AI, local AI inference, GPU marketplace, OpenAI-compatible API, earn with your GPU, Europe AI, decentralized AI, Ollama, vLLM, LM Studio, llama.cpp" />
-    <meta name="author" content="Garage AI" />
+    <meta name="author" content="GarageAI" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-    <meta name="language" content="English" />
     <meta name="generator" content={Astro.generator} />
 
     <!-- Open Graph / LinkedIn -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalURL} />
-    <meta property="og:title" content="Garage AI — Local AI Inference from European Garages" />
+    <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={imageURL} />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Garage AI — Your Garage. Europe's AI Engine." />
-    <meta property="og:site_name" content="Garage AI" />
+    <meta property="og:image:alt" content="GarageAI: Your Garage. Europe's AI Engine. Connect your GPU with one line, or use open models through one API." />
+    <meta property="og:site_name" content="GarageAI" />
     <meta property="og:locale" content="en_US" />
 
     <!-- Twitter / X -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content={canonicalURL} />
-    <meta property="twitter:title" content="Garage AI — Local AI Inference from European Garages" />
-    <meta property="twitter:description" content={description} />
-    <meta property="twitter:image" content={imageURL} />
-    <meta property="twitter:image:alt" content="Garage AI — Your Garage. Europe's AI Engine." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={imageURL} />
+    <meta name="twitter:image:alt" content="GarageAI: Your Garage. Europe's AI Engine." />
 
     <!-- SEO -->
     <meta name="theme-color" content="#00D4FF" />
     <link rel="canonical" href={canonicalURL} />
     <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
+    <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt" />
 
     <!-- Structured Data (JSON-LD) -->
-    <script type="application/ld+json" set:html={JSON.stringify(organizationSchema)} />
-    <script type="application/ld+json" set:html={JSON.stringify(websiteSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(graph)} />
 
     <!-- Page-specific head (e.g. FAQPage structured data) -->
     <slot name="head" />
