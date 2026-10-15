@@ -123,3 +123,24 @@ func TestReconcileRefusesOtherRuntimes(t *testing.T) {
 		t.Fatalf("vLLM garage: pulled %v, state %+v", f.pulled, service.LoadModelsState()["x"])
 	}
 }
+
+func TestReconcileForgetsFinishedEntriesNobodyWants(t *testing.T) {
+	useTempState(t)
+	f := &fakeRuntime{pullErr: errors.New("pull nope:1: pull model manifest: file does not exist")}
+	cfg := &service.Config{Runtime: "ollama"}
+	reconcileModels(cfg, &portal.HeartbeatResult{WantedModels: []portal.WantedModel{{Model: "nope:1", Action: "pull"}}}, nil, f, nil)
+	if service.LoadModelsState()["nope:1"].Status != "failed" {
+		t.Fatal("expected a failed entry while wanted")
+	}
+	reconcileModels(cfg, &portal.HeartbeatResult{}, nil, f, nil) // the portal dropped it (cancelled)
+	if _, still := service.LoadModelsState()["nope:1"]; still {
+		t.Fatal("a finished entry nobody wants must be forgotten")
+	}
+	// A downloading/ready entry is kept even when the list is momentarily empty.
+	f2 := &fakeRuntime{total: 1 << 30}
+	reconcileModels(cfg, &portal.HeartbeatResult{WantedModels: []portal.WantedModel{{Model: "keep:1", Action: "pull"}}}, nil, f2, nil)
+	reconcileModels(cfg, &portal.HeartbeatResult{}, []string{"keep:1"}, f2, nil)
+	if service.LoadModelsState()["keep:1"].Status != "ready" {
+		t.Fatal("a fetched model must keep its state (Bridge pulled it; removal needs it)")
+	}
+}

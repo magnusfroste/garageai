@@ -30,10 +30,26 @@ var pullTimeout = 3 * time.Hour
 const minFreeGB = 10
 
 func reconcileModels(cfg *service.Config, res *portal.HeartbeatResult, served []string, client puller, keepalive func()) (changed bool) {
-	if len(res.WantedModels) == 0 {
-		return false
-	}
 	states := service.LoadModelsState()
+	// Forget finished entries the portal no longer asks about (a cancelled request, the chain
+	// test's non-existent model): otherwise doctor nags about a failed pull nobody wants any more
+	// (garage-m1, 2026-10-15). An entry still in the wish list keeps its state.
+	wanted := map[string]bool{}
+	for _, w := range res.WantedModels {
+		wanted[w.Model] = true
+	}
+	for name, st := range states {
+		if !wanted[name] && (st.Status == "failed" || st.Status == "refused" || st.Status == "removed") {
+			delete(states, name)
+			changed = true
+		}
+	}
+	if changed {
+		service.SaveModelsState(states)
+	}
+	if len(res.WantedModels) == 0 {
+		return changed
+	}
 	have := map[string]bool{}
 	for _, m := range served {
 		have[m] = true
