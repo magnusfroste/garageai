@@ -132,6 +132,8 @@ usage:
   garageai install-service     make the heartbeat service run this version (the installer does this)
   garageai mcp                 Bridge's tools for your own AI agent (MCP over stdio)
   garageai tunnel              this garage's own tunnel to the gateway (the installed service runs this)
+  garageai connect --runtime <kind> --port <n>
+                               change the runtime or port of a linked garage (no new link; --relink to link again)
   garageai models              models the portal asked this garage to fetch or remove, and how that went
   garageai pause [--reason "redeploy"] [--for 15m]
                                planned absence: the portal drains this garage, buyers go elsewhere, no alerts

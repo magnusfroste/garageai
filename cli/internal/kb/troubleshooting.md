@@ -265,6 +265,10 @@ version it had.
   (`echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc`) or run the install
   command again: it now installs to `/usr/local/bin` with sudo. The heartbeat and the tunnel were
   never affected; they run the root-only copy.
+- **`garageai connect` wants the browser although the garage is linked.** Before v0.6.7 every
+  connect without a token started the link flow, even to change the runtime or the port. Since
+  v0.6.7 a linked machine keeps its link ("Already linked as garage-m1"); `--relink` links again
+  on purpose (a new account, a renamed garage).
 - **A register token left in the shell.** `export GARAGEAI_REGISTER_TOKEN=…` from an old connect
   command stays in that terminal. Bridge then skips the browser link and uses the old token. Since
   v0.4.1 it at least uses GarageAI's own portal address with it; to link afresh, open a new
