@@ -42,6 +42,7 @@ features:
     color: "var(--color-accent)"
 nextTitle: "Coming to Bridge"
 next:
+  - "No runtime yet? Bridge installs one for you (Xyntetik Runner, made in Sweden)"
   - "Pause automatically when you game or render"
   - "GarageAI Smart: models in demand that fit your machine, downloaded for you (Ollama)"
   - "Windows"
