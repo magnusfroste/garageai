@@ -50,7 +50,7 @@ jobs:
           $env:GARAGEAI_WINDOWS_SERVICE_TEST = "1"
           $env:GARAGEAI_TEST_BINARY = "$PWD\garageai.exe"
           go test ./internal/service -run WindowsServicesRoundTrip -v
-          .\garageai.exe doctor; if ($LASTEXITCODE -gt 1) { exit $LASTEXITCODE }
+          .\garageai.exe doctor; if ($LASTEXITCODE -gt 1) { exit $LASTEXITCODE }; exit 0  # 1 = findings (no runtime on the runner), fine
       - name: install.ps1 installs and leaves a working garageai on PATH (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
