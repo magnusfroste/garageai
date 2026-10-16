@@ -86,6 +86,19 @@ func (c *Config) Public() Public {
 	return Public{Name: c.Name, Runtime: c.Runtime, Port: c.Port, Transport: c.Transport, MeshIP: c.MeshIP, HubEndpoint: c.HubEndpoint}
 }
 
+// LoadPublic reads the secret-free configuration (what any user may know about this garage).
+func LoadPublic() (*Public, error) {
+	b, err := os.ReadFile(PublicPath())
+	if err != nil {
+		return nil, err
+	}
+	var p Public
+	if err := json.Unmarshal(b, &p); err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
 // WritePublic writes the secret-free configuration world-readable (0644), next to the root-only
 // one. bridge.json is 0600, so doctor run by the operator could not see the transport or the port
 // and reported NetBird problems on a tunnel garage (dgx-city, 2026-10-12). The heartbeat writes it

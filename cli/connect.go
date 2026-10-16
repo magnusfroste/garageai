@@ -45,6 +45,7 @@ type Options struct {
 	MeshWait      time.Duration
 	Tunnel        string // "netbird" (default) or "bridge" (docs/bridge-tunnel.md)
 	NoAutoUpdate  bool   // keep this Bridge version until the operator updates by hand
+	Relink        bool   // link in the browser again although this machine is linked already
 }
 
 func optionsFromEnv() Options {
@@ -98,6 +99,8 @@ func parseConnectArgs(args []string, o *Options) error {
 			o.SetupKey, err = next()
 		case "--management-url":
 			o.ManagementURL, err = next()
+		case "--relink":
+			o.Relink = true
 		case "--runtime":
 			o.Runtime, err = next()
 		case "--port":
@@ -246,8 +249,8 @@ func asRoot(args []string) int {
 		"GARAGEAI_PORT": os.Getenv("GARAGEAI_PORT"), "GARAGEAI_REGISTER_URL": os.Getenv("GARAGEAI_REGISTER_URL"),
 		"GARAGEAI_MANAGEMENT_URL": os.Getenv("GARAGEAI_MANAGEMENT_URL"), "GARAGEAI_REPORT": os.Getenv("GARAGEAI_REPORT"),
 		"GARAGEAI_MESH_WAIT_SECONDS": os.Getenv("GARAGEAI_MESH_WAIT_SECONDS"),
-		"GARAGEAI_TUNNEL":            os.Getenv("GARAGEAI_TUNNEL"),
-		"ARGS":                       strings.Join(args, "\x00"),
+		"GARAGEAI_TUNNEL":            os.Getenv("GARAGEAI_TUNNEL"), "GARAGEAI_REUSE_LINK": os.Getenv("GARAGEAI_REUSE_LINK"),
+		"ARGS": strings.Join(args, "\x00"),
 	})
 	cmd.Stdin = strings.NewReader(string(secrets) + "\n")
 	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
@@ -302,8 +305,22 @@ func connect(args []string) int {
 			return 1
 		}
 	}
+	if os.Geteuid() == 0 && os.Getenv("GARAGEAI_REUSE_LINK") == "1" && o.RegisterToken == "" {
+		// The user half found this machine linked already: the root half takes the saved link.
+		if cfg, err := service.Load(); err == nil && cfg.RegisterToken != "" {
+			o.RegisterURL, o.RegisterToken, o.Name = cfg.RegisterURL, cfg.RegisterToken, cfg.Name
+			if o.Tunnel == "" && cfg.Transport != "" {
+				o.Tunnel = cfg.Transport
+			}
+		}
+	}
 	if o.RegisterToken == "" && os.Getenv("GARAGEAI_NO_LINK") == "" {
-		if code := link(&o, runtimeGiven(args)); code != 0 {
+		if name := linkedAs(o); name != "" {
+			// Changing the runtime or the port of a linked garage needs no new link (and no browser):
+			// garage-m1 was asked to link again twice on 2026-10-16 for a runtime test.
+			fmt.Printf("  Already linked as %s: keeping the link (garageai connect --relink to link again).\n\n", sgr("1", name))
+			os.Setenv("GARAGEAI_REUSE_LINK", "1")
+		} else if code := link(&o, runtimeGiven(args)); code != 0 {
 			return code
 		}
 	}
@@ -797,4 +814,17 @@ func sortedKeys(m map[string]int) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// linkedAs is the garage this machine is linked as, when it is and the operator did not ask to
+// link again; "" otherwise. Reads the secret-free config, which any user may.
+func linkedAs(o Options) string {
+	if o.Relink || o.RegisterToken != "" || o.SetupKey != "" {
+		return ""
+	}
+	p, err := service.LoadPublic()
+	if err != nil || p.Name == "" {
+		return ""
+	}
+	return p.Name
 }
