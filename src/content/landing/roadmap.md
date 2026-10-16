@@ -30,6 +30,7 @@ phases:
     items:
       - "Operator earnings dashboard and wallet"
       - "Payouts to operators"
+      - "No runtime needed: Bridge installs one for you (Xyntetik Runner)"
       - "Bridge pauses automatically when you game or render"
       - "GarageAI Smart: models in demand that fit your machine, downloaded by Bridge"
       - "A TCP fallback for networks that block UDP (until then, the NetBird mesh)"
