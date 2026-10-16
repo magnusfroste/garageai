@@ -216,6 +216,25 @@ The runtime manager (vLLM Panel) reports that the model failed to start or the c
 its reason is in the message. Open the panel for the log. Buyers are not routed here until the
 model serves again.
 
+## Windows
+
+Since Bridge v1.0.0 Windows is a first-class garage: install in PowerShell **as Administrator**
+with `irm https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.ps1 | iex`,
+then `garageai connect` (also as Administrator: the services need it; there is no sudo to ask).
+The heartbeat is a scheduled task ("GarageAI Bridge heartbeat", every 5 minutes as SYSTEM), the
+tunnel a Windows service ("GarageAIBridgeTunnel", starts with Windows, log in
+`%ProgramData%\GarageAI\tunnel.log`). Configuration and keys live in `%ProgramData%\GarageAI`,
+readable by Administrators and SYSTEM only. Self-update works (the old exe steps aside as
+`.old`). Check with `sc query GarageAIBridgeTunnel` and `schtasks /Query /TN "GarageAI Bridge
+heartbeat"`. The runtime (Ollama for Windows, LM Studio, llama.cpp) listens on localhost as on
+a Mac; the tunnel reaches it there.
+
+- **"Open PowerShell as Administrator"**: connect, install-service, pause, resume and update need
+  an elevated PowerShell; a normal one is refused with that line.
+- **Ollama for Windows** runs in the user's session (tray app): when nobody is logged in, the
+  garage has no runtime. Run Ollama as a service or keep a user logged in; Bridge reports
+  `runtime_user_session` as on a Mac.
+
 ## The heartbeat
 
 ### `heartbeat_missing` / `heartbeat_stopped` (warning)

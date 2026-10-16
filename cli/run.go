@@ -29,6 +29,7 @@ func run(args []string) int {
 	client := portal.New(cfg.RegisterURL, cfg.RegisterToken)
 	profile.RuntimeKey, profile.RuntimeKeyPort = cfg.RuntimeAPIKey, cfg.Port // so doctor's probe sees past the key, on that port only
 	_ = service.WritePublic(cfg)                                             // garages set up before v0.4.5 get the secret-free config for doctor
+	os.Remove(service.BinaryPath() + ".old")                                 // Windows: the previous version, stepped aside by the last self-update
 	for {
 		if code := heartbeat(cfg, client); code != 0 && once {
 			return code
@@ -192,7 +193,7 @@ func nonEmpty(m map[string]int) map[string]int {
 // stay; the garage is removed under My garages in the portal.
 func uninstall(args []string) int {
 	yes := len(args) > 0 && (args[0] == "--yes" || args[0] == "-y")
-	if os.Geteuid() != 0 {
+	if !isAdmin() {
 		return asRootSimple("uninstall", args)
 	}
 	fmt.Println("This removes Bridge's heartbeat and configuration. Your runtime, models and NetBird are not touched.")
@@ -221,7 +222,7 @@ func installService() int {
 		fmt.Println("No heartbeat service on this machine: nothing to update. (Connect with the command from the portal.)")
 		return 0
 	}
-	if os.Geteuid() != 0 {
+	if !isAdmin() {
 		return asRootSimple("install-service", nil)
 	}
 	dest, err := serviceBinary()

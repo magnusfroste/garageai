@@ -45,7 +45,7 @@ func stateKey(now time.Time) string {
 
 // pauseCmd: `garageai pause [--reason "..."] [--for 15m]` and `garageai resume`.
 func pauseCmd(args []string) int {
-	if os.Geteuid() != 0 {
+	if !isAdmin() {
 		return asRootSimple("pause", args)
 	}
 	p := service.PauseState{Kind: "maintenance", Since: time.Now().UTC()}
@@ -85,7 +85,7 @@ func pauseCmd(args []string) int {
 }
 
 func resumeCmd() int {
-	if os.Geteuid() != 0 {
+	if !isAdmin() {
 		return asRootSimple("resume", nil)
 	}
 	service.ClearPauseState()

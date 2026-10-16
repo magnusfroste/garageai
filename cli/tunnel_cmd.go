@@ -37,15 +37,27 @@ func tunnelCmd() int {
 		fmt.Fprintln(os.Stderr, "garageai tunnel: bad tunnel address:", cfg.MeshIP)
 		return 2
 	}
-	logf := func(format string, args ...any) {
-		fmt.Printf("%s %s\n", time.Now().UTC().Format(time.RFC3339), fmt.Sprintf(format, args...))
+	loop := func(ctx context.Context) int {
+		return tunnelLoop(ctx, cfg, strings.TrimSpace(string(key)), addr)
+	}
+	if handled, code := runAsWindowsService(loop); handled {
+		return code
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	return loop(ctx)
+}
+
+// tunnelLoop keeps the tunnel up until ctx ends: starts it, watches the network, reconnects, and
+// restarts it when the hub has been silent too long.
+func tunnelLoop(ctx context.Context, cfg *service.Config, key string, addr netip.Addr) int {
+	logf := func(format string, args ...any) {
+		fmt.Printf("%s %s\n", time.Now().UTC().Format(time.RFC3339), fmt.Sprintf(format, args...))
+	}
 	go tunnel.FlushStatsEvery(30*time.Second, ctx.Done()) // the garage's own request timings, for the heartbeat
 	go watchState(ctx, logf)                              // a pause or a manager's state change: heartbeat at once
 	for ctx.Err() == nil {
-		t, err := tunnel.Start(tunnel.Config{PrivateKey: strings.TrimSpace(string(key)), HubPublicKey: cfg.HubPublicKey, HubEndpoint: cfg.HubEndpoint,
+		t, err := tunnel.Start(tunnel.Config{PrivateKey: key, HubPublicKey: cfg.HubPublicKey, HubEndpoint: cfg.HubEndpoint,
 			Address: addr, Forwards: map[uint16]string{uint16(cfg.Port): fmt.Sprintf("127.0.0.1:%d", cfg.Port)}, Logf: logf})
 		if err != nil {
 			logf("could not start the tunnel: %v; retrying in 10 s", err)

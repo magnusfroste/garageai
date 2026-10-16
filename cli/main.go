@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -81,7 +82,7 @@ func completePath() {
 	for _, d := range []string{"/usr/local/bin", "/usr/local/sbin", "/opt/homebrew/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"} {
 		// As root (the heartbeat, connect's root half) only directories nobody else can write in:
 		// Homebrew's are the user's, and a planted nvidia-smi there would run as root every 5 minutes.
-		if os.Geteuid() == 0 && !rootOwnedDir(d) {
+		if isAdmin() && !rootOwnedDir(d) {
 			continue
 		}
 		if !have[d] {
@@ -145,6 +146,10 @@ usage:
 
 // asRootSimple re-runs a command through sudo (no secrets involved).
 func asRootSimple(cmd string, args []string) int {
+	if runtime.GOOS == "windows" {
+		fmt.Fprintln(os.Stderr, "garageai "+cmd+": "+adminHint)
+		return 1
+	}
 	self, _ := os.Executable()
 	c := exec.Command("sudo", append([]string{self, cmd}, args...)...)
 	c.Stdin, c.Stdout, c.Stderr = os.Stdin, os.Stdout, os.Stderr

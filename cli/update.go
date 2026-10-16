@@ -143,9 +143,6 @@ func downloadVerified(base, dir string) (string, error) {
 // selfUpdate brings the service's Bridge to version stable from base (the release's download
 // directory). Runs in the heartbeat as root. It is a no-op when already there or on Windows.
 func selfUpdate(stable, base string) error {
-	if runtime.GOOS == "windows" {
-		return errors.New("self-update is not implemented on windows yet")
-	}
 	if !newerVersion(version, stable) {
 		return nil
 	}
@@ -163,6 +160,22 @@ func selfUpdate(stable, base string) error {
 	out, err := exec.Command(tmp, "version").Output()
 	if err != nil || !strings.Contains(string(out), stable) {
 		return fmt.Errorf("the downloaded Bridge does not run as %s (%q, %v)", stable, strings.TrimSpace(string(out)), err)
+	}
+	if runtime.GOOS == "windows" {
+		// A running exe cannot be overwritten, but it can be renamed: the old one steps aside as
+		// .old (removed on the next run), the new one takes its name, the services pick it up.
+		exe := service.BinaryPath()
+		old := exe + ".old"
+		os.Remove(old)
+		if err := os.Rename(exe, old); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+		if err := os.Rename(tmp, exe); err != nil {
+			_ = os.Rename(old, exe)
+			return err
+		}
+		service.RestartTunnel()
+		return nil
 	}
 	if _, err := service.InstallBinary(tmp); err != nil {
 		return err
@@ -206,7 +219,8 @@ func updateOperatorCopies(src string) {
 // updateCmd is `garageai update [vX.Y.Z]`: the same as the automatic update, by hand. Without a
 // version it takes the newest release, which is what the installer does too.
 func updateCmd(args []string) int {
-	if os.Geteuid() != 0 && runtime.GOOS != "windows" {
+	os.Remove(service.BinaryPath() + ".old") // Windows: the previous version, stepped aside by the last update
+	if !isAdmin() {
 		return asRootSimple("update", args)
 	}
 	target := ""

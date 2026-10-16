@@ -110,7 +110,13 @@ func WritePublic(c *Config) error {
 	if err := os.WriteFile(tmp, b, 0o644); err != nil {
 		return err
 	}
-	return os.Rename(tmp, p)
+	if err := os.Rename(tmp, p); err != nil {
+		return err
+	}
+	if runtime.GOOS == "windows" {
+		_ = windowsRestrict(p, false, true) // the directory is Administrators/SYSTEM only; this file is for everyone
+	}
+	return nil
 }
 
 const (
@@ -158,6 +164,8 @@ func Install(self string) error {
 			return err
 		}
 		return launchdReplace("eu.garageai.bridge", plistPath)
+	case "windows":
+		return windowsInstallHeartbeat(self)
 	}
 	return fmt.Errorf("the heartbeat service is not implemented on %s yet", runtime.GOOS)
 }
@@ -171,6 +179,8 @@ func Installed() (installed, active bool) {
 	case "darwin":
 		_, err := os.Stat(plistPath)
 		return err == nil, run("launchctl", "print", "system/eu.garageai.bridge") == nil
+	case "windows":
+		return windowsHeartbeatInstalled()
 	}
 	return false, false
 }
@@ -186,6 +196,8 @@ func Remove() {
 	case "darwin":
 		_ = run("launchctl", "bootout", "system/eu.garageai.bridge")
 		os.Remove(plistPath)
+	case "windows":
+		windowsRemoveHeartbeat()
 	}
 	RemoveTunnel()
 	os.Remove(ConfigPath())

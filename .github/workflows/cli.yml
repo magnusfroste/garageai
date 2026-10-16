@@ -42,6 +42,29 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: /bin/bash ../scripts/tests/parity-doctor.sh "$PWD/garageai"
+      - name: Windows services round trip (schtasks, sc, icacls) with a built garageai.exe
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          go build -o garageai.exe .
+          $env:GARAGEAI_WINDOWS_SERVICE_TEST = "1"
+          $env:GARAGEAI_TEST_BINARY = "$PWD\garageai.exe"
+          go test ./internal/service -run WindowsServicesRoundTrip -v
+          .\garageai.exe doctor; if ($LASTEXITCODE -gt 1) { exit $LASTEXITCODE }
+      - name: install.ps1 installs and leaves a working garageai on PATH (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\dl" | Out-Null
+          Copy-Item garageai.exe "$env:RUNNER_TEMP\dl\garageai-windows-amd64.exe"
+          $h = (Get-FileHash "$env:RUNNER_TEMP\dl\garageai-windows-amd64.exe" -Algorithm SHA256).Hash.ToLower()
+          "$h  garageai-windows-amd64.exe" | Set-Content "$env:RUNNER_TEMP\dl\SHA256SUMS"
+          Start-Process -NoNewWindow go -ArgumentList "run ./internal/testutil/fileserver $env:RUNNER_TEMP\dl 127.0.0.1:8765"
+          Start-Sleep 3
+          $env:GARAGEAI_BRIDGE_DOWNLOAD_BASE = "http://127.0.0.1:8765"
+          ./install.ps1
+          $env:Path = "$env:Path;$env:LOCALAPPDATA\Programs\GarageAI"
+          garageai version
       - name: install.sh ends in a working state (a new shell finds garageai)
         # As on an operator's Mac: /usr/local/bin is not writable without sudo, and the operator's
         # next command is `garageai doctor` in a shell with the default PATH. Found 2026-10-13 on
