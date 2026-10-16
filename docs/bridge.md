@@ -112,6 +112,22 @@ program, an outbound tunnel, a local forward.
   next big step and phase 2 follows on top of it.
 
 ### 2. Run the runtime — the right engine, configured right
+
+**Decided 2026-10-16 (Magnus): Bridge bundles Xyntetik Runner as the engine for operators who
+have none.** `garageai runtime install` (offered by connect when no runtime answers, after a
+question) fetches Runner from its releases, verifies SHA256SUMS, installs it root-only like Bridge,
+runs it as a system service (`--serve --port 8080 --parallel 1 -c 8192`) and owns its lifecycle:
+updates, restarts, model changes through the wish list, `runner --fit` as the fit check before a
+pull. Ollama, LM Studio, vLLM and the rest stay supported; Runner is the path for whoever has
+nothing. Why, although Runner measured ~45 % of Ollama's decode on Apple silicon on
+2026-10-16 (M1: 8 vs 20 tok/s; M2: 12 vs 27; prefill ~95 tok/s on M2; prefix cache and
+cached_tokens excellent, 2.3 s load, 0.35 s warm first token): the engine gets faster when its
+author sees real installations and our nightly measurements per machine, and a one-file engine
+made in Sweden is what "install Bridge, done" needs. Asks to Joakim: a pull-to-cache command,
+`/v1/models` listing cached models, unique response ids, Apple-silicon speed. Ops gets "engine"
+as a dimension in the acceptance figures so Runner vs Ollama is a curve, not a number. First
+release: v0.7.0.
+
 - **Recommend per hardware** (the engine-diversity principle, done by Bridge):
   - Ollama on a Mac, vLLM on NVIDIA with enough VRAM, llama.cpp for small cards.
   - Each with the right flags from the start: context window, prefix cache,
