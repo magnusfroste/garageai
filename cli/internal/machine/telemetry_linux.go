@@ -14,7 +14,7 @@ func collectOS() Telemetry {
 		t.MemTotalMB, t.MemFreeMB = intp(total), intp(free)
 	}
 	t.DiskFreeGB = diskFreeGB("/")
-	t.Power, t.BatteryPct = linuxPower(powerSupplies("/sys/class/power_supply"))
+	t.Power, t.BatteryPct = powerSource()
 	// user_active: no cheap, display-server-independent source on Linux; left unknown.
 	return t
 }
@@ -44,3 +44,5 @@ func statfsFreeGB(path string) int {
 	}
 	return int(uint64(st.Bavail) * uint64(st.Bsize) / 1e9)
 }
+
+func powerSource() (string, *int) { return linuxPower(powerSupplies("/sys/class/power_supply")) }

@@ -12,7 +12,7 @@ func collectOS() Telemetry {
 		t.MemTotalMB, t.MemFreeMB = intp(total), intp(free)
 	}
 	t.DiskFreeGB = diskFreeGB("/")
-	t.Power, t.BatteryPct = parsePmsetBatt(run("pmset", "-g", "batt"))
+	t.Power, t.BatteryPct = powerSource()
 	if idle, ok := parseHIDIdle(run("ioreg", "-c", "IOHIDSystem", "-d", "4", "-r")); ok {
 		t.UserActive = boolp(idle < 300)
 	}
@@ -26,3 +26,5 @@ func statfsFreeGB(path string) int {
 	}
 	return int(uint64(st.Bavail) * uint64(st.Bsize) / 1e9)
 }
+
+func powerSource() (string, *int) { return parsePmsetBatt(run("pmset", "-g", "batt")) }

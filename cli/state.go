@@ -31,13 +31,16 @@ func effectiveState(now time.Time) (st *portal.AgentState, nodes []machine.Node,
 	return st, nodes, ignored, panel
 }
 
-// stateKey is what the tunnel service watches for changes: a heartbeat goes out at once when it changes.
+// stateKey is what the tunnel service watches for changes: a heartbeat goes out at once when it
+// changes. The power source is part of it: a laptop unplugged and closed sleeps before the next
+// 5-minute heartbeat could say "battery", and Ops then paged "tunnel down" instead of "away"
+// (garage-m1, 2026-10-16).
 func stateKey(now time.Time) string {
-	st, _, _, _ := effectiveState(now)
-	if st == nil {
-		return "serving"
+	key := "serving"
+	if st, _, _, _ := effectiveState(now); st != nil {
+		key = st.Kind + "|" + st.Reason
 	}
-	return st.Kind + "|" + st.Reason
+	return key + "|power=" + machine.PowerSource()
 }
 
 // pauseCmd: `garageai pause [--reason "..."] [--for 15m]` and `garageai resume`.

@@ -5,3 +5,5 @@ package machine
 func collectOS() Telemetry { return Telemetry{} }
 
 func statfsFreeGB(string) int { return 0 }
+
+func powerSource() (string, *int) { return "", nil }

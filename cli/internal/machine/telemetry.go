@@ -133,3 +133,10 @@ func readFile(p string) string {
 	b, _ := os.ReadFile(p)
 	return string(b)
 }
+
+// PowerSource is the cheap part of the telemetry: "ac", "battery" or "" (no battery / unknown),
+// for the tunnel service's 10-second watch.
+func PowerSource() string {
+	p, _ := powerSource()
+	return p
+}
