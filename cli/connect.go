@@ -563,11 +563,30 @@ func connect(args []string) int {
 			c.warn(fmt.Sprintf("%s: failed (%s)", a.Model, a.Error))
 		}
 	}
-	if passed > 0 {
+	switch {
+	case res.Message != "" || len(res.Offered) > 0 || len(res.NotOffered) > 0:
+		// The portal's own account of the models (2026-10-16): counts and reasons, no test talk
+		// unless a test ran and failed, and never "run this again".
+		if len(res.Offered) > 0 {
+			c.ok(fmt.Sprintf("Offered on GarageAI: %s", strings.Join(res.Offered, ", ")))
+		}
+		for _, n := range res.NotOffered {
+			c.info(fmt.Sprintf("  Not offered: %s (%s)", n.Model, n.Reason))
+		}
+		if res.Message != "" {
+			c.info("  " + res.Message)
+		}
+		if len(res.Offered) > 0 || passed > 0 {
+			c.ok("Node registered — your garage is live on GarageAI.")
+			c.report("done", fmt.Sprintf("Registered: %d model(s) offered", len(res.Offered)), c.profile)
+		} else {
+			c.report("done", "Registered: no model offered yet", c.profile)
+		}
+	case passed > 0:
 		c.ok("Node registered — your garage is live on GarageAI.")
 		c.report("done", fmt.Sprintf("Registered: %d model(s) passed the acceptance test", passed), c.profile)
-	} else {
-		c.warn("Registered, but no model passed the acceptance test, so nothing is for sale yet. Check that the runtime answers on the mesh IP and that the model loads, then run this again.")
+	default:
+		c.warn("Registered, but no model is offered yet. GarageAI tests the models again automatically within an hour; nothing to do here. The portal (My garage) shows which models are recognised.")
 	}
 	c.done = true
 
