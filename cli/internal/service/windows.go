@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -45,6 +46,23 @@ func windowsHeartbeatInstalled() (installed, active bool) {
 		return false, false
 	}
 	return true, !strings.Contains(strings.ToLower(string(out)), "disabled")
+}
+
+var taskCommand = regexp.MustCompile(`<Command>([^<]+)</Command>`)
+
+// windowsHeartbeatProgram is the exe the scheduled task runs ("" when there is no task). Before
+// 1.0.3 Program() knew no Windows case, so install-service after an update said there was no
+// heartbeat service and left the old version running (w11, 2026-10-17).
+func windowsHeartbeatProgram() string {
+	out, err := exec.Command("schtasks", "/Query", "/TN", WindowsTask, "/XML").Output()
+	if err != nil {
+		return ""
+	}
+	s := strings.ReplaceAll(string(out), "\x00", "") // UTF-16 when redirected, on some Windows
+	if m := taskCommand.FindStringSubmatch(s); m != nil {
+		return strings.Trim(strings.TrimSpace(m[1]), `"`)
+	}
+	return BinaryPath()
 }
 
 func windowsRemoveHeartbeat() { _ = run("schtasks", "/Delete", "/TN", WindowsTask, "/F") }

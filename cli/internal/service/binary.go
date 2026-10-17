@@ -101,6 +101,8 @@ func Program() string {
 				return string(m[1])
 			}
 		}
+	case "windows":
+		return windowsHeartbeatProgram()
 	}
 	return ""
 }
