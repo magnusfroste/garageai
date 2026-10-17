@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"time"
 )
 
 // Windows: the heartbeat is a scheduled task every 5 minutes as SYSTEM, the tunnel is a Windows
@@ -83,7 +84,16 @@ func windowsInstallTunnel(self string) error {
 	// Also restart after an orderly stop with an error code, not only after a crash (w11's tunnel
 	// service stood still from 18:40, 2026-10-17, and Windows did nothing).
 	_ = run("sc", "failureflag", WindowsService, "1")
-	return run("sc", "start", WindowsService)
+	return windowsStartTunnel()
+}
+
+// windowsStartTunnel starts the tunnel service; "already running" (1056) is success: the
+// heartbeat's self-heal may have started it a moment earlier.
+func windowsStartTunnel() error {
+	if err := run("sc", "start", WindowsService); err != nil && !strings.Contains(err.Error(), "1056") {
+		return err
+	}
+	return nil
 }
 
 func windowsTunnelInstalled() (installed, active bool) {
@@ -102,7 +112,14 @@ func windowsRemoveTunnel() {
 
 func windowsRestartTunnel() {
 	_ = run("sc", "stop", WindowsService)
-	_ = run("sc", "start", WindowsService)
+	// sc stop returns at once; starting while it is still stopping fails as "already running".
+	for i := 0; i < 20; i++ {
+		if out, _ := exec.Command("sc", "query", WindowsService).Output(); strings.Contains(strings.ToUpper(string(out)), "STOPPED") {
+			break
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	_ = windowsStartTunnel()
 }
 
 // windowsRestrict makes path readable and writable by Administrators and SYSTEM only (and, with
@@ -139,7 +156,7 @@ func EnsureTunnelRunning() (started bool) {
 		return false
 	}
 	if inst, active := windowsTunnelInstalled(); inst && !active {
-		return run("sc", "start", WindowsService) == nil
+		return windowsStartTunnel() == nil
 	}
 	return false
 }
