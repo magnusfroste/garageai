@@ -53,5 +53,7 @@ func RestartTunnel() {
 		_ = run("systemctl", "restart", "garageai-tunnel.service")
 	case "darwin":
 		_ = run("launchctl", "kickstart", "-k", "system/eu.garageai.tunnel")
+	case "windows":
+		windowsRestartTunnel()
 	}
 }

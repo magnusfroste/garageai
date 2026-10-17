@@ -1,0 +1,110 @@
+package service
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+)
+
+// Windows: the heartbeat is a scheduled task every 5 minutes as SYSTEM, the tunnel is a Windows
+// service (sc.exe) running `garageai tunnel` under the service control manager (tunnel_service_
+// windows.go in the main package), and the files under %ProgramData%\GarageAI are readable by
+// Administrators and SYSTEM only (icacls), with the secret-free bridge-public.json readable by
+// Users. All of it goes through the stock tools, so it compiles everywhere and is tested in CI
+// on windows-latest.
+
+const (
+	WindowsTask    = "GarageAI Bridge heartbeat"
+	WindowsService = "GarageAIBridgeTunnel"
+)
+
+// Well-known SIDs, locale-independent: Administrators, SYSTEM, Users.
+const (
+	sidAdmins = "*S-1-5-32-544"
+	sidSystem = "*S-1-5-18"
+	sidUsers  = "*S-1-5-32-545"
+)
+
+func quoteWin(s string) string { return `"` + s + `"` }
+
+func windowsInstallHeartbeat(self string) error {
+	// /RU SYSTEM: runs without anyone logged in, and as the account that may read bridge.json.
+	if err := run("schtasks", "/Create", "/TN", WindowsTask, "/SC", "MINUTE", "/MO", "5", "/RU", "SYSTEM", "/RL", "HIGHEST",
+		"/TR", quoteWin(self)+" run --once", "/F"); err != nil {
+		return err
+	}
+	_ = run("schtasks", "/Run", "/TN", WindowsTask) // the first heartbeat now, not in 5 minutes
+	return nil
+}
+
+func windowsHeartbeatInstalled() (installed, active bool) {
+	out, err := exec.Command("schtasks", "/Query", "/TN", WindowsTask, "/FO", "LIST").Output()
+	if err != nil {
+		return false, false
+	}
+	return true, !strings.Contains(strings.ToLower(string(out)), "disabled")
+}
+
+func windowsRemoveHeartbeat() { _ = run("schtasks", "/Delete", "/TN", WindowsTask, "/F") }
+
+func windowsInstallTunnel(self string) error {
+	bin := quoteWin(self) + " tunnel"
+	if inst, _ := windowsTunnelInstalled(); inst {
+		_ = run("sc", "stop", WindowsService)
+		if err := run("sc", "config", WindowsService, "binPath=", bin, "start=", "auto"); err != nil {
+			return err
+		}
+	} else if err := run("sc", "create", WindowsService, "binPath=", bin, "start=", "auto", "DisplayName=", "GarageAI Bridge tunnel"); err != nil {
+		return err
+	}
+	_ = run("sc", "description", WindowsService, "This garage's tunnel to the GarageAI gateway (dials out; nothing listens).")
+	_ = run("sc", "failure", WindowsService, "reset=", "60", "actions=", "restart/5000/restart/5000/restart/5000")
+	return run("sc", "start", WindowsService)
+}
+
+func windowsTunnelInstalled() (installed, active bool) {
+	out, err := exec.Command("sc", "query", WindowsService).Output()
+	if err != nil {
+		return false, false
+	}
+	s := strings.ToUpper(string(out))
+	return !strings.Contains(s, "1060"), strings.Contains(s, "RUNNING")
+}
+
+func windowsRemoveTunnel() {
+	_ = run("sc", "stop", WindowsService)
+	_ = run("sc", "delete", WindowsService)
+}
+
+func windowsRestartTunnel() {
+	_ = run("sc", "stop", WindowsService)
+	_ = run("sc", "start", WindowsService)
+}
+
+// windowsRestrict makes path readable and writable by Administrators and SYSTEM only (and, with
+// usersRead, readable by Users). Directories pass the rule on to what is created inside them.
+func windowsRestrict(path string, isDir, usersRead bool) error {
+	inh := ""
+	if isDir {
+		inh = "(OI)(CI)"
+	}
+	args := []string{path, "/inheritance:r", "/grant:r", sidAdmins + ":" + inh + "F", "/grant:r", sidSystem + ":" + inh + "F"}
+	if usersRead {
+		args = append(args, "/grant:r", sidUsers+":"+inh+"R")
+	}
+	return run("icacls", args...)
+}
+
+// WindowsLogPath is where the tunnel service writes (a service has no console).
+func WindowsLogPath() string {
+	return filepath.Join(os.Getenv("ProgramData"), "GarageAI", "tunnel.log")
+}
+
+// WindowsUserBinDir is where the operator's own copy of garageai.exe goes, on their PATH.
+func WindowsUserBinDir() string {
+	return filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs", "GarageAI")
+}
+
+func windowsErr(what string, err error) error { return fmt.Errorf("%s: %w", what, err) }

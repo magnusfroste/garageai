@@ -68,6 +68,8 @@ func InstallTunnel(self string) error {
 			return err
 		}
 		return launchdReplace("eu.garageai.tunnel", tunnelPlistPath)
+	case "windows":
+		return windowsInstallTunnel(self)
 	}
 	return fmt.Errorf("the tunnel service is not implemented on %s yet", runtime.GOOS)
 }
@@ -81,6 +83,8 @@ func TunnelInstalled() (installed, active bool) {
 	case "darwin":
 		_, err := os.Stat(tunnelPlistPath)
 		return err == nil, run("launchctl", "print", "system/eu.garageai.tunnel") == nil
+	case "windows":
+		return windowsTunnelInstalled()
 	}
 	return false, false
 }
@@ -95,6 +99,8 @@ func RemoveTunnel() {
 	case "darwin":
 		_ = run("launchctl", "bootout", "system/eu.garageai.tunnel")
 		os.Remove(tunnelPlistPath)
+	case "windows":
+		windowsRemoveTunnel()
 	}
 	os.Remove(TunnelKeyPath())
 }

@@ -62,7 +62,7 @@ func optionsFromEnv() Options {
 	}
 	o.Port, _ = strconv.Atoi(os.Getenv("GARAGEAI_PORT"))
 	profile.RuntimeKey = o.RuntimeAPIKey
-	if os.Geteuid() == 0 {
+	if isAdmin() {
 		// The root half has what it needs in o: the secrets leave the environment so that no
 		// child (netbird's installer, lsof, docker, ...) inherits them.
 		for _, k := range []string{"GARAGEAI_REGISTER_TOKEN", "GARAGEAI_SETUP_KEY", "GARAGEAI_RUNTIME_API_KEY"} {
@@ -297,7 +297,11 @@ func connect(args []string) int {
 	// commands with tokens). It runs as the operator, before the root half.
 	// Ask for the password now, before the browser opens: after approving, the terminal would
 	// otherwise sit behind the browser waiting for it, and nobody sees it.
-	if os.Geteuid() != 0 && runtime.GOOS != "windows" {
+	if runtime.GOOS == "windows" && !isAdmin() {
+		fmt.Fprintln(os.Stderr, "garageai connect: "+adminHint)
+		return 1
+	}
+	if !isAdmin() && runtime.GOOS != "windows" {
 		v := exec.Command("sudo", "-v", "-p", "  [sudo] password for %p (Bridge installs its service; asked now so the browser step is not interrupted): ")
 		v.Stdin, v.Stdout, v.Stderr = os.Stdin, os.Stdout, os.Stderr
 		if err := v.Run(); err != nil {
@@ -305,8 +309,7 @@ func connect(args []string) int {
 			return 1
 		}
 	}
-	if os.Geteuid() == 0 && os.Getenv("GARAGEAI_REUSE_LINK") == "1" && o.RegisterToken == "" {
-		// The user half found this machine linked already: the root half takes the saved link.
+	reuseLink := func() {
 		if cfg, err := service.Load(); err == nil && cfg.RegisterToken != "" {
 			o.RegisterURL, o.RegisterToken, o.Name = cfg.RegisterURL, cfg.RegisterToken, cfg.Name
 			if o.Tunnel == "" && cfg.Transport != "" {
@@ -314,17 +317,23 @@ func connect(args []string) int {
 			}
 		}
 	}
+	if isAdmin() && os.Getenv("GARAGEAI_REUSE_LINK") == "1" && o.RegisterToken == "" {
+		reuseLink() // the user half found this machine linked already: the root half takes the saved link
+	}
 	if o.RegisterToken == "" && os.Getenv("GARAGEAI_NO_LINK") == "" {
 		if name := linkedAs(o); name != "" {
 			// Changing the runtime or the port of a linked garage needs no new link (and no browser):
 			// garage-m1 was asked to link again twice on 2026-10-16 for a runtime test.
 			fmt.Printf("  Already linked as %s: keeping the link (garageai connect --relink to link again).\n\n", sgr("1", name))
 			os.Setenv("GARAGEAI_REUSE_LINK", "1")
+			if runtime.GOOS == "windows" {
+				reuseLink() // one process on Windows: no root half to hand over to
+			}
 		} else if code := link(&o, runtimeGiven(args)); code != 0 {
 			return code
 		}
 	}
-	if os.Geteuid() != 0 && runtime.GOOS != "windows" {
+	if !isAdmin() && runtime.GOOS != "windows" {
 		return asRoot(args)
 	}
 	c := &connectRun{o: o}
