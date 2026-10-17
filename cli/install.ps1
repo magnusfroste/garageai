@@ -17,7 +17,7 @@ $repo = if ($env:GARAGEAI_BRIDGE_REPO) { $env:GARAGEAI_BRIDGE_REPO } else { "mag
 $version = if ($env:GARAGEAI_BRIDGE_VERSION) { $env:GARAGEAI_BRIDGE_VERSION } else { "latest" }
 $arch = if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq "Arm64") { "arm64" } else { "amd64" }
 
-if ($version -eq "latest") {
+if ($version -eq "latest" -and -not $env:GARAGEAI_BRIDGE_DOWNLOAD_BASE) {
   $releases = Invoke-RestMethod "https://api.github.com/repos/$repo/releases?per_page=50"
   $tags = $releases | ForEach-Object { $_.tag_name } | Where-Object { $_ -like "bridge-v*" }
   $stable = $tags | Where-Object { $_ -notmatch "-" } | Sort-Object { [version]($_ -replace "^bridge-v", "") } -Descending
