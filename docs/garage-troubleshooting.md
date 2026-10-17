@@ -235,9 +235,6 @@ a Mac; the tunnel reaches it there.
   garage has no runtime. Run Ollama as a service or keep a user logged in; Bridge reports
   `runtime_user_session` as on a Mac.
 
-## The heartbeat
-
-
 ### Windows Defender removed garageai.exe (false positive)
 Unsigned Go programs are sometimes quarantined by Windows Defender right after download. The
 symptom is "garageai is not recognized" after an installation that looked fine, or a garage that
@@ -273,6 +270,9 @@ curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/inst
 or `sudo garageai install-service`. The service then runs its own root-only copy
 (`/Library/Application Support/GarageAI/garageai` on macOS, `/usr/local/lib/garageai/garageai` on
 Linux). Learned: Bridge rc1 set up services that ran the copy in the operator's home.
+
+## The heartbeat
+
 
 ## Updating Bridge
 
