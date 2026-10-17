@@ -40,6 +40,16 @@ func TestWindowsServicesRoundTrip(t *testing.T) {
 	}
 	defer func() { Remove(); os.RemoveAll(dir) }()
 
+	// The services run their own copy under %ProgramData%, as after connect. Installing it twice
+	// in a row is what a fresh copy plus Defender's scan of it looks like (garage-w11, 2026-10-17:
+	// "rename garageai.exe.tmp garageai.exe: Access is denied").
+	for i := 0; i < 2; i++ {
+		if _, err := InstallBinary(exe); err != nil {
+			t.Fatalf("install service binary (%d): %v", i+1, err)
+		}
+	}
+	exe = BinaryPath()
+
 	if err := Install(exe); err != nil {
 		t.Fatalf("install heartbeat task: %v", err)
 	}
@@ -59,6 +69,10 @@ func TestWindowsServicesRoundTrip(t *testing.T) {
 			t.Fatalf("tunnel service installed=%v running=%v after 20 s", inst, active)
 		}
 		time.Sleep(time.Second)
+	}
+	// Replacing the copy while the tunnel service runs it (connect again, update).
+	if _, err := InstallBinary(os.Getenv("GARAGEAI_TEST_BINARY")); err != nil {
+		t.Fatalf("replace the service binary while the tunnel service runs it: %v", err)
 	}
 	RestartTunnel()
 	if inst, active := TunnelInstalled(); !inst || !active {
