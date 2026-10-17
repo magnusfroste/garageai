@@ -128,6 +128,25 @@ made in Sweden is what "install Bridge, done" needs. Asks to Joakim: a pull-to-c
 as a dimension in the acceptance figures so Runner vs Ollama is a curve, not a number. First
 release: v0.7.0.
 
+**Built 2026-10-17 (Bridge 1.1):** `garageai runtime` looks at the machine and says whether Runner
+fits, and with which model (`internal/runnerfit`, a pure function of doctor's facts, tested on the
+machines we know): CUDA on NVIDIA with a driver from R580; Metal on Apple silicon; the processor on
+AMD/Intel graphics (Runner has no Vulkan) and on old NVIDIA drivers; "keep it" when a runtime
+already serves models; "not yet" on linux/arm64 (DGX Spark), Intel Macs and Windows on ARM, which
+have no Runner build. Models are Runner's own measured ones: Qwen3-30B-A3B selective (18 GB) from
+22 GB of VRAM, 32 GB of unified memory or 48 GB of RAM on CPU; Granite 4.1 3B Q8_0 (3.6 GB) from
+6 GB; the Gemma 4 E2B smoke test below that. `garageai runtime install` downloads the pinned
+Runner release (`runnerfit.Version`, v1.4.2) against its SHA256SUMS into Bridge's root-only
+directory and runs `runner -hf MODEL --serve --port 8080 --ttl 0` (`--ttl 0`: the model stays
+loaded, no cold start for buyers) as a systemd unit, a launchd daemon, or on Windows a scheduled
+task at startup that runs a restarting script (Runner is not a Windows service program; a task's
+command line is limited to 261 characters). Its Hugging Face cache lives under a home of its own.
+It waits for the model download with a progress line, then points at
+`garageai connect --runtime xyntetik --port 8080`. connect's "no runtime" stop mentions it. The
+end-to-end test (`.github/workflows/runner-bundle.yml`) installs it on Linux, macOS and Windows,
+sends a chat request and removes it. Not yet: managed models for Runner (its model set is fixed
+at start: the feature request to Joakim), a Runner version bump through Bridge's own canary.
+
 - **Recommend per hardware** (the engine-diversity principle, done by Bridge):
   - Ollama on a Mac, vLLM on NVIDIA with enough VRAM, llama.cpp for small cards.
   - Each with the right flags from the start: context window, prefix cache,

@@ -1,0 +1,66 @@
+name: Runner bundle (end to end)
+
+# `garageai runtime install` for real: downloads the pinned Xyntetik Runner release, installs it as
+# a service (systemd, launchd, Windows scheduled task), lets it fetch a model from the Hugging Face
+# Hub, waits until it answers, sends one chat request, and removes it. A few GB per OS, so it runs
+# when asked, and on pull requests that touch the bundle itself, not on every pull request.
+on:
+  pull_request:
+    paths: ['cli/runtime_cmd.go', 'cli/internal/runnerfit/**', 'cli/internal/service/runner.go', '.github/workflows/runner-bundle.yml']
+  workflow_dispatch:
+    inputs:
+      model:
+        description: 'Hugging Face GGUF to serve (owner/repo[:TAG]); empty = what Bridge recommends for the runner'
+        required: false
+        default: 'Joakimpalm-Zen/gemma-4-E2B-it-Q4_0-GGUF'
+
+jobs:
+  bundle:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: cli/go.mod
+      - name: build Bridge
+        run: go build -o garageai$( [ "$RUNNER_OS" = Windows ] && echo .exe ) .
+      - name: what Bridge recommends here
+        run: ./garageai runtime
+      - name: install Runner as a service and wait for it to answer
+        run: |
+          ./garageai runtime install --yes --force --model "${{ github.event.inputs.model || 'Joakimpalm-Zen/gemma-4-E2B-it-Q4_0-GGUF' }}"
+      - name: one chat request through Runner
+        run: |
+          model=$(curl -fsS http://127.0.0.1:8080/v1/models | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"][0]["id"])')
+          echo "served: $model"
+          curl -fsS http://127.0.0.1:8080/v1/chat/completions -H 'content-type: application/json' \
+            -d "{\"model\":\"$model\",\"messages\":[{\"role\":\"user\",\"content\":\"Say hello in one word.\"}],\"max_tokens\":16}" | tee reply.json
+          python3 -c 'import json; r=json.load(open("reply.json")); assert r["choices"][0]["message"]["content"].strip(), r; print("usage", r.get("usage"))'
+      - name: doctor sees it as Xyntetik Runner
+        run: |
+          ./garageai doctor > doctor.txt || true   # exit 1 = findings (no GPU, no garage): fine here
+          cat doctor.txt
+          grep -qi "xyntetik on port 8080" doctor.txt
+      - name: where the model cache landed
+        if: always()
+        run: |
+          du -sh /var/lib/garageai-runner "/Library/Application Support/GarageAI/runner-home" "$PROGRAMDATA/GarageAI/runner-home" 2>/dev/null || true
+          find /c/Windows/System32/config/systemprofile /var/root -maxdepth 5 -iname '*xyntetik*' 2>/dev/null | head || true
+      - name: remove
+        if: always()
+        run: ./garageai runtime remove || true
+      - name: Runner's log on failure
+        if: failure()
+        run: |
+          cat /var/log/garageai-runner.log 2>/dev/null | tail -60 || true
+          sudo journalctl -u garageai-runner --no-pager 2>/dev/null | tail -60 || true
+          cat "$PROGRAMDATA/GarageAI/runner.log" 2>/dev/null | tail -60 || true

@@ -58,6 +58,8 @@ func main() {
 		os.Exit(tunnelCmd())
 	case "models":
 		os.Exit(modelsCmd())
+	case "runtime":
+		os.Exit(runtimeCmd(args[1:]))
 	case "pause":
 		os.Exit(pauseCmd(args[1:]))
 	case "resume":
@@ -138,6 +140,7 @@ usage:
   garageai connect --runtime <kind> --port <n>
                                change the runtime or port of a linked garage (no new link; --relink to link again)
   garageai models              models the portal asked this garage to fetch or remove, and how that went
+  garageai runtime [install]   no runtime yet? whether Xyntetik Runner fits this machine, and install it as a service
   garageai pause [--reason "redeploy"] [--for 15m]
                                planned absence: the portal drains this garage, buyers go elsewhere, no alerts
   garageai resume              offer the garage again

@@ -3,10 +3,12 @@ package profile
 import (
 	"fmt"
 	gmachine "github.com/magnusfroste/garageai/cli/internal/machine"
+	"net"
 	"os"
 	"regexp"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -60,6 +62,13 @@ func discover(ls []Listener) []Runtime {
 	candidate := map[int]bool{}
 	for _, kp := range KnownPorts {
 		candidate[kp] = true
+		if _, seen := addrs[kp]; !seen && loopbackOpen(kp) {
+			// A listener the listing cannot show: on macOS a normal user's lsof does not see a
+			// root daemon's sockets (Runner installed by garageai runtime, CI 2026-10-17). It
+			// answers on loopback, so that is the bind we know of.
+			ports = append(ports, kp)
+			addrs[kp] = []string{"127.0.0.1"}
+		}
 	}
 	for _, port := range ports {
 		if runtimeProc.MatchString(owner[port].Process) {
@@ -290,3 +299,13 @@ func Network(binds []string) bool {
 
 // OllamaContextTarget is the window the connect script recommends for this machine's memory.
 func OllamaContextTarget(mem *int) int { return ollamaContextTarget(mem) }
+
+// loopbackOpen: something accepts TCP connections on 127.0.0.1:port.
+func loopbackOpen(port int) bool {
+	c, err := net.DialTimeout("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)), 300*time.Millisecond)
+	if err != nil {
+		return false
+	}
+	c.Close()
+	return true
+}
