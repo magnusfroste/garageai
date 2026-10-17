@@ -98,8 +98,8 @@ func InstallRunner(bin, model string, port int) error {
 		// it again 10 s after it stops, as Restart=always does on Linux.
 		dir := filepath.Dir(bin)
 		script := filepath.Join(dir, "runner-service.cmd")
-		body := fmt.Sprintf("@echo off\r\nrem Written by garageai runtime install. Runs Xyntetik Runner for GarageAI, restarting it if it stops.\r\nset USERPROFILE=%s\r\nset HOME=%s\r\n:loop\r\n\"%s\" %s >> \"%s\" 2>&1\r\ntimeout /t 10 /nobreak > nul\r\ngoto loop\r\n",
-			home, home, bin, strings.Join(args, " "), filepath.Join(dir, "runner.log"))
+		body := fmt.Sprintf("@echo off\r\nrem Written by garageai runtime install. Runs Xyntetik Runner for GarageAI, restarting it if it stops.\r\nset USERPROFILE=%s\r\nset HOME=%s\r\nset LOCALAPPDATA=%s\r\nset XDG_CACHE_HOME=%s\\.cache\r\n:loop\r\n\"%s\" %s >> \"%s\" 2>&1\r\ntimeout /t 10 /nobreak > nul\r\ngoto loop\r\n",
+			home, home, home, home, bin, strings.Join(args, " "), filepath.Join(dir, "runner.log"))
 		if err := os.WriteFile(script, []byte(body), 0o755); err != nil {
 			return err
 		}

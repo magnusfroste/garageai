@@ -46,7 +46,15 @@ jobs:
             -d "{\"model\":\"$model\",\"messages\":[{\"role\":\"user\",\"content\":\"Say hello in one word.\"}],\"max_tokens\":16}" | tee reply.json
           python3 -c 'import json; r=json.load(open("reply.json")); assert r["choices"][0]["message"]["content"].strip(), r; print("usage", r.get("usage"))'
       - name: doctor sees it as Xyntetik Runner
-        run: ./garageai doctor | tee doctor.txt; grep -qi xyntetik doctor.txt
+        run: |
+          ./garageai doctor > doctor.txt || true   # exit 1 = findings (no GPU, no garage): fine here
+          cat doctor.txt
+          grep -qi "xyntetik on port 8080" doctor.txt
+      - name: where the model cache landed
+        if: always()
+        run: |
+          du -sh /var/lib/garageai-runner "/Library/Application Support/GarageAI/runner-home" "$PROGRAMDATA/GarageAI/runner-home" 2>/dev/null || true
+          find /c/Windows/System32/config/systemprofile /var/root -maxdepth 5 -iname '*xyntetik*' 2>/dev/null | head || true
       - name: remove
         if: always()
         run: ./garageai runtime remove || true
