@@ -4,6 +4,17 @@ Sketch, 2026-10-17. Decided: build it after v0.7.0. Inspired by Xyntetik Runner'
 (`src/tray_macos.m`, `src/tray_win.c`: an `NSStatusItem` on macOS and a notification-area icon on
 Windows, rendering a menu that portable C code describes).
 
+## Name: GarageAI, not Bridge (decided 2026-10-17)
+
+What the operator sees on their own machine is called **GarageAI**: the menu-bar item and its
+tooltip ("GarageAI · garage-m2 · Live"), notifications, the login item ("Open GarageAI at login"),
+the control panel. "Bridge" stays the name of the program where how it works is the point
+(GitHub, the docs, the landing page's "GarageAI Bridge connects your GPU"), the way Tailscale's menu
+says Tailscale while tailscaled does the work. The command is `garageai` already. Service
+identifiers stay as they are (renaming them means migrating every garage); the Windows services'
+display names can become "GarageAI tunnel" and "GarageAI heartbeat" without risk, and the
+terminal headers "GarageAI v1.x — connect" when those texts are touched anyway.
+
 ## Why
 
 Today a garage is invisible on the machine it runs on. The operator learns that it works from the
@@ -22,7 +33,7 @@ control panel in the vision ("see what your GPU can earn, go live with one click
 
 The menu, top to bottom:
 
-1. **Status.** Garage name and one word: Live, Serving, Paused, Away (on battery, gaming) or
+1. **Status.** "GarageAI", the garage name and one word: Live, Serving, Paused, Away (on battery, gaming) or
    Offline, with the reason when it is not live ("Ollama stopped", "tunnel down"). The runtime
    and the model being served, with tokens per second from the last acceptance test.
 2. **Today.** Requests, tokens, earned (in the portal's currency), and when the last request came
