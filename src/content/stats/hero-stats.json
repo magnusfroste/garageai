@@ -7,8 +7,8 @@
   },
   {
     "icon": "💻",
-    "value": "macOS + Linux",
-    "label": "Operator platforms · Windows in beta",
+    "value": "macOS · Linux · Windows",
+    "label": "Operator platforms, one Bridge",
     "accent": "var(--color-warning)"
   },
   {

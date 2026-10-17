@@ -44,7 +44,7 @@ script stays as an internal backup and reference. Phase 0 is done and phase 1 is
   - Linux, macOS and Windows (amd64 and arm64) from one Go codebase.
   - Installed with `curl … | sh` (no signing needed for that path) and on Windows with a
     PowerShell one-liner.
-  - Signing comes later (Windows SmartScreen will warn about an unsigned exe until then).
+  - Signing comes later. Installed through PowerShell, the unsigned exe met neither SmartScreen nor Defender on the first Windows garages (2026-10-17); a download by browser would.
 
 ## Phases
 
