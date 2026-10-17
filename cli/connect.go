@@ -298,8 +298,7 @@ func connect(args []string) int {
 	// Ask for the password now, before the browser opens: after approving, the terminal would
 	// otherwise sit behind the browser waiting for it, and nobody sees it.
 	if runtime.GOOS == "windows" && !isAdmin() {
-		fmt.Fprintln(os.Stderr, "garageai connect: "+adminHint)
-		return 1
+		return elevate("connect", args)
 	}
 	if !isAdmin() && runtime.GOOS != "windows" {
 		v := exec.Command("sudo", "-v", "-p", "  [sudo] password for %p (Bridge installs its service; asked now so the browser step is not interrupted): ")

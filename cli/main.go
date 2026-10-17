@@ -42,6 +42,8 @@ func main() {
 		os.Exit(doctor(len(args) > 1 && args[1] == "--json"))
 	case "connect", "login":
 		os.Exit(connect(args[1:]))
+	case "__hold": // Windows: the elevated window elevate() opens; stays open at the end
+		os.Exit(holdWindow(args[1:]))
 	case "__connect-as-root":
 		os.Exit(connectAsRoot())
 	case "run":
@@ -147,8 +149,7 @@ usage:
 // asRootSimple re-runs a command through sudo (no secrets involved).
 func asRootSimple(cmd string, args []string) int {
 	if runtime.GOOS == "windows" {
-		fmt.Fprintln(os.Stderr, "garageai "+cmd+": "+adminHint)
-		return 1
+		return elevate(cmd, args)
 	}
 	self, _ := os.Executable()
 	c := exec.Command("sudo", append([]string{self, cmd}, args...)...)
