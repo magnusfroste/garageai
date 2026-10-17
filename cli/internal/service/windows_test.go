@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -55,6 +56,10 @@ func TestWindowsServicesRoundTrip(t *testing.T) {
 	}
 	if inst, _ := Installed(); !inst {
 		t.Fatal("heartbeat task not registered")
+	}
+	// install-service (after an update) finds the task by the program it runs.
+	if prog := Program(); !strings.EqualFold(prog, exe) {
+		t.Fatalf("Program() = %q, want %q", prog, exe)
 	}
 	if err := InstallTunnel(exe); err != nil {
 		t.Fatalf("install tunnel service: %v", err)
