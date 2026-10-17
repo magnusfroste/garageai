@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"time"
 )
 
 // BinaryPath is where the heartbeat service's own copy of Bridge lives. The service runs as root,
@@ -47,11 +48,37 @@ func InstallBinary(src string) (string, error) {
 		os.Remove(tmp)
 		return "", err
 	}
-	if err := os.Rename(tmp, dest); err != nil {
+	if err := replaceFile(tmp, dest); err != nil {
 		os.Remove(tmp)
 		return "", fmt.Errorf("replace %s: %w", dest, err)
 	}
 	return dest, nil
+}
+
+// replaceFile moves tmp onto dest. On Windows a running exe cannot be overwritten (the tunnel
+// service runs this very file) but it can be renamed, and an antivirus scan of a freshly written
+// exe holds it for a moment: so the current file steps aside as .old (removed on the next run)
+// and the move is retried for a few seconds. Elsewhere a rename replaces atomically.
+func replaceFile(tmp, dest string) error {
+	if runtime.GOOS != "windows" {
+		return os.Rename(tmp, dest)
+	}
+	old := dest + ".old"
+	var err error
+	for i := 0; i < 20; i++ {
+		if err = os.Rename(tmp, dest); err == nil {
+			return nil
+		}
+		if _, statErr := os.Stat(dest); statErr == nil {
+			_ = os.Remove(old)
+			_ = os.Rename(dest, old)
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	if _, statErr := os.Stat(dest); statErr != nil {
+		_ = os.Rename(old, dest) // put the previous copy back rather than leave nothing
+	}
+	return err
 }
 
 var (
