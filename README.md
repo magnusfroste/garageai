@@ -27,10 +27,10 @@ Buyers ──HTTPS──▶ LiteLLM gateway (EU) ──WireGuard tunnel (Bridge)
 
 ### Offer your GPU
 
-1. **Start the "Offer your GPU" wizard** at [app.garageai.eu](https://app.garageai.eu/auth?intent=operator) — macOS or Linux with Ollama, LM Studio, llama.cpp, vLLM, SGLang or Paddock (beta). Create your garage and set your price per million tokens.
+1. **Start the "Offer your GPU" wizard** at [app.garageai.eu](https://app.garageai.eu/auth?intent=operator) — macOS, Linux or Windows with Ollama, LM Studio, llama.cpp, vLLM, SGLang or Paddock (beta). Create your garage and set your price per million tokens.
 2. **Run one command.** The wizard gives you a command that installs [GarageAI Bridge](cli/README.md), one small open-source program (`garageai`), and runs `garageai connect`. Bridge opens its own encrypted WireGuard tunnel to the gateway (no VPN app, and your runtime can stay on localhost; [NetBird](https://netbird.io) is the fallback for networks that block UDP), checks your runtime, registers your models and installs a heartbeat service that keeps the offered models in sync. No inbound ports are opened. It asks for your password once. Every step is reported to the wizard, so if something stops you see what to fix; `garageai doctor` shows the same on the machine, and `garageai uninstall` removes it again.
 
-   **Windows is in beta:** [`scripts/garageai-connect.ps1`](scripts/garageai-connect.ps1) supports Ollama and LM Studio and runs in PowerShell as administrator. It is tested in CI but not yet on a real GPU machine, and the wizard does not offer Windows yet. To try it, email powerup@garageai.eu with the subject "Windows beta" and your GPU and runtime.
+   **Windows** (Bridge 1.0): the same, from PowerShell opened as Administrator. The tunnel runs as a Windows service and the heartbeat as a scheduled task, so the garage keeps serving after a reboot without anyone logged in.
 3. **Pass the acceptance test.** Every model is tested through the gateway with a real streamed request — time-to-first-token and tokens per second are measured before it can be sold.
 4. **Go live and earn** the price you set for every token your garage serves, also for pool requests. No platform fee during launch.
 

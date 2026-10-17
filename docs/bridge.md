@@ -44,7 +44,7 @@ script stays as an internal backup and reference. Phase 0 is done and phase 1 is
   - Linux, macOS and Windows (amd64 and arm64) from one Go codebase.
   - Installed with `curl … | sh` (no signing needed for that path) and on Windows with a
     PowerShell one-liner.
-  - Signing comes later, Windows first.
+  - Signing comes later (Windows SmartScreen will warn about an unsigned exe until then).
 
 ## Phases
 
@@ -60,7 +60,7 @@ Done: `garageai connect` (the six steps, same options, payloads and onboarding r
 script, root through sudo with secrets on stdin), `garageai run` as a systemd timer or launchd
 daemon with `contexts` in every heartbeat, `garageai uninstall`, migration of the script's old
 heartbeat, self-update (v0.5.0: the portal's stable version, SHA256SUMS, run-before-swap, on by
-default, `--no-auto-update` to opt out). Not yet: Windows service, pause, the firewall rule.
+default, `--no-auto-update` to opt out). v1.0.0 (2026-10-17): Windows service, scheduled task, install.ps1. Not yet: the firewall rule.
 - `garageai connect`: join the mesh, find the runtime, register. Same onboarding reports, now
   with `version`.
 - `garageai run` as a service (systemd, launchd, Windows service):

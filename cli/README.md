@@ -12,6 +12,12 @@ curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/inst
 garageai connect
 ```
 
+Windows, in PowerShell opened as Administrator:
+
+```powershell
+irm https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.ps1 | iex; garageai connect
+```
+
 `garageai connect` without options links the machine in the browser: Bridge shows a code and opens
 app.garageai.eu/bridge/link, the operator checks that it is their machine, chooses the garage and
 approves, and Bridge picks up the garage's credentials itself. No command with a token is copied or
@@ -109,8 +115,10 @@ e.g. `/Users/you/.local/bin/garageai`, when the app does not see your shell's PA
 
 ## Implementation notes
 
-- Standard library only. One codebase for Linux, macOS and Windows (amd64 and arm64). The
-  heartbeat service is not implemented on Windows yet.
+- Standard library plus `golang.org/x/sys` (the Windows service handler). One codebase for Linux,
+  macOS and Windows (amd64 and arm64). Services: systemd, launchd, and on Windows a service
+  (tunnel) plus a scheduled task (heartbeat), files under `%ProgramData%\GarageAI` restricted to
+  Administrators and SYSTEM.
 - **Linux:** reads `/proc` directly, no `ss` or `lsof` needed. **macOS:** `lsof`. **Windows:**
   `netstat` and `tasklist`.
 - Mesh state comes from the NetBird service when it answers, else from the tunnel interface
