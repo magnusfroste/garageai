@@ -62,6 +62,7 @@ jobs:
           Start-Process -NoNewWindow go -ArgumentList "run ./internal/testutil/fileserver $env:RUNNER_TEMP\dl 127.0.0.1:8765"
           Start-Sleep 3
           $env:GARAGEAI_BRIDGE_DOWNLOAD_BASE = "http://127.0.0.1:8765"
+          $env:GARAGEAI_BRIDGE_VERSION = "bridge-vtest"  # no GitHub API lookup from the runner (rate limit)
           ./install.ps1
           $env:Path = "$env:Path;$env:LOCALAPPDATA\Programs\GarageAI"
           garageai version

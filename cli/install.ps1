@@ -17,7 +17,7 @@ $repo = if ($env:GARAGEAI_BRIDGE_REPO) { $env:GARAGEAI_BRIDGE_REPO } else { "mag
 $version = if ($env:GARAGEAI_BRIDGE_VERSION) { $env:GARAGEAI_BRIDGE_VERSION } else { "latest" }
 $arch = if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq "Arm64") { "arm64" } else { "amd64" }
 
-if ($version -eq "latest") {
+if ($version -eq "latest" -and -not $env:GARAGEAI_BRIDGE_DOWNLOAD_BASE) {
   $releases = Invoke-RestMethod "https://api.github.com/repos/$repo/releases?per_page=50"
   $tags = $releases | ForEach-Object { $_.tag_name } | Where-Object { $_ -like "bridge-v*" }
   $stable = $tags | Where-Object { $_ -notmatch "-" } | Sort-Object { [version]($_ -replace "^bridge-v", "") } -Descending
@@ -40,13 +40,28 @@ try {
   New-Item -ItemType Directory -Force -Path $dir | Out-Null
   $dest = Join-Path $dir "garageai.exe"
   Move-Item -Force (Join-Path $tmp $asset) $dest
+  Unblock-File $dest -ErrorAction SilentlyContinue  # drop the download mark, so a later double-click does not hit SmartScreen
   $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
   if (-not ($userPath -split ";" | Where-Object { $_ -eq $dir })) {
     [Environment]::SetEnvironmentVariable("Path", "$userPath;$dir", "User")
     $env:Path = "$env:Path;$dir"
     Write-Host "Added $dir to your PATH (new terminals see it)."
   }
-  Write-Host "Installed $(& $dest version) -> $dest (checksum verified)"
+  # Windows Defender sometimes quarantines an unsigned Go program as a false positive, right after
+  # it is written. Say so plainly, with the fix, instead of "garageai is not recognized".
+  $ver = $null
+  try { if (Test-Path $dest) { $ver = & $dest version 2>$null } } catch { $ver = $null }
+  if (-not $ver) {
+    Write-Host ""
+    Write-Host "garageai.exe was removed or cannot start. This is usually Windows Defender (a false positive on an unsigned program)."
+    Write-Host "Check: Windows Security -> Virus & threat protection -> Protection history."
+    Write-Host "Fix:   Windows Security -> Virus & threat protection -> Manage settings -> Exclusions -> Add folder:"
+    Write-Host "         $dir"
+    Write-Host "         $env:ProgramData\GarageAI"
+    Write-Host "       then run this command again. Report it so it stops: https://www.microsoft.com/wdsi/filesubmission"
+    throw "garageai: the installed program does not run (see above)"
+  }
+  Write-Host "Installed $ver -> $dest (checksum verified)"
 
   # A garage already connected: update the services' copy too.
   $svc = Join-Path $env:ProgramData "GarageAI\garageai.exe"
