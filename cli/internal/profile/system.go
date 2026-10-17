@@ -231,22 +231,29 @@ func heartbeatAndConfig() (Heartbeat, GarageAI) {
 	hb, cfg := Heartbeat{}, GarageAI{}
 	switch runtime.GOOS {
 	case "windows":
-		conf := filepath.Join(os.Getenv("ProgramData"), "GarageAI", "heartbeat.json")
-		if b, err := os.ReadFile(conf); err == nil {
-			var c struct {
-				Runtime string `json:"runtime"`
-				Port    any    `json:"port"`
-			}
-			if json.Unmarshal(b, &c) == nil {
-				cfg.ConfiguredRuntime = strp(c.Runtime)
-				if p, err := strconv.Atoi(strings.TrimSpace(strings.Trim(jsonString(c.Port), `"`))); err == nil {
-					cfg.ConfiguredPort = &p
+		// Bridge's scheduled task, or the connect script's old one (heartbeat.json, before 1.0).
+		hb.Installed, hb.Active = service.Installed()
+		if !hb.Installed {
+			if b, err := os.ReadFile(filepath.Join(os.Getenv("ProgramData"), "GarageAI", "heartbeat.json")); err == nil {
+				var c struct {
+					Runtime string `json:"runtime"`
+					Port    any    `json:"port"`
 				}
+				if json.Unmarshal(b, &c) == nil {
+					cfg.ConfiguredRuntime = strp(c.Runtime)
+					if p, err := strconv.Atoi(strings.TrimSpace(strings.Trim(jsonString(c.Port), `"`))); err == nil {
+						cfg.ConfiguredPort = &p
+					}
+				}
+				hb.Installed = true
+				hb.Active = strings.Contains(run("schtasks", "/query", "/tn", "GarageAI heartbeat"), "Ready") ||
+					strings.Contains(run("schtasks", "/query", "/tn", "GarageAI heartbeat"), "Running")
 			}
-			hb.Installed = true
 		}
-		hb.Active = strings.Contains(run("schtasks", "/query", "/tn", "GarageAI heartbeat"), "Ready") ||
-			strings.Contains(run("schtasks", "/query", "/tn", "GarageAI heartbeat"), "Running")
+		if inst, _ := service.TunnelInstalled(); inst {
+			cfg.Transport = "tunnel"
+		}
+		readBridgeConfig(&cfg)
 	default:
 		// Bridge's own service (garageai run) or the connect script's heartbeat: either counts.
 		_, errBridge := os.Stat("/etc/garageai/bridge.json")
@@ -268,26 +275,8 @@ func heartbeatAndConfig() (Heartbeat, GarageAI) {
 			hb.Active = exec.Command("systemctl", "is-active", "--quiet", "garageai-bridge.timer").Run() == nil ||
 				exec.Command("systemctl", "is-active", "--quiet", "garageai-heartbeat.timer").Run() == nil
 		}
-		b, err := os.ReadFile("/etc/garageai/bridge.json")
-		if err != nil && os.IsPermission(err) {
-			b, err = os.ReadFile("/etc/garageai/bridge-public.json") // the secret-free copy, for doctor as a normal user
-		}
-		if err == nil {
-			var c struct {
-				Transport string `json:"transport"`
-				MeshIP    string `json:"mesh_ip"`
-				Runtime   string `json:"runtime"`
-				Port      int    `json:"port"`
-			}
-			if json.Unmarshal(b, &c) == nil {
-				cfg.ConfiguredRuntime = strp(c.Runtime)
-				if c.Port > 0 {
-					cfg.ConfiguredPort = &c.Port
-				}
-				if c.Transport == "tunnel" {
-					cfg.Transport, cfg.TunnelIP = "tunnel", c.MeshIP
-				}
-			}
+		if readBridgeConfig(&cfg) {
+			// Bridge's own configuration
 		} else if b, err := os.ReadFile("/etc/garageai/heartbeat.env"); err == nil {
 			for _, line := range strings.Split(string(b), "\n") {
 				k, v, ok := strings.Cut(line, "=")
@@ -303,6 +292,37 @@ func heartbeatAndConfig() (Heartbeat, GarageAI) {
 		}
 	}
 	return hb, cfg
+}
+
+// readBridgeConfig fills cfg from Bridge's configuration (the secret-free public copy when the
+// full one is not readable, as for doctor run by a normal user). Same file layout on every OS:
+// before 1.0.1 the Windows branch read only the old script's heartbeat.json, so a tunnel garage
+// on Windows reported localhost_only and netbird_missing (w11, 2026-10-17).
+func readBridgeConfig(cfg *GarageAI) bool {
+	b, err := os.ReadFile(service.ConfigPath())
+	if err != nil {
+		b, err = os.ReadFile(service.PublicPath())
+	}
+	if err != nil {
+		return false
+	}
+	var c struct {
+		Transport string `json:"transport"`
+		MeshIP    string `json:"mesh_ip"`
+		Runtime   string `json:"runtime"`
+		Port      int    `json:"port"`
+	}
+	if json.Unmarshal(b, &c) != nil {
+		return false
+	}
+	cfg.ConfiguredRuntime = strp(c.Runtime)
+	if c.Port > 0 {
+		cfg.ConfiguredPort = &c.Port
+	}
+	if c.Transport == "tunnel" {
+		cfg.Transport, cfg.TunnelIP = "tunnel", c.MeshIP
+	}
+	return true
 }
 
 func jsonString(v any) string { b, _ := json.Marshal(v); return string(b) }
