@@ -121,6 +121,17 @@ type Acceptance struct {
 
 type RegisterResult struct {
 	Acceptance []Acceptance `json:"acceptance"`
+	// Since 2026-10-16 the portal says what it did with the models, in counts and words: found,
+	// offered (for sale), not offered with a reason each, and a ready-to-print message.
+	Found      []string     `json:"found,omitempty"`
+	Offered    []string     `json:"offered,omitempty"`
+	NotOffered []NotOffered `json:"not_offered,omitempty"`
+	Message    string       `json:"message,omitempty"`
+}
+
+type NotOffered struct {
+	Model  string `json:"model"`
+	Reason string `json:"reason"`
 }
 
 type HeartbeatResult struct {
