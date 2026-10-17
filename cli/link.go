@@ -125,6 +125,7 @@ func noRuntime(where string) {
 	fmt.Println("    Start one with a model loaded, then run garageai connect again. For example Ollama:")
 	fmt.Println("      install it from https://ollama.com/download, then: ollama pull qwen3:4b")
 	fmt.Println("    LM Studio, vLLM, llama.cpp and others work too; garageai doctor shows what it finds.")
+	fmt.Println("    Or let Bridge install one: garageai runtime (it says whether Xyntetik Runner fits this machine)")
 }
 
 var runtimeCheck = hasRuntimeOn // replaced in tests, which have no runtime

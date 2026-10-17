@@ -110,34 +110,37 @@ func fetch(url string, max int64) ([]byte, error) {
 // downloadVerified fetches the release asset for this OS and checks it against SHA256SUMS.
 // Returns the path of the verified file (in dir).
 func downloadVerified(base, dir string) (string, error) {
+	p := filepath.Join(dir, "garageai.new")
+	return p, downloadAsset(base, assetName(), p, 200<<20)
+}
+
+// downloadAsset fetches base/asset, checks it against base/SHA256SUMS and writes it to dest
+// (0755). Bridge's own releases and the Runner it installs go through here.
+func downloadAsset(base, asset, dest string, max int64) error {
 	base = strings.TrimSuffix(base, "/")
 	sums, err := fetch(base+"/SHA256SUMS", 64<<10)
 	if err != nil {
-		return "", err
+		return err
 	}
 	want := ""
 	for _, line := range strings.Split(string(sums), "\n") {
 		f := strings.Fields(line)
-		if len(f) == 2 && strings.TrimPrefix(f[1], "*") == assetName() {
-			want = f[0]
+		if len(f) == 2 && strings.TrimPrefix(f[1], "*") == asset {
+			want = strings.ToLower(f[0])
 		}
 	}
 	if want == "" {
-		return "", fmt.Errorf("no checksum for %s in SHA256SUMS", assetName())
+		return fmt.Errorf("no checksum for %s in SHA256SUMS", asset)
 	}
-	b, err := fetch(base+"/"+assetName(), 200<<20)
+	b, err := fetch(base+"/"+asset, max)
 	if err != nil {
-		return "", err
+		return err
 	}
 	sum := sha256.Sum256(b)
 	if hex.EncodeToString(sum[:]) != want {
-		return "", errors.New("checksum mismatch: the download does not match SHA256SUMS")
+		return errors.New("checksum mismatch: the download of " + asset + " does not match SHA256SUMS")
 	}
-	p := filepath.Join(dir, "garageai.new")
-	if err := os.WriteFile(p, b, 0o755); err != nil {
-		return "", err
-	}
-	return p, nil
+	return os.WriteFile(dest, b, 0o755)
 }
 
 // selfUpdate brings the service's Bridge to version stable from base (the release's download

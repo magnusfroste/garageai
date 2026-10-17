@@ -216,6 +216,15 @@ The runtime manager (vLLM Panel) reports that the model failed to start or the c
 its reason is in the message. Open the panel for the log. Buyers are not routed here until the
 model serves again.
 
+## No runtime yet: `garageai runtime`
+
+`garageai runtime` says whether Xyntetik Runner, a one-file engine, fits this machine and which
+model it would serve; `garageai runtime install` installs it as a service (it asks for sudo or
+Administrator) and waits until the model is downloaded. Then `garageai connect`. It says "keep it"
+when Ollama or another runtime already serves models (Bridge works with those), and "not yet" on
+ARM Linux (DGX Spark), Intel Macs and Windows on ARM. AMD and Intel graphics run on the
+processor. `garageai runtime remove` stops it; the model stays downloaded.
+
 ## Windows
 
 Since Bridge v1.0.0 Windows is a first-class garage. Install with the line from the portal's
