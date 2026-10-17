@@ -47,7 +47,21 @@ try {
     $env:Path = "$env:Path;$dir"
     Write-Host "Added $dir to your PATH (new terminals see it)."
   }
-  Write-Host "Installed $(& $dest version) -> $dest (checksum verified)"
+  # Windows Defender sometimes quarantines an unsigned Go program as a false positive, right after
+  # it is written. Say so plainly, with the fix, instead of "garageai is not recognized".
+  $ver = $null
+  try { if (Test-Path $dest) { $ver = & $dest version 2>$null } } catch { $ver = $null }
+  if (-not $ver) {
+    Write-Host ""
+    Write-Host "garageai.exe was removed or cannot start. This is usually Windows Defender (a false positive on an unsigned program)."
+    Write-Host "Check: Windows Security -> Virus & threat protection -> Protection history."
+    Write-Host "Fix:   Windows Security -> Virus & threat protection -> Manage settings -> Exclusions -> Add folder:"
+    Write-Host "         $dir"
+    Write-Host "         $env:ProgramData\GarageAI"
+    Write-Host "       then run this command again. Report it so it stops: https://www.microsoft.com/wdsi/filesubmission"
+    throw "garageai: the installed program does not run (see above)"
+  }
+  Write-Host "Installed $ver -> $dest (checksum verified)"
 
   # A garage already connected: update the services' copy too.
   $svc = Join-Path $env:ProgramData "GarageAI\garageai.exe"

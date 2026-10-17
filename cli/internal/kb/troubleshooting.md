@@ -237,6 +237,19 @@ a Mac; the tunnel reaches it there.
 
 ## The heartbeat
 
+
+### Windows Defender removed garageai.exe (false positive)
+Unsigned Go programs are sometimes quarantined by Windows Defender right after download. The
+symptom is "garageai is not recognized" after an installation that looked fine, or a garage that
+goes silent after a Defender signature update (Ops sees it as "tunnel down", same as a PC that is
+off). Windows Security → Virus & threat protection → Protection history shows the removal.
+
+- **Fix:** Windows Security → Virus & threat protection → Manage settings → Exclusions → Add
+  folder: `%LOCALAPPDATA%\Programs\GarageAI` and `%ProgramData%\GarageAI`. Run the install line
+  again. install.ps1 detects the removal and prints these steps.
+- **Make it stop:** submit the exe at https://www.microsoft.com/wdsi/filesubmission as a false
+  positive; Microsoft usually clears it within a day. Code signing (planned) removes the problem.
+
 ### `heartbeat_missing` / `heartbeat_stopped` (warning)
 The heartbeat reports the garage's models every 5 minutes; without it, a model you load or remove
 is not picked up. Run `garageai connect` again. The Operations Center also warns when a garage
