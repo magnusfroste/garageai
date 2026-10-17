@@ -247,6 +247,8 @@ off). Windows Security → Virus & threat protection → Protection history show
 - **Make it stop:** submit the exe at https://www.microsoft.com/wdsi/filesubmission as a false
   positive; Microsoft usually clears it within a day. Code signing (planned) removes the problem.
 
+## The heartbeat
+
 ### `heartbeat_missing` / `heartbeat_stopped` (warning)
 The heartbeat reports the garage's models every 5 minutes; without it, a model you load or remove
 is not picked up. Run `garageai connect` again. The Operations Center also warns when a garage
@@ -270,9 +272,6 @@ curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/inst
 or `sudo garageai install-service`. The service then runs its own root-only copy
 (`/Library/Application Support/GarageAI/garageai` on macOS, `/usr/local/lib/garageai/garageai` on
 Linux). Learned: Bridge rc1 set up services that ran the copy in the operator's home.
-
-## The heartbeat
-
 
 ## Updating Bridge
 
