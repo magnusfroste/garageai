@@ -40,6 +40,7 @@ try {
   New-Item -ItemType Directory -Force -Path $dir | Out-Null
   $dest = Join-Path $dir "garageai.exe"
   Move-Item -Force (Join-Path $tmp $asset) $dest
+  Unblock-File $dest -ErrorAction SilentlyContinue  # drop the download mark, so a later double-click does not hit SmartScreen
   $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
   if (-not ($userPath -split ";" | Where-Object { $_ -eq $dir })) {
     [Environment]::SetEnvironmentVariable("Path", "$userPath;$dir", "User")
