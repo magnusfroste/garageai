@@ -6,7 +6,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
+	"time"
 )
 
 // Windows: the heartbeat is a scheduled task every 5 minutes as SYSTEM, the tunnel is a Windows
@@ -79,7 +81,19 @@ func windowsInstallTunnel(self string) error {
 	}
 	_ = run("sc", "description", WindowsService, "This garage's tunnel to the GarageAI gateway (dials out; nothing listens).")
 	_ = run("sc", "failure", WindowsService, "reset=", "60", "actions=", "restart/5000/restart/5000/restart/5000")
-	return run("sc", "start", WindowsService)
+	// Also restart after an orderly stop with an error code, not only after a crash (w11's tunnel
+	// service stood still from 18:40, 2026-10-17, and Windows did nothing).
+	_ = run("sc", "failureflag", WindowsService, "1")
+	return windowsStartTunnel()
+}
+
+// windowsStartTunnel starts the tunnel service; "already running" (1056) is success: the
+// heartbeat's self-heal may have started it a moment earlier.
+func windowsStartTunnel() error {
+	if err := run("sc", "start", WindowsService); err != nil && !strings.Contains(err.Error(), "1056") {
+		return err
+	}
+	return nil
 }
 
 func windowsTunnelInstalled() (installed, active bool) {
@@ -98,7 +112,14 @@ func windowsRemoveTunnel() {
 
 func windowsRestartTunnel() {
 	_ = run("sc", "stop", WindowsService)
-	_ = run("sc", "start", WindowsService)
+	// sc stop returns at once; starting while it is still stopping fails as "already running".
+	for i := 0; i < 20; i++ {
+		if out, _ := exec.Command("sc", "query", WindowsService).Output(); strings.Contains(strings.ToUpper(string(out)), "STOPPED") {
+			break
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	_ = windowsStartTunnel()
 }
 
 // windowsRestrict makes path readable and writable by Administrators and SYSTEM only (and, with
@@ -126,3 +147,16 @@ func WindowsUserBinDir() string {
 }
 
 func windowsErr(what string, err error) error { return fmt.Errorf("%s: %w", what, err) }
+
+// EnsureTunnelRunning starts the tunnel service when it is installed but stands still. Windows
+// only: systemd and launchd keep their services alive themselves. The heartbeat calls it every
+// 5 minutes, so a stopped tunnel is back within one beat instead of waiting for someone.
+func EnsureTunnelRunning() (started bool) {
+	if runtime.GOOS != "windows" {
+		return false
+	}
+	if inst, active := windowsTunnelInstalled(); inst && !active {
+		return windowsStartTunnel() == nil
+	}
+	return false
+}

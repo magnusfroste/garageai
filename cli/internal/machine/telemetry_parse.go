@@ -127,3 +127,22 @@ func linuxPower(supplies map[string]map[string]string) (power string, pct *int) 
 	}
 	return power, pct
 }
+
+// windowsPower reads GetSystemPowerStatus: BatteryFlag 128 is "no system battery", 255 unknown;
+// ACLineStatus 1 is on the adapter, 0 on battery, 255 unknown; the percentage 255 is unknown.
+func windowsPower(acLine, batteryFlag, pct byte) (string, *int) {
+	if batteryFlag == 128 || batteryFlag == 255 {
+		return "", nil
+	}
+	var p *int
+	if pct <= 100 {
+		p = intp(int(pct))
+	}
+	switch acLine {
+	case 1:
+		return "ac", p
+	case 0:
+		return "battery", p
+	}
+	return "", p
+}

@@ -80,3 +80,25 @@ func TestParseNvidia(t *testing.T) {
 		t.Fatal("no nvidia-smi must be !ok")
 	}
 }
+
+func TestWindowsPower(t *testing.T) {
+	for _, c := range []struct {
+		ac, flag, pct byte
+		want          string
+		wantPct       int
+	}{
+		{1, 8, 88, "ac", 88},      // laptop charging
+		{0, 1, 40, "battery", 40}, // laptop on battery
+		{1, 128, 255, "", -1},     // desktop: no battery
+		{255, 255, 255, "", -1},   // unknown
+	} {
+		got, p := windowsPower(c.ac, c.flag, c.pct)
+		gotPct := -1
+		if p != nil {
+			gotPct = *p
+		}
+		if got != c.want || gotPct != c.wantPct {
+			t.Errorf("windowsPower(%d,%d,%d) = %q,%d want %q,%d", c.ac, c.flag, c.pct, got, gotPct, c.want, c.wantPct)
+		}
+	}
+}

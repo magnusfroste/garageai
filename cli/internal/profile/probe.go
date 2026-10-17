@@ -124,7 +124,9 @@ func ollamaRunner(process string, models []Model) bool {
 	}
 	for _, m := range models {
 		id := strings.ReplaceAll(m.ID, `\`, "/")
-		if strings.Contains(id, "/.ollama/models/blobs/") || strings.Contains(id, "/ollama/models/blobs/") {
+		// On Windows the model is named by its blob alone ("sha256-7f40…") and the process
+		// behind the port is not always known (w11, 2026-10-17).
+		if strings.Contains(id, "/.ollama/models/blobs/") || strings.Contains(id, "/ollama/models/blobs/") || strings.HasPrefix(id, "sha256-") {
 			return true
 		}
 	}

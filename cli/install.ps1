@@ -73,9 +73,12 @@ try {
     & $dest connect
   } else {
     Write-Host ""
-    Write-Host "Next (PowerShell as Administrator):"
-    Write-Host "  garageai connect    connect this computer to GarageAI (you approve it in the browser)"
-    Write-Host "  garageai doctor     what runs on this computer, what is wrong, and how to fix it"
+    if (Test-Path $svc) {
+      Write-Host "This computer is a garage already: nothing more to do. Check it with: garageai doctor"
+    } else {
+      Write-Host "Not connected yet? Run: garageai connect   (Windows asks for Administrator; answer Yes)"
+      Write-Host "What runs here and what to fix: garageai doctor"
+    }
   }
 } finally {
   Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue

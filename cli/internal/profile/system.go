@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -401,4 +402,29 @@ func localFacts(hb Heartbeat) (last string, ollamaPersistent bool, sleepMin, dis
 		}
 	}
 	return
+}
+
+// windowsSleep reads the active power plan with powercfg: minutes until sleep on the power
+// adapter and whether closing the lid sleeps (any action but "do nothing") on the adapter. The
+// output is localised, so it reads only the hex values: the last two are the AC and the DC
+// setting. A desktop has no lid setting, which reads as "no". Unknown is (0, false): no advice.
+func windowsSleep() (acMin int, lidSleeps bool) {
+	if v, ok := powercfgAC(run("powercfg", "/query", "SCHEME_CURRENT", "SUB_SLEEP", "STANDBYIDLE")); ok {
+		acMin = v / 60
+	}
+	if v, ok := powercfgAC(run("powercfg", "/query", "SCHEME_CURRENT", "SUB_BUTTONS", "LIDACTION")); ok {
+		lidSleeps = v != 0
+	}
+	return
+}
+
+var hexValue = regexp.MustCompile(`0x([0-9a-fA-F]{8})`)
+
+func powercfgAC(out string) (int, bool) {
+	m := hexValue.FindAllStringSubmatch(out, -1)
+	if len(m) < 2 {
+		return 0, false
+	}
+	v, err := strconv.ParseUint(m[len(m)-2][1], 16, 32)
+	return int(v), err == nil
 }
