@@ -1,0 +1,43 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from './Header.astro';
+import Footer from './Footer.astro';
+import { getEntry } from 'astro:content';
+
+// Terms and privacy: plain text pages rendered from src/legal/*.md. The version is what the portal
+// records when an account accepts them (TERMS_VERSION in the portal must match).
+interface Props { title: string; description: string; version: string; other: { href: string; text: string } }
+const { title, description, version, other } = Astro.props;
+const header = await getEntry('landing', 'header');
+const footer = await getEntry('landing', 'footer');
+---
+
+<Layout title={`${title} — GarageAI`} description={description}>
+  <Header {...header.data} />
+  <main class="max-w-3xl mx-auto px-4 pt-28 pb-20">
+    <p class="text-sm uppercase tracking-widest mb-4" style="color: var(--color-accent)">GarageAI</p>
+    <h1 class="apple-heading-1 mb-2">{title}</h1>
+    <p class="text-sm mb-10" style="color: var(--color-text-secondary)">
+      Version {version} · Liteit AB, org.nr 556616-1658, Kaplansbacken 3, 112 24 Stockholm, Sweden ·
+      <a href={other.href} style="color: var(--color-primary)">{other.text}</a>
+    </p>
+    <article class="legal">
+      <slot />
+    </article>
+  </main>
+  <Footer {...footer.data} />
+</Layout>
+
+<style is:global>
+  .legal { color: var(--color-text-secondary); line-height: 1.7; font-size: 0.975rem; }
+  .legal h2 { color: var(--color-text-primary, #fff); font-size: 1.35rem; font-weight: 600; margin: 2.25rem 0 0.75rem; }
+  .legal p, .legal ul { margin: 0 0 1rem; }
+  .legal ul { list-style: disc; padding-left: 1.4rem; }
+  .legal li { margin: 0.3rem 0; }
+  .legal strong { color: var(--color-text-primary, #fff); }
+  .legal a { color: var(--color-primary); text-decoration: underline; text-underline-offset: 2px; }
+  .legal code { font-family: ui-monospace, monospace; font-size: 0.9em; }
+  .legal table { width: 100%; border-collapse: collapse; margin: 0 0 1.25rem; font-size: 0.85rem; display: block; overflow-x: auto; }
+  .legal th, .legal td { border: 1px solid rgba(255,255,255,0.12); padding: 0.45rem 0.6rem; text-align: left; vertical-align: top; }
+  .legal th { color: var(--color-text-primary, #fff); font-weight: 600; }
+</style>
