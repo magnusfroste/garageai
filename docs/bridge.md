@@ -111,6 +111,8 @@ program, an outbound tunnel, a local forward.
   and connect one real garage (the Mac) that way. The spike decides; if it holds, this is the
   next big step and phase 2 follows on top of it.
 
+**Bridge in the menu bar** (sketch 2026-10-17, after v0.7.0): status, today's earnings, pause and the few notifications that matter, on macOS and Windows. [bridge-menubar.md](bridge-menubar.md).
+
 ### 2. Run the runtime — the right engine, configured right
 
 **Decided 2026-10-16 (Magnus): Bridge bundles Xyntetik Runner as the engine for operators who
