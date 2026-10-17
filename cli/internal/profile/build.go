@@ -41,6 +41,9 @@ func Build(version string) Profile {
 	p.darwin = runtime.GOOS == "darwin"
 	p.heartbeatLast, p.ollamaHostPersistent, p.sleepMinutes, p.displayMinutes = localFacts(hb)
 	p.laptop = p.darwin && strings.Contains(run("pmset", "-g", "batt"), "InternalBattery")
+	if runtime.GOOS == "windows" {
+		p.winSleepACMin, p.winLidSleepsAC = windowsSleep()
+	}
 	p.Problems = problems(p)
 	p.OK = true
 	for _, pr := range p.Problems {
@@ -240,6 +243,17 @@ func problems(p Profile) []Problem {
 			}
 			add("info", "mac_sleeps", msg+"; a sleeping Mac is offline for buyers", fix)
 		}
+	}
+	if p.winSleepACMin > 0 || p.winLidSleepsAC {
+		var why []string
+		if p.winSleepACMin > 0 {
+			why = append(why, fmt.Sprintf("sleeps after %d min on the power adapter", p.winSleepACMin))
+		}
+		if p.winLidSleepsAC {
+			why = append(why, "sleeps when the lid is closed on the power adapter")
+		}
+		add("info", "windows_sleeps", "This PC "+strings.Join(why, " and ")+"; a sleeping PC is offline for buyers",
+			"In PowerShell as Administrator: powercfg /change standby-timeout-ac 0; powercfg /setacvalueindex SCHEME_CURRENT SUB_BUTTONS LIDACTION 0; powercfg /setactive SCHEME_CURRENT (on battery your own settings still apply)")
 	}
 	if len(p.GPUs) == 0 {
 		add("info", "no_gpu", "No GPU found (nvidia-smi, rocm-smi, Apple silicon)", "Inference on CPU only is slow; buyers will see it")

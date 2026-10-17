@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 )
 
@@ -79,6 +80,9 @@ func windowsInstallTunnel(self string) error {
 	}
 	_ = run("sc", "description", WindowsService, "This garage's tunnel to the GarageAI gateway (dials out; nothing listens).")
 	_ = run("sc", "failure", WindowsService, "reset=", "60", "actions=", "restart/5000/restart/5000/restart/5000")
+	// Also restart after an orderly stop with an error code, not only after a crash (w11's tunnel
+	// service stood still from 18:40, 2026-10-17, and Windows did nothing).
+	_ = run("sc", "failureflag", WindowsService, "1")
 	return run("sc", "start", WindowsService)
 }
 
@@ -126,3 +130,16 @@ func WindowsUserBinDir() string {
 }
 
 func windowsErr(what string, err error) error { return fmt.Errorf("%s: %w", what, err) }
+
+// EnsureTunnelRunning starts the tunnel service when it is installed but stands still. Windows
+// only: systemd and launchd keep their services alive themselves. The heartbeat calls it every
+// 5 minutes, so a stopped tunnel is back within one beat instead of waiting for someone.
+func EnsureTunnelRunning() (started bool) {
+	if runtime.GOOS != "windows" {
+		return false
+	}
+	if inst, active := windowsTunnelInstalled(); inst && !active {
+		return run("sc", "start", WindowsService) == nil
+	}
+	return false
+}

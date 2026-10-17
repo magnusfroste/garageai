@@ -31,6 +31,9 @@ func run(args []string) int {
 	_ = service.WritePublic(cfg)                                             // garages set up before v0.4.5 get the secret-free config for doctor
 	os.Remove(service.BinaryPath() + ".old")                                 // Windows: the previous version, stepped aside by the last self-update
 	for {
+		if cfg.Transport == "tunnel" && service.EnsureTunnelRunning() {
+			fmt.Println(time.Now().UTC().Format(time.RFC3339), "the tunnel service stood still: started it again")
+		}
 		if code := heartbeat(cfg, client); code != 0 && once {
 			return code
 		}

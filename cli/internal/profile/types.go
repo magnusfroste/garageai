@@ -28,6 +28,8 @@ type Profile struct {
 	ollamaHostPersistent bool
 	sleepMinutes         int
 	laptop               bool // a Mac with a battery: its "prevent sleeping" setting only holds on the power adapter
+	winSleepACMin        int  // Windows: minutes until sleep on the power adapter (0 = never, -1 = unknown)
+	winLidSleepsAC       bool // Windows laptop: closing the lid on the power adapter sleeps or hibernates
 	displayMinutes       int
 }
 

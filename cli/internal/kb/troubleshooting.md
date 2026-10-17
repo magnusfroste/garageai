@@ -218,9 +218,9 @@ model serves again.
 
 ## Windows
 
-Since Bridge v1.0.0 Windows is a first-class garage: install in PowerShell **as Administrator**
-with `irm https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.ps1 | iex`,
-then `garageai connect` (also as Administrator: the services need it; there is no sudo to ask).
+Since Bridge v1.0.0 Windows is a first-class garage. Install with the line from the portal's
+Windows tab, pasted into PowerShell:
+`irm https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.ps1 | iex; garageai connect`.
 The heartbeat is a scheduled task ("GarageAI Bridge heartbeat", every 5 minutes as SYSTEM), the
 tunnel a Windows service ("GarageAIBridgeTunnel", starts with Windows, log in
 `%ProgramData%\GarageAI\tunnel.log`). Configuration and keys live in `%ProgramData%\GarageAI`,
@@ -229,21 +229,61 @@ readable by Administrators and SYSTEM only. Self-update works (the old exe steps
 heartbeat"`. The runtime (Ollama for Windows, LM Studio, llama.cpp) listens on localhost as on
 a Mac; the tunnel reaches it there.
 
-- **"Open PowerShell as Administrator"**: connect, install-service, pause, resume and update need
-  an elevated PowerShell; a normal one is refused with that line.
+What the first Windows operators ran into, in the order they meet it:
+
+- **Administrator, not Defender.** Bridge installs Windows services, which needs Administrator.
+  Since v1.0.4 `garageai connect` in a normal PowerShell asks for it itself: Windows shows its
+  Yes/No dialog, answer Yes, and Bridge continues in a new window that stays open at the end.
+  Before v1.0.4 it stopped with "Open PowerShell as Administrator", which reads like a block but
+  is not one. Open an elevated PowerShell yourself: right-click **Start** → **Terminal (Admin)**
+  or **Windows PowerShell (Admin)** → Yes. The title bar then starts with "Administrator:".
+  Then `garageai connect` (the program is installed already). **Do not add Defender exclusions
+  for this**: Defender is only involved when Windows Security says it removed garageai.exe (see
+  below), and the exclusion settings are a dead end otherwise (Torbjörn, 2026-10-17).
+- **"garageai is not recognized"** right after installing: a PowerShell window opened before the
+  installation does not see the new PATH. Open a new one. (If a new window does not know it
+  either, see the Defender section.)
+- **The garage name** is asked in the browser when you approve the computer.
+- **Ollama's window.** Ollama for Windows runs models with a 4096-token window; buyers' tools
+  send longer prompts (`small_context`). Ollama app → Settings → Context length, or in PowerShell
+  `setx OLLAMA_CONTEXT_LENGTH 8192`, then quit Ollama in the system tray and start it again.
+- **A second "llamacpp" runtime on a random port** with a sha256 name in doctor is Ollama's own
+  model process, not something you started. Bridge v1.0.4 no longer lists it.
+- **Ryzen or Intel laptops** (Radeon or Intel graphics built into the processor): Ollama on
+  Windows runs on the processor, and doctor says `no_gpu`. That is correct, and fine for a
+  small model (qwen3:0.6b, qwen3:4b); larger models get too slow for buyers.
 - **Ollama for Windows** runs in the user's session (tray app): when nobody is logged in, the
-  garage has no runtime. Run Ollama as a service or keep a user logged in; Bridge reports
+  garage has no runtime. Keep the user logged in (locking the screen is fine); Bridge reports
   `runtime_user_session` as on a Mac.
+- **The tunnel service stood still** (`tunnel_stopped`): since v1.0.4 the heartbeat starts it
+  again within 5 minutes, and Windows restarts it after an error exit. By hand:
+  `sc.exe start GarageAIBridgeTunnel`; the reason is at the end of `tunnel.log`.
+- **Installing Ollama takes 10–15 minutes** on a small or cloud machine: the installer unpacks
+  about 2 GB of GPU libraries and Defender scans each file. It has not hung.
+
+### `windows_sleeps` (info)
+The PC sleeps on the power adapter after some minutes, or when the lid is closed. A sleeping PC
+is offline for buyers, as a sleeping Mac is (`mac_sleeps`). In PowerShell as Administrator:
+
+```powershell
+powercfg /change standby-timeout-ac 0; powercfg /setacvalueindex SCHEME_CURRENT SUB_BUTTONS LIDACTION 0; powercfg /setactive SCHEME_CURRENT
+```
+
+That keeps it awake on the power adapter, also with the lid closed; on battery your own settings
+still apply, and Bridge reports a laptop on battery as away rather than down. Settings → System →
+Power has the same switches.
 
 ### Windows Defender removed garageai.exe (false positive)
-Unsigned Go programs are sometimes quarantined by Windows Defender right after download. The
-symptom is "garageai is not recognized" after an installation that looked fine, or a garage that
-goes silent after a Defender signature update (Ops sees it as "tunnel down", same as a PC that is
-off). Windows Security → Virus & threat protection → Protection history shows the removal.
+Only when Windows Security actually says so. Unsigned Go programs are sometimes quarantined by
+Windows Defender right after download (it did not happen on the first Windows garages). The
+symptom is "garageai is not recognized" in a new PowerShell window after an installation that
+looked fine, or a garage that goes silent after a Defender signature update (Ops sees it as
+"tunnel down", same as a PC that is off). Windows Security → Virus & threat protection →
+Protection history shows the removal.
 
-- **Fix:** Windows Security → Virus & threat protection → Manage settings → Exclusions → Add
-  folder: `%LOCALAPPDATA%\Programs\GarageAI` and `%ProgramData%\GarageAI`. Run the install line
-  again. install.ps1 detects the removal and prints these steps.
+- **Fix:** in PowerShell as Administrator:
+  `Add-MpPreference -ExclusionPath "$env:LOCALAPPDATA\Programs\GarageAI","$env:ProgramData\GarageAI"`,
+  then run the install line again. install.ps1 detects the removal and prints these steps.
 - **Make it stop:** submit the exe at https://www.microsoft.com/wdsi/filesubmission as a false
   positive; Microsoft usually clears it within a day. Code signing (planned) removes the problem.
 
