@@ -583,7 +583,8 @@ func connect(args []string) int {
 			c.info(fmt.Sprintf("  Not offered: %s (%s)", n.Model, n.Reason))
 		}
 		if res.Message != "" {
-			c.info("  " + res.Message)
+			// The portal's message may run over several lines: indent every one.
+			c.info("  " + strings.ReplaceAll(strings.TrimSpace(res.Message), "\n", "\n    "))
 		}
 		if len(res.Offered) > 0 || passed > 0 {
 			c.ok("Node registered — your garage is live on GarageAI.")
@@ -798,9 +799,12 @@ func (c *connectRun) hintBind() {
 }
 
 func (c *connectRun) hintOllamaContext(target int) {
-	if runtime.GOOS == "darwin" {
+	switch runtime.GOOS {
+	case "darwin":
 		c.info(fmt.Sprintf("  → Ollama app: Settings → Context length → %dk or more. Homebrew or a terminal: start Ollama with OLLAMA_CONTEXT_LENGTH=%d.", target/1024, target))
-	} else {
+	case "windows":
+		c.info(fmt.Sprintf("  → Ollama app: Settings → Context length → %dk or more, or in PowerShell: setx OLLAMA_CONTEXT_LENGTH %d, then quit Ollama in the system tray and start it again.", target/1024, target))
+	default:
 		c.info(fmt.Sprintf("  → start Ollama with OLLAMA_CONTEXT_LENGTH=%d (for the systemd service: sudo systemctl edit ollama, Environment=\"OLLAMA_CONTEXT_LENGTH=%d\").", target, target))
 	}
 	c.info("    The heartbeat picks the new window up within 5 minutes; no need to run this command again.")
