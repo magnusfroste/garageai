@@ -1125,6 +1125,7 @@ def quality():
                     then completion_tokens / extract(epoch from ("endTime" - "completionStartTime")) end tps
         from "LiteLLM_SpendLogs"
         where "startTime" > now() - interval '{iv}' and model_group not like 'probe/%' and model_group not like 'garage-probe%'
+          and model_group not like 'test/%' -- failover tests against the live gateway (2026-10-18)
           and call_type not like '/%'
           -- a 4xx is the buyer's request being wrong (prompt longer than the window, bad parameters),
           -- not the garage failing: it does not count against the garage (Erik's 88 %, 2026-10-13)
@@ -1166,6 +1167,7 @@ def quality_by_engine():
         from "LiteLLM_SpendLogs" l
         left join "LiteLLM_ProxyModelTable" m on m.model_info->>'id' = l.model_id
         where l."startTime" > now() - interval '{iv}' and l.model_group not like 'probe/%' and l.model_group not like 'garage-probe%'
+          and l.model_group not like 'test/%'
           and l.call_type not like '/%'
           and not (l.status = 'failure' and coalesce(l.metadata->'error_information'->>'error_code', '') like '4%'))
       select e, {bucket}, count(*), count(*) filter (where status = 'success'),
