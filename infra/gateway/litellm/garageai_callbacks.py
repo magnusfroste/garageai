@@ -186,14 +186,18 @@ def provider_time_limit(kwargs):
 def provider_unavailable(exception, request_data):
     """A 503 for the buyer when a deployment (not the buyer's key) failed in a way that only the
     garage or provider can fix: it rejected our key, or every deployment of the model is cooling
-    down. None for everything else."""
+    down or unhealthy. None for everything else. It is an HTTPException because that is the only
+    kind LiteLLM's proxy takes from a failure hook (anything else is logged and dropped: a
+    ProxyException here was silently ignored on the first deploy, 2026-10-18)."""
     model = (request_data or {}).get("model") or "this model"
     text = str(exception)
-    if isinstance(exception, (litellm.AuthenticationError, litellm.PermissionDeniedError)):
-        return ModelTemporarilyUnavailable(model, "garageai/auto" if model != "garageai/auto" else None)
-    if "No deployments available for selected model" in text:
-        return ModelTemporarilyUnavailable(model, "garageai/auto" if model != "garageai/auto" else None)
-    return None
+    away = isinstance(exception, (litellm.AuthenticationError, litellm.PermissionDeniedError)) \
+        or "No deployments available for selected model" in text \
+        or "There are no healthy deployments" in text
+    if not away:
+        return None
+    return HTTPException(status_code=503, headers={"Retry-After": str(RETRY_AFTER)},
+                         detail=unavailable_message(model, "garageai/auto" if model != "garageai/auto" else None))
 
 
 class ContextLengthExceeded(ProxyException):
@@ -345,7 +349,7 @@ class GarageAICallbacks(CustomLogger):
 
     async def async_post_call_failure_hook(self, request_data, original_exception, user_api_key_dict,
                                            traceback_str=None):
-        if isinstance(original_exception, (ContextLengthExceeded, ModelTemporarilyUnavailable)):
+        if isinstance(original_exception, (ContextLengthExceeded, ModelTemporarilyUnavailable, HTTPException)):
             return None
         away = provider_unavailable(original_exception, request_data)
         if away is not None:
