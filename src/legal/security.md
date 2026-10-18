@@ -57,8 +57,9 @@ processed on your machine. The privacy policy lists everything we keep.
 runtime. That is the point of a marketplace, and it also means that whoever controls the gateway
 can use your GPU: send it requests, keep it busy. Not read your files, not reach your network,
 but use the capacity you offered. We run the gateway on our own server in the EU, with the
-configuration public in the repository, and we are building an outside watchdog and signed
-releases to make a takeover harder and visible.
+configuration public in the repository. An outside watchdog checks the gateway, the portal and
+this website from GitHub every 5 minutes, and signed releases are next, to make a takeover harder
+and visible.
 
 **2. Bridge updates itself from our releases.** A new version is downloaded from our GitHub
 releases, checked against its checksum, run once as a test, and only then swapped in. New
