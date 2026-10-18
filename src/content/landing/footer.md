@@ -26,13 +26,19 @@ links:
   - icon: "📧"
     text: "powerup@garageai.eu"
     url: "mailto:powerup@garageai.eu"
+  - icon: "📄"
+    text: "Terms"
+    url: "/terms"
+  - icon: "🔒"
+    text: "Privacy"
+    url: "/privacy"
 partners:
   - name: "Autoversio"
     url: "https://www.autoversio.com"
   - name: "Liteit"
     url: "https://www.liteit.se"
 credits: "Built on open source: WireGuard, LiteLLM and NetBird."
-copyright: "© 2026 Garage AI · MIT License · Made in Sweden 🇸🇪 · Built for Europe 🇪🇺"
+copyright: "© 2026 Liteit AB · GarageAI · Bridge under the MIT License · Made in Sweden 🇸🇪 · Built for Europe 🇪🇺"
 ---
 
 Content for this section is defined in the frontmatter above.
