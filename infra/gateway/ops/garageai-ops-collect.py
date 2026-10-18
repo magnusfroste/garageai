@@ -858,22 +858,15 @@ def alerts(d):
             add("critical", f"Certificate for {c['host']} expires in {c['days_left']} days", "server")
         elif c["days_left"] < 14:
             add("warning", f"Certificate for {c['host']} expires in {c['days_left']} days", "server")
+    # NetBird is only the fallback for networks that block UDP since 2026-10-18 (every garage runs
+    # on Bridge's own tunnel; the peers were cleaned up). What matters is that the fallback works
+    # and stays one-way; setup keys and extra policies no longer say anything.
     m = d["mesh"]
     if m["local"].get("management") is False or m["local"].get("signal") is False:
-        add("critical", "The gateway's NetBird client is not connected to management/signal", "mesh")
-    if m.get("valid_setup_keys"):
-        # A key handed to an operator who is onboarding right now is expected; any other valid key is not.
-        names = m.get("valid_setup_key_names") or []
-        stray = [n for n in names if n not in onboarding] if names else None
-        if stray is None or stray:
-            add("warning", f"{m['valid_setup_keys']} NetBird setup key(s) are still valid", "mesh")
-        else:
-            add("info", f"Setup key waiting for onboarding: {', '.join(names)}", "mesh")
+        add("warning", "The UDP fallback (NetBird) is down: the gateway's NetBird client is not connected to management/signal", "mesh")
     for p in m.get("policies", []):
         if p["bidirectional"]:
             add("critical", f"NetBird policy {p['name']} is bidirectional: garages could reach the gateway", "mesh")
-        if p["name"] not in EXPECTED_POLICIES:
-            add("info", f"Extra NetBird policy: {p['name']}", "mesh")
     if d["portal"]["targets_status"] != 200:
         add("critical", f"Portal gateway-targets answered {d['portal']['targets_status']}", "supply")
     for o in d.get("onboarding", []):
@@ -1259,7 +1252,7 @@ def detect_events(db, d, state):
         msg = ((github_json(f"repos/{REPO}/commits/{cur['main']}") or {}).get("commit") or {}).get("message", "")
         add_event(db, "info", "source", "updates", f"main -> {cur['main'][:7]}: {msg.splitlines()[0] if msg else ''}".rstrip(": "))
     for name in sorted(set(cur["peers"]) - set(prev["peers"])):
-        add_event(db, "warning", "mesh", "mesh", f"New NetBird peer: {name}")
+        add_event(db, "info", "mesh", "mesh", f"New NetBird peer (UDP fallback): {name}")
     for name in sorted(set(prev["peers"]) - set(cur["peers"])):
         add_event(db, "info", "mesh", "mesh", f"NetBird peer removed: {name}")
     for name in sorted(set(cur["garages"]) - set(prev["garages"])):
@@ -1273,7 +1266,7 @@ def detect_events(db, d, state):
                                                          f"{b['count']} {b['reason']} within 2 min")
     keys, before = cur["setup_keys"], prev.get("setup_keys")
     if keys is not None and before is not None and keys > before:
-        add_event(db, "warning", "mesh", "mesh", f"NetBird setup key created ({keys} valid)")
+        add_event(db, "info", "mesh", "mesh", f"NetBird setup key created ({keys} valid)")
 
 
 def recent_events(db, limit, since=0):
