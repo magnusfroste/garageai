@@ -76,6 +76,9 @@ const HowItWorks = ({
                       <h4 className="font-bold mb-1" style={{ color: 'var(--color-text-primary)' }}>{step.title}</h4>
                       <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{step.text}</p>
                       {step.command && <CopyCommand command={step.command} note={step.commandNote} color={track.color} />}
+                      {(step.commands || []).map((c) => (
+                        <CopyCommand key={c.label} label={c.label} command={c.command} note={c.note} color={track.color} />
+                      ))}
                     </div>
                   </li>
                 ))}
