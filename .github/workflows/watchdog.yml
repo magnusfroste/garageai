@@ -1,0 +1,78 @@
+name: Watchdog (from outside)
+
+# GarageAI's gateway, Ops, the tunnel hub and the alerts all live on one server. When that server
+# (or Ops on it) stops, nothing on it can say so. This runs from GitHub's machines every 5 minutes,
+# checks the public endpoints and that Ops is still collecting, and alerts in Telegram once when
+# something goes down and once when it is back. The open issue labelled "watchdog" is the state:
+# it exists while something is down. GitHub may run a schedule a few minutes late; that is fine.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      simulate:
+        description: 'Pretend the gateway is down (tests the Telegram alert and the issue)'
+        type: boolean
+        default: false
+
+permissions:
+  issues: write
+
+concurrency:
+  group: watchdog
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: check the endpoints (three tries each, 20 s apart)
+        id: check
+        env:
+          OPS_USER: ${{ secrets.OPS_USER }}
+          OPS_PASS: ${{ secrets.OPS_PASS }}
+        run: |
+          fail=""
+          probe() { # name url [extra curl args]
+            local name=$1 url=$2; shift 2
+            for i in 1 2 3; do
+              code=$(curl -s -o /tmp/body -w '%{http_code}' --max-time 15 "$@" "$url") && [ "$code" = 200 ] && return 0
+              sleep 20
+            done
+            fail="$fail\n- $name: HTTP ${code:-none} ($url)"
+            return 1
+          }
+          probe "Gateway (llm)" https://llm.garageai.eu/health/liveliness || true
+          probe "Gateway (api)" https://api.garageai.eu/health/liveliness || true
+          probe "Portal" https://app.garageai.eu/ || true
+          probe "Website" https://www.garageai.eu/ || true
+          if [ -n "$OPS_USER" ]; then
+            if probe "Ops" https://ops.garageai.eu/ops.json -u "$OPS_USER:$OPS_PASS"; then
+              age=$(python3 -c 'import json,datetime;d=json.load(open("/tmp/body"));t=datetime.datetime.fromisoformat(d["generated_at"]);print(int((datetime.datetime.now(datetime.timezone.utc)-t).total_seconds()))')
+              [ "$age" -gt 600 ] && fail="$fail\n- Ops: not collecting, last data ${age} s old (alerts on the server are off too)"
+            fi
+          fi
+          if [ "${{ github.event.inputs.simulate }}" = "true" ]; then fail="$fail\n- Simulated outage (workflow_dispatch test)"; fi
+          printf 'failures<<EOF\n%b\nEOF\n' "$fail" >> "$GITHUB_OUTPUT"
+          printf '%b\n' "${fail:-all OK}"
+      - name: alert once on down, once on recovery
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          FAILURES: ${{ steps.check.outputs.failures }}
+        run: |
+          tg() { [ -n "$TG_TOKEN" ] && curl -s -o /dev/null --max-time 15 "https://api.telegram.org/bot$TG_TOKEN/sendMessage" --data-urlencode "chat_id=$TG_CHAT" --data-urlencode "text=$1" || true; }
+          gh label create watchdog --color B60205 --description "Open while the outside watchdog sees something down" -R "$GITHUB_REPOSITORY" 2>/dev/null || true
+          open=$(gh issue list -R "$GITHUB_REPOSITORY" --label watchdog --state open --json number -q '.[0].number')
+          down=$(printf '%s' "$FAILURES" | grep -c '^- ' || true)
+          if [ "$down" -gt 0 ] && [ -z "$open" ]; then
+            body=$(printf 'Seen from outside (GitHub Actions) at %s UTC:\n%s\n\nThe gateway server may be down, or Ops on it. Check the server; this issue closes by itself when everything answers again.' "$(date -u '+%Y-%m-%d %H:%M')" "$FAILURES")
+            gh issue create -R "$GITHUB_REPOSITORY" --label watchdog --title "Watchdog: something is down" --body "$body"
+            tg "🔴 GarageAI watchdog (from outside): something is down
+          $FAILURES"
+          elif [ "$down" -eq 0 ] && [ -n "$open" ]; then
+            gh issue close "$open" -R "$GITHUB_REPOSITORY" --comment "Everything answers again ($(date -u '+%H:%M') UTC)."
+            tg "🟢 GarageAI watchdog: everything answers again"
+          fi
