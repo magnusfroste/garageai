@@ -19,6 +19,7 @@ const Bridge = ({
   description,
   command,
   commandNote,
+  commands = [],
   flow = [],
   features = [],
   nextTitle,
@@ -48,9 +49,15 @@ const Bridge = ({
       {description}
     </motion.p>
 
-    {command && (
+    {(command || commands.length > 0) && (
       <motion.div variants={itemVariants} className="max-w-3xl mx-auto mb-10 min-w-0">
-        <CopyCommand command={command} note={commandNote} color="var(--color-primary)" />
+        {command && <CopyCommand command={command} note={commandNote} color="var(--color-primary)" />}
+        {commands.map((c) => (
+          <CopyCommand key={c.label} label={c.label} command={c.command} note={c.note} color="var(--color-primary)" />
+        ))}
+        {commands.length > 0 && commandNote && (
+          <p className="mt-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>{commandNote}</p>
+        )}
       </motion.div>
     )}
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 // A shell command with a copy button; long lines scroll inside the box, not the page.
-const CopyCommand = ({ command, note, color }) => {
+const CopyCommand = ({ command, note, color, label }) => {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
@@ -14,6 +14,7 @@ const CopyCommand = ({ command, note, color }) => {
   };
   return (
     <div className="mt-3">
+      {label && <p className="mb-1 text-xs font-bold" style={{ color: 'var(--color-text-secondary)' }}>{label}</p>}
       <div
         className="flex items-stretch rounded-lg overflow-hidden"
         style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.12)' }}
