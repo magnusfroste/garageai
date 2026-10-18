@@ -28,6 +28,7 @@ func run(args []string) int {
 	}
 	client := portal.New(cfg.RegisterURL, cfg.RegisterToken)
 	profile.RuntimeKey, profile.RuntimeKeyPort = cfg.RuntimeAPIKey, cfg.Port // so doctor's probe sees past the key, on that port only
+	profile.KnownRuntime = cfg.Runtime                                       // and asks that port only its own runtime's questions
 	_ = service.WritePublic(cfg)                                             // garages set up before v0.4.5 get the secret-free config for doctor
 	os.Remove(service.BinaryPath() + ".old")                                 // Windows: the previous version, stepped aside by the last self-update
 	for {

@@ -213,3 +213,40 @@ func TestVLLMBehindKey(t *testing.T) {
 		t.Fatalf("with the key: %+v", rt)
 	}
 }
+
+// The heartbeat on a garage connected as vllm with a key: the configured port gets one
+// authenticated /v1/models and nothing else (no unauthenticated try, no Ollama /api/version).
+func TestProbeKnownRuntimeAsksOnlyItsOwnQuestions(t *testing.T) {
+	var paths []string
+	var unauth int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		paths = append(paths, r.URL.Path)
+		if r.URL.Path == "/v1/models" {
+			if r.Header.Get("Authorization") != "Bearer k" {
+				unauth++
+				w.WriteHeader(401)
+				_, _ = w.Write([]byte(`{"error":"missing key"}`))
+				return
+			}
+			_, _ = w.Write([]byte(`{"data":[{"id":"mimo","max_model_len":524288}]}`))
+			return
+		}
+		w.WriteHeader(404)
+	}))
+	defer srv.Close()
+	port, _ := strconv.Atoi(srv.URL[strings.LastIndex(srv.URL, ":")+1:])
+	RuntimeKey, RuntimeKeyPort, KnownRuntime = "k", port, "vllm"
+	defer func() { RuntimeKey, RuntimeKeyPort, KnownRuntime = "", 0, "" }()
+	rt := probe(port, []string{"127.0.0.1"}, Listener{Process: "docker-proxy"})
+	if rt == nil || rt.Kind != "vllm" || len(rt.Models) != 1 {
+		t.Fatalf("known vllm: %+v", rt)
+	}
+	for _, p := range paths {
+		if p == "/api/version" {
+			t.Fatalf("asked a known vllm the Ollama question: %v", paths)
+		}
+	}
+	if unauth != 0 {
+		t.Fatalf("tried without the key %d time(s) on the configured port: %v", unauth, paths)
+	}
+}
