@@ -933,6 +933,11 @@ def alerts(d):
                 if level:
                     add(level, f"{g['garage']}: Bridge reports: {pr.get('message') or pr.get('code')}", "supply", garage=g["garage"], code=pr.get("code"))
         p = g.get("provider") or {}
+        if g.get("type") == "provider" and str(g.get("error") or "") in ("http_401", "http_403"):
+            # The provider answers but rejects GarageAI's key: every request to it fails until the key
+            # is fixed, and nothing else (no Bridge, no heartbeat) will say so (autoversio, 13 h,
+            # 2026-10-17/18). Auto skips it once it is cooled down; direct buyers get a 503.
+            add("critical", f"Provider {g['garage']} rejects GarageAI's API key ({g['error']}): update the key in Admin → Providers", "supply", garage=g["garage"])
         if p.get("private_ip"):
             add("critical", f"Provider {g['garage']} now resolves to a private address {p.get('ips')}", "supply", garage=g["garage"])
         tls = p.get("tls") or {}

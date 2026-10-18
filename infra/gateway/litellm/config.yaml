@@ -40,3 +40,20 @@ router_settings:
   num_retries: 1
   allowed_fails: 2
   cooldown_time: 60
+  # Per kind of error (tested 2026-10-18 with a healthy and a failing deployment in one group):
+  # - a provider that rejects our key (401/403), is gone (404) or times out is cooled down at the
+  #   first failure, so the retry and the next buyers go to the other deployments at once;
+  # - a 400 is the buyer's request (context too long, bad parameters), not a broken garage: it never
+  #   cools a deployment down (before, two long Hermes prompts could take mimo out for a minute).
+  retry_policy:
+    DefaultRetries: 1
+    AuthenticationErrorRetries: 1
+    TimeoutErrorRetries: 1
+    BadRequestErrorRetries: 0
+    ContentPolicyViolationErrorRetries: 0
+  allowed_fails_policy:
+    AuthenticationErrorAllowedFails: 0
+    NotFoundErrorAllowedFails: 0
+    TimeoutErrorAllowedFails: 0
+    BadRequestErrorAllowedFails: 1000000
+    ContentPolicyViolationErrorAllowedFails: 1000000

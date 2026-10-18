@@ -77,6 +77,57 @@ pool price set by GarageAI would be administration that grows with the catalogue
   prices. The buyer pays the price of the garage that answered.
 - `garageai/auto` is something else: a curated, ordered list across models, not a pool.
 
+## Two kinds of supply: garages and providers
+
+Decided by Magnus, deliberately: GarageAI serves two kinds of supply in one catalogue and one API.
+
+- **Garages** run GarageAI Bridge: a machine at home or in an office, reached through Bridge's own
+  WireGuard tunnel (`connection_type: mesh`). Bridge reports a heartbeat every 5 minutes, the
+  tunnel's state, the runtime's models and planned absences (`garageai pause`, a laptop on
+  battery). A garage that goes away is taken out of routing by the portal within minutes, and a
+  buyer who names its model gets "temporarily unavailable" (503) from the gateway.
+- **Providers** are datacenter or partner APIs reached over HTTPS with an API key
+  (`connection_type: endpoint`): operators GarageAI does not control, who would find installing
+  Bridge hard or impossible. No Bridge, no heartbeat, no tunnel state. What GarageAI knows about a
+  provider comes only from requests: buyers' requests, the hourly acceptance probe, and Ops'
+  checks. So the gateway has to handle a failing provider itself, at request time.
+
+### What happens when one fails (measured 2026-10-18)
+
+Tested with a healthy garage and a failing deployment in one model group, 20 requests each:
+
+| Failure | Mixed group, before the change | Only the failing one, before |
+|---|---|---|
+| Provider rejects our key (401) | 20/20 served by the other | Buyer got 401, as if their own key were wrong |
+| Provider error (500) | 19/20 | 500 after 3 s |
+| Provider refuses connections | 18/20 | 500 after 2 s |
+| Provider hangs | 4/6; the others waited until the client gave up | Hangs up to 600 s |
+| Garage offline | taken out of routing by the garage logic | 503 "temporarily unavailable", auto suggested |
+
+The rules since (`infra/gateway/litellm/config.yaml`, `garageai_callbacks.py`):
+
+- **One retry, on another deployment.** A provider that answers 401/403, 404 or times out is
+  cooled down at its first failure (60 s), so the retry and the next buyers go elsewhere at once.
+  Other errors cool a deployment down after 2 failures.
+- **A 400 never cools a deployment down:** it is the buyer's request (too long a prompt, a bad
+  parameter), not a broken garage.
+- **Providers get 180 s, garages 600 s** before a request is given up. Garages need the 600 s for
+  100k-token prefills on home GPUs; a provider that hangs would otherwise hold every request for
+  ten minutes.
+- **The buyer sees 503 "temporarily unavailable"** with Retry-After 60 and a pointer to
+  `garageai/auto` when a deployment rejects our key or every deployment of the model is cooling
+  down, never the provider's own 401.
+- **Ops raises a critical alert** when a provider rejects GarageAI's key (autoversio went 13 hours
+  without one, 2026-10-17/18).
+
+### `garageai/auto` across both kinds
+
+`garageai/auto` holds entries from garages and providers alike. A failing entry is skipped by the
+retry and then by the cooldown, so auto keeps answering as long as one entry is up. The portal's
+order for auto entries is not yet in the gateway (the portal shows order 1, 2, 3; the gateway
+picks by weight): until the portal sets `order` on each auto deployment, auto spreads requests
+over its entries instead of using a first choice and fallbacks.
+
 ## Known gateway quirks, and where they are handled
 
 - **Ollama's response ids collide (fixed 2026-10-13 with a database trigger).** LiteLLM keys a
