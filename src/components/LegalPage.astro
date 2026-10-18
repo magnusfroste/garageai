@@ -6,8 +6,9 @@ import { getEntry } from 'astro:content';
 
 // Terms and privacy: plain text pages rendered from src/legal/*.md. The version is what the portal
 // records when an account accepts them (TERMS_VERSION in the portal must match).
-interface Props { title: string; description: string; version: string; other: { href: string; text: string } }
-const { title, description, version, other } = Astro.props;
+interface Props { title: string; description: string; version?: string; kicker?: string; meta?: string; other: { href: string; text: string } }
+const { title, description, version, kicker = 'GarageAI', meta, other } = Astro.props;
+const metaLine = meta ?? `Version ${version} · Liteit AB, org.nr 556616-1658, Kaplansbacken 3, 112 24 Stockholm, Sweden`;
 const header = await getEntry('landing', 'header');
 const footer = await getEntry('landing', 'footer');
 ---
@@ -15,10 +16,10 @@ const footer = await getEntry('landing', 'footer');
 <Layout title={`${title} — GarageAI`} description={description}>
   <Header {...header.data} />
   <main class="max-w-3xl mx-auto px-4 pt-28 pb-20">
-    <p class="text-sm uppercase tracking-widest mb-4" style="color: var(--color-accent)">GarageAI</p>
+    <p class="text-sm uppercase tracking-widest mb-4" style="color: var(--color-accent)">{kicker}</p>
     <h1 class="apple-heading-1 mb-2">{title}</h1>
     <p class="text-sm mb-10" style="color: var(--color-text-secondary)">
-      Version {version} · Liteit AB, org.nr 556616-1658, Kaplansbacken 3, 112 24 Stockholm, Sweden ·
+      {metaLine} ·
       <a href={other.href} style="color: var(--color-primary)">{other.text}</a>
     </p>
     <article class="legal">

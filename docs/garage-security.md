@@ -5,6 +5,8 @@ connect command (GarageAI Bridge) installs, who can reach your machine, and what
 
 ## The short version
 
+The plain-language version for operators is at https://www.garageai.eu/security ("Is it safe to share from my computer?"). This document is the technical one.
+
 - Your machine makes one **outgoing** encrypted connection to GarageAI. You open **no ports on
   your router**, and nothing on your machine becomes reachable from the internet.
 - Exactly **one party** can connect to your machine through that tunnel: the GarageAI gateway.
