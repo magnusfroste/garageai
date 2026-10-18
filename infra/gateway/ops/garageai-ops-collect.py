@@ -369,6 +369,17 @@ def agent_report(t):
             "nodes": [n for n in (a.get("nodes") or []) if isinstance(n, dict)][:8]}
 
 
+def engines_by_garage():
+    """The inference engine each garage serves with, from LiteLLM's model table (model_info.runtime;
+    a provider's is "openai", shown as "provider")."""
+    out = {}
+    for g, rt in psql("""select distinct model_info->>'garage', model_info->>'runtime' from "LiteLLM_ProxyModelTable"
+                         where model_info->>'garage' is not null"""):
+        if g and rt:
+            out.setdefault(g, set()).add("provider" if rt == "openai" else rt)
+    return {g: ", ".join(sorted(v)) for g, v in out.items()}
+
+
 def garages(env, state, targets):
     health = read_json(HEALTH_LAST, {})
     if not health.get("results"):
@@ -381,6 +392,10 @@ def garages(env, state, targets):
     hist = state.setdefault("history", {})
     minute = int(time.time() // 60)
     rows, providers = [], []
+    try:
+        engines = engines_by_garage()
+    except Exception:  # noqa: BLE001 - the table is a nicety, never a reason to fail the collection
+        engines = {}
     for t in targets or []:
         name = t.get("garage")
         h = by_name.get(name, {})
@@ -410,6 +425,11 @@ def garages(env, state, targets):
             # The garage's heartbeat comes from another machine than the one it was linked to.
             "machine_mismatch": t.get("machine_mismatch") is True,
             "transport": t.get("transport") or ("provider" if t.get("endpoint") else "netbird"),
+            # The engine it serves with, and a pause set in the portal (gateway-targets sends paused
+            # garages with paused: true so the hub keeps their tunnel; before, they vanished from Ops:
+            # garage-m4, 2026-10-18).
+            "engine": engines.get(name) or ((t.get("agent") or {}).get("runtime") if isinstance(t.get("agent"), dict) else None),
+            "paused": bool(t.get("paused")),
         }
         if t.get("endpoint"):
             row["provider"] = provider_checks(t)
@@ -883,6 +903,10 @@ def alerts(d):
         elif o["stuck"] and (o["minutes"] or 0) >= 24 * 60:
             add("info", f"{o['garage']} was created {o['minutes'] // 1440} d ago and has not reported a step yet", "onboarding", garage=o["garage"])
     for g in d["garages"]:
+        if g.get("paused"):
+            # Paused in the portal by its operator or an admin: off the market on purpose, not down.
+            add("info", f"{g['garage']} is paused in the portal (off the market, tunnel kept)", "supply", garage=g["garage"])
+            continue
         if g.get("onboarding"):
             st = g.get("onboarding_step") or {}
             if st.get("status") in ("failed", "stopped"):
