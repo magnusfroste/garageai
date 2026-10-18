@@ -94,7 +94,33 @@ func (c *Client) Models() (ids []string, contexts map[string]int, err error) {
 			}
 		}
 	}
+	if len(contexts) < len(ids) {
+		c.capabilitiesContext(ids, contexts)
+	}
 	return ids, contexts, nil
+}
+
+// capabilitiesContext fills in windows /v1/models did not give, from Xyntetik Runner's
+// /v1/capabilities ("context": the window it runs with, for every model it serves). Runner's model
+// list carries no window, so garage-m4's Granite was registered with none (2026-10-18) and the
+// gateway could not reject over-long prompts. Other runtimes answer 404 here and nothing changes.
+func (c *Client) capabilitiesContext(ids []string, contexts map[string]int) {
+	code, b, err := c.get("/v1/capabilities")
+	if err != nil || code != 200 {
+		return
+	}
+	var caps struct {
+		Object  string  `json:"object"`
+		Context float64 `json:"context"`
+	}
+	if json.Unmarshal(b, &caps) != nil || caps.Object != "runner.capabilities" || caps.Context <= 0 {
+		return
+	}
+	for _, id := range ids {
+		if _, ok := contexts[id]; !ok {
+			contexts[id] = int(caps.Context)
+		}
+	}
 }
 
 var ErrAuth = fmt.Errorf("the runtime requires an API key")

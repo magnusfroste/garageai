@@ -329,6 +329,9 @@ func readBridgeConfig(cfg *GarageAI) bool {
 func jsonString(v any) string { b, _ := json.Marshal(v); return string(b) }
 
 // ollamaContextTarget mirrors the connect script: more memory, a bigger window.
+// ContextTarget is the window Bridge recommends for this machine's memory (Ollama and Runner).
+func ContextTarget(mem *int) int { return ollamaContextTarget(mem) }
+
 func ollamaContextTarget(mem *int) int {
 	if v, err := strconv.Atoi(os.Getenv("GARAGEAI_OLLAMA_CONTEXT")); err == nil && v > 0 {
 		return v

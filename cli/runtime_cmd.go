@@ -38,7 +38,7 @@ func runtimeCmd(args []string) int {
 		fmt.Println("✓ Runner's service is removed. Its binary and downloaded models stay in", filepath.Dir(service.RunnerPath()), "and", service.RunnerHome())
 		return 0
 	}
-	fmt.Fprintln(os.Stderr, "usage: garageai runtime [check] | install [--model owner/repo[:TAG]] [--port N] [--force] [--yes] | remove")
+	fmt.Fprintln(os.Stderr, "usage: garageai runtime [check] | install [--model owner/repo[:TAG]] [--port N] [--context TOKENS] [--force] [--yes] | remove")
 	return 2
 }
 
@@ -107,7 +107,7 @@ func runtimeStatus() int {
 }
 
 func runtimeInstall(args []string) int {
-	model, port, force, yes := "", runnerfit.Port, false, false
+	model, port, force, yes, context := "", runnerfit.Port, false, false, 0
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "--model":
@@ -119,6 +119,11 @@ func runtimeInstall(args []string) int {
 			if i+1 < len(args) {
 				i++
 				port, _ = strconv.Atoi(args[i])
+			}
+		case "--context":
+			if i+1 < len(args) {
+				i++
+				context, _ = strconv.Atoi(args[i])
 			}
 		case "--force":
 			force = true
@@ -140,7 +145,7 @@ func runtimeInstall(args []string) int {
 
 	fmt.Println("GarageAI Bridge " + version + " — install Xyntetik Runner " + runnerfit.Version)
 	fmt.Println()
-	a, _ := assessThisMachine()
+	a, p := assessThisMachine()
 	printAssessment(a)
 	fmt.Println()
 	switch {
@@ -153,12 +158,15 @@ func runtimeInstall(args []string) int {
 	if model == "" {
 		model = a.Model.HF
 	}
+	if context <= 0 {
+		context = profile.ContextTarget(p.Machine.MemoryGB)
+	}
 	if inst, _ := service.RunnerInstalled(); !inst && portBusy(port) {
 		fmt.Fprintf(os.Stderr, "  ✗ Something else listens on port %d already. Choose another: garageai runtime install --port 8090\n", port)
 		return 1
 	}
 	if !yes {
-		fmt.Printf("  Install Runner %s as a service and serve %s on 127.0.0.1:%d? [Y/n] ", runnerfit.Version, model, port)
+		fmt.Printf("  Install Runner %s as a service and serve %s on 127.0.0.1:%d with a %d-token window? [Y/n] ", runnerfit.Version, model, port, context)
 		var ans string
 		fmt.Scanln(&ans)
 		if strings.HasPrefix(strings.ToLower(strings.TrimSpace(ans)), "n") {
@@ -191,7 +199,7 @@ func runtimeInstall(args []string) int {
 		return 1
 	}
 	fmt.Println("  ✓ Runner installed:", bin)
-	if err := service.InstallRunner(bin, model, port); err != nil {
+	if err := service.InstallRunner(bin, model, port, context); err != nil {
 		fmt.Fprintln(os.Stderr, "  ✗ Could not start Runner as a service:", err)
 		return 1
 	}

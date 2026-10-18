@@ -137,6 +137,10 @@ func problems(p Profile) []Problem {
 			}
 			add("info", "needs_api_key", fmt.Sprintf("%s on port %d requires an API key", rt.Kind, rt.Port), fix)
 		}
+		if rt.Kind == "xyntetik" && rt.RunnerContext != nil && *rt.RunnerContext < target {
+			add("warning", "small_context", fmt.Sprintf("Xyntetik Runner runs with a %d-token window; buyers' tools send longer prompts", *rt.RunnerContext),
+				fmt.Sprintf("Reinstall it with a larger window: garageai runtime install --force --context %d", target))
+		}
 		if rt.Kind == "ollama" {
 			for _, m := range rt.OllamaLoaded {
 				if m.Context != nil && *m.Context < target {

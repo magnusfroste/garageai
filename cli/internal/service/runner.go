@@ -45,17 +45,23 @@ func RunnerHome() string {
 
 // RunnerArgs is the command line the service runs. --ttl 0 keeps the model loaded: a garage that
 // unloads after 5 idle minutes (Runner's default) makes the next buyer wait for the load.
-func RunnerArgs(model string, port int) []string {
-	return []string{"-hf", model, "--serve", "--port", strconv.Itoa(port), "--ttl", "0"}
+func RunnerArgs(model string, port, context int) []string {
+	args := []string{"-hf", model, "--serve", "--port", strconv.Itoa(port), "--ttl", "0"}
+	if context > 0 {
+		// Runner's default window is 4096 tokens: too small for buyers' coding agents, so Bridge
+		// sets one from the machine's memory (garage-m4 served Granite with 4096, 2026-10-18).
+		args = append(args, "-c", strconv.Itoa(context))
+	}
+	return args
 }
 
 // InstallRunner registers and starts Runner serving model on port. Must run as root/Administrator.
-func InstallRunner(bin, model string, port int) error {
+func InstallRunner(bin, model string, port, context int) error {
 	home := RunnerHome()
 	if err := os.MkdirAll(home, 0o755); err != nil {
 		return err
 	}
-	args := RunnerArgs(model, port)
+	args := RunnerArgs(model, port, context)
 	switch runtime.GOOS {
 	case "linux":
 		unit := fmt.Sprintf("[Unit]\nDescription=Xyntetik Runner for GarageAI (installed by garageai runtime install)\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nEnvironment=HOME=%s\nExecStart=%s %s\nRestart=always\nRestartSec=10\n\n[Install]\nWantedBy=multi-user.target\n",
