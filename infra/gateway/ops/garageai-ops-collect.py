@@ -249,7 +249,7 @@ def mesh(env):
             "version": st.get("daemonVersion"),
         }
         links = {}
-        for p in (st.get("peers") or {}).get("details", []):
+        for p in (st.get("peers") or {}).get("details") or []:  # null when the gateway has no NetBird peers left
             links[(p.get("fqdn") or "").split(".")[0]] = {
                 "status": p.get("status"), "type": p.get("connectionType"),
                 "latency_ms": round((p.get("latency") or 0) / 1e6, 1) if isinstance(p.get("latency"), (int, float)) else p.get("latency"),
