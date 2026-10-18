@@ -18,7 +18,7 @@ privacy@garageai.eu.
 | What | Whose | Why | Legal basis | Kept |
 |---|---|---|---|---|
 | E-mail, name, password (hashed), sign-in times | Everyone | Your account | Contract | While the account exists, then 30 days |
-| API keys (stored hashed), key names | Buyers | Access to the API | Contract | Until you delete the key or the account |
+| API keys and key names | Buyers | Access to the API; the portal keeps the key so you can use it in the chat | Contract | Until you delete the key or the account |
 | Usage records: time, model, route, garage, tokens, cost, duration, status, the key used, and the IP address the request came from | Buyers | Billing, the request log in the portal, abuse and fraud prevention, capacity planning | Contract; legitimate interest (security) | 30 days in the gateway; daily totals without IP for 7 years (bookkeeping) |
 | Prompts and answers sent to the API | Buyers | Passed through to the operator's machine and back | Contract | **Not stored** by GarageAI |
 | Conversations in the portal's chat | Buyers who use it | Showing your chat history; the messages pass through the portal's servers on their way to the gateway | Contract | Until you delete the conversation or the account |
@@ -69,7 +69,8 @@ You can complain to the Swedish Authority for Privacy Protection (IMY), imy.se.
 ## 5. Security
 
 Traffic is encrypted: TLS between you and the gateway, WireGuard between the gateway and the
-garage. Keys are stored hashed. Backups are encrypted. Access to production systems is limited to
+garage. Passwords are stored hashed; API keys are kept in the portal's database, readable only by
+you and the portal's servers. Backups are encrypted. Access to production systems is limited to
 the people who run GarageAI.
 
 ## 6. Cookies
