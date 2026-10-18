@@ -55,11 +55,12 @@ check("garage: 600 s kept", cb.provider_time_limit({"model_info": {"connection_t
 import litellm
 auth = litellm.AuthenticationError(message="401 Unauthorized", llm_provider="openai", model="x")
 away = cb.provider_unavailable(auth, {"model": "deepseek/deepseek-v4.1-flash"})
-check("provider 401: buyer gets 503, not 401", (type(away).__name__, str(away.code)), ("ModelTemporarilyUnavailable", "503"))
-check("provider 401: auto suggested", "garageai/auto" in away.message, True)
+check("provider 401: buyer gets 503 as an HTTPException (the only kind the proxy uses)", (type(away).__name__, away.status_code, away.headers.get("Retry-After")), ("HTTPException", 503, "60"))
+check("provider 401: auto suggested", "garageai/auto" in away.detail, True)
 cool = cb.provider_unavailable(Exception("No deployments available for selected model, Try again in 60 seconds"), {"model": "garageai/auto"})
-check("all cooling down: 503", str(cool.code), "503")
-check("auto does not suggest itself", "use garageai/auto" in cool.message, False)
+check("all cooling down: 503", cool.status_code, 503)
+check("auto does not suggest itself", "use garageai/auto" in cool.detail, False)
+check("no healthy deployments: 503", cb.provider_unavailable(Exception("BadRequestError: There are no healthy deployments for this model"), {"model": "x"}).status_code, 503)
 check("other errors: untouched", cb.provider_unavailable(ValueError("boom"), {"model": "x"}), None)
 
 print("all tests passed" if not fails else f"{fails} test(s) failed")
