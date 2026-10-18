@@ -117,7 +117,7 @@ credits.
 ## 10. Personal data
 
 How we handle personal data (account details, usage figures, Bridge's machine reports) is
-described in the privacy policy (garageai.eu/privacy). GarageAI does not store the content of prompts or answers.
+described in the privacy policy (garageai.eu/privacy). GarageAI does not store the content of prompts or answers sent to the API; the portal's chat keeps your conversations until you delete them.
 
 ## 11. Ending
 
