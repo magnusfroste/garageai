@@ -46,5 +46,21 @@ d = {"system": "s", "messages": [U("q"), A("r")]}
 check("anthropic: regular request untouched", (f(d), d), (0, {"system": "s", "messages": [U("q"), A("r")]}))
 check("tool messages keep their order", h([S("a"), U("q"), {"role": "assistant", "tool_calls": [1]}, {"role": "tool", "content": "t"}, S("b")]),
       [S("a\n\nb"), U("q"), {"role": "assistant", "tool_calls": [1]}, {"role": "tool", "content": "t"}])
+# Providers vs garages (2026-10-18): time limit and the 503 for a deployment's own failure.
+prov = {"model_info": {"connection_type": "endpoint", "garage": "autoversio"}, "timeout": 600}
+check("provider: time limit capped", cb.provider_time_limit(dict(prov))["timeout"], cb.PROVIDER_TIMEOUT)
+check("provider: limit read from metadata too", cb.provider_time_limit({"metadata": {"model_info": {"connection_type": "endpoint"}}, "timeout": 600})["timeout"], cb.PROVIDER_TIMEOUT)
+check("provider: a shorter limit stays", cb.provider_time_limit({"model_info": {"connection_type": "endpoint"}, "timeout": 30})["timeout"], 30)
+check("garage: 600 s kept", cb.provider_time_limit({"model_info": {"connection_type": "mesh"}, "timeout": 600})["timeout"], 600)
+import litellm
+auth = litellm.AuthenticationError(message="401 Unauthorized", llm_provider="openai", model="x")
+away = cb.provider_unavailable(auth, {"model": "deepseek/deepseek-v4.1-flash"})
+check("provider 401: buyer gets 503, not 401", (type(away).__name__, str(away.code)), ("ModelTemporarilyUnavailable", "503"))
+check("provider 401: auto suggested", "garageai/auto" in away.message, True)
+cool = cb.provider_unavailable(Exception("No deployments available for selected model, Try again in 60 seconds"), {"model": "garageai/auto"})
+check("all cooling down: 503", str(cool.code), "503")
+check("auto does not suggest itself", "use garageai/auto" in cool.message, False)
+check("other errors: untouched", cb.provider_unavailable(ValueError("boom"), {"model": "x"}), None)
+
 print("all tests passed" if not fails else f"{fails} test(s) failed")
 sys.exit(1 if fails else 0)

@@ -132,7 +132,7 @@ async def recently_served(name):
 def unavailable_message(model, auto_name=None):
     alt = f"use {auto_name}, which fails over automatically, or another model from /v1/models" if auto_name \
         else "or use another model from /v1/models"
-    return (f"{model} is temporarily unavailable: the garage that serves it is offline. "
+    return (f"{model} is temporarily unavailable: the garage or provider that serves it is not answering. "
             f"Retry in a minute, {alt}.")
 
 
@@ -143,6 +143,57 @@ class ModelTemporarilyUnavailable(ProxyException):
     def __init__(self, model, auto_name=None):
         super().__init__(message=unavailable_message(model, auto_name), type="service_unavailable", param="model",
                          code=503, headers={"Retry-After": str(RETRY_AFTER)})
+
+
+# Providers (connection_type "endpoint": a datacenter or partner API reached over HTTPS) are not
+# garages: no Bridge, no heartbeat, no tunnel state, so nothing takes a dead one out of routing
+# within minutes. What the gateway does at request time is all there is:
+# - a provider gets a shorter time limit than a home garage (600 s, for 100k-token prefills on home
+#   GPUs): a provider that hangs otherwise holds every request it gets for ten minutes;
+# - a provider that rejects our key answers the buyer as "temporarily unavailable" (503), not as an
+#   authentication error the buyer would take for a problem with their own key.
+PROVIDER_TIMEOUT = 180
+
+
+def _deployment_info(kwargs):
+    for key in ("model_info",):
+        v = kwargs.get(key)
+        if isinstance(v, dict) and v:
+            return v
+    for meta in ("litellm_metadata", "metadata"):
+        m = kwargs.get(meta)
+        if isinstance(m, dict) and isinstance(m.get("model_info"), dict):
+            return m["model_info"]
+    return {}
+
+
+def is_provider(model_info):
+    return isinstance(model_info, dict) and model_info.get("connection_type") == "endpoint"
+
+
+def provider_time_limit(kwargs):
+    """The request's time limit capped at PROVIDER_TIMEOUT when it goes to a provider; returns the
+    (possibly) modified kwargs."""
+    if not is_provider(_deployment_info(kwargs)):
+        return kwargs
+    for key in ("timeout", "stream_timeout"):
+        current = kwargs.get(key)
+        if not isinstance(current, (int, float)) or current > PROVIDER_TIMEOUT:
+            kwargs[key] = PROVIDER_TIMEOUT
+    return kwargs
+
+
+def provider_unavailable(exception, request_data):
+    """A 503 for the buyer when a deployment (not the buyer's key) failed in a way that only the
+    garage or provider can fix: it rejected our key, or every deployment of the model is cooling
+    down. None for everything else."""
+    model = (request_data or {}).get("model") or "this model"
+    text = str(exception)
+    if isinstance(exception, (litellm.AuthenticationError, litellm.PermissionDeniedError)):
+        return ModelTemporarilyUnavailable(model, "garageai/auto" if model != "garageai/auto" else None)
+    if "No deployments available for selected model" in text:
+        return ModelTemporarilyUnavailable(model, "garageai/auto" if model != "garageai/auto" else None)
+    return None
 
 
 class ContextLengthExceeded(ProxyException):
@@ -286,10 +337,20 @@ class GarageAICallbacks(CustomLogger):
                     pass
         return response
 
+    async def async_pre_call_deployment_hook(self, kwargs, call_type):
+        try:
+            return provider_time_limit(kwargs)
+        except Exception:  # noqa: BLE001 - never fail a request because of the time limit
+            return None
+
     async def async_post_call_failure_hook(self, request_data, original_exception, user_api_key_dict,
                                            traceback_str=None):
-        if isinstance(original_exception, ContextLengthExceeded):
+        if isinstance(original_exception, (ContextLengthExceeded, ModelTemporarilyUnavailable)):
             return None
+        away = provider_unavailable(original_exception, request_data)
+        if away is not None:
+            print(f"garageai: {request_data.get('model')}: {type(original_exception).__name__} from the deployment -> 503", flush=True)
+            raise away
         text = str(original_exception)
         if not (isinstance(original_exception, litellm.ContextWindowExceededError)
                 or "maximum context length" in text or "Max Input Tokens" in text):
