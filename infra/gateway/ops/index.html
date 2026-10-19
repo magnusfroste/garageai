@@ -287,8 +287,9 @@
       <section class="page" data-page="supply">
         <div id="alerts-supply"></div>
         <div class="card"><h2>Garages and providers</h2><div id="garages"></div>
-          <div class="note">Garages are checked over the NetBird mesh, providers over public HTTPS. Uptime comes from the health check every minute.</div></div>
+          <div class="note">Garages are checked through Bridge's tunnel, providers over public HTTPS. Uptime comes from the health check every minute.</div></div>
         <div class="card"><h2>Quality per garage</h2><div class="sub">Real traffic, probes excluded. Output speed is tokens per second after the first token (median, replies of 20+ tokens). Cached input is the share of prompt tokens the runtime served from its prefix cache.</div><div id="quality"></div></div>
+        <div class="card"><h2>Quality per engine</h2><div class="sub">The same figures per inference engine across all garages: Ollama, vLLM, Xyntetik Runner, llama.cpp... A provider's engine is its own ("provider"). A curve per engine, not a number: speed depends on the machine as much as on the engine, so compare engines on the same hardware class before drawing conclusions.</div><div id="quality-engine"></div></div>
         <div class="card"><h2>Uptime per hour, last 7 days</h2><div id="ch-uptime"></div></div>
         <div class="card"><h2>Requests running on vLLM garages</h2><div class="sub">Average per 15 minutes, last 7 days.</div><div class="chart" id="ch-gload"></div></div>
         <div class="card"><h2>Supply events, last 30 days</h2><div id="supply-events"></div></div>
@@ -298,6 +299,8 @@
         <div id="alerts-onboarding"></div>
         <div class="card"><h2>Garages onboarding</h2><div class="sub">Created in the portal, not registered yet. Steps and problems come from the connect script's reports and its garage profile.</div><div id="onb"></div>
           <div class="note">A garage is stuck when its last step failed or waits for the operator for 30 minutes. Fixes and the full machine profile are on the garage's page in the portal admin.</div></div>
+        <div class="card"><h2>New buyers, last 30 days</h2><div class="sub">From sign-up to the first answered request. An account stuck more than 30 minutes at a step is listed (id only, no name or e-mail). Test keys are left out.</div><div id="buyer-funnel"></div></div>
+        <div class="card"><h2>Accounts and garages created, from the portal</h2><div id="biz-onb"></div></div>
         <div class="card"><h2>Time to live, last 30 days</h2><div class="sub">From a garage's first onboarding report to its registration passing the acceptance test. The number every onboarding change is judged by.</div>
           <div class="kpis" id="onb-kpis"></div><div class="grid"><div id="onb-failed"></div><div id="onb-problems"></div></div><div id="onb-sessions"></div></div>
       </section>
@@ -311,7 +314,6 @@
           <div class="card"><h2>Stripe</h2><div id="biz-stripe"></div></div>
         </div>
         <div class="grid">
-          <div class="card"><h2>Onboarding</h2><div id="biz-onb"></div></div>
           <div class="card"><h2>Admin activity</h2><div id="biz-admin"></div></div>
         </div>
       </section>
@@ -363,10 +365,10 @@
 
       <section class="page" data-page="mesh">
         <div id="alerts-mesh"></div>
-        <div class="card" id="tunnel-card" hidden><h2>Bridge tunnel hub</h2><div class="sub">Garages that carry their own tunnel in Bridge (no NetBird): the hub learns each garage's address from its handshake.</div><div id="tunnel"></div></div>
-        <div class="card"><h2>Gateway peer</h2><div id="mesh-local"></div></div>
-        <div class="card"><h2>Peers</h2><div id="mesh-peers"></div></div>
-        <div class="card"><h2>Access policies</h2><div id="mesh-policies"></div>
+        <div class="card" id="tunnel-card"><h2>Bridge tunnel hub</h2><div class="sub">Garages that carry their own tunnel in Bridge (no NetBird): the hub learns each garage's address from its handshake.</div><div id="tunnel"></div></div>
+        <div class="card"><h2>UDP fallback (NetBird)</h2><div class="sub">For networks that block UDP, where Bridge's tunnel cannot run. No garage uses it today; it goes when Bridge has its own fallback over TCP 443.</div><div id="mesh-local"></div></div>
+        <div class="card" hidden><h2>Peers</h2><div id="mesh-peers"></div></div>
+        <div class="card" hidden><h2>Access policies</h2><div id="mesh-policies"></div>
           <div class="note">The gateway reaches the garages; garages must never reach the gateway (one way only).</div></div>
       </section>
 
@@ -388,6 +390,10 @@
           <div class="card"><h2>Managed-models chain, nightly</h2><div id="chain"></div></div>
           <div class="card"><h2>Certificates</h2><div id="certs"></div></div>
         </div>
+              <div id="alerts-logs"></div>
+        <div class="card"><h2>Container logs</h2><div id="logs"></div>
+          <div class="note">Logs hold request metadata only, never prompts. Alerts above 400 MB, or above 100 MB without rotation.</div></div>
+        <div class="card"><h2>Disk</h2><div id="disk"></div></div>
       </section>
 
       <section class="page" data-page="updates">
@@ -397,12 +403,6 @@
         <div class="card"><h2>Source and revision</h2><div id="source"></div></div>
       </section>
 
-      <section class="page" data-page="logs">
-        <div id="alerts-logs"></div>
-        <div class="card"><h2>Container logs</h2><div id="logs"></div>
-          <div class="note">Logs hold request metadata only, never prompts. Alerts above 400 MB, or above 100 MB without rotation.</div></div>
-        <div class="card"><h2>Disk</h2><div id="disk"></div></div>
-      </section>
     </main>
   </div>
 </div>
@@ -420,10 +420,9 @@ const PAGES = [
   { id: "models", title: "Models", icon: "models", sub: "What buyers can call: public names, garages, prices, context windows, checked against the runtimes" },
   { id: "traffic", title: "Traffic", icon: "traffic", sub: "Requests, tokens, latency and gateway errors" },
   { group: "Infrastructure" },
-  { id: "mesh", title: "Mesh", icon: "mesh", sub: "NetBird: gateway peer, garages and access policies" },
+  { id: "mesh", title: "Tunnel", icon: "mesh", sub: "Bridge's tunnel hub, and NetBird as the UDP fallback" },
   { id: "server", title: "Server", icon: "server", sub: "Gateway host, containers, timers, backup and certificates" },
   { id: "updates", title: "Updates", icon: "updates", sub: "Running vs latest versions, and deployed files vs main" },
-  { id: "logs", title: "Logs", icon: "logs", sub: "Log sizes, rotation and disk use" },
 ];
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "—").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -560,9 +559,9 @@ function renderDashboard(d) {
       value: p50 == null ? "—" : `${p50}<small> s p50</small>`, detail: p50 == null ? "no traffic" : `worst p95 ${p95} s · ${errTotal ? `<span class="warning">${errTotal} errors</span>` : "no gateway errors"}` },
     { page: "traffic", icon: "money", label: "Spend, 24 h", status: "ok",
       value: `$${sum(t24, "spend_usd").toFixed(2)}`, detail: `${fmt(sum(t24, "requests"))} requests · ${short(sum(t24, "prompt_tokens") + sum(t24, "completion_tokens"))} tokens` },
-    { page: "mesh", icon: "mesh", label: "Mesh", status: lvl("mesh"),
-      value: `${peers.filter(p => p.connected).length}<small> / ${peers.length} peers</small>`,
-      detail: `management ${L.management ? "up" : "DOWN"} · relays ${L.relays_available}/${L.relays_total} · ${d.mesh.valid_setup_keys || 0} setup keys` },
+    { page: "mesh", icon: "mesh", label: "Tunnel", status: lvl("mesh"),
+      value: `${(d.tunnel?.peers || []).filter(p => p.connected).length}<small> / ${(d.tunnel?.peers || []).length} garages</small>`,
+      detail: `UDP fallback (NetBird) ${L.management && L.signal ? "up" : '<span class="warning">down</span>'}` },
     { page: "server", icon: "server", label: "Gateway server", status: lvl("server"),
       value: `${memPct}<small> % memory</small>`, detail: `disk ${h.disk_used_pct} % · load ${h.load[0]} on ${h.cpus} CPUs${h.reboot_required ? ' · <span class="warning">reboot</span>' : ""}`,
       extra: hist?.host?.length > 4 ? spark(hist.host.slice(-96).map(r => [r[0], r[1]]), 100) : bar(memPct, memPct > 90 ? "critical" : memPct > 80 ? "warning" : "") },
@@ -570,7 +569,7 @@ function renderDashboard(d) {
       value: d.backup.newest ? `${d.backup.age_hours}<small> h old</small>` : '<span class="critical">none</span>', detail: `${d.backup.count} backups kept · ${d.backup.encrypted ? "encrypted" : "not encrypted"} · ${d.backup.offsite && d.backup.offsite !== "none" && d.backup.offsite !== "failed" ? "off-site" : "on this server only"} · certificates ≥ ${certMin} d` },
     { page: "updates", icon: "updates", label: "Updates", status: drift ? "warning" : updates ? "info" : "ok",
       value: `${updates}<small> available</small>`, detail: `${drift ? `<span class="warning">${drift} files differ from main</span>` : "deployed files match main"} · ${h.updates_pending} OS packages` },
-    { page: "logs", icon: "logs", label: "Logs", status: lvl("logs"),
+    { page: "server", icon: "logs", label: "Logs", status: lvl("logs"),
       value: `${logMb.toFixed(0)}<small> MB</small>`, detail: `${unrotated ? `<span class="warning">${unrotated} without rotation</span>` : "all containers rotate"} · journal ${esc(d.logs?.journald)}` },
   ];
   $("kpis").innerHTML = tiles.map(t => `<a class="kpi ${t.status}" href="#${t.page}">
@@ -683,9 +682,11 @@ function renderPages(d) {
     const reqs = rq && rq.requests ? `<div class="small">garage saw ${rq.requests} req/5 min${rq.inference ? `, first byte p50 ${rq.ttfb_p50_ms} ms` : ""}${rq.cold_starts ? `, ${rq.cold_starts} cold start${rq.cold_starts > 1 ? "s" : ""}` : ""}${rq.errors ? ` · <span class="warning">${rq.errors} errors</span>` : ""}</div>` : "";
     return `${hb}<div class="small">Bridge ${esc(a.version || "?")} · ${esc(a.os || "")}</div>${state}${nodes}${machine}${reqs}` + (probs || '<div class="small ok">no problems reported</div>');
   };
+  const canary = new Set(((d.business || {}).bridge_versions?.garages || []).filter(x => x.canary).map(x => x.name));
   $("garages").innerHTML = table([
-    ["Name", g => `${dot(g.onboarding || d.silences?.[g.garage] ? "info" : g.runtime_ok && g.mesh !== false ? "ok" : "critical")}<b>${esc(g.garage)}</b>${d.silences?.[g.garage] ? " " + pill("info", "planned stop") : ""}`],
+    ["Name", g => `${dot(g.onboarding || g.paused || d.silences?.[g.garage] ? "info" : g.runtime_ok && g.mesh !== false ? "ok" : "critical")}<b>${esc(g.garage)}</b>${g.paused ? " " + pill("info", "paused in portal") : ""}${d.silences?.[g.garage] ? " " + pill("info", "planned stop") : ""}${canary.has(g.garage) ? " " + pill("muted", "canary") : ""}`],
     ["Type", g => pill("muted", g.type)],
+    ["Engine", g => esc(({ ollama: "Ollama", vllm: "vLLM", xyntetik: "Xyntetik Runner", llamacpp: "llama.cpp", lmstudio: "LM Studio", sglang: "SGLang", provider: "provider" })[g.engine] || g.engine || "—")],
     ["Tunnel", g => g.type === "provider" ? "HTTPS" : g.mesh ? `<span class="ok">up</span>` : `<span class="critical">down</span>`],
     ["Runtime", g => g.onboarding ? `${pill("info", "onboarding")}${g.onboarding_step ? `<div class="small">${esc(g.onboarding_step.step)} · ${esc(g.onboarding_step.status)}${g.onboarding_step.message ? ": " + esc(g.onboarding_step.message) : ""}</div>` : ""}`
       : g.runtime_ok ? `<span class="ok">answers</span>` : `<span class="critical">${esc(g.error || "down")}</span>`],
@@ -724,12 +725,7 @@ function renderPages(d) {
       : '<div class="small">No client is blocked right now.</div>')
     + (gd.recent.length ? `<div class="note">Last 30 days: ${gd.recent.length} block${gd.recent.length > 1 ? "s" : ""}. Lift one on the gateway: <code>sudo garageai-guard --unban IP</code></div>` : "");
   const m = d.mesh, L = m.local;
-  $("mesh-local").innerHTML = `<div class="kv">
-    <div>Address</div><div>${dot(L.management && L.signal ? "ok" : "critical")}<code>${esc(L.ip)}</code> · NetBird ${esc(L.version)}</div>
-    <div>Management</div><div>${L.management ? '<span class="ok">connected</span>' : '<span class="critical">DOWN</span>'}</div>
-    <div>Signal</div><div>${L.signal ? '<span class="ok">connected</span>' : '<span class="critical">DOWN</span>'}</div>
-    <div>Relays</div><div>${L.relays_available} / ${L.relays_total} available</div>
-    <div>Valid setup keys</div><div class="${m.valid_setup_keys ? "warning" : "ok"}">${m.valid_setup_keys ?? "?"}</div></div>`;
+  $("mesh-local").innerHTML = `<div>${dot(L.management && L.signal ? "ok" : "warning")}${L.management && L.signal ? "Ready" : '<span class="warning">Down</span>'} · NetBird ${esc(L.version)} · relays ${L.relays_available}/${L.relays_total} · ${(m.peers || []).filter(p => p.name !== "ubuntu-4gb-hel1-2").length} garage(s) on it${(m.policies || []).some(p => p.bidirectional) ? ' · <span class="critical">a policy is bidirectional</span>' : ""}</div>`;
   $("mesh-peers").innerHTML = table([["Peer", p => `${dot(p.connected ? "ok" : "muted")}${esc(p.name)}`], ["Groups", p => esc(p.groups.join(", "))],
     ["Link from gateway", p => p.link ? `${esc(p.link.status)} · ${esc(p.link.type || "—")}${p.link.latency_ms ? ` · ${p.link.latency_ms} ms` : ""}` : "—"],
     ["Country", p => esc(p.country)], ["NetBird", p => esc(p.version)], ["OS", p => esc(p.os)], ["Last seen", p => p.connected ? "now" : ago(p.last_seen)]], m.peers);
@@ -816,6 +812,15 @@ function renderBusiness(b) {
   $("biz-onb").innerHTML = `<div class="sub">${fmt(onb.count ?? list.length)} garage(s) created but never registered.</div>` +
     table([["Garage", o => esc(o.garage)], ["Created", o => ago(o.created_at)], ["Last step", o => o.last_step ? `${esc(o.last_step)} · ${esc(o.last_status || "")}` : '<span class="small">no report yet</span>']], list);
   $("biz-admin").innerHTML = table([["When", a => ago(a.at)], ["Action", a => esc(a.action)], ["Target", a => esc(a.target)]], b.admin_activity || []);
+  const f = b.buyer_funnel;
+  if (f) {
+    const steps = [["Signed up", f.signed_up], ["Accepted terms", f.accepted_terms], ["Have a key", f.has_key], ["First request", f.first_request]];
+    const top = Math.max(1, f.signed_up || 0);
+    const stepName = { accept_terms: "accepting the terms", create_key: "getting a key", first_request: "the first request" };
+    $("buyer-funnel").innerHTML = `<div class="kv">${steps.map(([k, v]) => `<div>${k}</div><div><b>${fmt(v ?? 0)}</b> <span class="small">${Math.round(100 * (v || 0) / top)} %</span></div>`).join("")}</div>` +
+      ((f.stuck || []).length ? `<div class="sub" style="margin-top:10px">Stuck</div>` + table([["Account", a => `<code>${esc(a.id)}</code>`], ["Signed up", a => ago(a.created_at)], ["Stuck at", a => esc(stepName[a.stuck_at] || a.stuck_at)], ["For", a => a.minutes >= 1440 ? `${Math.round(a.minutes / 1440)} d` : a.minutes >= 60 ? `${Math.round(a.minutes / 60)} h` : `${a.minutes} min`, "num"]], f.stuck)
+        : '<div class="small ok" style="margin-top:8px">Nobody is stuck.</div>');
+  } else $("buyer-funnel").innerHTML = '<div class="small">Not in the portal summary yet.</div>';
 }
 
 /* ---------- history: charts and events */
@@ -969,6 +974,19 @@ function renderHistory() {
       ["First token p95, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "ttft_p95")}</div>`],
       ["Output tok/s, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "tps_p50")}</div>`],
     ], qs) : '<div class="small">No traffic yet.</div>';
+    const qe = Object.entries(hist.quality_by_engine || {}).sort((a, b) => (b[1].last_24h?.requests || 0) - (a[1].last_24h?.requests || 0));
+    const engineName = { ollama: "Ollama", vllm: "vLLM", xyntetik: "Xyntetik Runner", llamacpp: "llama.cpp", lmstudio: "LM Studio", sglang: "SGLang", paddock: "Paddock", provider: "Provider (its own)", unknown: "Unknown (garage gone)" };
+    $("quality-engine").innerHTML = qe.length ? table([
+      ["Engine", ([e]) => esc(engineName[e] || e)],
+      ["Requests 24 h", ([, q]) => fmt(q.last_24h?.requests ?? 0), "num"],
+      ["Success 24 h", ([, q]) => q.last_24h?.success_pct == null ? "—" : `<span class="${sc(q.last_24h.success_pct, q.last_24h.requests)}">${q.last_24h.success_pct} %</span>`, "num"],
+      ["First token p50 / p95", ([, q]) => q.last_24h ? `${q.last_24h.ttft_p50 ?? "—"} / ${q.last_24h.ttft_p95 ?? "—"} s` : "—", "num"],
+      ["Output tok/s", ([, q]) => q.last_24h?.tps_p50 ?? "—", "num"],
+      ["Cached input", ([, q]) => q.last_24h?.cached_pct == null ? "—" : `${q.last_24h.cached_pct} %`, "num"],
+      ["Success, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "success_pct", 100)}</div>`],
+      ["First token p95, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "ttft_p95")}</div>`],
+      ["Output tok/s, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "tps_p50")}</div>`],
+    ], qe) : '<div class="small">No traffic yet.</div>';
   }
   if (page === "server") {
     const h = hist.host;

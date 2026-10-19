@@ -369,6 +369,17 @@ def agent_report(t):
             "nodes": [n for n in (a.get("nodes") or []) if isinstance(n, dict)][:8]}
 
 
+def engines_by_garage():
+    """The inference engine each garage serves with, from LiteLLM's model table (model_info.runtime;
+    a provider's is "openai", shown as "provider")."""
+    out = {}
+    for g, rt in psql("""select distinct model_info->>'garage', model_info->>'runtime' from "LiteLLM_ProxyModelTable"
+                         where model_info->>'garage' is not null"""):
+        if g and rt:
+            out.setdefault(g, set()).add("provider" if rt == "openai" else rt)
+    return {g: ", ".join(sorted(v)) for g, v in out.items()}
+
+
 def garages(env, state, targets):
     health = read_json(HEALTH_LAST, {})
     if not health.get("results"):
@@ -381,13 +392,18 @@ def garages(env, state, targets):
     hist = state.setdefault("history", {})
     minute = int(time.time() // 60)
     rows, providers = [], []
+    try:
+        engines = engines_by_garage()
+    except Exception:  # noqa: BLE001 - the table is a nicety, never a reason to fail the collection
+        engines = {}
     for t in targets or []:
         name = t.get("garage")
         h = by_name.get(name, {})
         up = bool(h.get("runtime_ok")) and (h.get("mesh_connected") is not False)
         series = hist.setdefault(name, [])
         onboarding = not t.get("endpoint") and not (t.get("host") and t.get("port"))
-        if not onboarding and (not series or series[-1][0] != minute):   # onboarding is not downtime
+        paused = bool(t.get("paused"))
+        if not onboarding and not paused and (not series or series[-1][0] != minute):   # onboarding and a pause are not downtime
             series.append([minute, 1 if up else 0])
         hist[name] = series[-HISTORY_MINUTES:]
         last60 = [s[1] for s in hist[name] if s[0] > minute - 60]
@@ -410,6 +426,11 @@ def garages(env, state, targets):
             # The garage's heartbeat comes from another machine than the one it was linked to.
             "machine_mismatch": t.get("machine_mismatch") is True,
             "transport": t.get("transport") or ("provider" if t.get("endpoint") else "netbird"),
+            # The engine it serves with, and a pause set in the portal (gateway-targets sends paused
+            # garages with paused: true so the hub keeps their tunnel; before, they vanished from Ops:
+            # garage-m4, 2026-10-18).
+            "engine": engines.get(name) or ((t.get("agent") or {}).get("runtime") if isinstance(t.get("agent"), dict) else None),
+            "paused": bool(t.get("paused")),
         }
         if t.get("endpoint"):
             row["provider"] = provider_checks(t)
@@ -858,22 +879,15 @@ def alerts(d):
             add("critical", f"Certificate for {c['host']} expires in {c['days_left']} days", "server")
         elif c["days_left"] < 14:
             add("warning", f"Certificate for {c['host']} expires in {c['days_left']} days", "server")
+    # NetBird is only the fallback for networks that block UDP since 2026-10-18 (every garage runs
+    # on Bridge's own tunnel; the peers were cleaned up). What matters is that the fallback works
+    # and stays one-way; setup keys and extra policies no longer say anything.
     m = d["mesh"]
     if m["local"].get("management") is False or m["local"].get("signal") is False:
-        add("critical", "The gateway's NetBird client is not connected to management/signal", "mesh")
-    if m.get("valid_setup_keys"):
-        # A key handed to an operator who is onboarding right now is expected; any other valid key is not.
-        names = m.get("valid_setup_key_names") or []
-        stray = [n for n in names if n not in onboarding] if names else None
-        if stray is None or stray:
-            add("warning", f"{m['valid_setup_keys']} NetBird setup key(s) are still valid", "mesh")
-        else:
-            add("info", f"Setup key waiting for onboarding: {', '.join(names)}", "mesh")
+        add("warning", "The UDP fallback (NetBird) is down: the gateway's NetBird client is not connected to management/signal", "mesh")
     for p in m.get("policies", []):
         if p["bidirectional"]:
             add("critical", f"NetBird policy {p['name']} is bidirectional: garages could reach the gateway", "mesh")
-        if p["name"] not in EXPECTED_POLICIES:
-            add("info", f"Extra NetBird policy: {p['name']}", "mesh")
     if d["portal"]["targets_status"] != 200:
         add("critical", f"Portal gateway-targets answered {d['portal']['targets_status']}", "supply")
     for o in d.get("onboarding", []):
@@ -883,6 +897,10 @@ def alerts(d):
         elif o["stuck"] and (o["minutes"] or 0) >= 24 * 60:
             add("info", f"{o['garage']} was created {o['minutes'] // 1440} d ago and has not reported a step yet", "onboarding", garage=o["garage"])
     for g in d["garages"]:
+        if g.get("paused"):
+            # Paused in the portal by its operator or an admin: off the market on purpose, not down.
+            add("info", f"{g['garage']} is paused in the portal (off the market, tunnel kept)", "supply", garage=g["garage"])
+            continue
         if g.get("onboarding"):
             st = g.get("onboarding_step") or {}
             if st.get("status") in ("failed", "stopped"):
@@ -1125,6 +1143,7 @@ def quality():
                     then completion_tokens / extract(epoch from ("endTime" - "completionStartTime")) end tps
         from "LiteLLM_SpendLogs"
         where "startTime" > now() - interval '{iv}' and model_group not like 'probe/%' and model_group not like 'garage-probe%'
+          and model_group not like 'test/%' -- failover tests against the live gateway (2026-10-18)
           and call_type not like '/%'
           -- a 4xx is the buyer's request being wrong (prompt longer than the window, bad parameters),
           -- not the garage failing: it does not count against the garage (Erik's 88 %, 2026-10-13)
@@ -1145,6 +1164,46 @@ def quality():
         out.setdefault(g, {"days": [], "last_24h": None})["days"].append({"day": day, **row(*vals)})
     for g, _, *vals in psql(base.format(iv="24 hours", bucket="'24h'")):
         out.setdefault(g, {"days": [], "last_24h": None})["last_24h"] = row(*vals)
+    return out
+
+
+def quality_by_engine():
+    """The same figures per inference engine (Ollama, vLLM, Xyntetik Runner, llama.cpp, ...; a
+    provider's engine is its own, shown as "provider"): the engine-diversity principle wants a
+    curve per engine, not a number. The engine comes from the deployment's model_info.runtime in
+    LiteLLM's model table, joined on the spend log's model_id; a deployment that is gone (its garage
+    left) counts as "unknown"."""
+    base = """
+      with s as (
+        select coalesce(case when m.model_info->>'runtime' = 'openai' then 'provider' else m.model_info->>'runtime' end, 'unknown') e,
+               l."startTime" st, l.status,
+               case when l."completionStartTime" < l."endTime" then extract(epoch from (l."completionStartTime" - l."startTime")) end ttft,
+               l.prompt_tokens pt,
+               coalesce((l.metadata->'usage_object'->'prompt_tokens_details'->>'cached_tokens')::bigint, 0) ct,
+               case when l.completion_tokens >= 20 and l."endTime" > l."completionStartTime" + interval '0.5 seconds'
+                    then l.completion_tokens / extract(epoch from (l."endTime" - l."completionStartTime")) end tps
+        from "LiteLLM_SpendLogs" l
+        left join "LiteLLM_ProxyModelTable" m on m.model_info->>'id' = l.model_id
+        where l."startTime" > now() - interval '{iv}' and l.model_group not like 'probe/%' and l.model_group not like 'garage-probe%'
+          and l.model_group not like 'test/%'
+          and l.call_type not like '/%'
+          and not (l.status = 'failure' and coalesce(l.metadata->'error_information'->>'error_code', '') like '4%'))
+      select e, {bucket}, count(*), count(*) filter (where status = 'success'),
+             round((percentile_cont(0.5) within group (order by ttft) filter (where status = 'success'))::numeric, 2),
+             round((percentile_cont(0.95) within group (order by ttft) filter (where status = 'success'))::numeric, 2),
+             round((percentile_cont(0.5) within group (order by tps) filter (where status = 'success'))::numeric, 1),
+             round(100.0 * sum(ct) / nullif(sum(pt), 0), 1)
+      from s group by 1, 2 order by 2"""
+    num = lambda x: float(x) if x not in (None, "") else None
+    def row(n, ok, p50, p95, tps, cached):
+        n, ok = int(n), int(ok)
+        return {"requests": n, "success_pct": round(100 * ok / n, 1) if n else None,
+                "ttft_p50": num(p50), "ttft_p95": num(p95), "tps_p50": num(tps), "cached_pct": num(cached)}
+    out = {}
+    for e, day, *vals in psql(base.format(iv="7 days", bucket="to_char(date_trunc('day', st), 'YYYY-MM-DD')")):
+        out.setdefault(e, {"days": [], "last_24h": None})["days"].append({"day": day, **row(*vals)})
+    for e, _, *vals in psql(base.format(iv="24 hours", bucket="'24h'")):
+        out.setdefault(e, {"days": [], "last_24h": None})["last_24h"] = row(*vals)
     return out
 
 # ---------------------------------------------------------------- history and events
@@ -1259,7 +1318,7 @@ def detect_events(db, d, state):
         msg = ((github_json(f"repos/{REPO}/commits/{cur['main']}") or {}).get("commit") or {}).get("message", "")
         add_event(db, "info", "source", "updates", f"main -> {cur['main'][:7]}: {msg.splitlines()[0] if msg else ''}".rstrip(": "))
     for name in sorted(set(cur["peers"]) - set(prev["peers"])):
-        add_event(db, "warning", "mesh", "mesh", f"New NetBird peer: {name}")
+        add_event(db, "info", "mesh", "mesh", f"New NetBird peer (UDP fallback): {name}")
     for name in sorted(set(prev["peers"]) - set(cur["peers"])):
         add_event(db, "info", "mesh", "mesh", f"NetBird peer removed: {name}")
     for name in sorted(set(cur["garages"]) - set(prev["garages"])):
@@ -1273,7 +1332,7 @@ def detect_events(db, d, state):
                                                          f"{b['count']} {b['reason']} within 2 min")
     keys, before = cur["setup_keys"], prev.get("setup_keys")
     if keys is not None and before is not None and keys > before:
-        add_event(db, "warning", "mesh", "mesh", f"NetBird setup key created ({keys} valid)")
+        add_event(db, "info", "mesh", "mesh", f"NetBird setup key created ({keys} valid)")
 
 
 def recent_events(db, limit, since=0):
@@ -1333,7 +1392,7 @@ def write_history(db, state):
     state["quality"] = q
     out = {"generated_at": now().isoformat(timespec="seconds"), "host": host, "uptime_hourly": uptime,
            "uptime_daily": daily, "garage_load": load, "traffic_hourly": traffic_hourly(),
-           "events": recent_events(db, 1000, since=month), "quality": q}
+           "events": recent_events(db, 1000, since=month), "quality": q, "quality_by_engine": quality_by_engine()}
     tmp = path + ".tmp"
     with open(tmp, "w") as f:
         json.dump(out, f, separators=(",", ":"))
