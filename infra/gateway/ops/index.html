@@ -299,6 +299,8 @@
         <div id="alerts-onboarding"></div>
         <div class="card"><h2>Garages onboarding</h2><div class="sub">Created in the portal, not registered yet. Steps and problems come from the connect script's reports and its garage profile.</div><div id="onb"></div>
           <div class="note">A garage is stuck when its last step failed or waits for the operator for 30 minutes. Fixes and the full machine profile are on the garage's page in the portal admin.</div></div>
+        <div class="card"><h2>New buyers, last 30 days</h2><div class="sub">From sign-up to the first answered request. An account stuck more than 30 minutes at a step is listed (id only, no name or e-mail). Test keys are left out.</div><div id="buyer-funnel"></div></div>
+        <div class="card"><h2>Accounts and garages created, from the portal</h2><div id="biz-onb"></div></div>
         <div class="card"><h2>Time to live, last 30 days</h2><div class="sub">From a garage's first onboarding report to its registration passing the acceptance test. The number every onboarding change is judged by.</div>
           <div class="kpis" id="onb-kpis"></div><div class="grid"><div id="onb-failed"></div><div id="onb-problems"></div></div><div id="onb-sessions"></div></div>
       </section>
@@ -312,7 +314,6 @@
           <div class="card"><h2>Stripe</h2><div id="biz-stripe"></div></div>
         </div>
         <div class="grid">
-          <div class="card"><h2>Onboarding</h2><div id="biz-onb"></div></div>
           <div class="card"><h2>Admin activity</h2><div id="biz-admin"></div></div>
         </div>
       </section>
@@ -389,6 +390,10 @@
           <div class="card"><h2>Managed-models chain, nightly</h2><div id="chain"></div></div>
           <div class="card"><h2>Certificates</h2><div id="certs"></div></div>
         </div>
+              <div id="alerts-logs"></div>
+        <div class="card"><h2>Container logs</h2><div id="logs"></div>
+          <div class="note">Logs hold request metadata only, never prompts. Alerts above 400 MB, or above 100 MB without rotation.</div></div>
+        <div class="card"><h2>Disk</h2><div id="disk"></div></div>
       </section>
 
       <section class="page" data-page="updates">
@@ -398,12 +403,6 @@
         <div class="card"><h2>Source and revision</h2><div id="source"></div></div>
       </section>
 
-      <section class="page" data-page="logs">
-        <div id="alerts-logs"></div>
-        <div class="card"><h2>Container logs</h2><div id="logs"></div>
-          <div class="note">Logs hold request metadata only, never prompts. Alerts above 400 MB, or above 100 MB without rotation.</div></div>
-        <div class="card"><h2>Disk</h2><div id="disk"></div></div>
-      </section>
     </main>
   </div>
 </div>
@@ -424,7 +423,6 @@ const PAGES = [
   { id: "mesh", title: "Tunnel", icon: "mesh", sub: "Bridge's tunnel hub, and NetBird as the UDP fallback" },
   { id: "server", title: "Server", icon: "server", sub: "Gateway host, containers, timers, backup and certificates" },
   { id: "updates", title: "Updates", icon: "updates", sub: "Running vs latest versions, and deployed files vs main" },
-  { id: "logs", title: "Logs", icon: "logs", sub: "Log sizes, rotation and disk use" },
 ];
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "—").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -571,7 +569,7 @@ function renderDashboard(d) {
       value: d.backup.newest ? `${d.backup.age_hours}<small> h old</small>` : '<span class="critical">none</span>', detail: `${d.backup.count} backups kept · ${d.backup.encrypted ? "encrypted" : "not encrypted"} · ${d.backup.offsite && d.backup.offsite !== "none" && d.backup.offsite !== "failed" ? "off-site" : "on this server only"} · certificates ≥ ${certMin} d` },
     { page: "updates", icon: "updates", label: "Updates", status: drift ? "warning" : updates ? "info" : "ok",
       value: `${updates}<small> available</small>`, detail: `${drift ? `<span class="warning">${drift} files differ from main</span>` : "deployed files match main"} · ${h.updates_pending} OS packages` },
-    { page: "logs", icon: "logs", label: "Logs", status: lvl("logs"),
+    { page: "server", icon: "logs", label: "Logs", status: lvl("logs"),
       value: `${logMb.toFixed(0)}<small> MB</small>`, detail: `${unrotated ? `<span class="warning">${unrotated} without rotation</span>` : "all containers rotate"} · journal ${esc(d.logs?.journald)}` },
   ];
   $("kpis").innerHTML = tiles.map(t => `<a class="kpi ${t.status}" href="#${t.page}">
@@ -684,9 +682,11 @@ function renderPages(d) {
     const reqs = rq && rq.requests ? `<div class="small">garage saw ${rq.requests} req/5 min${rq.inference ? `, first byte p50 ${rq.ttfb_p50_ms} ms` : ""}${rq.cold_starts ? `, ${rq.cold_starts} cold start${rq.cold_starts > 1 ? "s" : ""}` : ""}${rq.errors ? ` · <span class="warning">${rq.errors} errors</span>` : ""}</div>` : "";
     return `${hb}<div class="small">Bridge ${esc(a.version || "?")} · ${esc(a.os || "")}</div>${state}${nodes}${machine}${reqs}` + (probs || '<div class="small ok">no problems reported</div>');
   };
+  const canary = new Set(((d.business || {}).bridge_versions?.garages || []).filter(x => x.canary).map(x => x.name));
   $("garages").innerHTML = table([
-    ["Name", g => `${dot(g.onboarding || d.silences?.[g.garage] ? "info" : g.runtime_ok && g.mesh !== false ? "ok" : "critical")}<b>${esc(g.garage)}</b>${d.silences?.[g.garage] ? " " + pill("info", "planned stop") : ""}`],
+    ["Name", g => `${dot(g.onboarding || g.paused || d.silences?.[g.garage] ? "info" : g.runtime_ok && g.mesh !== false ? "ok" : "critical")}<b>${esc(g.garage)}</b>${g.paused ? " " + pill("info", "paused in portal") : ""}${d.silences?.[g.garage] ? " " + pill("info", "planned stop") : ""}${canary.has(g.garage) ? " " + pill("muted", "canary") : ""}`],
     ["Type", g => pill("muted", g.type)],
+    ["Engine", g => esc(({ ollama: "Ollama", vllm: "vLLM", xyntetik: "Xyntetik Runner", llamacpp: "llama.cpp", lmstudio: "LM Studio", sglang: "SGLang", provider: "provider" })[g.engine] || g.engine || "—")],
     ["Tunnel", g => g.type === "provider" ? "HTTPS" : g.mesh ? `<span class="ok">up</span>` : `<span class="critical">down</span>`],
     ["Runtime", g => g.onboarding ? `${pill("info", "onboarding")}${g.onboarding_step ? `<div class="small">${esc(g.onboarding_step.step)} · ${esc(g.onboarding_step.status)}${g.onboarding_step.message ? ": " + esc(g.onboarding_step.message) : ""}</div>` : ""}`
       : g.runtime_ok ? `<span class="ok">answers</span>` : `<span class="critical">${esc(g.error || "down")}</span>`],
@@ -812,6 +812,15 @@ function renderBusiness(b) {
   $("biz-onb").innerHTML = `<div class="sub">${fmt(onb.count ?? list.length)} garage(s) created but never registered.</div>` +
     table([["Garage", o => esc(o.garage)], ["Created", o => ago(o.created_at)], ["Last step", o => o.last_step ? `${esc(o.last_step)} · ${esc(o.last_status || "")}` : '<span class="small">no report yet</span>']], list);
   $("biz-admin").innerHTML = table([["When", a => ago(a.at)], ["Action", a => esc(a.action)], ["Target", a => esc(a.target)]], b.admin_activity || []);
+  const f = b.buyer_funnel;
+  if (f) {
+    const steps = [["Signed up", f.signed_up], ["Accepted terms", f.accepted_terms], ["Have a key", f.has_key], ["First request", f.first_request]];
+    const top = Math.max(1, f.signed_up || 0);
+    const stepName = { accept_terms: "accepting the terms", create_key: "getting a key", first_request: "the first request" };
+    $("buyer-funnel").innerHTML = `<div class="kv">${steps.map(([k, v]) => `<div>${k}</div><div><b>${fmt(v ?? 0)}</b> <span class="small">${Math.round(100 * (v || 0) / top)} %</span></div>`).join("")}</div>` +
+      ((f.stuck || []).length ? `<div class="sub" style="margin-top:10px">Stuck</div>` + table([["Account", a => `<code>${esc(a.id)}</code>`], ["Signed up", a => ago(a.created_at)], ["Stuck at", a => esc(stepName[a.stuck_at] || a.stuck_at)], ["For", a => a.minutes >= 1440 ? `${Math.round(a.minutes / 1440)} d` : a.minutes >= 60 ? `${Math.round(a.minutes / 60)} h` : `${a.minutes} min`, "num"]], f.stuck)
+        : '<div class="small ok" style="margin-top:8px">Nobody is stuck.</div>');
+  } else $("buyer-funnel").innerHTML = '<div class="small">Not in the portal summary yet.</div>';
 }
 
 /* ---------- history: charts and events */
