@@ -142,6 +142,7 @@ func agent(cfg *service.Config) *portal.Agent {
 	p := profile.Build(version)
 	correctRuntime(cfg, p)
 	a := &portal.Agent{Tool: p.Tool, Version: version, OS: p.Machine.OS, Arch: p.Machine.Arch, Problems: []portal.AgentProblem{}}
+	a.ResumedAt = service.LastResumed(time.Now())
 	ust := service.LoadUpdateState()
 	a.Update = &portal.AgentUpdate{Auto: cfg.AutoUpdate == nil || *cfg.AutoUpdate, LastCheck: ust.LastCheck, LastUpdate: ust.LastUpdate, LastError: ust.LastError}
 	tel := machine.Collect()
