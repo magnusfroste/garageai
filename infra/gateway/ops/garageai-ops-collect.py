@@ -402,7 +402,8 @@ def garages(env, state, targets):
         up = bool(h.get("runtime_ok")) and (h.get("mesh_connected") is not False)
         series = hist.setdefault(name, [])
         onboarding = not t.get("endpoint") and not (t.get("host") and t.get("port"))
-        if not onboarding and (not series or series[-1][0] != minute):   # onboarding is not downtime
+        paused = bool(t.get("paused"))
+        if not onboarding and not paused and (not series or series[-1][0] != minute):   # onboarding and a pause are not downtime
             series.append([minute, 1 if up else 0])
         hist[name] = series[-HISTORY_MINUTES:]
         last60 = [s[1] for s in hist[name] if s[0] > minute - 60]

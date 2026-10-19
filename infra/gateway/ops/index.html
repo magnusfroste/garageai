@@ -298,6 +298,7 @@
         <div id="alerts-onboarding"></div>
         <div class="card"><h2>Garages onboarding</h2><div class="sub">Created in the portal, not registered yet. Steps and problems come from the connect script's reports and its garage profile.</div><div id="onb"></div>
           <div class="note">A garage is stuck when its last step failed or waits for the operator for 30 minutes. Fixes and the full machine profile are on the garage's page in the portal admin.</div></div>
+        <div class="card"><h2>New buyers, last 30 days</h2><div class="sub">From sign-up to the first answered request. An account stuck more than 30 minutes at a step is listed (id only, no name or e-mail). Test keys are left out.</div><div id="buyer-funnel"></div></div>
         <div class="card"><h2>Accounts and garages created, from the portal</h2><div id="biz-onb"></div></div>
         <div class="card"><h2>Time to live, last 30 days</h2><div class="sub">From a garage's first onboarding report to its registration passing the acceptance test. The number every onboarding change is judged by.</div>
           <div class="kpis" id="onb-kpis"></div><div class="grid"><div id="onb-failed"></div><div id="onb-problems"></div></div><div id="onb-sessions"></div></div>
@@ -815,6 +816,15 @@ function renderBusiness(b) {
   $("biz-onb").innerHTML = `<div class="sub">${fmt(onb.count ?? list.length)} garage(s) created but never registered.</div>` +
     table([["Garage", o => esc(o.garage)], ["Created", o => ago(o.created_at)], ["Last step", o => o.last_step ? `${esc(o.last_step)} · ${esc(o.last_status || "")}` : '<span class="small">no report yet</span>']], list);
   $("biz-admin").innerHTML = table([["When", a => ago(a.at)], ["Action", a => esc(a.action)], ["Target", a => esc(a.target)]], b.admin_activity || []);
+  const f = b.buyer_funnel;
+  if (f) {
+    const steps = [["Signed up", f.signed_up], ["Accepted terms", f.accepted_terms], ["Have a key", f.has_key], ["First request", f.first_request]];
+    const top = Math.max(1, f.signed_up || 0);
+    const stepName = { accept_terms: "accepting the terms", create_key: "getting a key", first_request: "the first request" };
+    $("buyer-funnel").innerHTML = `<div class="kv">${steps.map(([k, v]) => `<div>${k}</div><div><b>${fmt(v ?? 0)}</b> <span class="small">${Math.round(100 * (v || 0) / top)} %</span></div>`).join("")}</div>` +
+      ((f.stuck || []).length ? `<div class="sub" style="margin-top:10px">Stuck</div>` + table([["Account", a => `<code>${esc(a.id)}</code>`], ["Signed up", a => ago(a.created_at)], ["Stuck at", a => esc(stepName[a.stuck_at] || a.stuck_at)], ["For", a => a.minutes >= 1440 ? `${Math.round(a.minutes / 1440)} d` : a.minutes >= 60 ? `${Math.round(a.minutes / 60)} h` : `${a.minutes} min`, "num"]], f.stuck)
+        : '<div class="small ok" style="margin-top:8px">Nobody is stuck.</div>');
+  } else $("buyer-funnel").innerHTML = '<div class="small">Not in the portal summary yet.</div>';
 }
 
 /* ---------- history: charts and events */
