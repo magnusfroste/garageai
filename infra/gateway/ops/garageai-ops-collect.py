@@ -191,7 +191,13 @@ def chain_test_info():
         age = round((time.time() - datetime.fromisoformat(last["at"]).timestamp()) / 3600, 1)
     except (KeyError, ValueError, TypeError):
         age = None
-    return {"last": last, "age_hours": age, "runs": d.get("runs"), "passed": d.get("passed"), "history": d.get("history", [])[-14:]}
+    tested = [h for h in d.get("history", []) if not h.get("skipped")]
+    try:
+        since_tested = round((time.time() - datetime.fromisoformat(tested[-1]["at"]).timestamp()) / 86400, 1) if tested else None
+    except (KeyError, ValueError, TypeError):
+        since_tested = None
+    return {"last": last, "age_hours": age, "runs": d.get("runs"), "passed": d.get("passed"), "history": d.get("history", [])[-14:],
+            "days_since_tested": since_tested}
 
 
 def backup_info():
@@ -865,7 +871,13 @@ def alerts(d):
     elif b["age_hours"] > 26:
         add("warning", f"Newest backup is {b['age_hours']} h old", "server")
     ct = d.get("chain_test") or {}
-    if ct.get("last") and not ct["last"].get("ok") and not ct["last"].get("skipped"):
+    if ct.get("last") and ct["last"].get("ok") is None and ct["last"].get("skipped"):
+        # Skipped on purpose (its garage is paused): fine for a night or two, not for a week.
+        if (ct.get("days_since_tested") or 0) >= 3:
+            add("warning", f"Managed-models chain test has not tested anything for {ct['days_since_tested']} days: {ct['last']['skipped']}. Pause it or point it at another garage (CHAIN_TEST_GARAGE)", "server")
+        else:
+            add("info", f"Managed-models chain test skipped last night: {ct['last']['skipped']}", "supply", garage=ct["last"].get("garage"))
+    elif ct.get("last") and not ct["last"].get("ok") and not ct["last"].get("skipped"):
         failed = [st["name"] for st in ct["last"].get("steps", []) if not st.get("ok")]
         add("warning", f"Managed-models chain test failed last night at: {', '.join(failed) or ct['last'].get('error', '?')}", "supply", garage=ct["last"].get("garage"))
     elif ct.get("age_hours") is not None and ct["age_hours"] > 30:

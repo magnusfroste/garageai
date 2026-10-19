@@ -153,9 +153,31 @@ def wait_for(name, check, limit, give_up=None):
         time.sleep(POLL)
 
 
+def away(env):
+    """Why the test garage is off on purpose, or None: paused in the portal (gateway-targets sends
+    paused garages with paused: true) or a planned stop silenced in Ops. A paused garage cannot
+    fetch a model, so the night would fail and say nothing about the chain (garage-m1 paused and
+    asleep, 2026-10-18/19)."""
+    until = (collect.read_silences().get(GARAGE) or {}).get("until")
+    if until and until > datetime.now(timezone.utc).isoformat():
+        return f"planned stop in Ops until {until[:16]}"
+    try:
+        _, _, targets = collect.portal_targets(env)
+    except Exception:  # noqa: BLE001 - without the list, run the test and let it say what it finds
+        return None
+    t = next((x for x in targets or [] if x.get("garage") == GARAGE), None)
+    if t and t.get("paused"):
+        return "paused in the portal"
+    return None
+
+
 def run(env):
     portal = Portal(env)
     steps = []
+    why = away(env)
+    if why:
+        log(f"chain test skipped: {GARAGE} is {why}")
+        return {"ok": None, "skipped": f"{GARAGE} is {why}", "steps": steps}
     log(f"chain test on {GARAGE} with {MODEL}")
     st = portal.status()
     # A leftover is a model still on the garage (installed) or a request still in flight; a
@@ -224,12 +246,15 @@ def main():
         pass
     history = (history + [result])[-KEEP:]
     for path, data in ((HISTORY, history), (OUT, {"last": result, "runs": len(history), "passed": sum(1 for r in history if r.get("ok")),
-                                                   "history": [{"at": r["at"], "ok": r.get("ok"), "total_seconds": r.get("total_seconds")} for r in history]})):
+                                                   "history": [{"at": r["at"], "ok": r.get("ok"), "skipped": bool(r.get("skipped")), "total_seconds": r.get("total_seconds")} for r in history]})):
         tmp = path + ".tmp"
         with open(tmp, "w") as f:
             json.dump(data, f, separators=(",", ":"))
         os.chmod(tmp, 0o644)
         os.replace(tmp, path)
+    if result.get("ok") is None:
+        log(f"chain test skipped ({result.get('skipped')})")
+        return 0   # a skip is not a failed run: the timer stays green, Ops says how long nothing was tested
     log(f"chain test {'passed' if result['ok'] else 'FAILED'} in {result['total_seconds']} s")
     return 0 if result["ok"] else 1
 
