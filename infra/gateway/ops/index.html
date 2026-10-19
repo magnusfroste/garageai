@@ -287,7 +287,7 @@
       <section class="page" data-page="supply">
         <div id="alerts-supply"></div>
         <div class="card"><h2>Garages and providers</h2><div id="garages"></div>
-          <div class="note">Garages are checked over the NetBird mesh, providers over public HTTPS. Uptime comes from the health check every minute.</div></div>
+          <div class="note">Garages are checked through Bridge's tunnel, providers over public HTTPS. Uptime comes from the health check every minute.</div></div>
         <div class="card"><h2>Quality per garage</h2><div class="sub">Real traffic, probes excluded. Output speed is tokens per second after the first token (median, replies of 20+ tokens). Cached input is the share of prompt tokens the runtime served from its prefix cache.</div><div id="quality"></div></div>
         <div class="card"><h2>Quality per engine</h2><div class="sub">The same figures per inference engine across all garages: Ollama, vLLM, Xyntetik Runner, llama.cpp... A provider's engine is its own ("provider"). A curve per engine, not a number: speed depends on the machine as much as on the engine, so compare engines on the same hardware class before drawing conclusions.</div><div id="quality-engine"></div></div>
         <div class="card"><h2>Uptime per hour, last 7 days</h2><div id="ch-uptime"></div></div>
@@ -364,10 +364,10 @@
 
       <section class="page" data-page="mesh">
         <div id="alerts-mesh"></div>
-        <div class="card" id="tunnel-card" hidden><h2>Bridge tunnel hub</h2><div class="sub">Garages that carry their own tunnel in Bridge (no NetBird): the hub learns each garage's address from its handshake.</div><div id="tunnel"></div></div>
-        <div class="card"><h2>Gateway peer</h2><div id="mesh-local"></div></div>
-        <div class="card"><h2>Peers</h2><div id="mesh-peers"></div></div>
-        <div class="card"><h2>Access policies</h2><div id="mesh-policies"></div>
+        <div class="card" id="tunnel-card"><h2>Bridge tunnel hub</h2><div class="sub">Garages that carry their own tunnel in Bridge (no NetBird): the hub learns each garage's address from its handshake.</div><div id="tunnel"></div></div>
+        <div class="card"><h2>UDP fallback (NetBird)</h2><div class="sub">For networks that block UDP, where Bridge's tunnel cannot run. No garage uses it today; it goes when Bridge has its own fallback over TCP 443.</div><div id="mesh-local"></div></div>
+        <div class="card" hidden><h2>Peers</h2><div id="mesh-peers"></div></div>
+        <div class="card" hidden><h2>Access policies</h2><div id="mesh-policies"></div>
           <div class="note">The gateway reaches the garages; garages must never reach the gateway (one way only).</div></div>
       </section>
 
@@ -421,7 +421,7 @@ const PAGES = [
   { id: "models", title: "Models", icon: "models", sub: "What buyers can call: public names, garages, prices, context windows, checked against the runtimes" },
   { id: "traffic", title: "Traffic", icon: "traffic", sub: "Requests, tokens, latency and gateway errors" },
   { group: "Infrastructure" },
-  { id: "mesh", title: "Mesh", icon: "mesh", sub: "NetBird: gateway peer, garages and access policies" },
+  { id: "mesh", title: "Tunnel", icon: "mesh", sub: "Bridge's tunnel hub, and NetBird as the UDP fallback" },
   { id: "server", title: "Server", icon: "server", sub: "Gateway host, containers, timers, backup and certificates" },
   { id: "updates", title: "Updates", icon: "updates", sub: "Running vs latest versions, and deployed files vs main" },
   { id: "logs", title: "Logs", icon: "logs", sub: "Log sizes, rotation and disk use" },
@@ -561,9 +561,9 @@ function renderDashboard(d) {
       value: p50 == null ? "—" : `${p50}<small> s p50</small>`, detail: p50 == null ? "no traffic" : `worst p95 ${p95} s · ${errTotal ? `<span class="warning">${errTotal} errors</span>` : "no gateway errors"}` },
     { page: "traffic", icon: "money", label: "Spend, 24 h", status: "ok",
       value: `$${sum(t24, "spend_usd").toFixed(2)}`, detail: `${fmt(sum(t24, "requests"))} requests · ${short(sum(t24, "prompt_tokens") + sum(t24, "completion_tokens"))} tokens` },
-    { page: "mesh", icon: "mesh", label: "Mesh", status: lvl("mesh"),
-      value: `${peers.filter(p => p.connected).length}<small> / ${peers.length} peers</small>`,
-      detail: `management ${L.management ? "up" : "DOWN"} · relays ${L.relays_available}/${L.relays_total} · ${d.mesh.valid_setup_keys || 0} setup keys` },
+    { page: "mesh", icon: "mesh", label: "Tunnel", status: lvl("mesh"),
+      value: `${(d.tunnel?.peers || []).filter(p => p.connected).length}<small> / ${(d.tunnel?.peers || []).length} garages</small>`,
+      detail: `UDP fallback (NetBird) ${L.management && L.signal ? "up" : '<span class="warning">down</span>'}` },
     { page: "server", icon: "server", label: "Gateway server", status: lvl("server"),
       value: `${memPct}<small> % memory</small>`, detail: `disk ${h.disk_used_pct} % · load ${h.load[0]} on ${h.cpus} CPUs${h.reboot_required ? ' · <span class="warning">reboot</span>' : ""}`,
       extra: hist?.host?.length > 4 ? spark(hist.host.slice(-96).map(r => [r[0], r[1]]), 100) : bar(memPct, memPct > 90 ? "critical" : memPct > 80 ? "warning" : "") },
@@ -725,12 +725,7 @@ function renderPages(d) {
       : '<div class="small">No client is blocked right now.</div>')
     + (gd.recent.length ? `<div class="note">Last 30 days: ${gd.recent.length} block${gd.recent.length > 1 ? "s" : ""}. Lift one on the gateway: <code>sudo garageai-guard --unban IP</code></div>` : "");
   const m = d.mesh, L = m.local;
-  $("mesh-local").innerHTML = `<div class="kv">
-    <div>Address</div><div>${dot(L.management && L.signal ? "ok" : "critical")}<code>${esc(L.ip)}</code> · NetBird ${esc(L.version)}</div>
-    <div>Management</div><div>${L.management ? '<span class="ok">connected</span>' : '<span class="critical">DOWN</span>'}</div>
-    <div>Signal</div><div>${L.signal ? '<span class="ok">connected</span>' : '<span class="critical">DOWN</span>'}</div>
-    <div>Relays</div><div>${L.relays_available} / ${L.relays_total} available</div>
-    <div>Valid setup keys</div><div class="${m.valid_setup_keys ? "warning" : "ok"}">${m.valid_setup_keys ?? "?"}</div></div>`;
+  $("mesh-local").innerHTML = `<div>${dot(L.management && L.signal ? "ok" : "warning")}${L.management && L.signal ? "Ready" : '<span class="warning">Down</span>'} · NetBird ${esc(L.version)} · relays ${L.relays_available}/${L.relays_total} · ${(m.peers || []).filter(p => p.name !== "ubuntu-4gb-hel1-2").length} garage(s) on it${(m.policies || []).some(p => p.bidirectional) ? ' · <span class="critical">a policy is bidirectional</span>' : ""}</div>`;
   $("mesh-peers").innerHTML = table([["Peer", p => `${dot(p.connected ? "ok" : "muted")}${esc(p.name)}`], ["Groups", p => esc(p.groups.join(", "))],
     ["Link from gateway", p => p.link ? `${esc(p.link.status)} · ${esc(p.link.type || "—")}${p.link.latency_ms ? ` · ${p.link.latency_ms} ms` : ""}` : "—"],
     ["Country", p => esc(p.country)], ["NetBird", p => esc(p.version)], ["OS", p => esc(p.os)], ["Last seen", p => p.connected ? "now" : ago(p.last_seen)]], m.peers);
