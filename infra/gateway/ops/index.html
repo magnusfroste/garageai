@@ -289,6 +289,7 @@
         <div class="card"><h2>Garages and providers</h2><div id="garages"></div>
           <div class="note">Garages are checked over the NetBird mesh, providers over public HTTPS. Uptime comes from the health check every minute.</div></div>
         <div class="card"><h2>Quality per garage</h2><div class="sub">Real traffic, probes excluded. Output speed is tokens per second after the first token (median, replies of 20+ tokens). Cached input is the share of prompt tokens the runtime served from its prefix cache.</div><div id="quality"></div></div>
+        <div class="card"><h2>Quality per engine</h2><div class="sub">The same figures per inference engine across all garages: Ollama, vLLM, Xyntetik Runner, llama.cpp... A provider's engine is its own ("provider"). A curve per engine, not a number: speed depends on the machine as much as on the engine, so compare engines on the same hardware class before drawing conclusions.</div><div id="quality-engine"></div></div>
         <div class="card"><h2>Uptime per hour, last 7 days</h2><div id="ch-uptime"></div></div>
         <div class="card"><h2>Requests running on vLLM garages</h2><div class="sub">Average per 15 minutes, last 7 days.</div><div class="chart" id="ch-gload"></div></div>
         <div class="card"><h2>Supply events, last 30 days</h2><div id="supply-events"></div></div>
@@ -969,6 +970,19 @@ function renderHistory() {
       ["First token p95, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "ttft_p95")}</div>`],
       ["Output tok/s, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "tps_p50")}</div>`],
     ], qs) : '<div class="small">No traffic yet.</div>';
+    const qe = Object.entries(hist.quality_by_engine || {}).sort((a, b) => (b[1].last_24h?.requests || 0) - (a[1].last_24h?.requests || 0));
+    const engineName = { ollama: "Ollama", vllm: "vLLM", xyntetik: "Xyntetik Runner", llamacpp: "llama.cpp", lmstudio: "LM Studio", sglang: "SGLang", paddock: "Paddock", provider: "Provider (its own)", unknown: "Unknown (garage gone)" };
+    $("quality-engine").innerHTML = qe.length ? table([
+      ["Engine", ([e]) => esc(engineName[e] || e)],
+      ["Requests 24 h", ([, q]) => fmt(q.last_24h?.requests ?? 0), "num"],
+      ["Success 24 h", ([, q]) => q.last_24h?.success_pct == null ? "—" : `<span class="${sc(q.last_24h.success_pct, q.last_24h.requests)}">${q.last_24h.success_pct} %</span>`, "num"],
+      ["First token p50 / p95", ([, q]) => q.last_24h ? `${q.last_24h.ttft_p50 ?? "—"} / ${q.last_24h.ttft_p95 ?? "—"} s` : "—", "num"],
+      ["Output tok/s", ([, q]) => q.last_24h?.tps_p50 ?? "—", "num"],
+      ["Cached input", ([, q]) => q.last_24h?.cached_pct == null ? "—" : `${q.last_24h.cached_pct} %`, "num"],
+      ["Success, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "success_pct", 100)}</div>`],
+      ["First token p95, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "ttft_p95")}</div>`],
+      ["Output tok/s, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "tps_p50")}</div>`],
+    ], qe) : '<div class="small">No traffic yet.</div>';
   }
   if (page === "server") {
     const h = hist.host;

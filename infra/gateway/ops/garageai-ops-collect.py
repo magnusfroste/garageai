@@ -1125,6 +1125,7 @@ def quality():
                     then completion_tokens / extract(epoch from ("endTime" - "completionStartTime")) end tps
         from "LiteLLM_SpendLogs"
         where "startTime" > now() - interval '{iv}' and model_group not like 'probe/%' and model_group not like 'garage-probe%'
+          and model_group not like 'test/%' -- failover tests against the live gateway (2026-10-18)
           and call_type not like '/%'
           -- a 4xx is the buyer's request being wrong (prompt longer than the window, bad parameters),
           -- not the garage failing: it does not count against the garage (Erik's 88 %, 2026-10-13)
@@ -1145,6 +1146,46 @@ def quality():
         out.setdefault(g, {"days": [], "last_24h": None})["days"].append({"day": day, **row(*vals)})
     for g, _, *vals in psql(base.format(iv="24 hours", bucket="'24h'")):
         out.setdefault(g, {"days": [], "last_24h": None})["last_24h"] = row(*vals)
+    return out
+
+
+def quality_by_engine():
+    """The same figures per inference engine (Ollama, vLLM, Xyntetik Runner, llama.cpp, ...; a
+    provider's engine is its own, shown as "provider"): the engine-diversity principle wants a
+    curve per engine, not a number. The engine comes from the deployment's model_info.runtime in
+    LiteLLM's model table, joined on the spend log's model_id; a deployment that is gone (its garage
+    left) counts as "unknown"."""
+    base = """
+      with s as (
+        select coalesce(case when m.model_info->>'runtime' = 'openai' then 'provider' else m.model_info->>'runtime' end, 'unknown') e,
+               l."startTime" st, l.status,
+               case when l."completionStartTime" < l."endTime" then extract(epoch from (l."completionStartTime" - l."startTime")) end ttft,
+               l.prompt_tokens pt,
+               coalesce((l.metadata->'usage_object'->'prompt_tokens_details'->>'cached_tokens')::bigint, 0) ct,
+               case when l.completion_tokens >= 20 and l."endTime" > l."completionStartTime" + interval '0.5 seconds'
+                    then l.completion_tokens / extract(epoch from (l."endTime" - l."completionStartTime")) end tps
+        from "LiteLLM_SpendLogs" l
+        left join "LiteLLM_ProxyModelTable" m on m.model_info->>'id' = l.model_id
+        where l."startTime" > now() - interval '{iv}' and l.model_group not like 'probe/%' and l.model_group not like 'garage-probe%'
+          and l.model_group not like 'test/%'
+          and l.call_type not like '/%'
+          and not (l.status = 'failure' and coalesce(l.metadata->'error_information'->>'error_code', '') like '4%'))
+      select e, {bucket}, count(*), count(*) filter (where status = 'success'),
+             round((percentile_cont(0.5) within group (order by ttft) filter (where status = 'success'))::numeric, 2),
+             round((percentile_cont(0.95) within group (order by ttft) filter (where status = 'success'))::numeric, 2),
+             round((percentile_cont(0.5) within group (order by tps) filter (where status = 'success'))::numeric, 1),
+             round(100.0 * sum(ct) / nullif(sum(pt), 0), 1)
+      from s group by 1, 2 order by 2"""
+    num = lambda x: float(x) if x not in (None, "") else None
+    def row(n, ok, p50, p95, tps, cached):
+        n, ok = int(n), int(ok)
+        return {"requests": n, "success_pct": round(100 * ok / n, 1) if n else None,
+                "ttft_p50": num(p50), "ttft_p95": num(p95), "tps_p50": num(tps), "cached_pct": num(cached)}
+    out = {}
+    for e, day, *vals in psql(base.format(iv="7 days", bucket="to_char(date_trunc('day', st), 'YYYY-MM-DD')")):
+        out.setdefault(e, {"days": [], "last_24h": None})["days"].append({"day": day, **row(*vals)})
+    for e, _, *vals in psql(base.format(iv="24 hours", bucket="'24h'")):
+        out.setdefault(e, {"days": [], "last_24h": None})["last_24h"] = row(*vals)
     return out
 
 # ---------------------------------------------------------------- history and events
@@ -1333,7 +1374,7 @@ def write_history(db, state):
     state["quality"] = q
     out = {"generated_at": now().isoformat(timespec="seconds"), "host": host, "uptime_hourly": uptime,
            "uptime_daily": daily, "garage_load": load, "traffic_hourly": traffic_hourly(),
-           "events": recent_events(db, 1000, since=month), "quality": q}
+           "events": recent_events(db, 1000, since=month), "quality": q, "quality_by_engine": quality_by_engine()}
     tmp = path + ".tmp"
     with open(tmp, "w") as f:
         json.dump(out, f, separators=(",", ":"))
