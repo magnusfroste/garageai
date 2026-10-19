@@ -16,7 +16,14 @@ import (
 var (
 	RuntimeKey     string
 	RuntimeKeyPort int
+	// KnownRuntime is the runtime kind the garage was connected with (bridge.json), for the port
+	// RuntimeKeyPort. The heartbeat probes that port every 5 minutes; once the kind is known there
+	// is no reason to ask it the other runtimes' questions (a 404 for /api/version in vLLM's log
+	// every 5 minutes on dgx-city, 2026-10-18) or to try without the key first (a 401 line).
+	KnownRuntime string
 )
+
+func knownPort(port int) bool { return RuntimeKeyPort != 0 && port == RuntimeKeyPort }
 
 var client = &http.Client{Timeout: 3 * time.Second}
 
@@ -27,7 +34,13 @@ func probe(port int, binds []string, owner Listener) *Runtime {
 		host = binds[0]
 	}
 	base := "http://" + hostport(host, port)
-	code, body := get(base + "/v1/models")
+	var code int
+	var body []byte
+	if RuntimeKey != "" && knownPort(port) {
+		code, body = getAuth(base+"/v1/models", RuntimeKey) // the configured port, with its key: no unauthenticated try first
+	} else {
+		code, body = get(base + "/v1/models")
+	}
 	if code != 200 && code != 401 && code != 403 {
 		return nil
 	}
@@ -79,7 +92,9 @@ func probe(port int, binds []string, owner Listener) *Runtime {
 	}
 	rt.Network = anyOf(binds, "0.0.0.0", "*", "::") || anyPrefix(binds, "100.")
 
-	if c, b := get(base + "/api/version"); c == 200 {
+	if knownPort(port) && KnownRuntime != "" && KnownRuntime != "ollama" {
+		rt.Kind = KnownRuntime // the garage's configured runtime on its configured port: no need to ask
+	} else if c, b := get(base + "/api/version"); c == 200 {
 		var v struct{ Version string }
 		if json.Unmarshal(b, &v) == nil && v.Version != "" {
 			rt.Kind, rt.Version = "ollama", &v.Version
