@@ -89,7 +89,8 @@ func resumeCmd() int {
 		return asRootSimple("resume", nil)
 	}
 	service.ClearPauseState()
-	fmt.Println("✓ Resumed: the garage is offered again after the next heartbeat (now).")
+	service.MarkResumed(time.Now())
+	fmt.Println("✓ Resumed: the garage is offered again after the next heartbeat (now), also when it was paused in the portal.")
 	return beatNow()
 }
 

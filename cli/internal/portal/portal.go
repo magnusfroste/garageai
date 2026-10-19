@@ -64,6 +64,9 @@ type Agent struct {
 	// nodes of a multi-node runtime as its manager sees them. Absent = serving.
 	State *AgentState    `json:"state,omitempty"`
 	Nodes []machine.Node `json:"nodes,omitempty"`
+	// When `garageai resume` last ran (within a day): the portal also lifts a pause the operator
+	// set in the portal.
+	ResumedAt *time.Time `json:"resumed_at,omitempty"`
 }
 
 // AgentState is why the garage should not get traffic right now: maintenance (a redeploy, a
