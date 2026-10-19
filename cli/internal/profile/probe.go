@@ -128,6 +128,23 @@ func probe(port int, binds []string, owner Listener) *Runtime {
 			rt.Kind = sanitize(strings.ToLower(owner.Process))
 		}
 	}
+	if rt.Kind == "xyntetik" {
+		// Runner's model list has no window; /v1/capabilities has the one it runs with.
+		if c, b := get(base + "/v1/capabilities"); c == 200 {
+			var caps struct {
+				Context float64 `json:"context"`
+			}
+			if json.Unmarshal(b, &caps) == nil && caps.Context > 0 {
+				w := int(caps.Context)
+				rt.RunnerContext = &w
+				for i := range rt.Models {
+					if rt.Models[i].Context == nil {
+						rt.Models[i].Context = &w
+					}
+				}
+			}
+		}
+	}
 	return rt
 }
 

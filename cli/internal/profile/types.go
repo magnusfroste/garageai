@@ -76,17 +76,18 @@ type Flags struct {
 }
 
 type Runtime struct {
-	Port         int           `json:"port"`
-	Kind         string        `json:"kind"`
-	Process      *string       `json:"process"`
-	PID          int           `json:"-"`
-	API          string        `json:"api"`
-	Binds        []string      `json:"binds"`
-	Network      bool          `json:"network"`
-	Models       []Model       `json:"models"`
-	Version      *string       `json:"version"`
-	OllamaLoaded []LoadedModel `json:"ollama_loaded"`
-	Flags        Flags         `json:"flags"`
+	Port          int           `json:"port"`
+	Kind          string        `json:"kind"`
+	Process       *string       `json:"process"`
+	PID           int           `json:"-"`
+	API           string        `json:"api"`
+	Binds         []string      `json:"binds"`
+	Network       bool          `json:"network"`
+	Models        []Model       `json:"models"`
+	Version       *string       `json:"version"`
+	OllamaLoaded  []LoadedModel `json:"ollama_loaded"`
+	RunnerContext *int          `json:"runner_context,omitempty"` // Xyntetik Runner: the window it runs with (/v1/capabilities)
+	Flags         Flags         `json:"flags"`
 }
 
 type Firewall struct {
