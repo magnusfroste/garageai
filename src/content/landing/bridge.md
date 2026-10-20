@@ -9,7 +9,7 @@ commands:
     command: "curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.sh | sh -s -- connect"
   - label: "Windows, in PowerShell"
     command: "irm https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.ps1 | iex; garageai connect"
-commandNote: "Nothing secret in either line; on Windows, Bridge asks for Administrator once. Have Ollama, LM Studio, vLLM or llama.cpp running with a model first, or let garageai runtime suggest one and install it."
+commandNote: "Nothing secret in either line; on Windows, Bridge asks for Administrator once. Have Ollama, LM Studio, vLLM, llama.cpp or Xyntetik Runner running with a model first, or let garageai runtime suggest one and install it."
 flow:
   - title: "Run the line"
     text: "Bridge installs, checks its checksum and looks at your GPU, memory, runtime and models."

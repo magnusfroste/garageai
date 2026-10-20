@@ -11,7 +11,7 @@ const footer = await getEntry('landing', 'footer');
 
 const proof = [
   { value: 'Live', label: 'DGX Spark garage in production', detail: 'xiaomi/mimo-v2.6-flash · 512k context · ~24 tok/s · Sweden' },
-  { value: '2', label: 'kinds of supply, one API', detail: 'home & office GPUs over a private mesh, verified providers over HTTPS' },
+  { value: '2', label: 'kinds of supply, one API', detail: 'home & office GPUs over a private tunnel, verified providers over HTTPS' },
   { value: '5 min', label: 'from wizard to first sale', detail: 'one command, no inbound ports, automated acceptance test' },
   { value: '23M', label: 'tokens from one buyer in one evening', detail: 'a coding agent on a provider GPU that would otherwise have sat idle' },
 ];
@@ -45,7 +45,7 @@ const whatWeAre = [
   ['Measured, not promised', 'Every model passes an acceptance test through the gateway before it is sold and is probed every hour. Reliability sets the grade; availability is shown as hours live per week.'],
   ['OpenRouter-compatible', 'Model names follow the creator/model convention, so an existing OpenRouter configuration moves over by changing the base URL. Pay in euros by card or invoice.'],
   ['Open source', 'The gateway setup, the connect scripts and the security documentation are public under the MIT license. Anyone can read what runs on their machine.'],
-  ['Europe first', 'Location is measured from the mesh connection and shown as a flag; buyers can filter for EU/EEA only. Gateway and mesh are self-hosted in the EU.'],
+  ['Europe first', 'Location is measured from the tunnel connection and shown as a flag; buyers can filter for EU/EEA only. The gateway and the tunnel hub are self-hosted in the EU.'],
 ];
 
 const partners = [
@@ -66,7 +66,7 @@ const partners = [
     <h1 class="apple-heading-1 mb-4">Give the machine a reason to be switched on.</h1>
     <p class="apple-body-large max-w-3xl mb-12" style="color: var(--color-text-secondary)">
       GarageAI turns GPUs that people and companies already own into Europe's AI capacity: one OpenAI-compatible API in front,
-      a private mesh behind, and the owner paid for every token served. For a hardware maker that is the answer to the question every
+      a private tunnel behind, and the owner paid for every token served. For a hardware maker that is the answer to the question every
       buyer of a desktop AI box asks: <em>what will it actually do all day?</em>
     </p>
 
@@ -107,8 +107,8 @@ const partners = [
     <div class="apple-card mb-16">
       <ol class="list-decimal pl-6 space-y-3 text-sm leading-relaxed" style="color: var(--color-text-secondary)">
         <li><strong style="color: var(--color-text)">Unbox and run your own models.</strong> vLLM, Ollama or LM Studio on the machine, as today. Nothing GarageAI-specific yet.</li>
-        <li><strong style="color: var(--color-text)">Connect in five minutes.</strong> Create a garage in the portal, run one command. The machine joins the private mesh; no ports are opened and nothing becomes reachable from the internet.</li>
-        <li><strong style="color: var(--color-text)">Use it from anywhere, privately.</strong> Your own chat and API against your own machine, from the laptop or the phone, through the mesh. (Private garages: on the roadmap, built on the same mechanism.)</li>
+        <li><strong style="color: var(--color-text)">Connect in five minutes.</strong> Create a garage in the portal, run one command. The machine opens its own encrypted tunnel to the gateway; no ports are opened and nothing becomes reachable from the internet.</li>
+        <li><strong style="color: var(--color-text)">Use it from anywhere, privately.</strong> Your own chat and API against your own machine, from the laptop or the phone, through the gateway. (Private garages: on the roadmap, built on the same mechanism.)</li>
         <li><strong style="color: var(--color-text)">Offer what you like, when you like.</strong> Pick which models to sell, set a price, pause whenever. Every model passes an acceptance test before it is sold.</li>
         <li><strong style="color: var(--color-text)">Get paid per token.</strong> Earnings per model and per garage in the portal; statements for companies.</li>
       </ol>

@@ -11,7 +11,7 @@ setups:
     tagline: "Windows with an NVIDIA RTX card"
     badge: "Windows"
     color: "var(--color-accent)"
-    runtime: "LM Studio (point and click) or Ollama"
+    runtime: "LM Studio (point and click), Ollama or Xyntetik Runner"
     modelsTitle: "Good first model, by GPU memory (4-bit)"
     models:
       - memory: "8 GB (RTX 3060 Ti, 4060)"
@@ -25,7 +25,7 @@ setups:
       - memory: "32 GB (RTX 5090)"
         model: "Gemma 4 31B"
     steps:
-      - "Install Ollama or LM Studio and download the model. Bridge reaches it on localhost through its own tunnel: nothing to open."
+      - "Install Ollama or LM Studio and download the model, or skip this step: garageai runtime install sets up Xyntetik Runner with a model that fits your PC. Bridge reaches the runtime on localhost through its own tunnel: nothing to open."
       - "Sign in at app.garageai.eu, open Connect your GPU, pick the Windows tab and paste the line into PowerShell. Bridge asks Windows for Administrator once, and you approve your PC in the browser."
       - "Your models pass the acceptance test and appear in the catalogue. Leave the PC on when you are not gaming."
   - id: "mac"
@@ -33,7 +33,7 @@ setups:
     title: "Mac with Apple silicon"
     tagline: "Any M-series chip, laptop or desktop"
     color: "var(--color-primary)"
-    runtime: "LM Studio (uses MLX) or Ollama"
+    runtime: "LM Studio (uses MLX), Ollama or Xyntetik Runner"
     modelsTitle: "Good first model, by unified memory (4-bit)"
     models:
       - memory: "16 GB"
@@ -45,7 +45,7 @@ setups:
       - memory: "128 GB"
         model: "gpt-oss-120b"
     steps:
-      - "Install LM Studio or Ollama and download the model."
+      - "Install LM Studio or Ollama and download the model, or let garageai runtime install set up Xyntetik Runner with a model that fits your Mac."
       - "Connect your GPU: run the one line in Terminal and approve your Mac in the browser. Ollama and LM Studio can stay on localhost; Bridge checks the context window and says exactly what to change (Ollama: the app's Context length)."
       - "Keep the Mac awake. A MacBook is a garage while plugged in: Battery → Options → \"Prevent automatic sleeping on power adapter when the display is off\". Mac Studio, mini or iMac: Energy → \"Prevent automatic sleeping when the display is off\"."
   - id: "workstation"
