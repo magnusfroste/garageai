@@ -17,6 +17,26 @@ tracks:
         text: "Generate a key in the portal. The API at https://api.garageai.eu/v1 is OpenAI-compatible, so the OpenAI SDKs, agents and coding tools work by changing the base URL."
       - title: "Pick a model and how to buy it"
         text: "Choose a Specific garage (you pay the price it has set, for example when location matters) or the Pool (one model name; each request goes to one of the garages offering the model and is billed at that garage's price, with automatic failover). Or just use the chat in the portal."
+      - title: "Call it"
+        text: "Point any OpenAI client at https://api.garageai.eu/v1. garageai/auto answers with a working model for you; any model name from the catalogue works too."
+        commands:
+          - label: "curl"
+            command: |-
+              curl https://api.garageai.eu/v1/chat/completions \
+                -H "Authorization: Bearer $GARAGEAI_API_KEY" \
+                -H "Content-Type: application/json" \
+                -d '{"model": "garageai/auto", "messages": [{"role": "user", "content": "Hello from a European garage"}]}'
+          - label: "Python (OpenAI SDK)"
+            command: |-
+              from openai import OpenAI
+
+              client = OpenAI(base_url="https://api.garageai.eu/v1", api_key="YOUR_GARAGEAI_KEY")
+              reply = client.chat.completions.create(
+                  model="garageai/auto",
+                  messages=[{"role": "user", "content": "Hello from a European garage"}],
+              )
+              print(reply.choices[0].message.content)
+            note: "Agents and coding tools work the same way: set the base URL and your GarageAI key."
     ctaText: "Use AI"
     ctaUrl: "https://app.garageai.eu/auth?intent=buyer"
   - id: "operators"

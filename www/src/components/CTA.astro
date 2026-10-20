@@ -20,7 +20,7 @@ const { title, subtitle, description, secondaryText, icon, buttons } = Astro.pro
 ---
 
 <CTAReact 
-  client:load
+  client:visible={{ rootMargin: "300px" }}
   title={title}
   subtitle={subtitle}
   description={description}

@@ -5,4 +5,4 @@ import B2BReact from './B2BReact.jsx';
 const props = Astro.props;
 ---
 
-<B2BReact client:load {...props} />
+<B2BReact client:visible={{ rootMargin: "300px" }} {...props} />

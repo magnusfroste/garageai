@@ -5,4 +5,4 @@ import BridgeReact from './BridgeReact.jsx';
 const props = Astro.props;
 ---
 
-<BridgeReact client:load {...props} />
+<BridgeReact client:visible={{ rootMargin: "300px" }} {...props} />

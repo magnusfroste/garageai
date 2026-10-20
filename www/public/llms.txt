@@ -15,6 +15,27 @@
 - **Status:** Launched in 2026 after a private beta in spring 2026. Live, with the first garages serving open models.
 - **License:** Open source, MIT.
 
+## Quickstart for buyers
+
+The API is OpenAI-compatible. Create a key at https://app.garageai.eu, then:
+
+```bash
+curl https://api.garageai.eu/v1/chat/completions \
+  -H "Authorization: Bearer $GARAGEAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "garageai/auto", "messages": [{"role": "user", "content": "Hello"}]}'
+```
+
+```python
+from openai import OpenAI
+
+client = OpenAI(base_url="https://api.garageai.eu/v1", api_key="YOUR_GARAGEAI_KEY")
+reply = client.chat.completions.create(model="garageai/auto", messages=[{"role": "user", "content": "Hello"}])
+print(reply.choices[0].message.content)
+```
+
+`garageai/auto` answers with a working model; any model name from the portal's catalogue works too.
+
 ## Vision (not today's product)
 
 Garage nodes running largely on locally produced energy (rooftop solar, home batteries, EV batteries), many more garages across Europe, and larger regional clusters.
