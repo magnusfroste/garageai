@@ -1,0 +1,24 @@
+name: spike-tray
+on:
+  push:
+    branches: [spike-tray-purego]
+jobs:
+  tray:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: stable }
+      - name: Build on Linux-style cross compile (no cgo) and run
+        working-directory: spikes/tray-purego
+        run: |
+          CGO_ENABLED=0 GOARCH=arm64 go build -o tray .
+          codesign -dv tray 2>&1 | head -3 || true
+          ./tray & pid=$!
+          sleep 8
+          kill -0 $pid && echo "tray still running after 8 s"
+          screencapture -x -R 0,0,1600,40 menubar.png || screencapture -x menubar.png
+          osascript -e 'tell application "System Events" to get name of every menu bar item of menu bar 2 of (first process whose unix id is '$pid')' || true
+          kill $pid
+      - uses: actions/upload-artifact@v4
+        with: { name: menubar, path: spikes/tray-purego/menubar.png }
