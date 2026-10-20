@@ -16,7 +16,7 @@ Two sides, one marketplace. One account can do both, and can own several garages
 
 ```
 Buyers ──HTTPS──▶ LiteLLM gateway (EU) ──WireGuard tunnel (Bridge)──▶ garages
-                  api.garageai.eu/v1                                Ollama · LM Studio · llama.cpp · vLLM · SGLang · Paddock
+                  api.garageai.eu/v1                                Ollama · LM Studio · llama.cpp · vLLM · SGLang · Xyntetik Runner · Paddock
 ```
 
 ### Use AI
@@ -27,7 +27,7 @@ Buyers ──HTTPS──▶ LiteLLM gateway (EU) ──WireGuard tunnel (Bridge)
 
 ### Offer your GPU
 
-1. **Start the "Offer your GPU" wizard** at [app.garageai.eu](https://app.garageai.eu/auth?intent=operator) — macOS, Linux or Windows with Ollama, LM Studio, llama.cpp, vLLM, SGLang or Paddock (beta). Create your garage and set your price per million tokens.
+1. **Start the "Offer your GPU" wizard** at [app.garageai.eu](https://app.garageai.eu/auth?intent=operator) — macOS, Linux or Windows with Ollama, LM Studio, llama.cpp, vLLM, SGLang, Xyntetik Runner or Paddock (beta). No engine yet? `garageai runtime install` sets up Xyntetik Runner, a one-file engine made in Sweden, with a model that fits the machine. Create your garage and set your price per million tokens.
 2. **Run one command.** The wizard gives you a command that installs [GarageAI Bridge](cli/README.md), one small open-source program (`garageai`), and runs `garageai connect`. Bridge opens its own encrypted WireGuard tunnel to the gateway (no VPN app, and your runtime can stay on localhost; [NetBird](https://netbird.io) is the fallback for networks that block UDP), checks your runtime, registers your models and installs a heartbeat service that keeps the offered models in sync. No inbound ports are opened. It asks for your password once. Every step is reported to the wizard, so if something stops you see what to fix; `garageai doctor` shows the same on the machine, and `garageai uninstall` removes it again.
 
    **Windows** (Bridge 1.0): the same, from PowerShell opened as Administrator. The tunnel runs as a Windows service and the heartbeat as a scheduled task, so the garage keeps serving after a reboot without anyone logged in.
@@ -46,16 +46,20 @@ Buyers ──HTTPS──▶ LiteLLM gateway (EU) ──WireGuard tunnel (Bridge)
 
 | Path | What it is |
 |---|---|
-| [`src/`](src) | The Astro site at [www.garageai.eu](https://www.garageai.eu) |
-| [`infra/gateway/`](infra/gateway/README.md) | The core: NetBird mesh + LiteLLM on one VPS — setup, DNS, firewall, backups |
-| [`cli/`](cli/README.md) | GarageAI Bridge (`garageai`): connects a garage node to the mesh, the default since October 2026 |
+| [`cli/`](cli/README.md) | GarageAI Bridge (`garageai`): connects a garage with its own WireGuard tunnel, heartbeat, self-update, the menu-bar icon, `garageai runtime` |
+| [`infra/gateway/`](infra/gateway/README.md) | The core on one EU VPS: LiteLLM gateway and its routing rules, the Bridge tunnel hub, Operations Center, health checks, backups (NetBird only as the fallback for networks that block UDP) |
+| [`www/`](www) | The Astro site at [www.garageai.eu](https://www.garageai.eu): page copy in [`www/src/content/`](www/src/content), legal texts in [`www/src/legal/`](www/src/legal) |
 | [`scripts/garageai-connect.sh`](scripts/garageai-connect.sh) | The previous connect script, kept as a backup and reference (Windows: `garageai-connect.ps1`) |
 | [`docs/architecture.md`](docs/architecture.md) | Where logic lives: portal, gateway, Bridge, Operations Center; the control plane later |
 | [`docs/bridge.md`](docs/bridge.md) | Bridge's vision and roadmap |
 | [`docs/garage-troubleshooting.md`](docs/garage-troubleshooting.md) | What each problem Bridge reports means and how to fix it |
 | [`docs/inference-engines.md`](docs/inference-engines.md) | Support matrix for local inference engines |
+| [`docs/my-machine.md`](docs/my-machine.md) | My machine: your own garage, private and free, from anywhere |
+
+The app at [app.garageai.eu](https://app.garageai.eu) (accounts, keys, credits, chat, My garages) is its own repository, [garageai-portal](https://github.com/magnusfroste/garageai-portal).
 
 ```bash
+cd www
 npm install
 npm run dev     # the site on localhost
 ```
