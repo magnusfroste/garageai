@@ -6,4 +6,4 @@ import AIExplainedReact from './AIExplainedReact.jsx';
 const props = Astro.props;
 ---
 
-<AIExplainedReact client:load {...props} />
+<AIExplainedReact client:visible={{ rootMargin: "300px" }} {...props} />

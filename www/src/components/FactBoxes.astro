@@ -6,4 +6,4 @@ import FactBoxesReact from './FactBoxesReact.jsx';
 const props = Astro.props;
 ---
 
-<FactBoxesReact client:load {...props} />
+<FactBoxesReact client:visible={{ rootMargin: "300px" }} {...props} />

@@ -6,4 +6,4 @@ import InfrastructureReact from './InfrastructureReact.jsx';
 const props = Astro.props;
 ---
 
-<InfrastructureReact client:load {...props} />
+<InfrastructureReact client:visible={{ rootMargin: "300px" }} {...props} />

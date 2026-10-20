@@ -5,4 +5,4 @@ import PositioningReact from './PositioningReact.jsx';
 const props = Astro.props;
 ---
 
-<PositioningReact client:load {...props} />
+<PositioningReact client:visible={{ rootMargin: "300px" }} {...props} />

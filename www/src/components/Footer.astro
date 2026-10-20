@@ -25,7 +25,7 @@ const { tagline, subtagline, links, partners, credits, copyright } = Astro.props
 ---
 
 <FooterReact 
-  client:load
+  client:visible={{ rootMargin: "300px" }}
   tagline={tagline}
   subtagline={subtagline}
   links={links}

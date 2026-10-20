@@ -41,7 +41,7 @@ faqs:
   - question: "How is GarageAI different from other decentralised GPU networks?"
     answer: "Residential GPUs selling inference is not new in itself: there are crypto-based inference networks, hourly GPU rental marketplaces and API aggregators. What we have not seen elsewhere is the combination: named garages you can pick plus a shared pool, local GPUs and verified datacenter providers in the same catalogue and API, payment in euros by card or invoice instead of tokens, our own encrypted tunnel to an EU gateway with no inbound ports, and onboarding that gets a garage live in minutes with one line and a click in the browser. If you know a European service that already does all of that, we would like to hear about it."
   - question: "Is it OpenAI-compatible?"
-    answer: "Yes. The API at https://api.garageai.eu/v1 is OpenAI-compatible, so the OpenAI SDKs, agents and coding tools work by setting the base URL and your GarageAI API key."
+    answer: "Yes. The API at https://api.garageai.eu/v1 is OpenAI-compatible, so the OpenAI SDKs, agents and coding tools work by setting the base URL and your GarageAI API key. For example, in Python: OpenAI(base_url=\"https://api.garageai.eu/v1\", api_key=\"YOUR_GARAGEAI_KEY\"), then chat.completions.create(model=\"garageai/auto\", messages=[...]). garageai/auto answers with a working model; any model name from the catalogue in the portal works too."
   - question: "Can I be both a buyer and an operator?"
     answer: "Yes. One account can buy inference and offer GPUs, and you can register several garages under the same account."
   - question: "Is GarageAI open source?"

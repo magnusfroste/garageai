@@ -16,7 +16,7 @@ const { title, description, faqs } = Astro.props;
 ---
 
 <FAQReact 
-  client:load
+  client:visible={{ rootMargin: "300px" }}
   title={title}
   description={description}
   faqs={faqs}
