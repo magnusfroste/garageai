@@ -88,15 +88,21 @@ weekly figure on Monday morning.
 
 ## Building it
 
-Bridge is pure Go and cross-compiled without cgo today. The tray changes that only where needed:
+Bridge is pure Go and cross-compiled without cgo, and the tray keeps it that way: no C on any OS.
 
 - **Windows:** no cgo. `Shell_NotifyIconW`, a hidden message window and `TrackPopupMenu` through
   `golang.org/x/sys/windows` (already a dependency). Notifications through the same icon.
-- **macOS:** a small Objective-C file (as Runner's `tray_macos.m`): `NSStatusItem`, `NSMenu`,
-  `NSApplicationActivationPolicyAccessory` (no Dock icon), `UNUserNotificationCenter`. That needs
-  cgo, so the darwin binaries are built on `macos-latest` in the release workflow (arm64 and
-  amd64 with `-arch`), not cross-compiled from Linux. One binary still: `garageai tray` is a
-  subcommand, and every other command keeps working without a window server.
+- **macOS:** no cgo either. AppKit is called from Go through
+  [purego](https://github.com/ebitengine/purego)'s `objc` package (Apache-2.0, used by Ebitengine;
+  it loads AppKit with `dlopen` and sends Objective-C messages directly): `NSStatusItem`, `NSMenu`,
+  `NSApplicationActivationPolicyAccessory` (no Dock icon), `UNUserNotificationCenter`; menu clicks
+  reach Go through a small class registered with `objc.RegisterClass`. The AppKit loop needs the
+  main thread (`runtime.LockOSThread` in `init`). The darwin binaries stay cross-compiled from Linux
+  in the release workflow, exactly as today. Proven by a spike on 2026-10-20 (`spikes/tray-purego`):
+  built on Linux with `CGO_ENABLED=0`, it showed "GarageAI" in the menu bar on macos-latest.
+  purego becomes Bridge's first dependency outside `golang.org/x`; it is imported only by the
+  darwin tray file. One binary still: `garageai tray` is a subcommand, and every other command
+  keeps working without a window server.
 - **Linux:** no tray (servers). Maybe AppIndicator later for Linux desktops.
 
 The menu itself is described by portable Go (a list of rows: label, action, check, separator,
