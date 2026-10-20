@@ -7,13 +7,13 @@ Thanks for helping build Europe's distributed AI capacity.
 - **Report a bug or suggest an idea** — open an [issue](https://github.com/magnusfroste/garageai/issues).
 - **Improve the connect script** — [`scripts/garageai-connect.sh`](../scripts/garageai-connect.sh) runs on every garage; support for more runtimes and platforms is especially welcome.
 - **Improve the gateway setup** — [`infra/gateway/`](../infra/gateway/README.md).
-- **Improve the site** — content lives in [`src/content/`](../src/content).
+- **Improve the site** — it lives in [`www/`](../www); page copy in [`www/src/content/`](../www/src/content).
 
 ## Workflow
 
 ```bash
 git clone https://github.com/magnusfroste/garageai.git
-cd garageai
+cd garageai/www
 npm install
 npm run dev
 ```

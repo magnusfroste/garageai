@@ -55,3 +55,6 @@ cli/profile.json
 
 # Drafts for review (legal texts, messages): kept locally, not published
 docs/drafts/
+
+# Astro generated types
+.astro/
