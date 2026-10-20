@@ -41,18 +41,41 @@ def http(method, url, headers=None, body=None, timeout=TIMEOUT):
         return r.status, (json.loads(raw) if raw else None)
 
 
-def load_targets(portal, gw_key, targets_file):
-    """[{garage, peer_id, host, port, runtime_api_key?}] — from the portal, else the local file."""
+TARGETS_CACHE_MAX_AGE = 3600  # use the portal's last list for an hour when the portal does not answer
+
+
+def load_targets(portal, gw_key, targets_file, cache_path=None):
+    """[{garage, peer_id, host, port, runtime_api_key?}] — from the portal; when the portal does not
+    answer, its last good list (at most an hour old); only then the local file. A slow portal once
+    sent the checks to a months-old local file of three retired garages, and Ops called every real
+    garage "not answering" for a minute (2026-10-20 15:46)."""
+    cache_path = cache_path or f"{STATE_DIR}/targets-cache.json"
     if portal and gw_key:
         try:
             _, data = http("GET", f"{portal}/functions/v1/gateway-targets",
                            {"x-gateway-key": gw_key}, timeout=15)
-            return data.get("targets", []), "portal"
+            targets = data.get("targets", [])
+            try:
+                os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+                tmp = cache_path + ".tmp"
+                with open(tmp, "w") as f:
+                    json.dump(targets, f)
+                os.chmod(tmp, 0o600)  # runtime API keys: root only
+                os.replace(tmp, cache_path)
+            except OSError as e:
+                print(f"targets cache: {e}", file=sys.stderr)
+            return targets, "portal"
         except urllib.error.HTTPError as e:
             if e.code != 404:
                 print(f"gateway-targets: HTTP {e.code}", file=sys.stderr)
         except Exception as e:  # noqa: BLE001 — portal down must not stop local checks
             print(f"gateway-targets: {e}", file=sys.stderr)
+        try:
+            if time.time() - os.path.getmtime(cache_path) <= TARGETS_CACHE_MAX_AGE:
+                with open(cache_path) as f:
+                    return json.load(f), "cache"
+        except (OSError, ValueError):
+            pass
     if targets_file and os.path.exists(targets_file):
         with open(targets_file) as f:
             return json.load(f), "file"
