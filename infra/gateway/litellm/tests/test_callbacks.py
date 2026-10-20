@@ -63,5 +63,42 @@ check("auto does not suggest itself", "use garageai/auto" in cool.detail, False)
 check("no healthy deployments: 503", cb.provider_unavailable(Exception("BadRequestError: There are no healthy deployments for this model"), {"model": "x"}).status_code, 503)
 check("other errors: untouched", cb.provider_unavailable(ValueError("boom"), {"model": "x"}), None)
 
+
+# ---- rules 6 and 7: prefill time and stickiness
+cb._speeds.clear(); cb._sticky.clear()
+prov = {"model_info": {"id": "prov", "connection_type": "endpoint"}}
+dgx = {"model_info": {"id": "dgx", "connection_type": "mesh"}}
+fast = {"model_info": {"id": "fast", "connection_type": "mesh"}}
+for _ in range(5):
+    cb.record_prefill("dgx", 150000, 0, 150.0)      # 1,000 tok/s
+    cb.record_prefill("fast", 100000, 0, 10.0)      # 10,000 tok/s
+cb.record_prefill("dgx", 3000, 0, 1.0)              # too small to count
+check("speed: median of samples", round(cb.prefill_speed(dgx)), 1000)
+check("speed: unmeasured provider is not limited", cb.prefill_speed(prov), None)
+check("speed: unmeasured garage gets the default", cb.prefill_speed({"model_info": {"id": "new"}}), cb.UNMEASURED_GARAGE_TPS)
+ids = lambda ds: [d["model_info"]["id"] for d in ds]
+ch = lambda ds, p, c=None, now=None: (ids(cb.choose_deployments(ds, p, c, now)[0]), cb.choose_deployments(ds, p, c, now)[1])
+check("small prompt: all kept", ch([prov, dgx], 20000)[0], ["prov", "dgx"])
+check("160k cold: slow garage skipped while the provider is up", ch([prov, dgx], 160000)[0], ["prov"])
+check("160k cold, only slow garages: the fastest is tried (160 s < limit)", ch([dgx, {"model_info": {"id": "x2", "connection_type": "mesh"}}], 160000)[0], ["dgx"])
+check("600k cold on dgx with a slower peer: none can start in time", ch([dgx, {"model_info": {"id": "slow"}}], 600000)[0], [])
+check("400k cold, dgx and a slower peer: dgx tried (400 s)", ch([dgx, {"model_info": {"id": "slow"}}], 400000)[0], ["dgx"])
+check("faster garage takes the big prompt", ch([dgx, fast], 400000)[0], ["fast"])
+check("single deployment: untouched", ch([dgx], 900000)[0], ["dgx"])
+conv = cb.conversation_key("garageai/auto", [{"role": "system", "content": "sys"}, {"role": "user", "content": "hi"}], {"metadata": {"user_api_key_hash": "k"}})
+conv2 = cb.conversation_key("garageai/auto", [{"role": "system", "content": "sys"}, {"role": "user", "content": "hi"}, {"role": "assistant", "content": "x"}, {"role": "user", "content": "more"}], {"metadata": {"user_api_key_hash": "k"}})
+other = cb.conversation_key("garageai/auto", [{"role": "user", "content": "hi"}], {"metadata": {"user_api_key_hash": "someone else"}})
+check("conversation: same key as it grows", conv, conv2)
+check("conversation: another buyer is another conversation", conv == other, False)
+check("conversation: none without a user message", cb.conversation_key("m", [{"role": "system", "content": "s"}], {}), None)
+cb.remember(conv, "dgx", 158000, now=1000.0)
+check("sticky: warm garage keeps the next 165k turn (7k new tokens)", ch([prov, dgx], 165000, conv, 1100.0), (["dgx"], "sticky"))
+check("sticky: expires", ch([prov, dgx], 165000, conv, 1000.0 + cb.STICKY_S + 1)[0], ["prov"])
+cb.remember(conv, "dgx", 10000, now=2000.0)
+check("sticky: too many new tokens, normal rules", ch([prov, dgx], 300000, conv, 2010.0)[0], ["prov"])
+cb.remember(conv, "gone", 158000, now=3000.0)
+check("sticky: deployment not healthy, normal rules", ch([prov, dgx], 20000, conv, 3010.0)[0], ["prov", "dgx"])
+check("estimate: chars / 3.3", cb.estimate_tokens([{"role": "user", "content": "x" * 3300}], {}), 1000)
+
 print("all tests passed" if not fails else f"{fails} test(s) failed")
 sys.exit(1 if fails else 0)

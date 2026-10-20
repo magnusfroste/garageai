@@ -28,11 +28,30 @@
    and some reject two. Agents send them later in a conversation (reminders, mode changes).
    When the order is irregular, every system/developer message is merged, in order, into a
    single system message at the start. A request that is already regular is not touched.
+6. A garage gets only the prompts it can start on in time. A window says what fits, not how long
+   reading it takes: dgx-city fits 524k tokens but prefills ~1,000 tokens/s, so a cold 160k-token
+   prompt waited 2.5 min for its first token and agents gave up (agenthotels, 2026-10-18). Each
+   deployment's prefill speed is measured from its own streamed requests (new tokens / time to
+   first token); a deployment is skipped for a request when reading the prompt's *new* tokens
+   would take longer than PREFER_S, as long as another can do it in time, and never sent one that
+   could not start before the stream timeout cuts it (LIMIT_S); that buyer gets a quick 503 instead
+   of a ten-minute wait. Measured 2026-10-20 (median, 3 days): DeepSeek provider 2,900 tokens/s,
+   dgx-city 1,800, mac-mini-1cab 98. Faster garages get bigger prompts by themselves; nothing is a
+   fixed cap. Providers are measured the same way; an unmeasured provider is not limited.
+
+7. A conversation stays where its cache is. Runtimes keep the prompt prefix they just processed,
+   so the next turn of the same conversation on the same deployment reads only the new tokens
+   (dgx-city answered 188k-token turns in 1-11 s once warm). The gateway remembers which
+   deployment served a conversation (the buyer's key + the first system and user message) and
+   sends the next turn there for STICKY_S, when it is healthy and the new tokens fit rule 6. A
+   failure forgets it, so the retry goes elsewhere.
 """
 import asyncio
 import hashlib
 import re
+import statistics
 import time
+from collections import deque
 
 import litellm
 from fastapi import HTTPException
@@ -279,6 +298,166 @@ def _is_anthropic(call_type=None, request_data=None):
     return "/v1/messages" in url
 
 
+# ---------------------------------------------------------------- 6 + 7: prefill time and stickiness
+
+PREFER_S = 120          # a deployment that needs longer than this for the new tokens is a last resort
+LIMIT_S = 540           # never send a prompt that would not start before stream_timeout (600 s) cuts it
+UNMEASURED_GARAGE_TPS = 800  # prefill tokens/s assumed for a garage with no measurements yet
+MIN_NEW_TOKENS = 4000   # smaller prefills say more about queueing than about speed
+SAMPLES = 20            # per deployment, the median of the latest
+STICKY_S = 600          # how long a runtime is expected to keep a conversation's prefix
+CHARS_PER_TOKEN = 3.3   # a slightly high token estimate: errs towards the faster deployment
+_speeds = {}            # model_id -> deque of prefill tokens/s
+_sticky = {}            # conversation -> (model_id, prompt tokens, time)
+_seeded = {"done": False}
+_too_slow = {}          # conversation (or prompt size) -> time no deployment could start in time
+
+
+def record_prefill(model_id, prompt_tokens, cached_tokens, ttft_s):
+    """One streamed request's prefill speed, when it says something."""
+    if not model_id or not isinstance(prompt_tokens, (int, float)) or not isinstance(ttft_s, (int, float)):
+        return
+    new = prompt_tokens - (cached_tokens or 0)
+    if new < MIN_NEW_TOKENS or ttft_s <= 0.2:
+        return
+    _speeds.setdefault(model_id, deque(maxlen=SAMPLES)).append(new / ttft_s)
+
+
+def prefill_speed(deployment):
+    """Measured prefill tokens/s of a deployment; None means not limited (an unmeasured provider)."""
+    info = deployment.get("model_info") or {}
+    samples = _speeds.get(info.get("id"))
+    if samples and len(samples) >= 3:
+        return statistics.median(samples)
+    return None if is_provider(info) else UNMEASURED_GARAGE_TPS
+
+
+def _meta(kwargs):
+    out = {}
+    for key in ("litellm_metadata", "metadata"):
+        m = (kwargs or {}).get(key)
+        if isinstance(m, dict):
+            out.update(m)
+    lp = (kwargs or {}).get("litellm_params")
+    if isinstance(lp, dict) and isinstance(lp.get("metadata"), dict):
+        out.update(lp["metadata"])
+    return out
+
+
+def _first_text(messages, roles):
+    for m in messages or []:
+        if isinstance(m, dict) and m.get("role") in roles:
+            parts = []
+            _strings(m.get("content"), parts)
+            return "\n".join(parts)[:4000]
+    return ""
+
+
+def conversation_key(model_group, messages, kwargs):
+    """The same conversation, turn after turn: the buyer's key, the model asked for, and the first
+    system and user message (which do not change as the conversation grows). None without a user
+    message."""
+    user = _first_text(messages, ("user",))
+    if not user:
+        return None
+    meta = _meta(kwargs)
+    who = str(meta.get("user_api_key_hash") or meta.get("user_api_key") or "")
+    system = _first_text(messages, SYSTEM_ROLES)
+    if not system and isinstance((kwargs or {}).get("system"), (str, list)):
+        parts = []
+        _strings(kwargs["system"], parts)
+        system = "\n".join(parts)[:4000]
+    return hashlib.sha256("\x00".join([who, str(model_group), system, user]).encode()).hexdigest()
+
+
+def estimate_tokens(messages, kwargs):
+    parts = []
+    _strings(messages, parts)
+    for key in ("system", "tools"):
+        if (kwargs or {}).get(key) is not None:
+            _strings(kwargs[key], parts)
+    return int(sum(len(p) for p in parts) / CHARS_PER_TOKEN)
+
+
+def choose_deployments(deployments, prompt_tokens, conv, now=None):
+    """Rules 6 and 7 on the router's healthy deployments. Returns the ones to route among (the
+    router then applies `order` and weights) and a word on what was done, for the log."""
+    now = time.time() if now is None else now
+    if not isinstance(deployments, list) or len(deployments) < 2 or not prompt_tokens:
+        return deployments, ""
+    sticky = _sticky.get(conv) if conv else None
+    if sticky and now - sticky[2] > STICKY_S:
+        _sticky.pop(conv, None)
+        sticky = None
+
+    def seconds(d):
+        speed = prefill_speed(d)
+        if speed is None:
+            return 0.0
+        new = prompt_tokens
+        if sticky and (d.get("model_info") or {}).get("id") == sticky[0]:
+            new = max(0, prompt_tokens - sticky[1])
+        return new / max(speed, 1.0)
+
+    timed = [(seconds(d), d) for d in deployments]
+    if sticky:
+        for t, d in timed:
+            if (d.get("model_info") or {}).get("id") == sticky[0] and t <= PREFER_S:
+                return [d], "sticky"
+    prefer = [d for t, d in timed if t <= PREFER_S]
+    if prefer:
+        return prefer, ("" if len(prefer) == len(deployments) else f"skipped {len(deployments) - len(prefer)} slow")
+    possible = sorted([(t, d) for t, d in timed if t <= LIMIT_S], key=lambda x: x[0])
+    if possible:
+        return [possible[0][1]], f"only slow ones: fastest needs {int(possible[0][0])} s"
+    return [], "none can start in time"
+
+
+def remember(conv, model_id, prompt_tokens, now=None):
+    if not conv or not model_id or not isinstance(prompt_tokens, (int, float)):
+        return
+    now = time.time() if now is None else now
+    _sticky[conv] = (model_id, int(prompt_tokens), now)
+    if len(_sticky) > 20000:
+        cut = now - STICKY_S
+        for k in [k for k, v in _sticky.items() if v[2] < cut]:
+            _sticky.pop(k, None)
+
+
+def too_slow_message(request_data):
+    """The 503's words when rule 6 left no deployment for this request (within the last 30 s)."""
+    data = request_data or {}
+    msgs = data.get("messages")
+    prompt = estimate_tokens(msgs, data)
+    keys = [conversation_key(data.get("model"), msgs, data), f"size:{prompt}"]
+    if not any(k and time.time() - _too_slow.get(k, 0) < 30 for k in keys):
+        return None
+    return (f"This prompt (about {prompt} tokens) would take more than {LIMIT_S // 60} minutes to start on the capacity "
+            "that is available for this model right now. Retry in a minute, or shorten the conversation.")
+
+
+async def seed_speeds():
+    """Measurements from the last three days' spend logs, once after a start, so a restart does not
+    forget what each deployment can do."""
+    if _seeded["done"]:
+        return
+    _seeded["done"] = True
+    try:
+        from litellm.proxy.proxy_server import prisma_client
+        rows = await prisma_client.db.query_raw(
+            'select model_id, prompt_tokens, '
+            "coalesce((metadata->'usage_object'->'prompt_tokens_details'->>'cached_tokens')::int, 0) as cached, "
+            'extract(epoch from "completionStartTime" - "startTime") as ttft '
+            'from "LiteLLM_SpendLogs" where "startTime" > now() - interval \'3 days\' and status = \'success\' '
+            'and "completionStartTime" < "endTime" - interval \'1 second\' and prompt_tokens >= ' + str(MIN_NEW_TOKENS) +
+            ' order by "startTime"')
+        for r in rows:
+            record_prefill(r.get("model_id"), r.get("prompt_tokens"), r.get("cached"), float(r.get("ttft") or 0))
+        print(f"garageai: prefill speeds seeded for {len(_speeds)} deployment(s)", flush=True)
+    except Exception as e:  # noqa: BLE001 - without history every deployment starts unmeasured
+        print(f"garageai: could not seed prefill speeds: {e}", flush=True)
+
+
 class GarageAICallbacks(CustomLogger):
     async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
         model = data.get("model")
@@ -341,6 +520,48 @@ class GarageAICallbacks(CustomLogger):
                     pass
         return response
 
+    async def async_filter_deployments(self, model, healthy_deployments, messages, request_kwargs=None,
+                                       parent_otel_span=None):
+        try:
+            if not isinstance(healthy_deployments, list) or len(healthy_deployments) < 2:
+                return healthy_deployments
+            await seed_speeds()
+            msgs = messages if messages is not None else (request_kwargs or {}).get("messages")
+            prompt = estimate_tokens(msgs, request_kwargs)
+            conv = conversation_key(model, msgs, request_kwargs)
+            chosen, why = choose_deployments(healthy_deployments, prompt, conv)
+            if why and why != "sticky":
+                print(f"garageai: routing model={model} prompt~{prompt}: {why}", flush=True)
+            if not chosen:
+                _too_slow[conv or f"size:{prompt}"] = time.time()
+            return chosen
+        except Exception as e:  # noqa: BLE001 - never fail a request because of these rules
+            print(f"garageai: routing rules skipped: {e}", flush=True)
+            return healthy_deployments
+
+    async def async_log_success_event(self, kwargs, response_obj, start_time, end_time):
+        try:
+            slo = kwargs.get("standard_logging_object") or {}
+            model_id, prompt = slo.get("model_id"), slo.get("prompt_tokens")
+            usage = ((slo.get("metadata") or {}).get("usage_object") or {})
+            cached = ((usage.get("prompt_tokens_details") or {}).get("cached_tokens")) or 0
+            if slo.get("stream") and slo.get("completionStartTime") and slo.get("startTime"):
+                record_prefill(model_id, prompt, cached, slo["completionStartTime"] - slo["startTime"])
+            group = slo.get("model_group")
+            conv = conversation_key(group, kwargs.get("messages"), kwargs)
+            remember(conv, model_id, prompt)
+        except Exception:  # noqa: BLE001 - bookkeeping only
+            pass
+
+    async def async_log_failure_event(self, kwargs, response_obj, start_time, end_time):
+        try:
+            slo = kwargs.get("standard_logging_object") or {}
+            conv = conversation_key(slo.get("model_group"), kwargs.get("messages"), kwargs)
+            if conv and _sticky.get(conv, (None,))[0] == slo.get("model_id"):
+                _sticky.pop(conv, None)  # the retry and the next turn go elsewhere
+        except Exception:  # noqa: BLE001 - bookkeeping only
+            pass
+
     async def async_pre_call_deployment_hook(self, kwargs, call_type):
         try:
             return provider_time_limit(kwargs)
@@ -352,6 +573,11 @@ class GarageAICallbacks(CustomLogger):
         if isinstance(original_exception, (ContextLengthExceeded, ModelTemporarilyUnavailable, HTTPException)):
             return None
         away = provider_unavailable(original_exception, request_data)
+        if away is not None and "No deployments available" in str(original_exception):
+            slow = too_slow_message(request_data)
+            if slow:
+                print(f"garageai: {request_data.get('model')}: no deployment can start this prompt in time -> 503", flush=True)
+                raise HTTPException(status_code=503, headers={"Retry-After": str(RETRY_AFTER)}, detail=slow)
         if away is not None:
             print(f"garageai: {request_data.get('model')}: {type(original_exception).__name__} from the deployment -> 503", flush=True)
             raise away
