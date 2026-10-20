@@ -128,6 +128,27 @@ order for auto entries is not yet in the gateway (the portal shows order 1, 2, 3
 picks by weight): until the portal sets `order` on each auto deployment, auto spreads requests
 over its entries instead of using a first choice and fallbacks.
 
+### Big prompts: how long a deployment needs before the first token
+
+A window says what fits, not how long reading it takes. On 2026-10-18 a 160k-token Hermes prompt
+failed over from the DeepSeek provider to dgx-city, which fits 524k tokens but reads ~1,800
+tokens/s when cold: minutes before the first token, and the agent gave up and retried for 26
+minutes. Two gateway rules (garageai_callbacks.py, rules 6 and 7) apply to every model with more
+than one deployment, `garageai/auto` included:
+
+- **Time to start, measured.** Each deployment's prefill speed comes from its own streamed requests
+  (new tokens / time to first token, median of the latest 20; seeded from three days of spend logs
+  after a restart). A deployment that would need more than 120 s for a request's new tokens is
+  skipped while another can start in time; one that would need more than 540 s (the stream timeout
+  is 600 s) is never used, and if none can, the buyer gets a 503 saying so at once. Nothing is a
+  fixed cap: a faster garage takes bigger prompts by itself. Unmeasured providers are not limited;
+  an unmeasured garage counts as 800 tokens/s.
+- **A conversation stays where its cache is.** Runtimes keep the prefix they just processed, so the
+  next turn on the same deployment reads only the new tokens (dgx-city: 188k-token turns in 1-11 s
+  when warm). The gateway remembers the deployment per conversation (the buyer's key and the first
+  system and user message) for 10 minutes and sends the next turn there while it is healthy and
+  the new tokens fit; this wins over `order`. A failure forgets it, so the retry goes elsewhere.
+
 ## Known gateway quirks, and where they are handled
 
 - **Ollama's response ids collide (fixed 2026-10-13 with a database trigger).** LiteLLM keys a
