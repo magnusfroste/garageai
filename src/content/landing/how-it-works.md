@@ -24,7 +24,7 @@ tracks:
     title: "Offer Your GPU"
     tagline: "For anyone with a capable GPU in a garage, office or server room"
     color: "var(--color-primary)"
-    requirements: "A Mac (Apple silicon), a Linux machine or a Windows PC with a GPU, and Ollama, LM Studio, vLLM or llama.cpp running with a model loaded. No runtime yet? garageai runtime suggests one and installs it."
+    requirements: "A Mac (Apple silicon), a Linux machine or a Windows PC with a GPU, and Ollama, LM Studio, vLLM, llama.cpp or Xyntetik Runner running with a model loaded. No runtime yet? garageai runtime checks what fits your machine and installs Xyntetik Runner with a model."
     steps:
       - title: "Create an account"
         text: "Sign up at app.garageai.eu. Connect your GPU takes you to the page that connects your computer."
