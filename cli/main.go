@@ -7,6 +7,7 @@
 //	garageai uninstall           remove the heartbeat and Bridge's configuration
 //	garageai install-service     make the heartbeat service run this version
 //	garageai mcp                 Bridge's tools for the operator's own agent (MCP over stdio)
+//	garageai tray [--install]    GarageAI in the menu bar (macOS) or notification area (Windows)
 //	garageai version
 package main
 
@@ -62,6 +63,8 @@ func main() {
 		os.Exit(runtimeCmd(args[1:]))
 	case "pause":
 		os.Exit(pauseCmd(args[1:]))
+	case "tray":
+		os.Exit(trayCmd(args[1:]))
 	case "resume":
 		os.Exit(resumeCmd())
 	case "update":
@@ -144,6 +147,7 @@ usage:
   garageai pause [--reason "redeploy"] [--for 15m]
                                planned absence: the portal drains this garage, buyers go elsewhere, no alerts
   garageai resume              offer the garage again
+  garageai tray [--install|--uninstall|--print]   GarageAI in the menu bar (macOS) or notification area (Windows)
   garageai update [vX.Y.Z]     update Bridge by hand (it updates itself to the portal's stable version otherwise)
   garageai version`)
 	os.Exit(code)

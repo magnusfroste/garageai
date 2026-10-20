@@ -64,6 +64,7 @@ func psQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", "''") + 
 func holdWindow(args []string) int {
 	self, _ := os.Executable()
 	c := exec.Command(self, args...)
+	c.Env = append(os.Environ(), "GARAGEAI_VIA_HOLD=1") // connect: the unelevated window offers the icon
 	c.Stdin, c.Stdout, c.Stderr = os.Stdin, os.Stdout, os.Stderr
 	code := 0
 	if err := c.Run(); err != nil {

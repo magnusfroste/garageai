@@ -54,10 +54,11 @@ func StatsPath() string {
 }
 
 type stats struct {
-	mu      sync.Mutex
-	samples []Sample
-	last    time.Time // the previous request's time, for the cold-start heuristic
-	dirty   bool
+	mu       sync.Mutex
+	samples  []Sample
+	last     time.Time // the previous request's time, for the cold-start heuristic
+	dirty    bool
+	readable bool // Windows: the read grant for users is set (once per process)
 }
 
 var global = &stats{}
@@ -104,11 +105,25 @@ func (s *stats) flush(path string) {
 	b, _ := json.Marshal(s.samples)
 	s.dirty = false
 	s.mu.Unlock()
+	if runtime.GOOS == "windows" {
+		// In place: a renamed file would take the directory's Administrators-and-SYSTEM-only
+		// rights and lose the read grant the menu-bar icon needs (a half-written file is skipped
+		// by readers as invalid JSON and read again 30 s later).
+		if os.WriteFile(path, b, 0o644) == nil && !s.readable && MakeReadable != nil {
+			MakeReadable(path)
+			s.readable = true
+		}
+		return
+	}
 	tmp := path + ".tmp"
 	if os.WriteFile(tmp, b, 0o644) == nil {
 		_ = os.Rename(tmp, path)
 	}
 }
+
+// MakeReadable is set by the tunnel service to service.MakeUserReadable (the tunnel package does
+// not import service): the request timings are for the menu-bar icon too, which runs as the user.
+var MakeReadable func(path string)
 
 // FlushStatsEvery keeps the stats file current; returns when stop is closed.
 func FlushStatsEvery(d time.Duration, stop <-chan struct{}) {

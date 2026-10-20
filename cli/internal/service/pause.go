@@ -49,7 +49,11 @@ func SavePauseState(p PauseState) error {
 	if err := os.WriteFile(tmp, b, 0o644); err != nil {
 		return err
 	}
-	return os.Rename(tmp, PauseStatePath())
+	if err := os.Rename(tmp, PauseStatePath()); err != nil {
+		return err
+	}
+	MakeUserReadable(PauseStatePath()) // the menu-bar icon shows the pause
+	return nil
 }
 
 func ClearPauseState() { os.Remove(PauseStatePath()) }

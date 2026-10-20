@@ -83,10 +83,77 @@ jobs:
           env -i PATH=/usr/local/bin:/usr/bin:/bin garageai version
           ! test -e ~/.local/bin/garageai   # the old copy must be gone, or it shadows the new one
 
+  tray:
+    # The GarageAI icon on a real desktop (docs/bridge-menubar.md): built without cgo, started with
+    # a live garage's status files, still running after 10 s, and a screenshot to look at.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: cli/go.mod
+      - name: Status files of a live garage
+        shell: python
+        run: |
+          import json, os, sys, datetime
+          d = os.path.join(os.environ["ProgramData"], "GarageAI") if sys.platform == "win32" else "/tmp/garageai-etc"
+          os.makedirs(d, exist_ok=True)
+          now = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
+          json.dump({"name": "garage-ci", "runtime": "ollama", "port": 11434, "transport": "tunnel"}, open(os.path.join(d, "bridge-public.json"), "w"))
+          json.dump({"schema": 1, "updated_at": now, "version": "ci", "name": "garage-ci", "runtime": "ollama", "port": 11434,
+                     "heartbeat": {"ok": True}, "models": ["qwen3:8b", "gemma4:12b"], "update": {"auto": True},
+                     "portal": {"live": True, "requests_today": 142, "earned_today": 0.41, "currency": "EUR"}},
+                    open(os.path.join(d, "status.json"), "w"))
+          json.dump([{"at": now, "path": "chat", "status": 200, "ttfb_ms": 300, "total_ms": 2000, "streamed": True, "cold": False}],
+                    open(os.path.join(d, "forward-stats.json"), "w"))
+      - name: macOS menu bar
+        if: runner.os == 'macOS'
+        run: |
+          sudo mkdir -p /etc/garageai && sudo cp /tmp/garageai-etc/*.json /etc/garageai/
+          CGO_ENABLED=0 go build -o garageai .
+          ./garageai tray --print
+          ./garageai tray > tray.log 2>&1 & pid=$!
+          sleep 10
+          cat tray.log
+          kill -0 $pid
+          ./garageai tray | grep -q "already"  # a second one only says so
+          screencapture -x -R 0,0,1600,40 menubar.png
+          kill $pid
+      - name: Windows notification area
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:CGO_ENABLED = "0"
+          go build -o garageai.exe .
+          .\garageai.exe tray --print
+          $p = Start-Process -FilePath .\garageai.exe -ArgumentList tray -RedirectStandardOutput tray.log -RedirectStandardError tray.err -PassThru
+          Start-Sleep 10
+          Get-Content tray.log, tray.err
+          if ($p.HasExited) { Write-Error "the icon exited: $($p.ExitCode)"; exit 1 }
+          if (-not (Select-String -Path tray.log -Pattern "notification area" -Quiet)) { exit 1 }
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+          [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+          $bmp.Save("$PWD\menubar.png")
+          Stop-Process -Id $p.Id
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tray-${{ runner.os }}
+          path: cli/menubar.png
+
   build:
     # One codebase, six binaries. Uploaded as an artifact for trying; no release yet.
     runs-on: ubuntu-latest
-    needs: test
+    needs: [test, tray]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5

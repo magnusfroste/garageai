@@ -1,6 +1,6 @@
 module github.com/magnusfroste/garageai/cli
 
-go 1.24
+go 1.25.0
 
 require (
 	golang.org/x/sys v0.32.0
@@ -8,6 +8,7 @@ require (
 )
 
 require (
+	github.com/ebitengine/purego v0.11.2 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	golang.org/x/crypto v0.37.0 // indirect
 	golang.org/x/net v0.39.0 // indirect

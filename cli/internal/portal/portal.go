@@ -150,6 +150,19 @@ type HeartbeatResult struct {
 	BridgeDownloadBase string `json:"bridge_download_base"`
 	// Managed models (docs/bridge.md): what the portal wants fetched or removed on this garage.
 	WantedModels []WantedModel `json:"wanted_models"`
+	// The garage as the portal sees it, for the menu-bar icon (docs/bridge-menubar.md): live or
+	// not, the models on offer, and today's requests and earnings. Absent from older portals.
+	Garage *GarageToday `json:"garage,omitempty"`
+}
+
+// GarageToday is the portal's view of the garage, in the heartbeat's answer.
+type GarageToday struct {
+	Live          *bool    `json:"live,omitempty"`
+	Offered       []string `json:"offered,omitempty"`
+	RequestsToday *int     `json:"requests_today,omitempty"`
+	TokensToday   *int64   `json:"tokens_today,omitempty"`
+	EarnedToday   *float64 `json:"earned_today,omitempty"`
+	Currency      string   `json:"currency,omitempty"`
 }
 
 func (c *Client) post(ctx context.Context, url string, body any, out any, timeout time.Duration) (int, error) {
