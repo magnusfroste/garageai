@@ -123,10 +123,10 @@ The rules since (`infra/gateway/litellm/config.yaml`, `garageai_callbacks.py`):
 ### `garageai/auto` across both kinds
 
 `garageai/auto` holds entries from garages and providers alike. A failing entry is skipped by the
-retry and then by the cooldown, so auto keeps answering as long as one entry is up. The portal's
-order for auto entries is not yet in the gateway (the portal shows order 1, 2, 3; the gateway
-picks by weight): until the portal sets `order` on each auto deployment, auto spreads requests
-over its entries instead of using a first choice and fallbacks.
+retry and then by the cooldown, so auto keeps answering as long as one entry is up. The portal sets
+`order` on each auto deployment (since 2026-10-19: 1 = the DeepSeek provider, 2 = dgx-city), so the
+first entry takes the traffic and the others are fallbacks; the rules below may still send a
+conversation to its warm fallback.
 
 ### Big prompts: how long a deployment needs before the first token
 
