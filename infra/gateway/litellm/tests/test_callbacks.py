@@ -115,5 +115,15 @@ check("private deployment detected", (cb.is_private(ml[0]), cb.is_private(ml[1])
 e = cb.ModelNotFound("mine/dgx-city/x/y")
 check("not yours: 404 model_not_found", (str(e.code), e.to_dict().get("code")), ("404", "model_not_found"))
 
+
+class _Role:
+    value = "proxy_admin"
+class _Key:
+    def __init__(self, role): self.user_role = role
+check("admin: proxy_admin recognised (enum)", cb.is_proxy_admin(_Key(_Role())), True)
+check("admin: proxy_admin recognised (string)", cb.is_proxy_admin(_Key("proxy_admin")), True)
+check("admin: internal user is not admin", cb.is_proxy_admin(_Key("internal_user")), False)
+check("admin: listing shows every private name", cb.visible_names(names, "default_user_id", ow, admin=True), names)
+
 print("all tests passed" if not fails else f"{fails} test(s) failed")
 sys.exit(1 if fails else 0)

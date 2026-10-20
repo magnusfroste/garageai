@@ -48,7 +48,8 @@
 8. My machine (docs/my-machine.md): `mine/<garage>/<model>` is the owner's own garage, private and
    free. Only the key of the garage's owner (user_id == the deployment's operator_id) may use or
    see such a name; anyone else gets 404 model_not_found, exactly as for a name that does not
-   exist, and never finds it in /v1/models, /model/info or /model_group/info. A private deployment
+   exist, and never finds it in /v1/models, /model/info or /model_group/info. The proxy admin
+   (master key) sees every name in the listings, but may not use another owner's machine either. A private deployment
    (garage_tier "private") is never routed for any other model name, so a market request can never
    land on someone's private machine.
 """
@@ -497,8 +498,18 @@ def _owners():
     return c["map"]
 
 
-def visible_names(names, user_id, owners):
-    """The listing without other people's private machines."""
+def is_proxy_admin(user_api_key_dict):
+    role = getattr(user_api_key_dict, "user_role", None)
+    return getattr(role, "value", role) == "proxy_admin"
+
+
+def visible_names(names, user_id, owners, admin=False):
+    """The listing without other people's private machines. The proxy admin (the master key: the
+    portal's sync, Ops) sees every name: the portal reconciles its deployments from the listing,
+    and hiding them made it create the same private routes again and again (2026-10-20 21:00).
+    Seeing is not using: the owner check in the pre-call hook applies to the admin too."""
+    if admin:
+        return list(names)
     uid = str(user_id) if user_id else None
     return [n for n in names if not (isinstance(n, str) and n.startswith(MINE_PREFIX)) or (uid and uid in owners.get(n, ()))]
 
@@ -636,7 +647,8 @@ class GarageAICallbacks(CustomLogger):
 
     async def async_filter_listed_models(self, user_api_key_dict, model_names):
         try:
-            return visible_names(list(model_names), getattr(user_api_key_dict, "user_id", None), _owners())
+            return visible_names(list(model_names), getattr(user_api_key_dict, "user_id", None), _owners(),
+                                 admin=is_proxy_admin(user_api_key_dict))
         except Exception:  # noqa: BLE001 - fail closed: hide every private name
             return [n for n in model_names if not (isinstance(n, str) and n.startswith(MINE_PREFIX))]
 
