@@ -14,7 +14,7 @@ You will get an answer as soon as possible, and credit when the fix ships unless
 
 - The connect script ([`scripts/garageai-connect.sh`](../scripts/garageai-connect.sh)) and the heartbeat it installs
 - The gateway setup in [`infra/gateway/`](../infra/gateway/README.md)
-- The site in [`src/`](../src)
+- The site in [`www/`](../www)
 
 ## Design notes
 
