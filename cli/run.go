@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/magnusfroste/garageai/cli/internal/profile"
 	rt "github.com/magnusfroste/garageai/cli/internal/runtime"
 	"github.com/magnusfroste/garageai/cli/internal/service"
+	"github.com/magnusfroste/garageai/cli/internal/tray"
 	"github.com/magnusfroste/garageai/cli/internal/tunnel"
 )
 
@@ -50,6 +52,7 @@ func heartbeat(cfg *service.Config, client *portal.Client) int {
 	ag := agent(cfg) // first: it may correct cfg.Runtime
 	res, err := client.Heartbeat(context.Background(), portal.Registration{Name: cfg.Name, Port: cfg.Port, Runtime: cfg.Runtime,
 		Models: models, Contexts: nonEmpty(contexts), RuntimeAPIKey: cfg.RuntimeAPIKey, Agent: ag, MachineID: machine.ID()})
+	writeStatus(cfg, models, contexts, ag, res, err)
 	stamp := time.Now().UTC().Format(time.RFC3339)
 	switch {
 	case errors.Is(err, portal.ErrRejected):
@@ -71,8 +74,10 @@ func heartbeat(cfg *service.Config, client *portal.Client) int {
 	// (it offers a fetched model when the report says ready and the inventory lists it).
 	beat := func() {
 		m, c := inventory(cfg)
-		_, _ = client.Heartbeat(context.Background(), portal.Registration{Name: cfg.Name, Port: cfg.Port, Runtime: cfg.Runtime,
-			Models: m, Contexts: nonEmpty(c), RuntimeAPIKey: cfg.RuntimeAPIKey, Agent: agent(cfg), MachineID: machine.ID()})
+		a := agent(cfg)
+		r, e := client.Heartbeat(context.Background(), portal.Registration{Name: cfg.Name, Port: cfg.Port, Runtime: cfg.Runtime,
+			Models: m, Contexts: nonEmpty(c), RuntimeAPIKey: cfg.RuntimeAPIKey, Agent: a, MachineID: machine.ID()})
+		writeStatus(cfg, m, c, a, r, e) // download progress for the menu-bar icon
 	}
 	if reconcileModels(cfg, res, models, rt.New("127.0.0.1", cfg.Port, cfg.RuntimeAPIKey), beat) {
 		beat()
@@ -199,7 +204,11 @@ func nonEmpty(m map[string]int) map[string]int {
 func uninstall(args []string) int {
 	yes := len(args) > 0 && (args[0] == "--yes" || args[0] == "-y")
 	if !isAdmin() {
+		_ = tray.RemoveLoginItem(true) // the icon is the operator's: removed in their half
 		return asRootSimple("uninstall", args)
+	}
+	if runtime.GOOS == "windows" {
+		_ = tray.RemoveLoginItem(true)
 	}
 	fmt.Println("This removes Bridge's heartbeat and configuration. Your runtime, models and NetBird are not touched.")
 	if !yes {
@@ -248,4 +257,46 @@ func installService() int {
 		fmt.Println("✓ The tunnel service was restarted on the new version (reconnects within seconds)")
 	}
 	return 0
+}
+
+// writeStatus leaves what this heartbeat saw and heard in status.json for the menu-bar icon
+// (docs/bridge-menubar.md). Nothing secret goes in: no token, no keys, no addresses.
+func writeStatus(cfg *service.Config, models []string, contexts map[string]int, ag *portal.Agent, res *portal.HeartbeatResult, err error) {
+	st := service.Status{UpdatedAt: time.Now().UTC(), Version: version, Name: cfg.Name, Runtime: cfg.Runtime, Port: cfg.Port,
+		Transport: cfg.Transport, Models: models, Contexts: nonEmpty(contexts)}
+	switch {
+	case errors.Is(err, portal.ErrRejected):
+		st.Heartbeat = service.StatusHeartbeat{Rejected: true, Error: "the portal does not accept this garage's link any more"}
+	case err != nil:
+		st.Heartbeat = service.StatusHeartbeat{Error: "GarageAI could not be reached"}
+	default:
+		st.Heartbeat.OK = true
+	}
+	if ag != nil {
+		if ag.State != nil {
+			st.State = &service.StatusState{Kind: ag.State.Kind, Reason: ag.State.Reason, Until: ag.State.Until, Source: ag.State.Source}
+		}
+		for _, m := range ag.Models {
+			st.Managed = append(st.Managed, service.StatusModel{Model: m.Model, Status: m.Status, CompletedMB: m.CompletedMB, TotalMB: m.TotalMB, Error: m.Error})
+		}
+		for _, p := range ag.Problems {
+			st.Problems = append(st.Problems, service.StatusProblem{Severity: p.Severity, Code: p.Code, Message: p.Message})
+		}
+		if ag.Machine != nil {
+			st.Power, st.Battery = ag.Machine.Power, ag.Machine.BatteryPct
+		}
+		if ag.Update != nil {
+			st.Update.Auto, st.Update.LastError = ag.Update.Auto, ag.Update.LastError
+		}
+	}
+	if res != nil {
+		st.Update.Stable = res.BridgeStable
+		if g := res.Garage; g != nil {
+			st.Portal = &service.StatusPortal{Live: g.Live, Offered: g.Offered, RequestsToday: g.RequestsToday,
+				TokensToday: g.TokensToday, EarnedToday: g.EarnedToday, Currency: g.Currency}
+		}
+	}
+	if e := service.WriteStatus(st); e != nil {
+		fmt.Printf("%s could not write %s: %v\n", time.Now().UTC().Format(time.RFC3339), service.StatusPath(), e)
+	}
 }

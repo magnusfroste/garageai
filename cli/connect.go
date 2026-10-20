@@ -298,7 +298,11 @@ func connect(args []string) int {
 	// Ask for the password now, before the browser opens: after approving, the terminal would
 	// otherwise sit behind the browser waiting for it, and nobody sees it.
 	if runtime.GOOS == "windows" && !isAdmin() {
-		return elevate("connect", args)
+		code := elevate("connect", args)
+		if code == 0 {
+			offerTray(o.Yes) // back in the operator's own, unelevated window
+		}
+		return code
 	}
 	if !isAdmin() && runtime.GOOS != "windows" {
 		v := exec.Command("sudo", "-v", "-p", "  [sudo] password for %p (Bridge installs its service; asked now so the browser step is not interrupted): ")
@@ -333,7 +337,11 @@ func connect(args []string) int {
 		}
 	}
 	if !isAdmin() && runtime.GOOS != "windows" {
-		return asRoot(args)
+		code := asRoot(args)
+		if code == 0 {
+			offerTray(o.Yes) // the root half is done; the icon belongs to the operator
+		}
+		return code
 	}
 	c := &connectRun{o: o}
 	if o.RegisterToken != "" && o.RegisterURL == "" {
@@ -644,6 +652,9 @@ func connect(args []string) int {
 	c.info("A new model is not offered until you say so there.")
 	c.report("done", "Heartbeat installed", nil)
 	c.notes()
+	if runtime.GOOS == "windows" && os.Getenv("GARAGEAI_VIA_HOLD") == "" {
+		offerTray(c.o.Yes) // started in an Administrator window directly: no unelevated half to ask in
+	}
 	return 0
 }
 

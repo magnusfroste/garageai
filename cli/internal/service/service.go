@@ -202,6 +202,7 @@ func Remove() {
 	RemoveTunnel()
 	os.Remove(ConfigPath())
 	os.Remove(PublicPath())
+	os.Remove(StatusPath())
 	if runtime.GOOS != "windows" {
 		os.Remove(BinaryPath())
 		os.Remove(filepath.Dir(BinaryPath())) // only when empty

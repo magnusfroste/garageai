@@ -1,6 +1,6 @@
 # Bridge in the menu bar
 
-Sketch, 2026-10-17. Decided: build it after v0.7.0. Inspired by Xyntetik Runner's tray
+Sketch, 2026-10-17. Phase 1 built 2026-10-20 (`garageai tray`, cli/internal/tray). Inspired by Xyntetik Runner's tray
 (`src/tray_macos.m`, `src/tray_win.c`: an `NSStatusItem` on macOS and a notification-area icon on
 Windows, rendering a menu that portable C code describes).
 
@@ -50,6 +50,32 @@ The menu, top to bottom:
 Icon states: live (outline), serving (accent, with the number of requests in flight), paused or
 away (pause glyph), needs you (warning: runtime stopped, tunnel down, heartbeat rejected). A
 template image on macOS, so it follows light and dark menu bars.
+
+## Security: does the icon make a garage less safe?
+
+No. It adds no way in and no privilege; the rules it is built to:
+
+- **Runs as the logged-in user**, never as root or SYSTEM (`garageai tray` refuses sudo). The
+  services keep their privileges; the icon gets none of them.
+- **Reads only secret-free files** the services leave world-readable: `bridge-public.json`,
+  `status.json`, `pause.json` and the tunnel's request timings (times and status codes, never
+  prompts). Never `bridge.json`, the tunnel key or a runtime API key. Every read is a regular file
+  (no symlink) with a size limit.
+- **No network.** It opens no port and sends no request; the figures come from the portal through
+  the heartbeat that already runs.
+- **Fixed actions only.** Open My garage (a fixed address), run `garageai doctor` in a terminal,
+  open at login on/off, hide. Text from a file is shown, never opened, run or followed.
+- **Nothing it can break.** Hiding or quitting the icon never touches the garage. Pausing from the
+  menu (phase 2) goes through the platform's own Administrator prompt, the same as
+  `garageai pause` today.
+- **The login item is the user's own** (a LaunchAgent in `~/Library/LaunchAgents`, the user's
+  `Run` key on Windows), visible in the system's login-items list and removed by
+  `garageai tray --uninstall` and `garageai uninstall`.
+- **No C.** AppKit through purego and Win32 through `golang.org/x/sys/windows`: the release stays
+  one cross-compiled binary with its checksum.
+
+What it does change is visibility: the operator sees when strangers' requests are served on the
+machine. That is honest, and it is what "Is it safe to share from my computer?" promises.
 
 ## How it works
 

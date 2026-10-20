@@ -54,6 +54,7 @@ func tunnelLoop(ctx context.Context, cfg *service.Config, key string, addr netip
 	logf := func(format string, args ...any) {
 		fmt.Printf("%s %s\n", time.Now().UTC().Format(time.RFC3339), fmt.Sprintf(format, args...))
 	}
+	tunnel.MakeReadable = service.MakeUserReadable
 	go tunnel.FlushStatsEvery(30*time.Second, ctx.Done()) // the garage's own request timings, for the heartbeat
 	go watchState(ctx, logf)                              // a pause or a manager's state change: heartbeat at once
 	for ctx.Err() == nil {
