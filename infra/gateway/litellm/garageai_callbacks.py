@@ -52,6 +52,11 @@
    (master key) sees every name in the listings, but may not use another owner's machine either. A private deployment
    (garage_tier "private") is never routed for any other model name, so a market request can never
    land on someone's private machine.
+9. `garageai/auto` says which model answered. A buyer who asks for auto gets the canonical name of
+   the model that served the request in the response's `model` field (for example
+   `deepseek/deepseek-v4.1-flash`), streamed or not, as OpenRouter does for openrouter/auto. Never
+   the garage: the name is the public catalogue name, which the catalogue already shows with its
+   garages.
 """
 import asyncio
 import hashlib
@@ -545,6 +550,83 @@ async def used_by(user_id, name):
         return False
 
 
+# ---------------------------------------------------------------- 9: auto says which model answered
+
+AUTO_NAME = "garageai/auto"
+_canon_cache = {"at": 0.0, "router": None, "map": {}}
+
+
+def auto_canonical_names(model_list):
+    """{auto deployment id: canonical model name}. An auto entry carries the garage and the runtime
+    model; the same garage serves that runtime model under its catalogue name as a pool or a
+    dedicated route (garage/<g>/<canonical>). model_info.canonical_model wins when the portal sets it."""
+    by_key = {}
+    for d in model_list or []:
+        name = d.get("model_name") or ""
+        if name == AUTO_NAME or name.startswith((MINE_PREFIX, "probe/")):
+            continue
+        info, lp = d.get("model_info") or {}, d.get("litellm_params") or {}
+        key = (info.get("garage"), lp.get("model"))
+        dedicated = name.startswith("garage/") and name.count("/") >= 2
+        canon = name.split("/", 2)[2] if dedicated else name
+        if key not in by_key or (by_key[key][1] and not dedicated):  # a pool name beats a dedicated one
+            by_key[key] = (canon, dedicated)
+    out = {}
+    for d in model_list or []:
+        if d.get("model_name") != AUTO_NAME:
+            continue
+        info, lp = d.get("model_info") or {}, d.get("litellm_params") or {}
+        canon = info.get("canonical_model") or (by_key.get((info.get("garage"), lp.get("model"))) or (None,))[0]
+        if canon and info.get("id"):
+            out[info["id"]] = canon
+    return out
+
+
+def _auto_names():
+    from litellm.proxy.proxy_server import llm_router
+    if llm_router is None:
+        return {}
+    c = _canon_cache
+    if c["router"] is not llm_router or time.time() - c["at"] > 10:
+        c["map"], c["router"], c["at"] = auto_canonical_names(getattr(llm_router, "model_list", None)), llm_router, time.time()
+    return c["map"]
+
+
+def served_deployment_id(obj, request_data=None):
+    hp = getattr(obj, "_hidden_params", None)
+    if isinstance(hp, dict) and hp.get("model_id"):
+        return hp["model_id"]
+    for key in ("metadata", "litellm_metadata"):
+        m = (request_data or {}).get(key)
+        if isinstance(m, dict) and isinstance(m.get("model_info"), dict) and m["model_info"].get("id"):
+            return m["model_info"]["id"]
+    return None
+
+
+def name_the_model(obj, request_data):
+    """Puts the served model's canonical name in obj's `model` (a response or a stream chunk) when the
+    buyer asked for garageai/auto. Returns obj."""
+    if (request_data or {}).get("model") != AUTO_NAME:
+        return obj
+    canon = _auto_names().get(served_deployment_id(obj, request_data))
+    if not canon:
+        return obj
+    if isinstance(obj, (bytes, str)):
+        old = '"model":"' + AUTO_NAME + '"'
+        new = '"model":"' + canon + '"'
+        if isinstance(obj, bytes):
+            return obj.replace(old.encode(), new.encode()).replace(old.replace(":", ": ").encode(), new.encode())
+        return obj.replace(old, new).replace(old.replace(":", ": "), new)
+    if isinstance(obj, dict):
+        obj["model"] = canon
+        return obj
+    try:
+        obj.model = canon
+    except Exception:  # noqa: BLE001 - leave the name rather than fail the response
+        pass
+    return obj
+
+
 class GarageAICallbacks(CustomLogger):
     async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
         model = data.get("model")
@@ -608,6 +690,10 @@ class GarageAICallbacks(CustomLogger):
         hp = getattr(response, "_hidden_params", None)
         if isinstance(hp, dict) and hp.get("additional_headers"):
             hp["additional_headers"] = {}
+        try:
+            name_the_model(response, data)
+        except Exception:  # noqa: BLE001 - the name is a courtesy, never a failure
+            pass
         rid = response.get("id") if isinstance(response, dict) else getattr(response, "id", None)
         if isinstance(rid, str) and rid.startswith("resp_") and _is_anthropic(request_data=data):
             neutral = "msg_" + hashlib.sha256(rid.encode()).hexdigest()[:24]
@@ -644,6 +730,16 @@ class GarageAICallbacks(CustomLogger):
         except Exception as e:  # noqa: BLE001 - never fail a request because of these rules
             print(f"garageai: routing rules skipped: {e}", flush=True)
             return healthy_deployments
+
+    async def async_post_call_streaming_iterator_hook(self, user_api_key_dict, response, request_data):
+        named = (request_data or {}).get("model") == AUTO_NAME
+        async for chunk in response:
+            if named:
+                try:
+                    chunk = name_the_model(chunk, request_data)
+                except Exception:  # noqa: BLE001
+                    pass
+            yield chunk
 
     async def async_filter_listed_models(self, user_api_key_dict, model_names):
         try:
