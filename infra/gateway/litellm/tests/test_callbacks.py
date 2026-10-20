@@ -125,5 +125,33 @@ check("admin: proxy_admin recognised (string)", cb.is_proxy_admin(_Key("proxy_ad
 check("admin: internal user is not admin", cb.is_proxy_admin(_Key("internal_user")), False)
 check("admin: listing shows every private name", cb.visible_names(names, "default_user_id", ow, admin=True), names)
 
+
+# ---- rule 9: auto names the model
+mlist = [
+  {"model_name": "garageai/auto", "model_info": {"id": "auto__autoversio__kluster__pool", "garage": "autoversio"}, "litellm_params": {"model": "openai/kluster"}},
+  {"model_name": "garageai/auto", "model_info": {"id": "auto__dgx-city__mimo__dedicated", "garage": "dgx-city"}, "litellm_params": {"model": "hosted_vllm/mimo-v2.6-flash"}},
+  {"model_name": "garageai/auto", "model_info": {"id": "auto__x__y", "garage": "x", "canonical_model": "acme/set-by-portal"}, "litellm_params": {"model": "openai/y"}},
+  {"model_name": "garage/autoversio/deepseek/deepseek-v4.1-flash", "model_info": {"id": "a1", "garage": "autoversio"}, "litellm_params": {"model": "openai/kluster"}},
+  {"model_name": "deepseek/deepseek-v4.1-flash", "model_info": {"id": "a2", "garage": "autoversio"}, "litellm_params": {"model": "openai/kluster"}},
+  {"model_name": "garage/dgx-city/xiaomi/mimo-v2.6-flash", "model_info": {"id": "d1", "garage": "dgx-city"}, "litellm_params": {"model": "hosted_vllm/mimo-v2.6-flash"}},
+  {"model_name": "mine/dgx-city/xiaomi/mimo-v2.6-flash", "model_info": {"id": "m1", "garage": "dgx-city"}, "litellm_params": {"model": "hosted_vllm/mimo-v2.6-flash"}},
+]
+cn = cb.auto_canonical_names(mlist)
+check("auto: pool name preferred", cn.get("auto__autoversio__kluster__pool"), "deepseek/deepseek-v4.1-flash")
+check("auto: dedicated name stripped of garage", cn.get("auto__dgx-city__mimo__dedicated"), "xiaomi/mimo-v2.6-flash")
+check("auto: portal's canonical_model wins", cn.get("auto__x__y"), "acme/set-by-portal")
+class _R: pass
+r = _R(); r.model = "garageai/auto"; r._hidden_params = {"model_id": "auto__dgx-city__mimo__dedicated"}
+cb._canon_cache.update({"map": cn, "at": 9e18, "router": object()})
+import types
+orig = cb._auto_names; cb._auto_names = lambda: cn
+check("auto: response named", cb.name_the_model(r, {"model": "garageai/auto"}).model, "xiaomi/mimo-v2.6-flash")
+r2 = _R(); r2.model = "x"; r2._hidden_params = {"model_id": "auto__dgx-city__mimo__dedicated"}
+check("other models untouched", cb.name_the_model(r2, {"model": "qwen/qwen3-4b"}).model, "x")
+b = b'data: {"id":"1","model":"garageai/auto","choices":[]}'
+check("auto: bytes chunk named", cb.name_the_model(b, {"model": "garageai/auto", "metadata": {"model_info": {"id": "auto__autoversio__kluster__pool"}}}),
+      b'data: {"id":"1","model":"deepseek/deepseek-v4.1-flash","choices":[]}')
+cb._auto_names = orig
+
 print("all tests passed" if not fails else f"{fails} test(s) failed")
 sys.exit(1 if fails else 0)
