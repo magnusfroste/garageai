@@ -38,6 +38,7 @@ func trayCmd(args []string) int {
 			return 1
 		}
 		fmt.Println("✓ GarageAI is in the " + trayPlace() + " and opens at login. Hide it from its own menu; the garage keeps running.")
+		windowsHint()
 		return 0
 	case "--uninstall":
 		if err := tray.RemoveLoginItem(true); err != nil {
@@ -64,6 +65,13 @@ func trayCmd(args []string) int {
 		return 1
 	}
 	return 0
+}
+
+// windowsHint: Windows 11 puts a new icon behind the ^ next to the clock until the user moves it.
+func windowsHint() {
+	if runtime.GOOS == "windows" {
+		fmt.Println("  Windows shows new icons behind the ^ next to the clock at first: drag GarageAI from there onto the taskbar to keep it in sight.")
+	}
 }
 
 func trayPlace() string {
@@ -99,7 +107,9 @@ func offerTray(yes bool) {
 	}
 	if runtime.GOOS == "windows" && isAdmin() {
 		fmt.Println("  ✓ GarageAI appears in the notification area at your next sign-in (or run garageai tray in a normal window now).")
+		windowsHint()
 		return
 	}
 	fmt.Println("  ✓ GarageAI is in the " + trayPlace() + ". Hide it from its own menu; the garage keeps running.")
+	windowsHint()
 }
