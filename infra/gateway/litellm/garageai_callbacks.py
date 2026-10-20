@@ -45,6 +45,12 @@
    deployment served a conversation (the buyer's key + the first system and user message) and
    sends the next turn there for STICKY_S, when it is healthy and the new tokens fit rule 6. A
    failure forgets it, so the retry goes elsewhere.
+8. My machine (docs/my-machine.md): `mine/<garage>/<model>` is the owner's own garage, private and
+   free. Only the key of the garage's owner (user_id == the deployment's operator_id) may use or
+   see such a name; anyone else gets 404 model_not_found, exactly as for a name that does not
+   exist, and never finds it in /v1/models, /model/info or /model_group/info. A private deployment
+   (garage_tier "private") is never routed for any other model name, so a market request can never
+   land on someone's private machine.
 """
 import asyncio
 import hashlib
@@ -458,10 +464,93 @@ async def seed_speeds():
         print(f"garageai: could not seed prefill speeds: {e}", flush=True)
 
 
+# ---------------------------------------------------------------- 8: my machine (private garages)
+
+MINE_PREFIX = "mine/"
+_owners_cache = {"at": 0.0, "router": None, "map": {}}
+
+
+def is_private(deployment):
+    info = (deployment or {}).get("model_info") or {}
+    return info.get("garage_tier") == "private"
+
+
+def private_owners(model_list):
+    """{mine/... model name: {operator ids}} from the router's deployments."""
+    out = {}
+    for d in model_list or []:
+        name = d.get("model_name") or ""
+        info = d.get("model_info") or {}
+        if name.startswith(MINE_PREFIX) and info.get("operator_id"):
+            out.setdefault(name, set()).add(str(info["operator_id"]))
+    return out
+
+
+def _owners():
+    from litellm.proxy.proxy_server import llm_router
+    if llm_router is None:
+        return {}
+    c = _owners_cache
+    # Rebuilt every 10 s: the portal adds and removes deployments at runtime.
+    if c["router"] is not llm_router or time.time() - c["at"] > 10:
+        c["map"], c["router"], c["at"] = private_owners(getattr(llm_router, "model_list", None)), llm_router, time.time()
+    return c["map"]
+
+
+def visible_names(names, user_id, owners):
+    """The listing without other people's private machines."""
+    uid = str(user_id) if user_id else None
+    return [n for n in names if not (isinstance(n, str) and n.startswith(MINE_PREFIX)) or (uid and uid in owners.get(n, ()))]
+
+
+def not_mine_message(model):
+    return (f"The model `{model}` does not exist or you do not have access to it.")
+
+
+class ModelNotFound(ProxyException):
+    """404 model_not_found, as OpenAI answers an unknown model."""
+
+    def __init__(self, model):
+        super().__init__(message=not_mine_message(model), type="invalid_request_error", param="model", code=404)
+
+    def to_dict(self):
+        error = super().to_dict()
+        error["code"] = "model_not_found"
+        return error
+
+
+async def used_by(user_id, name):
+    """True when this user had successful requests to `name` within KNOWN_FOR: their own machine is
+    away (asleep, runtime down), not a name they never had."""
+    if not user_id:
+        return False
+    try:
+        from litellm.proxy.proxy_server import prisma_client
+        rows = await prisma_client.db.query_raw(
+            'select 1 from "LiteLLM_SpendLogs" where "user" = $1 and model_group = $2 and status = \'success\' '
+            f"and \"startTime\" > now() - interval '{KNOWN_FOR}' limit 1", str(user_id), name)
+        return bool(rows)
+    except Exception:  # noqa: BLE001 - unknown is not found
+        return False
+
+
 class GarageAICallbacks(CustomLogger):
     async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
         model = data.get("model")
-        if isinstance(model, str) and model and not model.startswith("probe/"):
+        if isinstance(model, str) and model.startswith(MINE_PREFIX):
+            uid = getattr(user_api_key_dict, "user_id", None)
+            owners = _owners().get(model)
+            if owners is None:
+                if await used_by(uid, model):
+                    print(f"garageai: {model}: the owner's machine is away: 503", flush=True)
+                    raise HTTPException(status_code=503, headers={"Retry-After": str(RETRY_AFTER)},
+                                        detail=f"Your machine ({model.split('/')[1]}) is not answering right now: it may be "
+                                               "asleep, offline or its runtime stopped. Retry when it is back, or use garageai/auto.")
+                raise ModelNotFound(model)
+            if not uid or str(uid) not in owners:
+                print(f"garageai: {model}: not the owner's key: 404", flush=True)
+                raise ModelNotFound(model)
+        elif isinstance(model, str) and model and not model.startswith("probe/"):
             try:
                 from litellm.proxy.proxy_server import llm_router
                 names = set(llm_router.get_model_names()) if llm_router else None
@@ -523,6 +612,12 @@ class GarageAICallbacks(CustomLogger):
     async def async_filter_deployments(self, model, healthy_deployments, messages, request_kwargs=None,
                                        parent_otel_span=None):
         try:
+            if isinstance(healthy_deployments, list) and not str(model).startswith(MINE_PREFIX):
+                # Rule 8: someone's private machine is never routed for a market name.
+                kept = [d for d in healthy_deployments if not is_private(d)]
+                if len(kept) != len(healthy_deployments):
+                    print(f"garageai: routing model={model}: left out {len(healthy_deployments) - len(kept)} private deployment(s)", flush=True)
+                healthy_deployments = kept
             if not isinstance(healthy_deployments, list) or len(healthy_deployments) < 2:
                 return healthy_deployments
             await seed_speeds()
@@ -538,6 +633,12 @@ class GarageAICallbacks(CustomLogger):
         except Exception as e:  # noqa: BLE001 - never fail a request because of these rules
             print(f"garageai: routing rules skipped: {e}", flush=True)
             return healthy_deployments
+
+    async def async_filter_listed_models(self, user_api_key_dict, model_names):
+        try:
+            return visible_names(list(model_names), getattr(user_api_key_dict, "user_id", None), _owners())
+        except Exception:  # noqa: BLE001 - fail closed: hide every private name
+            return [n for n in model_names if not (isinstance(n, str) and n.startswith(MINE_PREFIX))]
 
     async def async_log_success_event(self, kwargs, response_obj, start_time, end_time):
         try:
@@ -570,7 +671,7 @@ class GarageAICallbacks(CustomLogger):
 
     async def async_post_call_failure_hook(self, request_data, original_exception, user_api_key_dict,
                                            traceback_str=None):
-        if isinstance(original_exception, (ContextLengthExceeded, ModelTemporarilyUnavailable, HTTPException)):
+        if isinstance(original_exception, (ContextLengthExceeded, ModelTemporarilyUnavailable, ModelNotFound, HTTPException)):
             return None
         away = provider_unavailable(original_exception, request_data)
         if away is not None and "No deployments available" in str(original_exception):
