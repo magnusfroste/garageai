@@ -100,5 +100,20 @@ cb.remember(conv, "gone", 158000, now=3000.0)
 check("sticky: deployment not healthy, normal rules", ch([prov, dgx], 20000, conv, 3010.0)[0], ["prov", "dgx"])
 check("estimate: chars / 3.3", cb.estimate_tokens([{"role": "user", "content": "x" * 3300}], {}), 1000)
 
+
+# ---- rule 8: my machine
+ml = [{"model_name": "mine/garage-m4/ibm-granite/granite-4.1-3b", "model_info": {"operator_id": "u-magnus", "garage_tier": "private"}},
+      {"model_name": "garage/garage-m4/ibm-granite/granite-4.1-3b", "model_info": {"operator_id": "u-magnus", "garage_tier": "dedicated"}},
+      {"model_name": "mine/dgx-city/x/y", "model_info": {"operator_id": "u-other", "garage_tier": "private"}}]
+ow = cb.private_owners(ml)
+check("owners: only mine/ names", sorted(ow), ["mine/dgx-city/x/y", "mine/garage-m4/ibm-granite/granite-4.1-3b"])
+names = [d["model_name"] for d in ml] + ["garageai/auto"]
+check("listing: owner sees own private, not others'", cb.visible_names(names, "u-magnus", ow),
+      ["mine/garage-m4/ibm-granite/granite-4.1-3b", "garage/garage-m4/ibm-granite/granite-4.1-3b", "garageai/auto"])
+check("listing: no user sees no private", cb.visible_names(names, None, ow), ["garage/garage-m4/ibm-granite/granite-4.1-3b", "garageai/auto"])
+check("private deployment detected", (cb.is_private(ml[0]), cb.is_private(ml[1])), (True, False))
+e = cb.ModelNotFound("mine/dgx-city/x/y")
+check("not yours: 404 model_not_found", (str(e.code), e.to_dict().get("code")), ("404", "model_not_found"))
+
 print("all tests passed" if not fails else f"{fails} test(s) failed")
 sys.exit(1 if fails else 0)
