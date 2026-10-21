@@ -10,6 +10,8 @@ badges:
     color: "green"
   - text: "Made in Sweden · Built for Europe"
     color: "blue"
+  - text: "Beta · features may change"
+    color: "yellow"
 buttons:
   - text: "Connect Your GPU"
     url: "https://app.garageai.eu/connect"

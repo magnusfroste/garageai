@@ -91,7 +91,7 @@ benefits:
     text: "The same account that offers your GPU can use every model on the marketplace, including the larger ones other garages and providers run."
   - icon: "💶"
     title: "Earn per token"
-    text: "You set the price and see every token in the portal. How much it adds up to depends on demand; there is no platform fee during launch."
+    text: "You set the price and see every token in the portal. Earnings become GarageAI credits first, bank payouts come later. How much it adds up to depends on demand; there is no platform fee during launch."
 ctaText: "Offer your GPU"
 ctaUrl: "https://app.garageai.eu/connect"
 note: "Suggested models are popular open models that fit the memory listed. The wizard in the portal shows which models buyers are asking for right now."

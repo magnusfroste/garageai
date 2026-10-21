@@ -31,8 +31,8 @@ phases:
     badgeColor: "var(--color-accent)"
     status: "upcoming"
     items:
-      - "Operator earnings dashboard and wallet"
-      - "Payouts to operators"
+      - "Use your earnings as credits on any model (everything earned from launch carries over)"
+      - "Payouts to your bank account through Stripe"
       - "Bridge pauses automatically when you game or render"
       - "Models chosen in the portal and by Smart for Xyntetik Runner too"
       - "A TCP fallback for networks that block UDP (until then, the NetBird mesh)"

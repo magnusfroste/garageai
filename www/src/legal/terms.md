@@ -70,8 +70,14 @@ revoke it in the portal.
 - **No guarantee of traffic or income.** How many requests your garage gets depends on demand,
   your price, speed and availability. Routing in the pool is weighted by price and health; the
   details are described in the portal and the docs.
-- **Earnings and taxes.** Earnings are shown in the portal. Payout terms will be added before
-  payouts start. You are responsible for your own taxes and VAT; GarageAI may have to report your
+- **Earnings and taxes.** Earnings are shown in the portal. Until payouts exist they cannot be
+  withdrawn as money. When earnings can be used as GarageAI credits, everything you have earned
+  from the start of the service is added to your account as credits. Only requests paid with
+  purchased credits create earnings; requests paid with free starting credits do not. Payout terms
+  will be added before bank payouts start; bank payouts cover earnings from the day they start.
+- **One account, no self-dealing.** One person or company uses one account. Creating accounts to
+  send requests to your own garage, or any other way of generating earnings without real buyers,
+  is not allowed; earnings from it are forfeited and the accounts may be closed. You are responsible for your own taxes and VAT; GarageAI may have to report your
   earnings to the tax authority.
 - **Independence.** You act on your own behalf. Nothing in these terms makes you GarageAI's
   employee, agent, partner or subcontractor.
