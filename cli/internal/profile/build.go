@@ -102,7 +102,7 @@ func problems(p Profile) []Problem {
 	add := func(sev, code, msg, fix string) { out = append(out, Problem{sev, code, msg, fix}) }
 	if len(p.Runtimes) == 0 {
 		add("error", "no_runtime", "No OpenAI-compatible runtime answers on this machine",
-			"Start your runtime (Ollama, LM Studio, vLLM, llama.cpp, ...) and run this again")
+			"Start your runtime (Ollama, LM Studio, vLLM, llama.cpp, Xyntetik Runner, ...) and run this again, or let Bridge install one: garageai runtime install")
 	}
 	target := ollamaContextTarget(p.Machine.MemoryGB)
 	for _, rt := range p.Runtimes {
