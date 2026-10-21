@@ -84,7 +84,7 @@ whyItems:
     color: "var(--color-warning)"
   - icon: "💶"
     title: "Get paid for your hardware"
-    text: "A GPU that sits idle earns nothing. On GarageAI it earns the price you set for every token it serves."
+    text: "A GPU that sits idle earns nothing. On GarageAI it earns the price you set for every token it serves: first as GarageAI credits for any model, later as payouts to your bank."
     color: "var(--color-tertiary)"
 ---
 

@@ -13,6 +13,7 @@ const defaultButtons = [
 const badgeColors = {
   green: 'text-green-400',
   blue: 'text-blue-400',
+  yellow: 'text-amber-400',
 };
 
 const Hero = ({
