@@ -18,7 +18,9 @@ services:
   internet cannot even start a handshake.
 - **The heartbeat.** Every 5 minutes it reports to the portal which models your runtime
   serves, their context windows, and how your machine is doing (load, memory, disk, battery).
-  Never prompts, never keys, never command lines.
+  Never prompts, never conversations, never command lines. The one key it sends is your
+  runtime's own API key, and only if you set one (for example vLLM's `--api-key`): the gateway
+  needs it to call your runtime.
 
 Both run as root (Administrator on Windows), because installing services needs it. Their
 configuration and the tunnel key are readable by root only. `garageai uninstall` removes
@@ -83,7 +85,21 @@ You do not have to take our word for it:
 - Bridge is open source under the MIT licence; the forward with its allowed paths is in
   `cli/internal/tunnel/forward.go`.
 - `sudo lsof -i -P | grep garageai` (macOS, Linux) or `netstat -ano` (Windows) shows that Bridge
-  listens on nothing and holds one outgoing UDP connection to the gateway.
+  has no TCP listener and one UDP socket, for its tunnel to the gateway. WireGuard answers nothing
+  on it except the gateway's key.
+
+### Let your own AI check it
+
+Bridge's code is public, so you can ask your own AI agent (Claude Code, Codex, Cursor, ChatGPT with
+the repository) to review it before you install. Our [AUDIT.md](https://github.com/magnusfroste/garageai/blob/main/AUDIT.md)
+lists every claim on this page with the file where it can be checked, and how to rebuild a release
+and compare its checksum. Paste this into your agent:
+
+> Review https://github.com/magnusfroste/garageai as a security reviewer for someone about to
+> install GarageAI Bridge on their own computer. Start with AUDIT.md: check every claim against the
+> code it points to, say which hold and which do not, and tell me what else worries you.
+
+If it finds something, tell us (below).
 - `garageai pause` takes your garage off the market while you need the machine;
   `garageai uninstall` removes Bridge and its services.
 
