@@ -40,9 +40,9 @@ features:
     title: "Keeps itself and your garage up to date"
     text: "A small service reports your models and their context windows every 5 minutes, and Bridge updates itself to the current stable release, checked against its checksum. garageai pause takes your garage off the market for a while; garageai uninstall removes everything."
     color: "var(--color-primary)"
-  - icon: "🤖"
-    title: "Works with your AI agent"
-    text: "garageai mcp gives Claude Code, Claude Desktop or any MCP agent Bridge's read-only checks and troubleshooting guide, so your agent can help you get the garage live."
+  - icon: "📱"
+    title: "Your machine, from anywhere"
+    text: "Your garage is yours first. Chat with it from your phone or any computer in the portal, or call it through the API as mine/<garage>/<model>: private, free and hidden from everyone else, even while it is off the market. While you use it, buyers go to other garages."
     color: "var(--color-accent)"
 nextTitle: "Coming to Bridge"
 next:

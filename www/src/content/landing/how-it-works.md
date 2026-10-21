@@ -18,7 +18,7 @@ tracks:
       - title: "Pick a model and how to buy it"
         text: "Choose a Specific garage (you pay the price it has set, for example when location matters) or the Pool (one model name; each request goes to one of the garages offering the model and is billed at that garage's price, with automatic failover). Or just use the chat in the portal."
       - title: "Call it"
-        text: "Point any OpenAI client at https://api.garageai.eu/v1. garageai/auto answers with a working model for you; any model name from the catalogue works too."
+        text: "Point any OpenAI client at https://api.garageai.eu/v1. garageai/auto answers with a working model for you and the response names the model that answered; any model name from the catalogue works too."
         commands:
           - label: "curl"
             command: |-

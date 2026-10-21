@@ -17,6 +17,7 @@ phases:
       - "Self-service operator onboarding with GarageAI Bridge: one command, live in minutes (macOS, Linux and Windows; Ollama, LM Studio, llama.cpp, vLLM, SGLang, Xyntetik Runner, Paddock)"
       - "GarageAI Smart: models in demand that fit your machine, downloaded by Bridge (Ollama)"
       - "No runtime yet? Bridge suggests one and installs it as a service (Xyntetik Runner, made in Sweden)"
+      - "My machine: your own garage from your phone or anywhere, private and free; while you use it, the market waits"
       - "Automated acceptance tests for every model"
       - "Garages report their models and context windows automatically, every 5 minutes"
       - "Bridge updates itself, and garageai pause takes a garage off the market for a while"
