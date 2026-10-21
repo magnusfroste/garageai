@@ -68,7 +68,7 @@ npm run dev     # the site on localhost
 
 Contributions are welcome — see [CONTRIBUTING.md](docs/CONTRIBUTING.md). To report a vulnerability, see [SECURITY.md](docs/SECURITY.md).
 
-Offering your GPU? [Security for garage owners](docs/garage-security.md) explains in plain words what Bridge installs and who can reach your machine.
+Offering your GPU? [Security for garage owners](docs/garage-security.md) explains in plain words what Bridge installs and who can reach your machine. Or let your own AI check: [AUDIT.md](AUDIT.md) lists every security claim with the code that proves it.
 
 ## License
 
