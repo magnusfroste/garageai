@@ -1125,7 +1125,8 @@ def models(env, state, targets):
             checks.append(("info", "no output cap"))
         if served is not None and runtime_model not in served:
             checks.append(("warning", f"routed to {runtime_model}, which the runtime does not serve now"))
-        if not cin or not cout:
+        if (not cin or not cout) and mi.get("garage_tier") != "private":
+            # mine/ routes (My machine) are free on purpose: the owner's own garage.
             checks.append(("warning", "no price: requests are free"))
         elif ccache is None:
             checks.append(("warning", "no cache-read price: cached input is billed at the full input price"))
