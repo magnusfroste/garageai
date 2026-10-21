@@ -763,6 +763,8 @@ def action_for(text, page, garage, code=None):
         if "provider" in t or page == "supply" and g and d_is_provider(g):
             return "A provider is down: pause it in Admin → Providers until it is back, then resume", f"{ADMIN}/providers"
         return "Ask the operator; if it is planned, silence it here. The garage's page shows its last heartbeat and Bridge's report", f"{ADMIN}/garages?garage={g}"
+    if t.startswith("support: a user waits"):
+        return "Answer in Admin → Support (or set the chat to Away there when you are travelling)", f"{ADMIN}/support"
     if "no heartbeat" in t:
         return "Bridge's heartbeat service stopped on the garage: the operator runs garageai doctor, then garageai connect", f"{KB}#heartbeat_missing--heartbeat_stopped-warning"
     if "another machine" in t:
@@ -1020,6 +1022,15 @@ def alerts(d):
         add("warning", f"{low} active buyers have less than $1 in credit", "business")
     elif low:
         add("info", f"{low} active buyer(s) have less than $1 in credit", "business")
+    # "Ask Magnus" support chat (portal ops-summary.support): a user waiting for an answer pages
+    # Magnus (a warning goes to Telegram after 15 min), unless the chat is set to away or off.
+    sup = bz.get("support") or {}
+    if sup.get("mode", "on") == "on":
+        for w in sup.get("waiting") or []:
+            # Stable text per thread: an alert is one alert while its text stays the same, and the
+            # Telegram rule (warning after 15 min) counts from when it first appeared.
+            add("warning", f"Support: a user waits for your answer (thread {w.get('thread_id', '?')}"
+                           f"{', ' + w['tag'] if w.get('tag') else ''})", "business")
     gd = d.get("guard")
     if gd is None:
         add("warning", "garageai-guard has not run (no status file)", "traffic")
