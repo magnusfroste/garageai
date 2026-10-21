@@ -153,5 +153,33 @@ check("auto: bytes chunk named", cb.name_the_model(b, {"model": "garageai/auto",
       b'data: {"id":"1","model":"deepseek/deepseek-v4.1-flash","choices":[]}')
 cb._auto_names = orig
 
+
+# ---- rule 10: owner first
+cb._owner_until.clear()
+dA = {"model_info": {"id": "a", "garage": "dgx-city"}}
+dB = {"model_info": {"id": "b", "garage": "autoversio"}}
+dS = {"model_info": {"id": "s", "garage": "shared-g", "owner_priority": "share"}}
+cb.mark_owner_active("dgx-city", now=1000.0, minutes=5)
+cb.mark_owner_active("shared-g", now=1000.0, minutes=5)
+kept, wait = cb.apply_owner_hold([dA, dB, dS], now=1100.0)
+check("hold: owner-active garage left out, others and 'share' kept", [d["model_info"]["id"] for d in kept], ["b", "s"])
+check("hold: retry-after is the remaining hold", wait, 200)
+check("hold: over after the window", [d["model_info"]["id"] for d in cb.apply_owner_hold([dA, dB], now=1000.0 + 301)[0]], ["a", "b"])
+cb.mark_owner_active("dgx-city", now=1250.0, minutes=5)
+check("hold: slides with each request", cb.apply_owner_hold([dA], now=1500.0)[0], [])
+check("garage of a mine/ name", (cb.garage_of_mine("mine/dgx-city/xiaomi/mimo"), cb.garage_of_mine("garage/dgx-city/x/y")), ("dgx-city", None))
+check("hold: private deployments are not market", cb.apply_owner_hold([{"model_info": {"id": "p", "garage": "dgx-city", "garage_tier": "private"}}], now=1300.0)[0][0]["model_info"]["id"], "p")
+cb._owner_until.clear()
+# rule 9 flag
+d1 = {"model": "garageai/auto", "metadata": {}}
+check("auto name: flag set for OpenAI chat", (cb.keep_served_name(d1, "acompletion"), d1["metadata"].get(cb.RAW_NAME_KEY)), (True, True))
+d2 = {"model": "garageai/auto"}
+check("auto name: not for Anthropic", cb.keep_served_name(d2, "anthropic_messages"), False)
+check("auto name: not for other models", cb.keep_served_name({"model": "qwen/qwen3-4b"}, "acompletion"), False)
+cb._auto_names = lambda: {}
+r3 = _R(); r3.model = "openai/kluster"; r3._hidden_params = {"model_id": "unknown"}
+check("auto name: never a raw provider id (falls back to garageai/auto)", cb.name_the_model(r3, {"model": "garageai/auto"}).model, "garageai/auto")
+cb._auto_names = orig
+
 print("all tests passed" if not fails else f"{fails} test(s) failed")
 sys.exit(1 if fails else 0)

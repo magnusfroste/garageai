@@ -57,6 +57,11 @@
    `deepseek/deepseek-v4.1-flash`), streamed or not, as OpenRouter does for openrouter/auto. Never
    the garage: the name is the public catalogue name, which the catalogue already shows with its
    garages.
+10. Owner first (docs/owner-priority.md): while an owner uses their machine through `mine/`, the
+    market waits. From the owner's request until OWNER_HOLD minutes after their last one ends, new
+    market requests skip that garage (others take them; a buyer of that garage alone gets 503 with
+    Retry-After). Requests already running are never cut. A garage whose model_info says
+    owner_priority "share" is not held. The hold lives in memory: a restart ends every hold.
 """
 import asyncio
 import hashlib
@@ -553,6 +558,20 @@ async def used_by(user_id, name):
 # ---------------------------------------------------------------- 9: auto says which model answered
 
 AUTO_NAME = "garageai/auto"
+RAW_NAME_KEY = "_complexity_router_return_raw_model_name"  # litellm.constants.RETURN_RAW_MODEL_NAME_METADATA_KEY
+
+
+def keep_served_name(data, call_type):
+    """Tell LiteLLM not to overwrite `model` with garageai/auto for an OpenAI-format auto request
+    (it restamps every response to the requested name). Our hooks then set the served model's name.
+    Anthropic-format requests keep LiteLLM's restamp: their stream goes a different way."""
+    if data.get("model") != AUTO_NAME or _is_anthropic(call_type, data) or str(call_type) not in ("completion", "acompletion"):
+        return False
+    meta = data.get("metadata")
+    if not isinstance(meta, dict):
+        meta = data["metadata"] = {}
+    meta[RAW_NAME_KEY] = True
+    return True
 _canon_cache = {"at": 0.0, "router": None, "map": {}}
 
 
@@ -608,9 +627,10 @@ def name_the_model(obj, request_data):
     buyer asked for garageai/auto. Returns obj."""
     if (request_data or {}).get("model") != AUTO_NAME:
         return obj
-    canon = _auto_names().get(served_deployment_id(obj, request_data))
-    if not canon:
-        return obj
+    # Always a public name: the served model's catalogue name, or garageai/auto when it is not known.
+    # LiteLLM's own restamp is switched off for these requests (RAW_NAME_KEY), so this is the last word
+    # on the field and a provider's internal model id can never reach the buyer.
+    canon = _auto_names().get(served_deployment_id(obj, request_data)) or AUTO_NAME
     if isinstance(obj, (bytes, str)):
         old = '"model":"' + AUTO_NAME + '"'
         new = '"model":"' + canon + '"'
@@ -625,6 +645,59 @@ def name_the_model(obj, request_data):
     except Exception:  # noqa: BLE001 - leave the name rather than fail the response
         pass
     return obj
+
+
+# ---------------------------------------------------------------- 10: owner first
+
+OWNER_HOLD_MIN = 5          # minutes the market waits after the owner's last request
+_owner_until = {}           # garage -> time until which its owner counts as active
+
+
+def owner_hold_minutes(garage):
+    """The garage's hold from its deployments' model_info (portal setting), else OWNER_HOLD_MIN."""
+    try:
+        from litellm.proxy.proxy_server import llm_router
+        for d in getattr(llm_router, "model_list", None) or []:
+            info = d.get("model_info") or {}
+            if info.get("garage") == garage and isinstance(info.get("owner_hold_minutes"), (int, float)):
+                return max(1, min(30, int(info["owner_hold_minutes"])))
+    except Exception:  # noqa: BLE001
+        pass
+    return OWNER_HOLD_MIN
+
+
+def mark_owner_active(garage, now=None, minutes=None):
+    if not garage:
+        return
+    now = time.time() if now is None else now
+    until = now + 60 * (minutes if minutes is not None else owner_hold_minutes(garage))
+    was = _owner_until.get(garage, 0) > now
+    _owner_until[garage] = max(_owner_until.get(garage, 0), until)
+    if not was:
+        print(f"garageai: owner first: {garage} held for the market (owner active)", flush=True)
+
+
+def garage_of_mine(model):
+    parts = str(model or "").split("/")
+    return parts[1] if len(parts) >= 3 and parts[0] + "/" == MINE_PREFIX else None
+
+
+def apply_owner_hold(deployments, now=None):
+    """Market deployments of owner-active garages left out. Returns (kept, seconds until the first
+    held garage is free, or 0 when nothing was held)."""
+    now = time.time() if now is None else now
+    kept, wait = [], 0
+    for d in deployments:
+        info = d.get("model_info") or {}
+        until = _owner_until.get(info.get("garage"), 0)
+        if until > now and info.get("owner_priority") != "share" and not is_private(d):
+            wait = int(until - now) if not wait else min(wait, int(until - now))
+            continue
+        kept.append(d)
+    return kept, wait
+
+
+_held = {}                  # model group -> (time, retry-after seconds) when the hold left nothing
 
 
 class GarageAICallbacks(CustomLogger):
@@ -643,6 +716,7 @@ class GarageAICallbacks(CustomLogger):
             if not uid or str(uid) not in owners:
                 print(f"garageai: {model}: not the owner's key: 404", flush=True)
                 raise ModelNotFound(model)
+            mark_owner_active(garage_of_mine(model))
         elif isinstance(model, str) and model and not model.startswith("probe/"):
             try:
                 from litellm.proxy.proxy_server import llm_router
@@ -653,6 +727,10 @@ class GarageAICallbacks(CustomLogger):
                 auto = "garageai/auto" if "garageai/auto" in names else None
                 print(f"garageai: {model} is away (not in routing, served within {KNOWN_FOR}): 503", flush=True)
                 raise ModelTemporarilyUnavailable(model, auto)
+        try:
+            keep_served_name(data, call_type)
+        except Exception:  # noqa: BLE001 - the name is a courtesy
+            pass
         if data.get("tools"):
             _add_missing_items(data["tools"])
         if _is_anthropic(call_type, data):
@@ -691,7 +769,8 @@ class GarageAICallbacks(CustomLogger):
         if isinstance(hp, dict) and hp.get("additional_headers"):
             hp["additional_headers"] = {}
         try:
-            name_the_model(response, data)
+            if ((data or {}).get("metadata") or {}).get(RAW_NAME_KEY):
+                name_the_model(response, data)
         except Exception:  # noqa: BLE001 - the name is a courtesy, never a failure
             pass
         rid = response.get("id") if isinstance(response, dict) else getattr(response, "id", None)
@@ -715,6 +794,14 @@ class GarageAICallbacks(CustomLogger):
                 if len(kept) != len(healthy_deployments):
                     print(f"garageai: routing model={model}: left out {len(healthy_deployments) - len(kept)} private deployment(s)", flush=True)
                 healthy_deployments = kept
+            if isinstance(healthy_deployments, list) and not str(model).startswith(MINE_PREFIX) and _owner_until:
+                # Rule 10: the market waits while an owner uses their own machine.
+                kept, wait = apply_owner_hold(healthy_deployments)
+                if len(kept) != len(healthy_deployments):
+                    print(f"garageai: owner first: model={model}: left out {len(healthy_deployments) - len(kept)} held deployment(s)", flush=True)
+                    if not kept:
+                        _held[model] = (time.time(), max(wait, 1))
+                healthy_deployments = kept
             if not isinstance(healthy_deployments, list) or len(healthy_deployments) < 2:
                 return healthy_deployments
             await seed_speeds()
@@ -732,7 +819,7 @@ class GarageAICallbacks(CustomLogger):
             return healthy_deployments
 
     async def async_post_call_streaming_iterator_hook(self, user_api_key_dict, response, request_data):
-        named = (request_data or {}).get("model") == AUTO_NAME
+        named = (request_data or {}).get("model") == AUTO_NAME and bool(((request_data or {}).get("metadata") or {}).get(RAW_NAME_KEY))
         async for chunk in response:
             if named:
                 try:
@@ -759,12 +846,16 @@ class GarageAICallbacks(CustomLogger):
             group = slo.get("model_group")
             conv = conversation_key(group, kwargs.get("messages"), kwargs)
             remember(conv, model_id, prompt)
+            if str(group).startswith(MINE_PREFIX):
+                mark_owner_active(garage_of_mine(group))
         except Exception:  # noqa: BLE001 - bookkeeping only
             pass
 
     async def async_log_failure_event(self, kwargs, response_obj, start_time, end_time):
         try:
             slo = kwargs.get("standard_logging_object") or {}
+            if str(slo.get("model_group")).startswith(MINE_PREFIX):
+                mark_owner_active(garage_of_mine(slo.get("model_group")))
             conv = conversation_key(slo.get("model_group"), kwargs.get("messages"), kwargs)
             if conv and _sticky.get(conv, (None,))[0] == slo.get("model_id"):
                 _sticky.pop(conv, None)  # the retry and the next turn go elsewhere
@@ -782,6 +873,12 @@ class GarageAICallbacks(CustomLogger):
         if isinstance(original_exception, (ContextLengthExceeded, ModelTemporarilyUnavailable, ModelNotFound, HTTPException)):
             return None
         away = provider_unavailable(original_exception, request_data)
+        held = _held.get((request_data or {}).get("model"))
+        if away is not None and held and time.time() - held[0] < 30:
+            print(f"garageai: {request_data.get('model')}: its garage is held for its owner -> 503", flush=True)
+            raise HTTPException(status_code=503, headers={"Retry-After": str(held[1])},
+                                detail=f"{request_data.get('model')} is busy for a moment: its owner is using the machine. "
+                                       f"Retry in about {max(1, held[1] // 60)} minute(s), or use garageai/auto.")
         if away is not None and "No deployments available" in str(original_exception):
             slow = too_slow_message(request_data)
             if slow:
