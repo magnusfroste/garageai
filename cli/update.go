@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/magnusfroste/garageai/cli/internal/portal"
+	"github.com/magnusfroste/garageai/cli/internal/release"
 	"github.com/magnusfroste/garageai/cli/internal/service"
 )
 
@@ -107,21 +108,40 @@ func fetch(url string, max int64) ([]byte, error) {
 	return io.ReadAll(io.LimitReader(resp.Body, max))
 }
 
-// downloadVerified fetches the release asset for this OS and checks it against SHA256SUMS.
-// Returns the path of the verified file (in dir).
-func downloadVerified(base, dir string) (string, error) {
+// downloadVerified fetches Bridge's release asset for this OS, checks the release's signature
+// (when this build carries release keys: docs/release-signing.md) and the asset against
+// SHA256SUMS. Returns the path of the verified file (in dir).
+func downloadVerified(base, version, dir string) (string, error) {
+	base = strings.TrimSuffix(base, "/")
+	sums, err := fetch(base+"/SHA256SUMS", 64<<10)
+	if err != nil {
+		return "", err
+	}
+	if release.Required() {
+		sig, err := fetch(base+"/"+release.SigAsset, 4<<10)
+		if err != nil {
+			return "", fmt.Errorf("release %s has no signature (%s): not installing it: %w", version, release.SigAsset, err)
+		}
+		if err := release.Verify(version, sums, sig); err != nil {
+			return "", fmt.Errorf("release %s: signature refused: %w", version, err)
+		}
+	}
 	p := filepath.Join(dir, "garageai.new")
-	return p, downloadAsset(base, assetName(), p, 200<<20)
+	return p, downloadAssetWithSums(base, assetName(), p, 200<<20, sums)
 }
 
 // downloadAsset fetches base/asset, checks it against base/SHA256SUMS and writes it to dest
-// (0755). Bridge's own releases and the Runner it installs go through here.
+// (0755). The Runner Bridge installs goes through here (its releases are not ours to sign).
 func downloadAsset(base, asset, dest string, max int64) error {
 	base = strings.TrimSuffix(base, "/")
 	sums, err := fetch(base+"/SHA256SUMS", 64<<10)
 	if err != nil {
 		return err
 	}
+	return downloadAssetWithSums(base, asset, dest, max, sums)
+}
+
+func downloadAssetWithSums(base, asset, dest string, max int64, sums []byte) error {
 	want := ""
 	for _, line := range strings.Split(string(sums), "\n") {
 		f := strings.Fields(line)
@@ -154,7 +174,7 @@ func selfUpdate(stable, base string) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	tmp, err := downloadVerified(base, dir)
+	tmp, err := downloadVerified(base, stable, dir)
 	if err != nil {
 		return err
 	}
