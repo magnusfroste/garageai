@@ -5,9 +5,10 @@ interface Props {
   title: string;
   description: string;
   image?: string;
+  noindex?: boolean;
 }
 
-const { title, description, image = '/og-image.png' } = Astro.props;
+const { title, description, image = '/og-image.png', noindex = false } = Astro.props;
 
 const site = Astro.site ?? new URL('https://www.garageai.eu');
 const canonicalURL = new URL(Astro.url.pathname, site).href;
@@ -63,6 +64,18 @@ const graph = {
         'Local AI inference from GPUs in European garages: connect your GPU with GarageAI Bridge and earn per token, or use open models through one OpenAI-compatible API.',
       inLanguage: 'en',
       publisher: { '@id': `${siteURL}#organization` },
+    },
+    {
+      // This page, with the build date as dateModified: the site is rebuilt on every change.
+      '@type': 'WebPage',
+      '@id': `${canonicalURL}#webpage`,
+      url: canonicalURL,
+      name: title,
+      description,
+      inLanguage: 'en',
+      isPartOf: { '@id': `${siteURL}#website` },
+      about: { '@id': `${siteURL}#organization` },
+      dateModified: new Date().toISOString(),
     },
     {
       '@type': 'Service',
@@ -126,7 +139,7 @@ const graph = {
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="author" content="GarageAI" />
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="robots" content={noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'} />
     <meta name="generator" content={Astro.generator} />
 
     <!-- Open Graph / LinkedIn -->

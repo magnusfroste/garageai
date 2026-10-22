@@ -52,6 +52,45 @@ const faqSchema = {
     },
   })),
 };
+// HowTo structured data: how a garage owner connects a GPU, the same steps as the
+// operator track in how-it-works.md. Answer engines quote steps like these.
+const howToSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'HowTo',
+  name: 'How to connect a GPU to GarageAI and earn per token',
+  description:
+    'Connect a Mac, Linux or Windows machine with a GPU to GarageAI with GarageAI Bridge: one line in the terminal, approve the computer in the browser, live in a few minutes.',
+  totalTime: 'PT5M',
+  supply: [
+    { '@type': 'HowToSupply', name: 'A Mac (Apple silicon), Linux or Windows machine with a GPU' },
+    { '@type': 'HowToSupply', name: 'A runtime with a model loaded: Ollama, LM Studio, vLLM, llama.cpp or Xyntetik Runner' },
+  ],
+  tool: [{ '@type': 'HowToTool', name: 'GarageAI Bridge (garageai), open source' }],
+  step: [
+    {
+      '@type': 'HowToStep',
+      name: 'Create an account',
+      text: 'Sign up at app.garageai.eu and open Connect your GPU.',
+      url: 'https://app.garageai.eu/connect',
+    },
+    {
+      '@type': 'HowToStep',
+      name: 'Run one line',
+      text: 'macOS and Linux: curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.sh | sh -s -- connect. Windows, in PowerShell: irm https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.ps1 | iex; garageai connect. The line contains nothing secret.',
+    },
+    {
+      '@type': 'HowToStep',
+      name: 'Approve your computer in the browser',
+      text: 'Bridge opens app.garageai.eu with a code. Check that it is your computer, name your garage and approve. Bridge opens its encrypted tunnel to the gateway; you open no ports.',
+    },
+    {
+      '@type': 'HowToStep',
+      name: 'Go live and set your price',
+      text: 'Your models pass an acceptance test with a real request. Set your price per million tokens in the portal; you earn it for every token your garage serves.',
+    },
+  ],
+};
+
 ---
 
 <Layout
@@ -59,6 +98,7 @@ const faqSchema = {
   description="Earn per token with the GPU you own: one line connects it with GarageAI Bridge. Or use open models through one OpenAI-compatible API, served from European garages."
 >
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(faqSchema)} />
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(howToSchema)} />
   <ScrollProgress client:load />
 
   <Header {...header.data} />

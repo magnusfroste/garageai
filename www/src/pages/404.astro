@@ -1,0 +1,25 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { getEntry } from 'astro:content';
+
+// Not found: noindex, with the ways on. Vercel serves dist/404.html for unknown paths.
+const header = await getEntry('landing', 'header');
+const footer = await getEntry('landing', 'footer');
+---
+
+<Layout title="Page not found — GarageAI" description="This page does not exist. Connect your GPU, use AI through one OpenAI-compatible API, or read the FAQ." noindex>
+  <Header {...header.data} />
+  <main class="max-w-3xl mx-auto px-4 pt-32 pb-24 text-center">
+    <p class="text-sm uppercase tracking-widest mb-4" style="color: var(--color-accent)">404</p>
+    <h1 class="apple-heading-1 mb-4">This garage is empty.</h1>
+    <p class="apple-body mb-10" style="color: var(--color-text-secondary)">The page you looked for does not exist. Here is where most people go next:</p>
+    <ul class="flex flex-col sm:flex-row gap-3 justify-center">
+      <li><a class="apple-button-primary inline-block no-underline" href="/">Home</a></li>
+      <li><a class="apple-button-primary inline-block no-underline" href="https://app.garageai.eu/connect">Connect your GPU</a></li>
+      <li><a class="apple-button-primary inline-block no-underline" href="/#faq">FAQ</a></li>
+    </ul>
+  </main>
+  <Footer {...footer.data} />
+</Layout>
