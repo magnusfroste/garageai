@@ -51,8 +51,8 @@ next:
   - "A control panel: see what your GPU can earn, go live with one click"
 ctaText: "Connect your GPU"
 ctaUrl: "https://app.garageai.eu/connect"
-secondaryText: "Open source, one binary: read Bridge on GitHub →"
-secondaryUrl: "https://github.com/magnusfroste/garageai/blob/main/cli/README.md"
+secondaryText: "Everything about Bridge: what you need, how you get paid, what it does on your computer →"
+secondaryUrl: "/bridge"
 ---
 
 Content for this section is defined in the frontmatter above.

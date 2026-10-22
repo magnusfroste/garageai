@@ -37,6 +37,8 @@ tracks:
               )
               print(reply.choices[0].message.content)
             note: "Agents and coding tools work the same way: set the base URL and your GarageAI key."
+    helpText: "The full API guide: models, pricing, data and reliability →"
+    helpUrl: "/api"
     ctaText: "Use AI"
     ctaUrl: "https://app.garageai.eu/auth?intent=buyer"
   - id: "operators"

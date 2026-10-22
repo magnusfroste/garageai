@@ -1,0 +1,125 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from './Header.astro';
+import Footer from './Footer.astro';
+import CopyCommand from './CopyCommand.jsx';
+import { getEntry } from 'astro:content';
+
+// A landing page for one search intent (/bridge, /api, /my-machine): static HTML from
+// src/seo/<page>.md, with its own FAQ (and FAQPage JSON-LD) and a breadcrumb. Only the copy
+// buttons hydrate, when they scroll into view.
+interface Cmd { label: string; command: string; note?: string }
+interface Faq { question: string; answer: string }
+interface Link { text: string; url: string }
+interface Props {
+  path: string;
+  title: string;
+  description: string;
+  kicker: string;
+  h1: string;
+  lead: string;
+  commands?: Cmd[];
+  ctas?: Link[];
+  faqs?: Faq[];
+  related?: Link[];
+  breadcrumb: string;
+}
+const { path, title, description, kicker, h1, lead, commands = [], ctas = [], faqs = [], related = [], breadcrumb } =
+  Astro.props;
+const header = await getEntry('landing', 'header');
+const footer = await getEntry('landing', 'footer');
+const site = 'https://www.garageai.eu';
+
+const faqSchema = faqs.length
+  ? {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: f.answer } })),
+    }
+  : null;
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'GarageAI', item: `${site}/` },
+    { '@type': 'ListItem', position: 2, name: breadcrumb, item: `${site}${path}/` },
+  ],
+};
+---
+
+<Layout title={title} description={description}>
+  {faqSchema && <script type="application/ld+json" slot="head" set:html={JSON.stringify(faqSchema)} />}
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(breadcrumbSchema)} />
+  <Header {...header.data} />
+  <main class="max-w-3xl mx-auto px-4 pt-28 pb-20">
+    <nav aria-label="Breadcrumb" class="text-sm mb-6" style="color: var(--color-text-muted)">
+      <a href="/" style="color: var(--color-text-secondary)">GarageAI</a> <span aria-hidden="true">›</span> {breadcrumb}
+    </nav>
+    <p class="text-sm uppercase tracking-widest mb-4" style="color: var(--color-accent)">{kicker}</p>
+    <h1 class="apple-heading-1 mb-6">{h1}</h1>
+    <p class="apple-body mb-8" style="color: var(--color-text-secondary)">{lead}</p>
+
+    {commands.length > 0 && (
+      <div class="mb-8 min-w-0">
+        {commands.map((c) => <CopyCommand client:visible label={c.label} command={c.command} note={c.note} color="var(--color-primary)" />)}
+      </div>
+    )}
+
+    {ctas.length > 0 && (
+      <p class="flex flex-wrap gap-3 mb-14">
+        {ctas.map((c, i) => (
+          <a href={c.url} class={i === 0 ? 'apple-button-primary inline-block no-underline' : 'apple-button-secondary inline-block no-underline'}>{c.text}</a>
+        ))}
+      </p>
+    )}
+
+    <article class="seo">
+      <slot />
+    </article>
+
+    {faqs.length > 0 && (
+      <section class="mt-16" aria-labelledby="page-faq">
+        <h2 id="page-faq" class="apple-heading-2 mb-6">Questions</h2>
+        {faqs.map((f) => (
+          <details class="seo-faq">
+            <summary>{f.question}</summary>
+            <p>{f.answer}</p>
+          </details>
+        ))}
+      </section>
+    )}
+
+    {related.length > 0 && (
+      <section class="mt-16" aria-labelledby="page-related">
+        <h2 id="page-related" class="apple-heading-2 mb-4">Read next</h2>
+        <ul class="seo-related">
+          {related.map((r) => <li><a href={r.url}>{r.text}</a></li>)}
+        </ul>
+      </section>
+    )}
+  </main>
+  <Footer {...footer.data} />
+</Layout>
+
+<style is:global>
+  .seo { color: var(--color-text-secondary); line-height: 1.7; font-size: 1rem; }
+  .seo h2 { color: var(--color-text-primary, #fff); font-size: 1.5rem; font-weight: 700; margin: 2.5rem 0 0.75rem; }
+  .seo h3 { color: var(--color-text-primary, #fff); font-size: 1.1rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+  .seo p, .seo ul, .seo ol { margin: 0 0 1rem; }
+  .seo ul { list-style: disc; padding-left: 1.4rem; }
+  .seo ol { list-style: decimal; padding-left: 1.4rem; }
+  .seo li { margin: 0.35rem 0; }
+  .seo strong { color: var(--color-text-primary, #fff); }
+  .seo a, .seo-related a { color: var(--color-primary); text-decoration: underline; text-underline-offset: 2px; }
+  .seo code { font-family: ui-monospace, monospace; font-size: 0.9em; overflow-wrap: anywhere; }
+  .seo pre { background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.12); border-radius: 0.5rem; padding: 0.75rem 1rem; overflow-x: auto; margin: 0 0 1rem; }
+  .seo pre code { overflow-wrap: normal; white-space: pre; }
+  .seo table { width: 100%; border-collapse: collapse; margin: 0 0 1.25rem; font-size: 0.9rem; display: block; overflow-x: auto; }
+  .seo th, .seo td { border: 1px solid rgba(255,255,255,0.12); padding: 0.5rem 0.65rem; text-align: left; vertical-align: top; }
+  .seo th { color: var(--color-text-primary, #fff); font-weight: 600; }
+  .seo-faq { border-bottom: 1px solid rgba(255,255,255,0.1); padding: 0.9rem 0; }
+  .seo-faq summary { cursor: pointer; color: var(--color-text-primary, #fff); font-weight: 600; }
+  .seo-faq p { margin-top: 0.6rem; color: var(--color-text-secondary); line-height: 1.7; }
+  .seo-related { list-style: none; padding: 0; }
+  .seo-related li { margin: 0.4rem 0; }
+</style>

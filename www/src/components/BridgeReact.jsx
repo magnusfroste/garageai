@@ -124,7 +124,7 @@ const Bridge = ({
         </motion.a>
         {secondaryUrl && (
           <p className="mt-4 text-sm">
-            <a href={secondaryUrl} className="underline" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-text-secondary)' }}>
+            <a href={secondaryUrl} className="underline" {...(secondaryUrl.startsWith('/') ? {} : { target: '_blank', rel: 'noopener noreferrer' })} style={{ color: 'var(--color-text-secondary)' }}>
               {secondaryText}
             </a>
           </p>
