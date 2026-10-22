@@ -4,11 +4,15 @@ import { motion } from 'framer-motion';
 const Header = ({ logo = 'GarageAI', ctaText = 'Get Started', ctaUrl = 'https://app.garageai.eu/auth', navLinks = [] } = {}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  // On the home page the nav scrolls to a section; on other pages (bridge, api, terms, …) the
+  // section is not there, so it goes to the home page's section instead.
   const scrollToSection = (sectionId) => {
     const element = document.getElementById(sectionId);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
       setIsMenuOpen(false);
+    } else {
+      window.location.href = `/#${sectionId}`;
     }
   };
 
@@ -27,7 +31,8 @@ const Header = ({ logo = 'GarageAI', ctaText = 'Get Started', ctaUrl = 'https://
 
   const handleNavClick = (sectionId) => {
     if (sectionId === null) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (window.location.pathname !== '/') window.location.href = '/';
+      else window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       scrollToSection(sectionId);
     }
@@ -50,7 +55,7 @@ const Header = ({ logo = 'GarageAI', ctaText = 'Get Started', ctaUrl = 'https://
           className="flex items-center gap-2 text-xl font-extrabold cursor-pointer"
           style={{ color: 'var(--color-text-primary)' }}
           whileHover={{ scale: 1.05 }}
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          onClick={() => handleNavClick(null)}
         >
           <img src="/brand/mark.svg" alt="" width="28" height="28" className="block" />
           {logo}

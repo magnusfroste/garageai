@@ -1,0 +1,7 @@
+---
+import SeoPage from '../components/SeoPage.astro';
+import { Content, frontmatter } from '../seo/api.md';
+---
+<SeoPage {...(frontmatter as any)}>
+  <Content />
+</SeoPage>

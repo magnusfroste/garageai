@@ -46,6 +46,9 @@ Garage nodes running largely on locally produced energy (rooftop solar, home bat
 - Website: https://www.garageai.eu
 - Security for garage owners ("Is it safe to share from my computer?"): https://www.garageai.eu/security
 - Audit it yourself, or let your AI agent do it (every security claim with the code that proves it): https://github.com/magnusfroste/garageai/blob/main/AUDIT.md
+- Earn with your GPU (GarageAI Bridge): https://www.garageai.eu/bridge
+- OpenAI-compatible API for developers: https://www.garageai.eu/api
+- My machine, your own AI from your phone: https://www.garageai.eu/my-machine
 - Full text for AI assistants (this file plus every FAQ answer): https://www.garageai.eu/llms-full.txt
 - Connect a GPU (GarageAI Bridge): https://app.garageai.eu/connect
 - Portal (sign up): https://app.garageai.eu/auth
