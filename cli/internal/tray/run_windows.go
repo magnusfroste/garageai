@@ -229,7 +229,11 @@ func (u *winUI) showMenu() {
 		if it.Checked {
 			flags |= mfChecked
 		}
-		label, _ := windows.UTF16PtrFromString(it.Label)
+		text := it.Label
+		if it.Status {
+			text = "● " + text
+		}
+		label, _ := windows.UTF16PtrFromString(text)
 		pAppendMenuW.Call(h, flags, uintptr(i+1), uintptr(unsafe.Pointer(label)))
 	}
 	var pt struct{ X, Y int32 }

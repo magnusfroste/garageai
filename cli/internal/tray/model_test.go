@@ -152,3 +152,16 @@ func TestOneFailedReportIsNotOffline(t *testing.T) {
 	s.Status.Heartbeat.LastOK = &old
 	level(t, s, Problem, "Offline")
 }
+
+func TestStatusRowIsClickable(t *testing.T) {
+	m := Build(live())
+	for _, it := range m.Items {
+		if it.Status {
+			if it.Action != "open-garage" || it.Level != Live || it.Label != "Live" {
+				t.Fatalf("status row: %+v", it)
+			}
+			return
+		}
+	}
+	t.Fatal("no status row")
+}

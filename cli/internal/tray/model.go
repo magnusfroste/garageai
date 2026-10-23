@@ -80,6 +80,10 @@ type Item struct {
 	Action    string // "" for an information row
 	Checked   bool
 	Separator bool
+	// Status marks the row that says Live, Paused, …: drawn with a coloured dot and clickable (it
+	// opens My garage), so the most important line never looks greyed out.
+	Status bool
+	Level  Level
 }
 
 // Menu is what the platform code draws.
@@ -112,11 +116,11 @@ func Build(s Snapshot) Menu {
 	level, word, why := state(s)
 	name := s.Public.Name
 	info("GarageAI · %s", name)
+	statusLabel := word
 	if why != "" {
-		info("%s: %s", word, why)
-	} else {
-		info("%s", word)
+		statusLabel = word + ": " + why
 	}
+	items = append(items, Item{Label: statusLabel, Action: "open-garage", Status: true, Level: level})
 	if st := s.Status; st != nil && len(st.Models) > 0 {
 		rt := runtimeName(s.Public.Runtime)
 		for i, m := range st.Models {
@@ -354,6 +358,8 @@ func (m Menu) Text() string {
 		switch {
 		case it.Separator:
 			b.WriteString("  ────\n")
+		case it.Status:
+			fmt.Fprintf(&b, "  ● %s\n", it.Label)
 		case it.Action != "" && it.Checked:
 			fmt.Fprintf(&b, "  ✓ %s\n", it.Label)
 		case it.Action != "":
