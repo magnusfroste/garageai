@@ -142,3 +142,13 @@ func TestEnergyLine(t *testing.T) {
 	s.Status.Energy = &service.StatusEnergy{Wh: 1830}
 	level(t, s, Live, "Energy today: 1.83 kWh")
 }
+
+func TestOneFailedReportIsNotOffline(t *testing.T) {
+	s := live()
+	ok := now.Add(-6 * time.Minute)
+	s.Status.Heartbeat = service.StatusHeartbeat{Error: "GarageAI did not accept the last report (HTTP 546)", LastOK: &ok}
+	level(t, s, Live, "Live")
+	old := now.Add(-40 * time.Minute)
+	s.Status.Heartbeat.LastOK = &old
+	level(t, s, Problem, "Offline")
+}

@@ -221,7 +221,11 @@ func state(s Snapshot) (Level, string, string) {
 		return Problem, "Needs you", st.Heartbeat.Error + " (connect again)"
 	}
 	if !st.Heartbeat.OK {
-		return Problem, "Offline", st.Heartbeat.Error
+		// One failed report is not an outage: the tunnel keeps serving. Offline only when reports
+		// have failed for a while.
+		if lo := st.Heartbeat.LastOK; lo == nil || s.Now.Sub(*lo) > heartbeatStale {
+			return Problem, "Offline", st.Heartbeat.Error
+		}
 	}
 	if st.State != nil {
 		switch st.State.Kind {

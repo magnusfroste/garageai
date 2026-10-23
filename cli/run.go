@@ -267,13 +267,26 @@ func installService() int {
 func writeStatus(cfg *service.Config, models []string, contexts map[string]int, ag *portal.Agent, res *portal.HeartbeatResult, err error) {
 	st := service.Status{UpdatedAt: time.Now().UTC(), Version: version, Name: cfg.Name, Runtime: cfg.Runtime, Port: cfg.Port,
 		Transport: cfg.Transport, Models: models, Contexts: nonEmpty(contexts)}
+	var lastOK *time.Time
+	if prev := service.LoadStatus(); prev != nil {
+		lastOK = prev.Heartbeat.LastOK
+		if lastOK == nil && prev.Heartbeat.OK {
+			t := prev.UpdatedAt
+			lastOK = &t
+		}
+	}
 	switch {
 	case errors.Is(err, portal.ErrRejected):
-		st.Heartbeat = service.StatusHeartbeat{Rejected: true, Error: "the portal does not accept this garage's link any more"}
+		st.Heartbeat = service.StatusHeartbeat{Rejected: true, Error: "the portal does not accept this garage's link any more", LastOK: lastOK}
 	case err != nil:
-		st.Heartbeat = service.StatusHeartbeat{Error: "GarageAI could not be reached"}
+		msg := "GarageAI could not be reached"
+		if strings.HasPrefix(err.Error(), "HTTP ") {
+			msg = "GarageAI did not accept the last report (" + strings.SplitN(err.Error(), ":", 2)[0] + ")"
+		}
+		st.Heartbeat = service.StatusHeartbeat{Error: msg, LastOK: lastOK}
 	default:
-		st.Heartbeat.OK = true
+		now := st.UpdatedAt
+		st.Heartbeat = service.StatusHeartbeat{OK: true, LastOK: &now}
 	}
 	if ag != nil {
 		if ag.State != nil {

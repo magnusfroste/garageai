@@ -50,6 +50,9 @@ type StatusHeartbeat struct {
 	OK       bool   `json:"ok"`
 	Rejected bool   `json:"rejected,omitempty"` // the portal refused the garage's token
 	Error    string `json:"error,omitempty"`
+	// When a report last went through. One failed report (a slow portal, a timeout while the portal
+	// runs an acceptance test) does not make the garage offline: the tunnel still serves buyers.
+	LastOK *time.Time `json:"last_ok,omitempty"`
 }
 
 type StatusState struct {
