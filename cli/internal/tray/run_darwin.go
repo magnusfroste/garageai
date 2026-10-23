@@ -112,6 +112,11 @@ func (u *darwinUI) refresh() {
 			action = sel("clicked:")
 		}
 		mi := class("NSMenuItem").Send(sel("alloc")).Send(sel("initWithTitle:action:keyEquivalent:"), nsString(it.Label), action, nsString(""))
+		if it.Status {
+			title := statusTitle(it)
+			mi.Send(sel("setAttributedTitle:"), title) // the item keeps its own copy
+			title.Send(sel("release"))
+		}
 		if it.Action != "" {
 			mi.Send(sel("setTarget:"), u.delegate)
 			mi.Send(sel("setTag:"), i)
@@ -125,6 +130,29 @@ func (u *darwinUI) refresh() {
 		u.menu.Send(sel("addItem:"), mi)
 		mi.Send(sel("release"))
 	}
+}
+
+// statusColor is the dot's colour per state: system colours, which follow light and dark mode.
+var statusColor = map[Level]string{
+	Live: "systemGreenColor", Serving: "systemBlueColor", Paused: "systemGrayColor",
+	Problem: "systemOrangeColor", Offline: "systemRedColor", NotConnected: "systemGrayColor",
+}
+
+// statusTitle is "● Live" with the dot coloured; the text keeps the menu's own colour.
+func statusTitle(it Item) objc.ID {
+	attrs := func(color objc.ID) objc.ID {
+		return class("NSDictionary").Send(sel("dictionaryWithObject:forKey:"), color, nsString("NSColor"))
+	}
+	title := class("NSMutableAttributedString").Send(sel("new"))
+	dot := class("NSAttributedString").Send(sel("alloc")).Send(sel("initWithString:attributes:"), nsString("● "),
+		attrs(class("NSColor").Send(sel(statusColor[it.Level]))))
+	text := class("NSAttributedString").Send(sel("alloc")).Send(sel("initWithString:attributes:"), nsString(it.Label),
+		attrs(class("NSColor").Send(sel("labelColor"))))
+	title.Send(sel("appendAttributedString:"), dot)
+	title.Send(sel("appendAttributedString:"), text)
+	dot.Send(sel("release"))
+	text.Send(sel("release"))
+	return title
 }
 
 func (u *darwinUI) click(i int) {
