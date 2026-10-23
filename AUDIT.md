@@ -46,10 +46,13 @@ rather hear it from you than from an incident.
    → `cli/internal/tunnel/forward.go` (`allowedPrefixes`, `Allowed`, `ForwardHandler`), with tests in `forward_test.go`.
 4. **The heartbeat sends no prompts and no conversations.** It sends the garage name, runtime,
    port, model list, context windows, Bridge version, doctor's findings (short messages), request
-   timings (counts and milliseconds, no content) and machine health (load, memory, disk, power,
-   battery, GPU). **One key is sent:** the runtime's own API key, *if the owner configured one*
+   timings (counts and milliseconds), token counts and the requested model name per request, compute
+   power (watts, for tokens per kWh) and machine health (load, memory, disk, power, battery, GPU).
+   To count tokens, the tunnel looks at the first and last 8 KB of each response in memory for the
+   runtime's `usage` numbers and at the request's `"model"`; it keeps only those numbers and the name,
+   never content. **One key is sent:** the runtime's own API key, *if the owner configured one*
    (for example a vLLM `--api-key`), because the gateway needs it to call the runtime.
-   → `cli/run.go` (`heartbeat`, `agent`, `writeStatus`), `cli/internal/portal/portal.go` (`Registration`, `Agent`), `cli/internal/machine/telemetry*.go`, `cli/internal/tunnel/stats.go`.
+   → `cli/run.go` (`heartbeat`, `agent`, `writeStatus`), `cli/internal/portal/portal.go` (`Registration`, `Agent`), `cli/internal/machine/telemetry*.go`, `cli/internal/tunnel/stats.go`, `cli/internal/tunnel/usage.go`, `cli/internal/energy/`.
 5. **Secrets are readable by root only.** The configuration with the portal token and the
    tunnel's private key are 0600 (root) on Linux and macOS. On Windows they are under
    `%ProgramData%\GarageAI`, restricted to Administrators and SYSTEM with icacls. The few files

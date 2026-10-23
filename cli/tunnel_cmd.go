@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/magnusfroste/garageai/cli/internal/energy"
 	"github.com/magnusfroste/garageai/cli/internal/service"
 	"github.com/magnusfroste/garageai/cli/internal/tunnel"
 )
@@ -55,8 +56,9 @@ func tunnelLoop(ctx context.Context, cfg *service.Config, key string, addr netip
 		fmt.Printf("%s %s\n", time.Now().UTC().Format(time.RFC3339), fmt.Sprintf(format, args...))
 	}
 	tunnel.MakeReadable = service.MakeUserReadable
-	go tunnel.FlushStatsEvery(30*time.Second, ctx.Done()) // the garage's own request timings, for the heartbeat
-	go watchState(ctx, logf)                              // a pause or a manager's state change: heartbeat at once
+	go energy.Run(energy.Path(), 5*time.Second, func() bool { return tunnel.InFlight() > 0 }, ctx.Done()) // tokens per kWh
+	go tunnel.FlushStatsEvery(30*time.Second, ctx.Done())                                                 // the garage's own request timings, for the heartbeat
+	go watchState(ctx, logf)                                                                              // a pause or a manager's state change: heartbeat at once
 	for ctx.Err() == nil {
 		t, err := tunnel.Start(tunnel.Config{PrivateKey: key, HubPublicKey: cfg.HubPublicKey, HubEndpoint: cfg.HubEndpoint,
 			Address: addr, Forwards: map[uint16]string{uint16(cfg.Port): fmt.Sprintf("127.0.0.1:%d", cfg.Port)}, Logf: logf})

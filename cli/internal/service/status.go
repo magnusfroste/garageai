@@ -34,12 +34,25 @@ type Status struct {
 	Update   StatusUpdate    `json:"update"`
 	// What the portal says about the garage (live, today's figures), when the portal sends it.
 	Portal *StatusPortal `json:"portal,omitempty"`
+	// Compute energy today (since local midnight) and tokens per kWh over the last hour.
+	Energy *StatusEnergy `json:"energy,omitempty"`
+}
+
+type StatusEnergy struct {
+	Wh               float64 `json:"wh"`
+	BusyWh           float64 `json:"busy_wh"`
+	AvgW             float64 `json:"avg_w"`
+	HourTokensPerKWh *int    `json:"hour_tokens_per_kwh,omitempty"`
+	Source           string  `json:"source,omitempty"`
 }
 
 type StatusHeartbeat struct {
 	OK       bool   `json:"ok"`
 	Rejected bool   `json:"rejected,omitempty"` // the portal refused the garage's token
 	Error    string `json:"error,omitempty"`
+	// When a report last went through. One failed report (a slow portal, a timeout while the portal
+	// runs an acceptance test) does not make the garage offline: the tunnel still serves buyers.
+	LastOK *time.Time `json:"last_ok,omitempty"`
 }
 
 type StatusState struct {

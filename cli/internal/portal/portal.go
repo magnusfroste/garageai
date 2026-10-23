@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/magnusfroste/garageai/cli/internal/energy"
 	"github.com/magnusfroste/garageai/cli/internal/machine"
 	"github.com/magnusfroste/garageai/cli/internal/tunnel"
 	"io"
@@ -60,6 +61,8 @@ type Agent struct {
 	// garage's own timing of the requests that came through the tunnel in the last 5 minutes.
 	Machine  *machine.Telemetry `json:"machine,omitempty"`
 	Requests *tunnel.Summary    `json:"requests,omitempty"`
+	// Energy in the same 5 minutes: compute power against the tokens served (tokens per kWh).
+	Energy *energy.Summary `json:"energy,omitempty"`
 	// Lifecycle: a planned absence (garageai pause, or a runtime manager's state file), and the
 	// nodes of a multi-node runtime as its manager sees them. Absent = serving.
 	State *AgentState    `json:"state,omitempty"`

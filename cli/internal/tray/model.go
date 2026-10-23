@@ -147,6 +147,13 @@ func Build(s Snapshot) Menu {
 	case s.Public.Transport == "tunnel":
 		info("No requests in the last hour")
 	}
+	if st := s.Status; st != nil && st.Energy != nil && st.Energy.Wh > 0 {
+		line := "Energy today: " + energyText(st.Energy.Wh)
+		if st.Energy.HourTokensPerKWh != nil {
+			line += " · " + bigNumber(*st.Energy.HourTokensPerKWh) + " tokens/kWh"
+		}
+		info("%s", line)
+	}
 	if st := s.Status; st != nil {
 		for _, m := range st.Managed {
 			switch m.Status {
@@ -214,7 +221,11 @@ func state(s Snapshot) (Level, string, string) {
 		return Problem, "Needs you", st.Heartbeat.Error + " (connect again)"
 	}
 	if !st.Heartbeat.OK {
-		return Problem, "Offline", st.Heartbeat.Error
+		// One failed report is not an outage: the tunnel keeps serving. Offline only when reports
+		// have failed for a while.
+		if lo := st.Heartbeat.LastOK; lo == nil || s.Now.Sub(*lo) > heartbeatStale {
+			return Problem, "Offline", st.Heartbeat.Error
+		}
 	}
 	if st.State != nil {
 		switch st.State.Kind {
@@ -293,6 +304,23 @@ func money(v float64, cur string) string {
 		return fmt.Sprintf("$%.2f", v)
 	}
 	return fmt.Sprintf("%.2f %s", v, strings.ToUpper(cur))
+}
+
+func energyText(wh float64) string {
+	if wh >= 1000 {
+		return fmt.Sprintf("%.2f kWh", wh/1000)
+	}
+	return fmt.Sprintf("%.0f Wh", wh)
+}
+
+func bigNumber(n int) string {
+	switch {
+	case n >= 1_000_000:
+		return fmt.Sprintf("%.1fM", float64(n)/1e6)
+	case n >= 10_000:
+		return fmt.Sprintf("%.0fk", float64(n)/1e3)
+	}
+	return fmt.Sprintf("%d", n)
 }
 
 func firstSentence(s string) string {

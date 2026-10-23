@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/magnusfroste/garageai/cli/internal/energy"
 	"github.com/magnusfroste/garageai/cli/internal/machine"
 	"github.com/magnusfroste/garageai/cli/internal/portal"
 	"github.com/magnusfroste/garageai/cli/internal/profile"
@@ -37,11 +38,16 @@ func run(args []string) int {
 		if cfg.Transport == "tunnel" && service.EnsureTunnelRunning() {
 			fmt.Println(time.Now().UTC().Format(time.RFC3339), "the tunnel service stood still: started it again")
 		}
-		if code := heartbeat(cfg, client); code != 0 && once {
+		code := heartbeat(cfg, client)
+		if once {
 			return code
 		}
-		if once {
-			return 0
+		// A report that failed on the network (DNS, a reset connection: typical right after a Mac
+		// wakes or Wi-Fi reconnects, garage-m1 2026-10-23) is tried again soon, twice, instead of
+		// leaving the garage unreported for 5 minutes. A rejected token (2) is not retried.
+		for i := 0; code == 1 && i < 2; i++ {
+			time.Sleep(30 * time.Second)
+			code = heartbeat(cfg, client)
 		}
 		time.Sleep(5 * time.Minute)
 	}
@@ -155,6 +161,8 @@ func agent(cfg *service.Config) *portal.Agent {
 	a.State, a.Nodes, _, _ = effectiveState(time.Now())
 	if cfg.Transport == "tunnel" {
 		a.Requests = tunnel.ReadSummary(5 * time.Minute)
+		now := time.Now()
+		a.Energy = energy.Summarize(energy.ReadMinutes(), tunnel.ReadSamples(), now.Add(-5*time.Minute), now)
 	}
 	for _, m := range service.ModelStates(service.LoadModelsState()) {
 		a.Models = append(a.Models, portal.AgentModel{Model: m.Model, Status: m.Status, By: m.By, CompletedMB: m.CompletedMB, TotalMB: m.TotalMB, Error: m.Error, At: m.At})
@@ -264,13 +272,26 @@ func installService() int {
 func writeStatus(cfg *service.Config, models []string, contexts map[string]int, ag *portal.Agent, res *portal.HeartbeatResult, err error) {
 	st := service.Status{UpdatedAt: time.Now().UTC(), Version: version, Name: cfg.Name, Runtime: cfg.Runtime, Port: cfg.Port,
 		Transport: cfg.Transport, Models: models, Contexts: nonEmpty(contexts)}
+	var lastOK *time.Time
+	if prev := service.LoadStatus(); prev != nil {
+		lastOK = prev.Heartbeat.LastOK
+		if lastOK == nil && prev.Heartbeat.OK {
+			t := prev.UpdatedAt
+			lastOK = &t
+		}
+	}
 	switch {
 	case errors.Is(err, portal.ErrRejected):
-		st.Heartbeat = service.StatusHeartbeat{Rejected: true, Error: "the portal does not accept this garage's link any more"}
+		st.Heartbeat = service.StatusHeartbeat{Rejected: true, Error: "the portal does not accept this garage's link any more", LastOK: lastOK}
 	case err != nil:
-		st.Heartbeat = service.StatusHeartbeat{Error: "GarageAI could not be reached"}
+		msg := "GarageAI could not be reached"
+		if strings.HasPrefix(err.Error(), "HTTP ") {
+			msg = "GarageAI did not accept the last report (" + strings.SplitN(err.Error(), ":", 2)[0] + ")"
+		}
+		st.Heartbeat = service.StatusHeartbeat{Error: msg, LastOK: lastOK}
 	default:
-		st.Heartbeat.OK = true
+		now := st.UpdatedAt
+		st.Heartbeat = service.StatusHeartbeat{OK: true, LastOK: &now}
 	}
 	if ag != nil {
 		if ag.State != nil {
@@ -294,6 +315,19 @@ func writeStatus(cfg *service.Config, models []string, contexts map[string]int, 
 		if g := res.Garage; g != nil {
 			st.Portal = &service.StatusPortal{Live: g.Live, Offered: g.Offered, RequestsToday: g.RequestsToday,
 				TokensToday: g.TokensToday, EarnedToday: g.EarnedToday, Currency: g.Currency}
+		}
+	}
+	if cfg.Transport == "tunnel" {
+		// Today's energy for the menu-bar icon: since local midnight. The request samples cover the
+		// last hour only, so today's tokens come from the energy minutes' own day and the samples
+		// that remain; the portal's daily figures are the complete ones.
+		now := time.Now()
+		y, m, d := now.Date()
+		if e := energy.Summarize(energy.ReadMinutes(), tunnel.ReadSamples(), time.Date(y, m, d, 0, 0, 0, 0, now.Location()), now); e != nil {
+			st.Energy = &service.StatusEnergy{Wh: e.Wh, BusyWh: e.BusyWh, AvgW: e.AvgW, Source: e.Source}
+		}
+		if e := energy.Summarize(energy.ReadMinutes(), tunnel.ReadSamples(), now.Add(-time.Hour), now); e != nil && st.Energy != nil {
+			st.Energy.HourTokensPerKWh = e.TokensPerKWh
 		}
 	}
 	if e := service.WriteStatus(st); e != nil {

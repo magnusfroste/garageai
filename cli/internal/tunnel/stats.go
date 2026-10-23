@@ -28,6 +28,11 @@ type Sample struct {
 	TotalMs  int       `json:"total_ms"` //
 	Streamed bool      `json:"streamed"`
 	Cold     bool      `json:"cold"` // first request after ≥5 min of silence that took ≥3 s to the first byte: a model load
+	// What the request asked for and what the runtime reported using, read from the request's
+	// `model` and the response's usage (never the content): for tokens per kWh.
+	Model     string `json:"model,omitempty"`
+	InTokens  int    `json:"in_tokens,omitempty"`
+	OutTokens int    `json:"out_tokens,omitempty"`
 }
 
 // Summary is what the heartbeat reports: the last window of samples, aggregated.
@@ -181,6 +186,19 @@ func Summarize(samples []Sample, window time.Duration, now time.Time) Summary {
 	return out
 }
 
+// ReadSamples reads the tunnel process's request samples (the last hour); nil without a file.
+func ReadSamples() []Sample {
+	b, err := os.ReadFile(StatsPath())
+	if err != nil {
+		return nil
+	}
+	var samples []Sample
+	if json.Unmarshal(b, &samples) != nil {
+		return nil
+	}
+	return samples
+}
+
 // ReadSummary reads the tunnel process's samples and summarises the last window; nil without a file.
 func ReadSummary(window time.Duration) *Summary {
 	b, err := os.ReadFile(StatsPath())
@@ -195,13 +213,17 @@ func ReadSummary(window time.Duration) *Summary {
 	return &s
 }
 
-// recorder wraps a ResponseWriter to time the first byte and count the status.
+// recorder wraps a ResponseWriter to time the first byte and count the status. It also keeps the
+// first and last few KB of the response, where the token usage is (OpenAI's last chunk or body,
+// Anthropic's message_start and message_delta, Ollama's final object); nothing is stored.
 type recorder struct {
 	http.ResponseWriter
 	start    time.Time
 	status   int
 	firstAt  time.Time
 	streamed bool
+	head     []byte
+	tail     []byte
 }
 
 func (r *recorder) WriteHeader(code int) {
@@ -217,7 +239,24 @@ func (r *recorder) Write(b []byte) (int, error) {
 	if r.status == 0 {
 		r.WriteHeader(http.StatusOK)
 	}
+	r.keep(b)
 	return r.ResponseWriter.Write(b)
+}
+
+const keepBytes = 8 << 10
+
+func (r *recorder) keep(b []byte) {
+	if room := keepBytes - len(r.head); room > 0 {
+		n := len(b)
+		if n > room {
+			n = room
+		}
+		r.head = append(r.head, b[:n]...)
+	}
+	r.tail = append(r.tail, b...)
+	if len(r.tail) > keepBytes {
+		r.tail = r.tail[len(r.tail)-keepBytes:]
+	}
 }
 
 func (r *recorder) Flush() {
@@ -230,12 +269,24 @@ func (r *recorder) Flush() {
 func recordRequests(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rec := &recorder{ResponseWriter: w, start: time.Now()}
+		var reqHead *headCapture
+		if r.Body != nil {
+			reqHead = &headCapture{r: r.Body}
+			r.Body = reqHead
+		}
+		inFlight.Add(1)
 		next.ServeHTTP(rec, r)
+		inFlight.Add(-1)
 		end := time.Now()
 		if rec.firstAt.IsZero() {
 			rec.firstAt = end
 		}
-		global.record(Sample{At: rec.start, Path: pathClass(r.URL.Path), Status: rec.status, Streamed: rec.streamed,
-			TTFBms: int(rec.firstAt.Sub(rec.start) / time.Millisecond), TotalMs: int(end.Sub(rec.start) / time.Millisecond)})
+		sm := Sample{At: rec.start, Path: pathClass(r.URL.Path), Status: rec.status, Streamed: rec.streamed,
+			TTFBms: int(rec.firstAt.Sub(rec.start) / time.Millisecond), TotalMs: int(end.Sub(rec.start) / time.Millisecond)}
+		if reqHead != nil {
+			sm.Model = requestModel(reqHead.buf)
+		}
+		sm.InTokens, sm.OutTokens = usageTokens(rec.head, rec.tail)
+		global.record(sm)
 	})
 }
