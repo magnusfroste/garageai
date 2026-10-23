@@ -38,11 +38,16 @@ func run(args []string) int {
 		if cfg.Transport == "tunnel" && service.EnsureTunnelRunning() {
 			fmt.Println(time.Now().UTC().Format(time.RFC3339), "the tunnel service stood still: started it again")
 		}
-		if code := heartbeat(cfg, client); code != 0 && once {
+		code := heartbeat(cfg, client)
+		if once {
 			return code
 		}
-		if once {
-			return 0
+		// A report that failed on the network (DNS, a reset connection: typical right after a Mac
+		// wakes or Wi-Fi reconnects, garage-m1 2026-10-23) is tried again soon, twice, instead of
+		// leaving the garage unreported for 5 minutes. A rejected token (2) is not retried.
+		for i := 0; code == 1 && i < 2; i++ {
+			time.Sleep(30 * time.Second)
+			code = heartbeat(cfg, client)
 		}
 		time.Sleep(5 * time.Minute)
 	}
