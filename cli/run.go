@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/magnusfroste/garageai/cli/internal/energy"
 	"github.com/magnusfroste/garageai/cli/internal/machine"
 	"github.com/magnusfroste/garageai/cli/internal/portal"
 	"github.com/magnusfroste/garageai/cli/internal/profile"
@@ -155,6 +156,8 @@ func agent(cfg *service.Config) *portal.Agent {
 	a.State, a.Nodes, _, _ = effectiveState(time.Now())
 	if cfg.Transport == "tunnel" {
 		a.Requests = tunnel.ReadSummary(5 * time.Minute)
+		now := time.Now()
+		a.Energy = energy.Summarize(energy.ReadMinutes(), tunnel.ReadSamples(), now.Add(-5*time.Minute), now)
 	}
 	for _, m := range service.ModelStates(service.LoadModelsState()) {
 		a.Models = append(a.Models, portal.AgentModel{Model: m.Model, Status: m.Status, By: m.By, CompletedMB: m.CompletedMB, TotalMB: m.TotalMB, Error: m.Error, At: m.At})
@@ -294,6 +297,19 @@ func writeStatus(cfg *service.Config, models []string, contexts map[string]int, 
 		if g := res.Garage; g != nil {
 			st.Portal = &service.StatusPortal{Live: g.Live, Offered: g.Offered, RequestsToday: g.RequestsToday,
 				TokensToday: g.TokensToday, EarnedToday: g.EarnedToday, Currency: g.Currency}
+		}
+	}
+	if cfg.Transport == "tunnel" {
+		// Today's energy for the menu-bar icon: since local midnight. The request samples cover the
+		// last hour only, so today's tokens come from the energy minutes' own day and the samples
+		// that remain; the portal's daily figures are the complete ones.
+		now := time.Now()
+		y, m, d := now.Date()
+		if e := energy.Summarize(energy.ReadMinutes(), tunnel.ReadSamples(), time.Date(y, m, d, 0, 0, 0, 0, now.Location()), now); e != nil {
+			st.Energy = &service.StatusEnergy{Wh: e.Wh, BusyWh: e.BusyWh, AvgW: e.AvgW, Source: e.Source}
+		}
+		if e := energy.Summarize(energy.ReadMinutes(), tunnel.ReadSamples(), now.Add(-time.Hour), now); e != nil && st.Energy != nil {
+			st.Energy.HourTokensPerKWh = e.TokensPerKWh
 		}
 	}
 	if e := service.WriteStatus(st); e != nil {

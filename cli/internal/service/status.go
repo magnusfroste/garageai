@@ -34,6 +34,16 @@ type Status struct {
 	Update   StatusUpdate    `json:"update"`
 	// What the portal says about the garage (live, today's figures), when the portal sends it.
 	Portal *StatusPortal `json:"portal,omitempty"`
+	// Compute energy today (since local midnight) and tokens per kWh over the last hour.
+	Energy *StatusEnergy `json:"energy,omitempty"`
+}
+
+type StatusEnergy struct {
+	Wh               float64 `json:"wh"`
+	BusyWh           float64 `json:"busy_wh"`
+	AvgW             float64 `json:"avg_w"`
+	HourTokensPerKWh *int    `json:"hour_tokens_per_kwh,omitempty"`
+	Source           string  `json:"source,omitempty"`
 }
 
 type StatusHeartbeat struct {

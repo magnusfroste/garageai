@@ -133,3 +133,12 @@ func TestLoadIgnoresSymlinksAndHugeFiles(t *testing.T) {
 		t.Fatal("no file: nil")
 	}
 }
+
+func TestEnergyLine(t *testing.T) {
+	s := live()
+	n := 1_240_000
+	s.Status.Energy = &service.StatusEnergy{Wh: 420, HourTokensPerKWh: &n}
+	level(t, s, Live, "Energy today: 420 Wh · 1.2M tokens/kWh")
+	s.Status.Energy = &service.StatusEnergy{Wh: 1830}
+	level(t, s, Live, "Energy today: 1.83 kWh")
+}
