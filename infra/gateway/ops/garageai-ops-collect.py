@@ -460,6 +460,34 @@ def psql(sql):
     return [line.split("\t") for line in out.splitlines() if line.strip()]
 
 
+def spend_completeness():
+    """Does every request have its spend-log row? Two counts that LiteLLM writes on separate paths:
+    the daily aggregate (LiteLLM_DailyUserSpend.api_requests) and the per-request rows
+    (LiteLLM_SpendLogs), per UTC day for the last 3 days. The rows feed billing, earnings and every
+    quality figure; when they go missing nothing fails loudly (Ollama's colliding response ids lost
+    46 % of rows silently in October 2026). Per model when a day is short, to say where."""
+    days = psql("""
+      with a as (select date::date d, sum(api_requests) n from "LiteLLM_DailyUserSpend"
+                 where date::date >= current_date - 2 group by 1),
+           r as (select ("startTime" at time zone 'UTC')::date d, count(*) n from "LiteLLM_SpendLogs"
+                 where "startTime" >= (current_date - 2)::timestamp at time zone 'UTC' group by 1)
+      select a.d, a.n, coalesce(r.n, 0) from a left join r on r.d = a.d order by 1""")
+    out = []
+    for day, agg, rows in days:
+        agg, rows = int(agg or 0), int(rows or 0)
+        entry = {"date": day, "requests": agg, "rows": rows, "missing": max(0, agg - rows),
+                 "pct": round(100.0 * rows / agg, 1) if agg else 100.0, "today": day == now().date().isoformat()}
+        if entry["missing"] >= 5:
+            entry["by_model"] = [{"model": m, "requests": int(a), "rows": int(b)} for m, a, b in psql(f"""
+              with a as (select model_group m, sum(api_requests) n from "LiteLLM_DailyUserSpend" where date::date = '{day}' group by 1),
+                   r as (select model_group m, count(*) n from "LiteLLM_SpendLogs"
+                         where ("startTime" at time zone 'UTC')::date = '{day}' group by 1)
+              select a.m, a.n, coalesce(r.n, 0) from a left join r on r.m = a.m where a.n > coalesce(r.n, 0) + 1
+              order by a.n - coalesce(r.n, 0) desc limit 5""")]
+        out.append(entry)
+    return out
+
+
 def traffic():
     sql = """
       select coalesce(nullif(split_part(model_id, '__', 1), ''), '?') garage, model_group, count(*),
@@ -763,6 +791,10 @@ def action_for(text, page, garage, code=None):
         if "provider" in t or page == "supply" and g and d_is_provider(g):
             return "A provider is down: pause it in Admin → Providers until it is back, then resume", f"{ADMIN}/providers"
         return "Ask the operator; if it is planned, silence it here. The garage's page shows its last heartbeat and Bridge's report", f"{ADMIN}/garages?garage={g}"
+    if t.startswith("spend logs are missing rows"):
+        return ("Compare per model on the Traffic page; check that the spend-log id trigger is installed "
+                "(infra/gateway/litellm/sql/spendlogs_unique_request_id.sql) and what changed in the gateway"), \
+               "https://github.com/magnusfroste/garageai/blob/main/infra/gateway/litellm/sql/spendlogs_unique_request_id.sql"
     if t.startswith("support: a user waits"):
         return "Answer in Admin → Support (or set the chat to Away there when you are travelling)", f"{ADMIN}/support"
     if "no heartbeat" in t:
@@ -1039,6 +1071,14 @@ def alerts(d):
     for o in d["outside"]:
         if o["status"] != 200:
             add("critical", f"{o['name']} ({o['url']}) answered {o['status']}", "server")
+    # Every request must have its spend-log row (billing, earnings, quality). Today's counts lag
+    # by a minute or two (both are written in batches), so today needs a clear gap; a full day
+    # must match. The text names the day only, so the alert stays one alert while counts move.
+    for c in d.get("spend_completeness") or []:
+        if c["missing"] < 5 or c["pct"] >= (97 if c["today"] else 99.5):
+            continue
+        level = "critical" if c["pct"] < 90 else "warning"
+        add(level, f"Spend logs are missing rows for {c['date']}: requests without a row are not billed or paid", "traffic")
     e = d["errors_last_hour"]
     if e["invalid_key"] > 1000:
         add("critical", f"{e['invalid_key']} requests with an unknown API key in the last hour: someone is guessing keys", "traffic")
@@ -1638,6 +1678,7 @@ def main():
         "garages": garages(env, state, targets),
         "traffic": traffic(),
         "errors_last_hour": gateway_log_counts(),
+        "spend_completeness": spend_completeness(),
         "outside": outside(),
         "guard": guard(),
         "business": ops_summary(env, state),
