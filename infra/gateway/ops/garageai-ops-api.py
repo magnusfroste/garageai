@@ -165,6 +165,8 @@ class H(BaseHTTPRequestHandler):
             self.send_header("Content-Length", "0")
             self.end_headers()
             return
+        if self.path == "/api/whoami":
+            return self.reply(200, {"user": self.user() or ""})
         if self.path.split("?")[0] == "/login":
             return self.page(200, LOGIN_PAGE % "")
         if self.path != "/api/silences":

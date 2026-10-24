@@ -10,6 +10,7 @@ server {
     server_name _;
     root /usr/share/nginx/html;
     server_tokens off;
+    absolute_redirect off;   # "Location: /login", not http://…: TLS ends at Traefik, nginx sees http
 
     auth_request /_auth;
     auth_request_set $ops_user $upstream_http_x_ops_user;
@@ -33,9 +34,11 @@ server {
         client_max_body_size 4k;
     }
 
+    # Through the API, not `return`: nginx runs `return` before auth_request, so $ops_user was empty.
     location = /whoami {
-        default_type application/json;
-        return 200 '{"user":"$ops_user"}';
+        proxy_pass http://host.docker.internal:8781/api/whoami;
+        proxy_set_header X-Ops-User $ops_user;
+        proxy_set_header X-Ops-Api-Key "${OPS_API_KEY}";
     }
     # Chat page: only these two LiteLLM paths, straight to the LiteLLM container on the shared Docker
     # network, with the ops-chat key (its own LiteLLM key, $5 per 30 days) added here.
