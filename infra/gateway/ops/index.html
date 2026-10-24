@@ -108,6 +108,13 @@
   .btn-sm:hover { background:var(--hover); }
   .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:10px 16px; border-radius:10px; font-size:13px; z-index:50; box-shadow:0 6px 24px rgba(0,0,0,.25); }
   .toast.bad { background:var(--crit); color:#fff; }
+  .brief { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr)); margin-bottom:16px; }
+  .brief .card { margin-bottom:0; } .brief h2 { display:flex; align-items:center; gap:8px; }
+  .checks { list-style:none; margin:0; padding:0; display:grid; gap:6px; }
+  .checks li { display:flex; gap:8px; align-items:baseline; } .checks .why { color:var(--muted); font-size:13px; }
+  .facts { display:grid; gap:10px 16px; grid-template-columns:repeat(auto-fill,minmax(min(170px,100%),1fr)); }
+  .fact .k { font-size:12px; color:var(--muted); } .fact .v { font-size:16px; font-weight:600; }
+  a.gname { color:inherit; text-decoration:none; border-bottom:1px dotted var(--muted); } a.gname:hover { border-bottom-style:solid; }
   .kpis { display:grid; gap:12px; grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr)); margin-bottom:16px; }
   a.kpi { display:block; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; color:var(--ink); position:relative; border-top:3px solid var(--line); }
   a.kpi:hover { text-decoration:none; border-color:var(--accent); }
@@ -270,13 +277,28 @@
     <main>
       <section class="page" data-page="dashboard">
         <div class="hero" id="hero"></div>
+        <div class="brief">
+          <div class="card"><h2>Needs you</h2><div class="sub">Only what a person has to do.</div><div id="brief-needs"></div></div>
+          <div class="card"><h2>Happening now</h2><div id="brief-now"></div></div>
+          <div class="card"><h2>Healthy</h2><ul class="checks" id="brief-ok"></ul></div>
+        </div>
         <div class="kpis" id="kpis"></div>
         <div class="grid">
-          <div class="card"><h2>Needs attention</h2><div id="dash-alerts"></div></div>
+          <div class="card"><h2>For information</h2><div id="dash-alerts"></div></div>
           <div class="card"><h2>Supply at a glance</h2><div id="dash-supply"></div></div>
           <div class="card"><h2>Planned stops</h2><div class="sub">Silenced alerts: information instead of alarms, no Telegram, until the time runs out.</div><div id="silences"></div></div>
         </div>
         <div class="card"><h2>Recent events</h2><div id="dash-events"></div><div class="note"><a href="#events">All events →</a></div></div>
+      </section>
+
+      <section class="page" data-page="garage">
+        <div class="card" id="g-head"></div>
+        <div class="grid">
+          <div class="card"><h2>The machine</h2><div id="g-machine"></div></div>
+          <div class="card"><h2>Traffic, 24 h</h2><div id="g-traffic"></div></div>
+        </div>
+        <div class="card"><h2>Models</h2><div id="g-models"></div></div>
+        <div class="card"><h2>Events</h2><div id="g-events"></div></div>
       </section>
 
       <section class="page" data-page="events">
@@ -451,7 +473,17 @@ function renderNav(alerts) {
 }
 // navigated: the user opened another page (scroll to top, close the phone menu); otherwise a data refresh.
 function route(navigated = true) {
-  const id = (location.hash || "#dashboard").slice(1);
+  const id = decodeURIComponent((location.hash || "#dashboard").slice(1));
+  if (id.startsWith("garage/")) {
+    const name = id.slice(7);
+    document.querySelectorAll(".page").forEach(s => s.classList.toggle("active", s.dataset.page === "garage"));
+    document.querySelectorAll("nav a").forEach(a => a.classList.toggle("active", a.dataset.id === "supply"));
+    $("ptitle").textContent = name; $("psub").textContent = "Everything the Operations Center knows about this garage";
+    document.title = `${name} · GarageAI Operations`;
+    if (data) renderGarage(data, name);
+    if (navigated) { document.body.classList.remove("nav-open"); window.scrollTo(0, 0); }
+    return;
+  }
   const page = PAGES.find(p => p.id === id) || PAGES[0];
   document.querySelectorAll(".page").forEach(s => s.classList.toggle("active", s.dataset.page === page.id));
   document.querySelectorAll("nav a").forEach(a => a.classList.toggle("active", a.dataset.id === page.id));
@@ -524,6 +556,61 @@ function renderChrome(d) {
 }
 
 /* ---------- dashboard */
+const gLink = name => `<a class="gname" href="#garage/${encodeURIComponent(name)}">${esc(name)}</a>`;
+
+// The briefing: what needs a person, what is happening, and what is fine (folded to one line each).
+function renderBriefing(d) {
+  const A = d.alerts || [], B = d.business || {};
+  const needs = A.filter(a => a.level !== "info").map(a => alertRow(a, true));
+  const f = B.buyer_funnel || {};
+  const waitingBuyers = (f.stuck || []).filter(s => s.stuck_at !== "accept_terms" && s.minutes < 14 * 1440);
+  if (waitingBuyers.length) needs.push(`<div class="alert warning">${dot("warning")}<span class="txt">${waitingBuyers.length} buyer${waitingBuyers.length > 1 ? "s have" : " has"} a key but no first request yet (${waitingBuyers.map(s => `${esc(s.id)}, ${s.minutes < 1440 ? Math.round(s.minutes / 60) + " h" : Math.round(s.minutes / 1440) + " d"}`).join("; ")})<div class="small act">→ a short personal note helps most. <a href="#business">Business</a></div></span></div>`);
+  $("brief-needs").innerHTML = needs.length ? needs.join("") : `<div class="alert">${dot("ok")}<span class="txt">Nothing. Enjoy the coffee.</span></div>`;
+
+  const t1 = d.traffic.last_hour || [], t24 = d.traffic.last_24h || [];
+  const byGarage = {};
+  for (const r of t1) if (r.garage && r.garage !== "?" && r.garage !== "auto") byGarage[r.garage] = (byGarage[r.garage] || 0) + r.requests;
+  const serving = Object.entries(byGarage).sort((a, b) => b[1] - a[1]);
+  const topModels = Object.values(t24.reduce((m, r) => { if (r.model) { m[r.model] = m[r.model] || { model: r.model, n: 0 }; m[r.model].n += r.requests; } return m; }, {})).sort((a, b) => b.n - a.n).slice(0, 3);
+  const nowLines = [
+    `<b>${fmt(sum(t1, "requests"))}</b> requests the last hour${sum(t1, "failed") ? `, <span class="warning">${sum(t1, "failed")} failed</span>` : ""}`,
+    serving.length ? `Serving now: ${serving.map(([g, n]) => `${gLink(g)} <span class="small">${n}</span>`).join(", ")}` : `<span class="small">No garage served a request the last hour.</span>`,
+    topModels.length ? `Most used today: ${topModels.map(m => `<code>${esc(m.model)}</code> <span class="small">${m.n}</span>`).join(", ")}` : "",
+    B.buyers ? `${B.buyers.new_24h || 0} new buyer${B.buyers.new_24h === 1 ? "" : "s"} today · ${B.buyers.new_7d || 0} this week · ${B.buyers.total || 0} in all` : "",
+    `$${sum(t24, "spend_usd").toFixed(2)} spent through the gateway, 24 h`,
+  ].filter(Boolean);
+  $("brief-now").innerHTML = nowLines.map(l => `<div style="margin:4px 0">${l}</div>`).join("");
+
+  const G = d.garages || [], up = g => g.runtime_ok && g.mesh !== false, active = G.filter(g => !g.paused);
+  const certMin = Math.min(...(d.certs || []).map(c => c.days_left ?? 999));
+  const sc = (d.spend_completeness || []).filter(c => !c.today).map(c => c.pct);
+  const chain = (d.chain_test || {}).last || {};
+  const tun = (d.tunnel?.peers || []);
+  const drift = (d.source?.files || []).filter(x => x.status !== "in sync").length;
+  const checks = [
+    [active.filter(up).length === active.length, `Supply: ${active.filter(up).length} of ${active.length} active garages and providers answer`, G.length - active.length ? `${G.length - active.length} paused on purpose` : ""],
+    [(d.backup?.age_hours ?? 99) <= 26, `Backup ${d.backup?.age_hours ?? "?"} h old`, d.backup?.offsite && d.backup.offsite !== "none" ? "off-site too" : "on this server only"],
+    [certMin >= 14, `TLS certificates valid ${certMin} days or more`, ""],
+    [!sc.length || Math.min(...sc) >= 99.5, `Every request has its billing row`, sc.length ? `${Math.min(...sc)} % on full days` : ""],
+    [chain.ok === true, `Managed-models chain test ${chain.ok === true ? "passed" : chain.skipped ? "skipped" : "failed"}`, chain.at ? ago(chain.at) : ""],
+    [tun.length === 0 || tun.filter(p => p.connected).length >= active.filter(g => g.type !== "provider").length - 1, `Tunnel: ${tun.filter(p => p.connected).length} garages connected`, ""],
+    [!!d.notify?.configured && !d.notify.last_error, `Telegram alerts ${d.notify?.configured ? (d.notify.last_error ? "failing" : "on") : "off"}`, ""],
+    [!drift, drift ? `${drift} deployed files differ from main` : "Deployed files match main", ""],
+  ];
+  $("brief-ok").innerHTML = checks.map(([ok, text, why]) => `<li>${dot(ok ? "ok" : "warning")}<span>${text}${why ? ` <span class="why">· ${esc(why)}</span>` : ""}</span></li>`).join("");
+}
+
+// Information, folded: one line per kind instead of one alert per paused garage or per update.
+function infoLines(A) {
+  const infos = A.filter(a => a.level === "info"), rest = [];
+  const paused = infos.filter(a => /is paused in the portal/.test(a.text)).map(a => a.garage || a.text.split(" ")[0]);
+  const updates = infos.filter(a => a.text.startsWith("Update available"));
+  for (const a of infos) if (!/is paused in the portal/.test(a.text) && !a.text.startsWith("Update available")) rest.push(alertRow(a, true));
+  if (paused.length) rest.unshift(`<div class="alert info">${dot("info")}<span class="txt">${paused.length} garage${paused.length > 1 ? "s" : ""} paused on purpose: ${paused.map(gLink).join(", ")}</span></div>`);
+  if (updates.length) rest.push(`<div class="alert info">${dot("info")}<span class="txt">${updates.length} update${updates.length > 1 ? "s" : ""} available <a href="#updates">Updates →</a></span></div>`);
+  return rest.length ? rest.join("") : `<div class="alert">${dot("ok")}<span class="txt">Nothing to note.</span></div>`;
+}
+
 function renderDashboard(d) {
   const A = d.alerts, crit = A.filter(a => a.level === "critical").length, warn = A.filter(a => a.level === "warning").length, info = A.filter(a => a.level === "info").length;
   const state = crit ? "critical" : warn ? "warning" : "ok";
@@ -576,15 +663,13 @@ function renderDashboard(d) {
       <div class="label">${icon(t.icon)}${t.label}</div><span class="go">${icon("arrow")}</span>
       <div class="value">${t.value}</div><div class="detail">${t.detail}</div>${t.extra || ""}</a>`).join("");
 
-  const shown = A.filter(a => a.level !== "info");
-  const infos = A.filter(a => a.level === "info");
-  $("dash-alerts").innerHTML = (shown.length ? shown.map(a => alertRow(a, true)).join("") : `<div class="alert">${dot("ok")}<span class="txt">Nothing needs attention.</span></div>`)
-    + (infos.length ? `<div class="small" style="margin:12px 0 4px">For information</div>${infos.map(a => alertRow(a, true)).join("")}` : "");
+  renderBriefing(d);
+  $("dash-alerts").innerHTML = infoLines(A);
 
   $("dash-events").innerHTML = eventList((d.events_recent || []).slice(0, 8));
   $("dash-supply").innerHTML = table([
     ["", g => dot(g.onboarding ? "info" : up(g) ? "ok" : "critical"), ""],
-    ["Name", g => `<b>${esc(g.garage)}</b> <span class="small">${g.type === "provider" ? "provider" : "garage"}</span>`],
+    ["Name", g => `<b>${gLink(g.garage)}</b> <span class="small">${g.type === "provider" ? "provider" : "garage"}</span>`],
     ["Up 24 h", g => g.up_24h_pct == null ? "—" : `${g.up_24h_pct} %`, "num"],
     ["Req 24 h", g => fmt(sum(t24.filter(r => r.garage === g.garage), "requests")), "num"],
   ], G) + `<div class="note"><a href="#supply">All details →</a></div>`;
@@ -684,7 +769,7 @@ function renderPages(d) {
   };
   const canary = new Set(((d.business || {}).bridge_versions?.garages || []).filter(x => x.canary).map(x => x.name));
   $("garages").innerHTML = table([
-    ["Name", g => `${dot(g.onboarding || g.paused || d.silences?.[g.garage] ? "info" : g.runtime_ok && g.mesh !== false ? "ok" : "critical")}<b>${esc(g.garage)}</b>${g.paused ? " " + pill("info", "paused in portal") : ""}${d.silences?.[g.garage] ? " " + pill("info", "planned stop") : ""}${canary.has(g.garage) ? " " + pill("muted", "canary") : ""}`],
+    ["Name", g => `${dot(g.onboarding || g.paused || d.silences?.[g.garage] ? "info" : g.runtime_ok && g.mesh !== false ? "ok" : "critical")}<b>${gLink(g.garage)}</b>${g.paused ? " " + pill("info", "paused in portal") : ""}${d.silences?.[g.garage] ? " " + pill("info", "planned stop") : ""}${canary.has(g.garage) ? " " + pill("muted", "canary") : ""}`],
     ["Type", g => pill("muted", g.type)],
     ["Engine", g => esc(({ ollama: "Ollama", vllm: "vLLM", xyntetik: "Xyntetik Runner", llamacpp: "llama.cpp", lmstudio: "LM Studio", sglang: "SGLang", provider: "provider" })[g.engine] || g.engine || "—")],
     ["Tunnel", g => g.type === "provider" ? "HTTPS" : g.mesh ? `<span class="ok">up</span>` : `<span class="critical">down</span>`],
@@ -783,6 +868,69 @@ function renderPages(d) {
 }
 
 /* ---------- business */
+// One garage, everything known about it: state, the machine as Bridge reports it, its traffic and
+// quality, its models with prices and context, and its events (docs: Ops review 2026-10-24).
+function renderGarage(d, name) {
+  const g = (d.garages || []).find(x => x.garage === name);
+  if (!g) { $("g-head").innerHTML = `<div class="small">No garage or provider called <b>${esc(name)}</b> in the latest collection. <a href="#supply">All garages →</a></div>`;
+    ["g-machine", "g-traffic", "g-models", "g-events"].forEach(id => $(id).innerHTML = ""); return; }
+  const up = g.runtime_ok && g.mesh !== false, a = g.agent || {}, m = a.machine || {};
+  const state = g.paused ? "info" : g.onboarding ? "info" : up ? "ok" : "critical";
+  const word = g.paused ? "paused in the portal" : g.onboarding ? "onboarding" : up ? "live" : (g.error || "down");
+  const ENG = { ollama: "Ollama", vllm: "vLLM", xyntetik: "Xyntetik Runner", llamacpp: "llama.cpp", lmstudio: "LM Studio", sglang: "SGLang", provider: "provider" };
+  const canary = ((d.business || {}).bridge_versions?.garages || []).some(x => x.name === name && x.canary);
+  const sil = d.silences?.[name];
+  $("g-head").innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+      <div><span style="font-size:20px;font-weight:700">${dot(state)} ${esc(name)}</span>
+        <span class="small"> · ${esc(word)} · ${g.type === "provider" ? "provider" : "garage"} · ${esc(ENG[g.engine] || g.engine || "—")}${canary ? " · canary" : ""}${sil ? ` · planned stop until ${esc(String(sil.until).slice(0, 16).replace("T", " "))}` : ""}</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${g.type !== "provider" ? (sil ? `<button class="chip" onclick="unsilence('${esc(name)}')">End planned stop</button>` : `<button class="chip" onclick="silence('${esc(name)}')">Planned stop…</button>`) : ""}
+        <a class="chip" href="https://app.garageai.eu/admin/garages?garage=${encodeURIComponent(name)}" target="_blank" rel="noopener">Open in Admin ↗</a>
+        <a class="chip" href="#chat">Chat with it</a></div></div>
+    ${(a.problems || []).length ? `<div style="margin-top:10px">${a.problems.map(pr => `<div class="alert ${pr.severity === "error" ? "critical" : pr.severity === "warning" ? "warning" : "info"}">${dot(pr.severity === "error" ? "critical" : pr.severity === "warning" ? "warning" : "info")}<span class="txt">${esc(pr.message || pr.code)}</span></div>`).join("")}</div>` : ""}`;
+
+  const fact = (k, v) => `<div class="fact"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  const gb = mb => mb == null ? "—" : `${Math.round(mb / 1024)} GB`;
+  $("g-machine").innerHTML = g.type === "provider" ? `<div class="small">A provider over HTTPS: no Bridge, no machine report.${g.provider?.tls ? ` TLS valid ${g.provider.tls.days_left} more days.` : ""}</div>` : `<div class="facts">
+      ${fact("Uptime 1 h / 24 h", `${g.up_1h_pct ?? "—"} % / ${g.up_24h_pct ?? "—"} %`)}
+      ${fact("Last heartbeat", g.heartbeat_min == null ? "—" : g.heartbeat_min < 1 ? "just now" : `${g.heartbeat_min} min ago`)}
+      ${fact("Bridge", `${esc(a.version || "—")}<div class="small">${esc(a.os || "")} ${esc(a.arch || "")}</div>`)}
+      ${fact("Tunnel", g.mesh ? '<span class="ok">connected</span>' : '<span class="critical">down</span>')}
+      ${fact("Power", m.power === "battery" ? `<span class="warning">battery ${m.battery_pct ?? "?"} %</span>` : m.power === "ac" ? "plugged in" : "—")}
+      ${fact("Load", m.load_pct != null ? `${m.load_pct} %` : "—")}
+      ${fact("Memory free", m.mem_free_mb != null ? `${gb(m.mem_free_mb)} of ${gb(m.mem_total_mb)}` : "—")}
+      ${fact("Disk free", m.disk_free_gb != null ? `<span class="${m.disk_free_gb < 12 ? "warning" : ""}">${m.disk_free_gb} GB</span>` : "—")}
+      ${fact("GPU", m.gpu_util_pct != null || m.gpu_power_w != null ? `${m.gpu_util_pct != null ? m.gpu_util_pct + " %" : ""}${m.gpu_power_w != null ? ` · ${m.gpu_power_w} W` : ""}${m.gpu_temp_c != null ? ` · ${m.gpu_temp_c} °C` : ""}<div class="small">${m.vram_total_mb ? gb(m.vram_used_mb) + " of " + gb(m.vram_total_mb) + " VRAM" : ""}</div>` : "—")}
+      ${fact("At the keyboard", m.user_active ? "someone" : m.user_active === false ? "nobody" : "—")}
+    </div>`;
+
+  const t24 = (d.traffic.last_24h || []).filter(r => r.garage === name);
+  const q = (d.quality_24h || {})[name];
+  $("g-traffic").innerHTML = (t24.length ? `<div class="facts">
+      ${fact("Requests", `${fmt(sum(t24, "requests"))}${sum(t24, "failed") ? ` <span class="small warning">${sum(t24, "failed")} failed</span>` : ""}`)}
+      ${fact("Earned (spend)", `$${sum(t24, "spend_usd").toFixed(3)}`)}
+      ${fact("Tokens in / out", `${short(sum(t24, "prompt_tokens"))} / ${short(sum(t24, "completion_tokens"))}`)}
+      ${q ? fact("First token p50 / p95", `${q.ttft_p50 ?? "—"} / ${q.ttft_p95 ?? "—"} s`) : ""}
+      ${q ? fact("Tokens/s p50", q.tps_p50 ?? "—") : ""}
+      ${q ? fact("Success, cached", `${q.success_pct} % · ${q.cached_pct} % cached`) : ""}
+    </div>` : `<div class="small">No requests in the last 24 hours.</div>`)
+    + (t24.length ? table([["Model", r => `<code>${esc(r.model)}</code>`], ["Requests", r => fmt(r.requests), "num"], ["Failed", r => r.failed ? `<span class="warning">${r.failed}</span>` : "0", "num"], ["Spend", r => "$" + r.spend_usd.toFixed(3), "num"]], t24) : "");
+
+  const deps = ((d.models || {}).deployments || []).filter(r => r.garage === name);
+  const k = n => n >= 1048576 ? (n / 1048576).toFixed(1) + "M" : Math.round(n / 1024) + "k";
+  $("g-models").innerHTML = deps.length ? table([
+    ["Name buyers use", r => `${dot(r.checks?.some(c => c.level === "warning") ? "warning" : r.up ? "ok" : "critical")}<code>${esc(r.public)}</code>`],
+    ["Tier", r => pill("muted", esc(r.tier))],
+    ["Runtime model", r => `<code class="small">${esc(r.runtime_model)}</code>`],
+    ["Context", r => r.context ? k(r.context) : pill("warning", "none"), "num"],
+    ["In / out $/M", r => r.price_in == null ? (r.tier === "private" ? "free" : "—") : `${r.price_in} / ${r.price_out}`, "num"],
+    ["Checks", r => (r.checks || []).length ? r.checks.map(c => `<div class="${c.level}">${esc(c.text)}</div>`).join("") : '<span class="ok">ok</span>'],
+  ], deps) : `<div class="small">No routed models.</div>`;
+
+  const ev = allEvents().filter(e => e.garage === name || (e.text || "").includes(name)).slice(0, 30);
+  $("g-events").innerHTML = ev.length ? eventList(ev) : `<div class="small">No events.</div>`;
+}
+
 function renderBusiness(b) {
   const usd = v => v == null ? "—" : "$" + Number(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   if (!b || b._error) {
