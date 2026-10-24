@@ -1172,6 +1172,7 @@ async function load(manual) {
   if (manual) $("refresh").classList.add("spin");
   try {
     const r = await fetch("ops.json?t=" + Date.now(), { cache: "no-store" });
+    if (r.redirected && new URL(r.url).pathname.endsWith("/login")) { location.reload(); return; } // the session ran out
     if (!r.ok) throw new Error("HTTP " + r.status);
     data = await r.json();
     renderNav(data.alerts); renderChrome(data); renderDashboard(data); renderPages(data); renderHistory();
@@ -1183,15 +1184,11 @@ async function whoami() {
   try { const u = (await (await fetch("whoami", { cache: "no-store" })).json()).user || "operator";
         $("uname").textContent = $("uname2").textContent = u; $("avatar").textContent = u[0]; } catch (e) {}
 }
-// Basic auth has no real sign-out: send deliberately wrong credentials so the browser forgets the
-// cached ones, then show a signed-out page. Reloading asks for the password again.
+// Sign out: the ops API clears the session cookie and sends the browser to the sign-in form.
 function logout() {
-  const x = new XMLHttpRequest();
-  x.open("GET", "ops.json?logout=" + Date.now(), true, "signed-out", String(Math.random()));
-  x.onloadend = () => { document.body.innerHTML = `<div style="min-height:100vh;display:grid;place-items:center;text-align:center;padding:24px">
-    <div><div class="logo" style="margin:0 auto 14px">${icon("supply")}</div><h1 style="font-size:20px;margin:0 0 6px">Signed out</h1>
-    <p class="small">You are signed out of the GarageAI Operations Center.</p><p><a href="/" onclick="location.replace('/');return false">Sign in again</a></p></div></div>`; };
-  x.send();
+  const f = document.createElement("form");
+  f.method = "post"; f.action = "logout";
+  document.body.appendChild(f); f.submit();
 }
 renderNav([]); load(); loadHistory(); whoami(); liveTick(); setInterval(load, 30000); setInterval(loadHistory, 300000);
 setInterval(() => data && renderChrome(data), 10000);

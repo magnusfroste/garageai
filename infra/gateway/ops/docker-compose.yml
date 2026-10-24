@@ -1,12 +1,12 @@
 # GarageAI Operations Center: a static page plus ops.json, written every minute by
 # garageai-ops-collect on the host. Served by nginx behind NetBird's Traefik, with HTTPS
-# and basic auth. Read-only, with one exception: the page can set and end its own silences, through
+# and a sign-in with a 30-day session cookie (nginx auth_request against garageai-ops-api). Read-only, with one exception: the page can set and end its own silences, through
 # a small API on the host (/api/, garageai-ops-api).
 #
-# .env (root, 0600): OPS_DOMAIN=ops.garageai.eu, OPS_BASIC_AUTH='user:$apr1$...' (single quotes
-# keep the $ signs literal), OPS_CHAT_KEY (a LiteLLM key with a small budget, for the Chat page) and
-# OPS_API_KEY (= /etc/garageai/ops-api.key, openssl rand -hex 32; nginx sends it to the ops API). Create the hash with:
-#   openssl passwd -apr1 "$(cat /etc/garageai/ops-password)"
+# .env (root, 0600): OPS_DOMAIN=ops.garageai.eu, OPS_CHAT_KEY (a LiteLLM key with a small budget, for the Chat page) and
+# OPS_API_KEY (= /etc/garageai/ops-api.key, openssl rand -hex 32; nginx sends it to the ops API). The
+# sign-in password is /etc/garageai/ops-password and the session key /etc/garageai/ops-session.key
+# (openssl rand -hex 32), both root 0600, read by garageai-ops-api.
 name: garageai-ops
 
 services:
@@ -34,11 +34,7 @@ services:
       - traefik.http.routers.ops-center.entrypoints=websecure
       - traefik.http.routers.ops-center.tls=true
       - traefik.http.routers.ops-center.tls.certresolver=letsencrypt
-      - traefik.http.routers.ops-center.middlewares=ops-auth,ops-ratelimit,ops-headers
-      - traefik.http.middlewares.ops-auth.basicauth.users=${OPS_BASIC_AUTH:?set OPS_BASIC_AUTH in .env}
-      - traefik.http.middlewares.ops-auth.basicauth.realm=GarageAI Operations Center
-      # Pass the signed-in user on to nginx, which shows it in the page's top bar (/whoami).
-      - traefik.http.middlewares.ops-auth.basicauth.headerField=X-Ops-User
+      - traefik.http.routers.ops-center.middlewares=ops-ratelimit,ops-headers
       - traefik.http.middlewares.ops-ratelimit.ratelimit.average=5
       - traefik.http.middlewares.ops-ratelimit.ratelimit.burst=20
       - traefik.http.middlewares.ops-headers.headers.customresponseheaders.X-Robots-Tag=noindex, nofollow
