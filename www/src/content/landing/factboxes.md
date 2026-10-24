@@ -121,7 +121,7 @@ euScale:
 whySwedenTitle: "Why Start in Sweden"
 whySwedenDescription: "GarageAI is built in Sweden, which has several of the building blocks the long-term energy vision needs."
 energyTitle: "The Energy Vision: Solar, Batteries and EVs"
-energyDescription: "Not part of today's product. The long-term idea is that a garage node can run largely on locally produced energy: rooftop solar during the day, a home battery overnight, and an EV battery (V2H) as an evening and weekend buffer. EVs are mostly away during weekday solar peak, so the home battery would be the backbone."
+energyDescription: "Not part of today's product. The long-term idea is that a garage node can run largely on locally produced energy: rooftop solar during the day, a home battery overnight, and an EV battery (V2H) as an evening and weekend buffer. EVs are mostly away during weekday solar peak, so the home battery would be the backbone. The first step is live: GarageAI Bridge already measures each garage's energy, in watt-hours and tokens per kWh."
 energyConclusion: "Vision: locally produced, locally consumed, locally owned. Today any garage on the grid can join; the energy stack is where we want to go."
 evFootnotes:
   - "¹ INRIX Global Traffic Scorecard; RAC Foundation: \"Spaced Out\" report on vehicle utilisation"

@@ -22,6 +22,7 @@ phases:
       - "Garages report their models and context windows automatically, every 5 minutes"
       - "Bridge updates itself, and garageai pause takes a garage off the market for a while"
       - "GarageAI in the menu bar (macOS) and notification area (Windows): live status, models, requests"
+      - "Energy per garage: Bridge measures watt-hours and tokens per kWh (NVIDIA and Apple silicon)"
       - "Weighted pool routing: every healthy garage gets a share"
       - "Pool and specific-garage routing"
     color: "var(--color-primary)"

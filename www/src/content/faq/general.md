@@ -61,7 +61,7 @@ faqs:
   - question: "Can my company run private garages?"
     answer: "Yes, talk to us. Companies can use the API, offer their own GPUs on the marketplace, or run private garages. Contact powerup@garageai.eu about a pilot."
   - question: "Where do solar panels and EV batteries come in?"
-    answer: "That is the long-term vision, not today's product. The idea is that garage nodes can eventually run largely on locally produced energy (rooftop solar, home batteries and EV batteries). Today any machine on the grid can join."
+    answer: "That is the long-term vision, not today's product. The idea is that garage nodes can eventually run largely on locally produced energy (rooftop solar, home batteries and EV batteries). Today any machine on the grid can join, and the first step is already in place: GarageAI Bridge measures how much energy each garage uses while it serves (watt-hours, and tokens per kWh) and shows it in the GarageAI menu-bar icon."
 ---
 
 ## FAQ Items

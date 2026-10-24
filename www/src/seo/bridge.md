@@ -68,6 +68,7 @@ You set the price per million tokens, input and output. You earn it for every to
 - **It keeps itself up to date.** A heartbeat reports your models and their context windows every 5 minutes, and Bridge updates itself to the current stable release, checked against its checksum.
 - **It tells you what is wrong.** `garageai doctor` shows what runs on the machine, what is wrong and exactly how to fix it.
 - **GarageAI in your menu bar.** On macOS (menu bar) and Windows (notification area), a small GarageAI icon shows at a glance whether your garage is live, which models it serves and how many requests it handled in the last hour, with *Open My garage* and *Check this machine*. It is read-only and optional; `garageai connect` offers it at the end.
+- **It measures energy.** On NVIDIA GPUs and Apple silicon, Bridge samples power every 5 seconds and reports the energy your garage used while serving: watt-hours and tokens per kWh, per model. The menu shows today's figure, for example *Energy today: 420 Wh · 1.2M tokens/kWh*. Only the model name and the token counts are kept; prompts and answers are not stored.
 
 ## Your machine stays yours first
 
