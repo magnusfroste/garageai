@@ -275,18 +275,24 @@ func recordRequests(next http.Handler) http.Handler {
 			r.Body = reqHead
 		}
 		inFlight.Add(1)
+		// Deferred: when a buyer drops a streamed answer, the reverse proxy aborts the handler with a
+		// panic (http.ErrAbortHandler). The count must still go down and the request still be
+		// recorded, or the energy meter counts the GPU as serving forever (garage-m1, 2026-10-24:
+		// busy Wh equal to all Wh) and the aborted request is missing from the timings.
+		defer func() {
+			inFlight.Add(-1)
+			end := time.Now()
+			if rec.firstAt.IsZero() {
+				rec.firstAt = end
+			}
+			sm := Sample{At: rec.start, Path: pathClass(r.URL.Path), Status: rec.status, Streamed: rec.streamed,
+				TTFBms: int(rec.firstAt.Sub(rec.start) / time.Millisecond), TotalMs: int(end.Sub(rec.start) / time.Millisecond)}
+			if reqHead != nil {
+				sm.Model = requestModel(reqHead.buf)
+			}
+			sm.InTokens, sm.OutTokens = usageTokens(rec.head, rec.tail)
+			global.record(sm)
+		}()
 		next.ServeHTTP(rec, r)
-		inFlight.Add(-1)
-		end := time.Now()
-		if rec.firstAt.IsZero() {
-			rec.firstAt = end
-		}
-		sm := Sample{At: rec.start, Path: pathClass(r.URL.Path), Status: rec.status, Streamed: rec.streamed,
-			TTFBms: int(rec.firstAt.Sub(rec.start) / time.Millisecond), TotalMs: int(end.Sub(rec.start) / time.Millisecond)}
-		if reqHead != nil {
-			sm.Model = requestModel(reqHead.buf)
-		}
-		sm.InTokens, sm.OutTokens = usageTokens(rec.head, rec.tail)
-		global.record(sm)
 	})
 }

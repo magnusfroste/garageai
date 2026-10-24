@@ -1,6 +1,10 @@
 package tunnel
 
 import (
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -34,5 +38,30 @@ func TestPathClass(t *testing.T) {
 		if got := pathClass(p); got != want {
 			t.Errorf("%s: %s, want %s", p, got, want)
 		}
+	}
+}
+
+// A handler aborted with http.ErrAbortHandler (the reverse proxy does this when the buyer drops a
+// stream) must not leave the in-flight count up, and the request is still recorded.
+func TestAbortedRequestIsCounted(t *testing.T) {
+	before := InFlight()
+	h := recordRequests(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.ReadAll(r.Body) // as the reverse proxy does
+		w.WriteHeader(200)
+		w.Write([]byte(`data: {"usage":{"completion_tokens":7}}`))
+		panic(http.ErrAbortHandler)
+	}))
+	func() {
+		defer func() { _ = recover() }()
+		h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("POST", "/v1/chat/completions", strings.NewReader(`{"model":"m"}`)))
+	}()
+	if InFlight() != before {
+		t.Fatalf("in-flight stayed at %d after an aborted request", InFlight())
+	}
+	global.mu.Lock()
+	last := global.samples[len(global.samples)-1]
+	global.mu.Unlock()
+	if last.Model != "m" || last.OutTokens != 7 {
+		t.Fatalf("the aborted request was not recorded: %+v", last)
 	}
 }
