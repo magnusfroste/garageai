@@ -1,5 +1,7 @@
-# GarageAI Operations Center: static page and ops.json. Traefik in front does TLS and basic auth,
-# and passes the signed-in user in X-Ops-User.
+# GarageAI Operations Center: static page and ops.json. Traefik in front does TLS and rate limits;
+# sign-in is here: every request is checked with auth_request against the ops API's session cookie
+# (garageai-ops-api: /api/auth), and an unsigned browser is sent to /login (since 2026-10-24; basic
+# auth before, which browsers forget on every restart).
 #
 # A template: the nginx image fills in ${OPS_CHAT_KEY} (from /opt/garageai/ops/.env) at start, so the
 # key for the Chat page lives only on the server. The browser never sees it.
@@ -9,9 +11,31 @@ server {
     root /usr/share/nginx/html;
     server_tokens off;
 
+    auth_request /_auth;
+    auth_request_set $ops_user $upstream_http_x_ops_user;
+    error_page 401 = @signin;
+    location @signin { return 302 /login; }
+
+    location = /_auth {
+        internal;
+        proxy_pass http://host.docker.internal:8781/api/auth;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header Cookie $http_cookie;
+        proxy_set_header X-Ops-Api-Key "${OPS_API_KEY}";
+    }
+    # The sign-in form and its POST, and sign-out: no session needed.
+    location ~ ^/(login|logout)$ {
+        auth_request off;
+        proxy_pass http://host.docker.internal:8781;
+        proxy_set_header X-Ops-Api-Key "${OPS_API_KEY}";
+        proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+        client_max_body_size 4k;
+    }
+
     location = /whoami {
         default_type application/json;
-        return 200 '{"user":"$http_x_ops_user"}';
+        return 200 '{"user":"$ops_user"}';
     }
     # Chat page: only these two LiteLLM paths, straight to the LiteLLM container on the shared Docker
     # network, with the ops-chat key (its own LiteLLM key, $5 per 30 days) added here.
@@ -29,10 +53,10 @@ server {
     }
     location /llm/ { return 404; }
     # The page's only write: its own silences, kept by a small API on the host (garageai-ops-api).
-    # Traefik's basic auth guards it and supplies X-Ops-User, which the API requires.
+    # The session check above guards it and supplies the signed-in user, which the API requires.
     location /api/ {
         proxy_pass http://host.docker.internal:8781;
-        proxy_set_header X-Ops-User $http_x_ops_user;
+        proxy_set_header X-Ops-User $ops_user;
         proxy_set_header X-Ops-Api-Key "${OPS_API_KEY}";
         client_max_body_size 4k;
     }
