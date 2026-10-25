@@ -138,7 +138,7 @@ already serves models; "not yet" on linux/arm64 (DGX Spark), Intel Macs and Wind
 have no Runner build. Models are Runner's own measured ones: Qwen3-30B-A3B selective (18 GB) from
 22 GB of VRAM, 32 GB of unified memory or 48 GB of RAM on CPU; Granite 4.1 3B Q8_0 (3.6 GB) from
 6 GB; the Gemma 4 E2B smoke test below that. `garageai runtime install` downloads the pinned
-Runner release (`runnerfit.Version`, v1.5.1) against its SHA256SUMS into Bridge's root-only
+Runner release (`runnerfit.Version`, v1.6.0) against its SHA256SUMS into Bridge's root-only
 directory and runs `runner -hf MODEL --serve --port 8080 --ttl 0` (`--ttl 0`: the model stays
 loaded, no cold start for buyers) as a systemd unit, a launchd daemon, or on Windows a scheduled
 task at startup that runs a restarting script (Runner is not a Windows service program; a task's

@@ -1,7 +1,8 @@
 // Package runnerfit decides whether Xyntetik Runner is a good runtime for this machine, and with
 // which model. It is a pure function of what doctor already knows (OS, architecture, GPUs, memory,
 // runtimes that answer), so the recommendation is testable and the same in doctor, connect and
-// `garageai runtime`. Facts about Runner come from its README and MANUAL (v1.5.1, 2026-10-23):
+// `garageai runtime`. Facts about Runner come from its README and MANUAL (v1.6.0, 2026-10-24), and its validated
+// models from its docs/model-tiers.json at that release (tiers.go):
 // release binaries for linux/amd64, darwin/arm64 and windows/amd64; NVIDIA through CUDA with a
 // driver from the R580 series or newer (no toolkit); Apple silicon through Metal; no Vulkan, so
 // AMD and Intel graphics use the CPU path.
@@ -15,7 +16,7 @@ import (
 
 // Version is the Runner release Bridge installs. Pinned, like Bridge's own stable version: Runner
 // releases often (three in two days), and a new one is tried on our garages before it moves here.
-const Version = "v1.5.1"
+const Version = "v1.6.0"
 
 // Port Runner serves on (its default). Loopback only by design; the Bridge tunnel reaches it there.
 const Port = 8080
@@ -125,6 +126,13 @@ func Assess(m Machine) Assessment {
 		a.Reasons = append(a.Reasons, "No GPU Runner can use: it runs on the processor.")
 	}
 
+	// First choice: a model Runner itself validated on this backend at the pinned release. The
+	// memory a model may use: a discrete card's VRAM, or 60 % of unified memory or RAM (the rest is
+	// the system's and the KV cache's).
+	modelBudget := float64(budgetGB)
+	if a.Backend != "CUDA" || budgetGB == m.MemoryGB {
+		modelBudget = float64(m.MemoryGB) * 0.6
+	}
 	switch {
 	// 22 GB: an 18 GB file plus its KV cache; a "24 GB" card reports 23.9.
 	case a.Backend != "CPU" && budgetGB >= 22, a.Backend == "Metal" && m.MemoryGB >= 32, a.Backend == "CPU" && m.MemoryGB >= 48:
@@ -133,6 +141,12 @@ func Assess(m Machine) Assessment {
 		a.Model = granite
 	default:
 		a.Model = gemmaSmoke
+	}
+	// A validated model wins unless it is much smaller than what the machine can run: Runner has
+	// validated few models per backend so far (one on Metal), and a 64 GB Mac should not get a 2.6 GB
+	// model because it is the only one on the list.
+	if v, ok := validatedModel(a.Backend, modelBudget); ok && v.SizeGB >= a.Model.SizeGB*0.75 {
+		a.Model = v
 	}
 
 	if a.Backend == "CPU" {
