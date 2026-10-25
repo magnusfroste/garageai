@@ -1,7 +1,8 @@
 ## In short
 
-- GarageAI is a marketplace. It connects people who need AI inference ("buyers") with
-  independent people and companies who run open AI models on their own hardware ("operators").
+- GarageAI is an open innovation project in beta and a marketplace. It connects people who need
+  AI inference ("buyers") with independent people and companies who share open AI models on their
+  own hardware ("operators").
 - GarageAI does not own the hardware, does not run the models and does not write the answers.
   Operators are independent: not our employees, agents or subcontractors.
 - AI answers can be wrong. You decide what to do with them.
@@ -58,9 +59,10 @@ revoke it in the portal.
 - **Your garage, your responsibility.** You provide and are responsible for your hardware,
   software, electricity, internet connection, cooling, wear and any damage to your equipment,
   and for following your internet provider's, landlord's or employer's rules.
-- **Models.** You only offer models you have the right to run, and you follow their licences
-  (some restrict commercial use, user numbers or purposes). You do not offer models that are
-  modified to produce illegal content.
+- **Models.** You only offer models you have the right to run for others, and you follow their
+  licences (some restrict commercial use, user numbers or purposes). This includes your own
+  fine-tunes and distills: the base model's licence applies to them too and must allow serving the
+  derived model to others. You do not offer models that are modified to produce illegal content.
 - **Confidentiality.** You do not log, store, read, forward or analyse buyers' prompts or answers,
   and you do not enable request logging in your runtime. A garage found doing so is removed and
   the account closed.
@@ -73,11 +75,13 @@ revoke it in the portal.
 - **Earnings and taxes.** Earnings are shown in the portal. Until payouts exist they cannot be
   withdrawn as money. When earnings can be used as GarageAI credits, everything you have earned
   from the start of the service is added to your account as credits. Only requests paid with
-  purchased credits create earnings; requests paid with free starting credits do not. Payout terms
-  will be added before bank payouts start; bank payouts cover earnings from the day they start.
+  purchased credits create earnings; requests paid with free starting credits do not. Bank payouts are
+  planned but not yet scheduled; payout terms will be added before they start, and they cover
+  earnings from the day they start.
 - **One account, no self-dealing.** One person or company uses one account. Creating accounts to
   send requests to your own garage, or any other way of generating earnings without real buyers,
-  is not allowed; earnings from it are forfeited and the accounts may be closed. You are responsible for your own taxes and VAT; GarageAI may have to report your
+  is not allowed; earnings from it are forfeited and the accounts may be closed. Using your own
+  garage from your own account through My machine is allowed: it is free and creates no earnings. You are responsible for your own taxes and VAT; GarageAI may have to report your
   earnings to the tax authority.
 - **Independence.** You act on your own behalf. Nothing in these terms makes you GarageAI's
   employee, agent, partner or subcontractor.
@@ -104,7 +108,8 @@ will tell you why unless the law or safety prevents it.
 ## 8. Availability and changes
 
 The service is in beta and provided "as is" and "as available". Garages come and go; a model can
-disappear, become slower or answer differently. We do not promise any uptime, speed or result.
+disappear, become slower or answer differently, and a garage can be briefly unavailable to buyers
+while its owner uses it. We do not promise any uptime, speed or result.
 We may change, pause or stop features. If we stop the whole service, we refund unused prepaid
 credits.
 
