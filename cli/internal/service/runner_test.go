@@ -16,3 +16,19 @@ func TestParseRunnerCmdline(t *testing.T) {
 		t.Fatal("no -hf must be !ok")
 	}
 }
+
+func TestParseRunnerVersion(t *testing.T) {
+	for out, want := range map[string]string{
+		"runner 1.4.2\n":                "v1.4.2",
+		"runner 1.6.0 (cuda)\n":         "v1.6.0",
+		"runner v1.5.1\n":               "v1.5.1",
+		"runner 1.6.0, built today\n":   "v1.6.0",
+		"runner\n":                      "",
+		"usage: runner [options] 1.2\n": "",
+		"":                              "",
+	} {
+		if got := parseRunnerVersion(out); got != want {
+			t.Errorf("parseRunnerVersion(%q) = %q, want %q", out, got, want)
+		}
+	}
+}

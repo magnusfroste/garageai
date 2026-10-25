@@ -27,6 +27,9 @@ import (
 
 const runnerStartLimit = 3 * time.Minute
 
+// runnerVersionUnknownLogged keeps the "version unknown" line to once per run.
+var runnerVersionUnknownLogged bool
+
 func maybeUpgradeRunner(cfg *service.Config) {
 	if cfg.AutoUpdate != nil && !*cfg.AutoUpdate {
 		return
@@ -36,7 +39,14 @@ func maybeUpgradeRunner(cfg *service.Config) {
 		return
 	}
 	have := service.InstalledRunnerVersion()
-	if have == "" || !newerVersion(have, runnerfit.Version) {
+	if have == "" {
+		if !runnerVersionUnknownLogged {
+			runnerVersionUnknownLogged = true
+			fmt.Printf("%s Runner version unknown (no runner.version, no answer to --version); not upgrading it\n", service.Now())
+		}
+		return
+	}
+	if !newerVersion(have, runnerfit.Version) {
 		return
 	}
 	if !runnerQuiet(settings.Port) {
