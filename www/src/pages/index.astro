@@ -57,7 +57,7 @@ const faqSchema = {
 const howToSchema = {
   '@context': 'https://schema.org',
   '@type': 'HowTo',
-  name: 'How to connect a GPU to GarageAI and earn per token',
+  name: 'How to share a GPU on GarageAI',
   description:
     'Connect a Mac, Linux or Windows machine with a GPU to GarageAI with GarageAI Bridge: one line in the terminal, approve the computer in the browser, live in a few minutes.',
   totalTime: 'PT5M',
@@ -95,7 +95,7 @@ const howToSchema = {
 
 <Layout
   title="GarageAI: Local AI Inference from European Garages"
-  description="Earn per token with the GPU you own: one line connects it with GarageAI Bridge. Or use open models through one OpenAI-compatible API, served from European garages."
+  description="Share your GPU and your models, try everyone else's: one line connects it with GarageAI Bridge. Or use open models through one OpenAI-compatible API."
 >
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(faqSchema)} />
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(howToSchema)} />

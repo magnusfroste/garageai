@@ -61,7 +61,7 @@ tracks:
       - title: "Approve your computer in the browser"
         text: "Bridge opens app.garageai.eu with a code. Check that it is your computer, pick a name for your garage and approve with one click. Bridge then opens its encrypted tunnel to the gateway by itself. You open no ports, and your runtime can stay on localhost."
       - title: "Go live"
-        text: "Your models pass an acceptance test with a real streamed request, and the page shows \"Your garage is live\" with tokens per second for each model. It takes a few minutes. Set your price per million tokens in the portal; you earn it for every token you serve, also through the pool. No platform fee during launch."
+        text: "Your models pass an acceptance test with a real streamed request, and the page shows \"Your garage is live\" with tokens per second for each model. It takes a few minutes. Choose the models you share and set your price per million tokens in the portal; every token you serve, also through the pool, earns you credits for any model on the network. No platform fee during launch."
     helpText: "No runtime yet, or not sure which model fits your GPU? Pick your setup ↓"
     helpUrl: "#pick-your-setup"
     ctaText: "Connect your GPU"
@@ -70,7 +70,7 @@ tracks:
     noteLinkText: "Bridge on GitHub"
     noteLinkUrl: "https://github.com/magnusfroste/garageai/blob/main/cli/README.md"
 whyTitle: "Why GarageAI"
-whyDescription: "The principle hasn't changed. AI capacity can be built from hardware Europe already has, close to the people who use it."
+whyDescription: "AI inference has centralised fast, into a handful of clouds. GarageAI is an open experiment in the other direction: capacity and models shared by the people who own the hardware, close to the people who use them."
 whyItems:
   - icon: "🇪🇺"
     title: "Sovereign"
@@ -85,8 +85,8 @@ whyItems:
     text: "Built on WireGuard and LiteLLM. The gateway setup and GarageAI Bridge, the program that connects a garage, are in the GitHub repository for anyone to read."
     color: "var(--color-warning)"
   - icon: "💶"
-    title: "Get paid for your hardware"
-    text: "A GPU that sits idle earns nothing. On GarageAI it earns the price you set for every token it serves: first as GarageAI credits for any model, later as payouts to your bank."
+    title: "Share, explore, earn as you go"
+    text: "Share your GPU and the models you run, including your own fine-tunes and distills, and try models from other garages that the big APIs don't offer. What your garage serves earns credits for the whole network; bank payouts come later."
     color: "var(--color-tertiary)"
 ---
 

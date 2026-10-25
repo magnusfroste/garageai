@@ -31,7 +31,7 @@ operatorPoints:
   - "You earn your price for every token your garage serves. No platform fee during launch; a platform fee will be introduced later."
   - "How you get paid, in three steps. Now: every token your garage serves is counted at your price and shown in My garages."
   - "Next: use your earnings as GarageAI credits on any model, for example larger models than your own machine runs. Everything earned from launch carries over; requests paid with free starting credits do not create earnings."
-  - "Later: payouts to your bank account through Stripe, monthly above a minimum, after an identity check and the tax reporting EU rules require. Bank payouts cover earnings from the day they start."
+  - "Later, not yet scheduled: payouts to your bank account through Stripe, monthly above a minimum, after an identity check and the tax reporting EU rules require. Bank payouts cover earnings from the day they start."
 poolTitle: "How the pool works"
 poolDescription: "The pool lets buyers use a model without picking a garage. Nobody sets a pool price: each request is billed at the price of the garage that answered it."
 poolSteps:

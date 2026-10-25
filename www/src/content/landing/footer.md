@@ -27,7 +27,7 @@ links:
     text: "powerup@garageai.eu"
     url: "mailto:powerup@garageai.eu"
   - icon: "💶"
-    text: "Earn with your GPU"
+    text: "Share your GPU"
     url: "/bridge"
   - icon: "🔌"
     text: "OpenAI-compatible API"
