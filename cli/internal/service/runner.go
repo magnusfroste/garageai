@@ -162,7 +162,7 @@ func ParseRunnerCmdline(cmdline string) (RunnerSettings, bool) {
 func RunnerVersionPath() string { return RunnerPath() + ".version" }
 
 // InstalledRunnerVersion is the recorded release, else what the binary says (`runner --version`
-// prints "runner vX.Y.Z ..."), else "".
+// prints "runner X.Y.Z ..."), else "".
 func InstalledRunnerVersion() string {
 	if b, err := os.ReadFile(RunnerVersionPath()); err == nil {
 		if v := strings.TrimSpace(string(b)); v != "" {
