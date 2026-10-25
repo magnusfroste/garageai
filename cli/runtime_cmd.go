@@ -198,6 +198,7 @@ func runtimeInstall(args []string) int {
 		fmt.Fprintln(os.Stderr, "  ✗ Could not install Runner:", err)
 		return 1
 	}
+	service.RecordRunnerVersion(runnerfit.Version)
 	fmt.Println("  ✓ Runner installed:", bin)
 	if err := service.InstallRunner(bin, model, port, context); err != nil {
 		fmt.Fprintln(os.Stderr, "  ✗ Could not start Runner as a service:", err)

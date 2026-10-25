@@ -176,6 +176,19 @@ with the Bridge tunnel (the default), never with the NetBird fallback. Start it 
 `runner -m <model.gguf> --serve --port 8080 --parallel 2`; it reports cached prompt tokens by
 itself. Under evaluation as a recommended engine (docs/inference-engines.md §8).
 
+Runner that `garageai runtime install` installed **follows Bridge**: when a Bridge update brings
+a newer pinned Runner release, the heartbeat upgrades Runner too, only while it serves nothing
+(no active request, none in the last minute), with the same model, port and context window. The
+previous binary is kept and restored if the new one does not answer within 3 minutes. Turn it off
+with `garageai connect --no-auto-update` (the same switch as Bridge's own updates).
+
+### `runner_update_failed` (warning)
+Bridge tried to move Runner to the release it pins, the new Runner did not answer within 3
+minutes, and Bridge went back to the previous release, which serves as before (the message names
+both and the reason). Nothing is lost; the garage keeps serving. Look at Runner's log
+(`/var/log/garageai-runner.log` on Linux and macOS, `runner.log` next to Bridge on Windows) and
+try by hand with `garageai runtime install --force`; tell us what the log says.
+
 ### `no_cached_token_report` (info, vLLM)
 vLLM does not report cached prompt tokens, so buyers pay full price for prefix-cache hits. Add
 `--enable-prompt-tokens-details` to the vLLM command.

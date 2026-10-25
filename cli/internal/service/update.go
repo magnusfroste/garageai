@@ -15,6 +15,9 @@ type UpdateState struct {
 	LastUpdate string `json:"last_update,omitempty"`
 	LastError  string `json:"last_error,omitempty"`
 	Version    string `json:"version,omitempty"` // the version installed by the last update
+	// Bridge's Runner follows Bridge (runner_update.go): the last upgrade and why one failed.
+	RunnerUpdate string `json:"runner_update,omitempty"`
+	RunnerError  string `json:"runner_error,omitempty"`
 }
 
 func UpdateStatePath() string {

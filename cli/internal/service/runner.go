@@ -120,6 +120,88 @@ func InstallRunner(bin, model string, port, context int) error {
 	return fmt.Errorf("Runner as a service is not implemented on %s", runtime.GOOS)
 }
 
+// RunnerSettings is how Bridge's Runner service runs: what an upgrade must keep.
+type RunnerSettings struct {
+	Model   string
+	Port    int
+	Context int
+}
+
+// RunnerConfig reads the model, port and context window from the installed service's command line.
+func RunnerConfig() (RunnerSettings, bool) {
+	cmdline, ok := runnerCmdline()
+	if !ok {
+		return RunnerSettings{}, false
+	}
+	return ParseRunnerCmdline(cmdline)
+}
+
+// ParseRunnerCmdline reads -hf, --port and -c from a service definition (systemd unit, launchd
+// plist with its <string> tags removed, or the Windows script).
+func ParseRunnerCmdline(cmdline string) (RunnerSettings, bool) {
+	st := RunnerSettings{Port: 8080}
+	f := strings.Fields(strings.NewReplacer(`"`, " ").Replace(cmdline))
+	for i := 0; i+1 < len(f); i++ {
+		switch f[i] {
+		case "-hf":
+			st.Model = f[i+1]
+		case "--port":
+			if n, err := strconv.Atoi(f[i+1]); err == nil {
+				st.Port = n
+			}
+		case "-c":
+			if n, err := strconv.Atoi(f[i+1]); err == nil {
+				st.Context = n
+			}
+		}
+	}
+	return st, st.Model != ""
+}
+
+// RunnerVersionPath records which Runner release Bridge installed (written at install and upgrade).
+func RunnerVersionPath() string { return RunnerPath() + ".version" }
+
+// InstalledRunnerVersion is the recorded release, else what the binary says (`runner --version`
+// prints "runner vX.Y.Z ..."), else "".
+func InstalledRunnerVersion() string {
+	if b, err := os.ReadFile(RunnerVersionPath()); err == nil {
+		if v := strings.TrimSpace(string(b)); v != "" {
+			return v
+		}
+	}
+	out, err := exec.Command(RunnerPath(), "--version").Output()
+	if err != nil {
+		return ""
+	}
+	for _, w := range strings.Fields(string(out)) {
+		if strings.HasPrefix(w, "v") && strings.Count(w, ".") == 2 {
+			return strings.TrimRight(w, ",;")
+		}
+	}
+	return ""
+}
+
+// RecordRunnerVersion writes the installed release.
+func RecordRunnerVersion(v string) { _ = os.WriteFile(RunnerVersionPath(), []byte(v+"\n"), 0o644) }
+
+func runnerCmdline() (string, bool) {
+	switch runtime.GOOS {
+	case "linux":
+		b, err := os.ReadFile(runnerUnitPath)
+		return string(b), err == nil
+	case "darwin":
+		b, err := os.ReadFile(runnerPlistPath)
+		return strings.NewReplacer("<string>", " ", "</string>", " ").Replace(string(b)), err == nil
+	case "windows":
+		if err := exec.Command("schtasks", "/Query", "/TN", WindowsRunner).Run(); err != nil {
+			return "", false
+		}
+		b, _ := os.ReadFile(filepath.Join(filepath.Dir(RunnerPath()), "runner-service.cmd"))
+		return string(b), true
+	}
+	return "", false
+}
+
 // RunnerInstalled reports whether Bridge's Runner service exists, and the model it serves.
 func RunnerInstalled() (installed bool, model string) {
 	var cmdline string
