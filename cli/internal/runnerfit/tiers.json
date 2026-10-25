@@ -1,0 +1,508 @@
+{
+ "source": "Joakimpalm-Zen/xyntetik-runner docs/model-tiers.json at v1.6.0 (tier1, single-file rows, passing backends only)",
+ "schema": "xyntetik.runner.model-tiers.v1",
+ "rows": [
+  {
+   "id": "cloudflare-clef-iq3_m",
+   "model": "Cloudflare Clef (clef, on Qwen3.8-27B)",
+   "quantization": "IQ3_M",
+   "features": [
+    "decisions"
+   ],
+   "repo": "bartowski/Cloudflare_clef-GGUF",
+   "file": "Cloudflare_clef-IQ3_M.gguf",
+   "bytes": 13776408640,
+   "sha256": "4977cdedb8784ed414ae03e17ff0ee33f1be1d6bc89370114ebcbc6c5f818975",
+   "pass": {
+    "cuda": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "qwen3.8-27b-ud-q4_k_m",
+   "model": "Qwen3.8-27B",
+   "quantization": "UD-Q4_K_M (with 4 IQ3_S tensors)",
+   "features": [
+    "text"
+   ],
+   "repo": "unsloth/Qwen3.8-27B-GGUF",
+   "file": "Qwen3.8-27B-UD-Q4_K_M.gguf",
+   "bytes": 16464440224,
+   "sha256": "322e194ff79741c7baa497c240f677f54b201b0efab44ca8e50f122b39123482",
+   "pass": {
+    "cuda": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "gemma-4-12b-it-qat-q4_0",
+   "model": "Gemma 4 12B",
+   "quantization": "Q4_0 (Google QAT)",
+   "features": [
+    "text",
+    "tools:gemma4"
+   ],
+   "repo": "google/gemma-4-12B-it-qat-q4_0-gguf",
+   "file": "gemma-4-12b-it-qat-q4_0.gguf",
+   "bytes": 6975879296,
+   "sha256": "93567e57a8fe10b23569b9d9ec38cd005deedf71e29477c421a4b83f418a538b",
+   "pass": {
+    "cuda": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "gemma-4-26b-a4b-it-qat-q4_0",
+   "model": "Gemma 4 26B-A4B",
+   "quantization": "Q4_0 (Google QAT)",
+   "features": [
+    "text"
+   ],
+   "repo": "google/gemma-4-26B-A4B-it-qat-q4_0-gguf",
+   "file": "gemma-4-26B_q4_0-it.gguf",
+   "bytes": 14439363584,
+   "sha256": "3eca3b8f6d7baf218a7dd6bba5fb59a56ee25fe2d567b6f5f589b4f697eca51d",
+   "pass": {
+    "cuda": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "gemma-4-31b-it-q4_0",
+   "model": "Gemma 4 31B",
+   "quantization": "Q4_0 (ggml-org, post-training)",
+   "features": [
+    "text"
+   ],
+   "repo": "ggml-org/gemma-4-31B-it-GGUF",
+   "file": "gemma-4-31B-it-Q4_0.gguf",
+   "bytes": 17992313088,
+   "sha256": "031dc1c5fa9c5a0abbf3c39c5173fb2af65f5ac2dc2a090268561d3c72dcd834",
+   "pass": {
+    "cuda": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "muse-glimmer-30b-kquant",
+   "model": "Muse-Glimmer-30B",
+   "quantization": "Q4_K_M (Meta)",
+   "features": [
+    "text"
+   ],
+   "repo": "meta-models/Muse-Glimmer-30B-GGUF",
+   "file": "Muse-Glimmer-30B-KQuant-17GB-Q4_K_M.gguf",
+   "bytes": 16756683904,
+   "sha256": "4cc57c0f51040a226e5a72cc47b7613f7772950e460a665f7083de89f183f60e",
+   "pass": {
+    "cuda": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "granite-4.2-8b-q4_k_m",
+   "model": "Granite-4.2-8B",
+   "quantization": "Q4_K_M (IBM)",
+   "features": [
+    "text",
+    "tools:granite42"
+   ],
+   "repo": "ibm-granite/granite-4.2-8b-GGUF",
+   "file": "granite-4.2-8b-Q4_K_M.gguf",
+   "bytes": 5347917952,
+   "sha256": "16a9369d0805f80b7377d25d87f937a90c05dc04ad79173a52001e42c9aab311",
+   "pass": {
+    "cuda": {
+     "date": "2026-10-23",
+     "device_class": "windows-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "granite-4.2-8b-q8_0",
+   "model": "Granite-4.2-8B",
+   "quantization": "Q8_0 (IBM)",
+   "features": [
+    "text"
+   ],
+   "repo": "ibm-granite/granite-4.2-8b-GGUF",
+   "file": "granite-4.2-8b-Q8_0.gguf",
+   "bytes": 9345613952,
+   "sha256": "fb66ad5750680c77c76b9dc095961375f14fc88ba15fd5fc084ef6e6701bad77",
+   "pass": {
+    "cuda": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "trinity-nano-preview-q8_0",
+   "model": "Trinity Nano",
+   "quantization": "Q8_0",
+   "features": [
+    "text"
+   ],
+   "repo": "arcee-ai/Trinity-Nano-Preview-GGUF",
+   "file": "Trinity-Nano-Preview-Q8_0.gguf",
+   "bytes": 6531428640,
+   "sha256": "5fcc2428c325e8b2035d280ff28c4c659ea240ce317a9536f230acfc352b79d1",
+   "pass": {
+    "cpu": {
+     "date": "2026-10-23",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "qwen3.8-27b-gsq-rco-iq3_s-recovered",
+   "model": "Qwen3.8-27B",
+   "quantization": "IQ3_S codebook mix, recovered scales",
+   "features": [
+    "text",
+    "tools:qwen38"
+   ],
+   "repo": "Joakimpalm-Zen/Qwen3.8-27B-GSQ-RCO-IQ3_S-recovered-GGUF",
+   "file": "Qwen3.8-27B-GSQ-RCO-IQ3_S-recovered.gguf",
+   "bytes": 11771546784,
+   "sha256": "873df48dd3ecf205f73c29716e80fbe766e4202ef4ed394b2c24607a8628458f",
+   "pass": {
+    "cuda": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "qwen3.8-27b-mtp-q8_0",
+   "model": "Qwen3.8-27B",
+   "quantization": "Q8_0",
+   "features": [
+    "mtp"
+   ],
+   "repo": "Joakimpalm-Zen/Qwen3.8-27B-GSQ-RCO-IQ3_S-recovered-GGUF",
+   "file": "Qwen3.8-27B-MTP-Q8_0.gguf",
+   "bytes": 3164006784,
+   "sha256": "89e31f13400bac27b888f10bab02ff4d8da1f8610fa078dc32f9f3f0d2b6f6c9",
+   "pass": {
+    "cuda": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "xyntetik-kvist-14b-bf16",
+   "model": "Xyntetik-Kvist-14B",
+   "quantization": "BF16",
+   "features": [
+    "text"
+   ],
+   "repo": "Joakimpalm-Zen/Xyntetik-Kvist-14B-GGUF",
+   "file": "Xyntetik-Kvist-14B-BF16.gguf",
+   "bytes": 28903141184,
+   "sha256": "daf422db9d0853d53ec8abb8fe9cd3f1e33ea53dffe7cca476225fbe1bc5d5c6",
+   "pass": {
+    "cpu": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "xyntetik-kvist-14b-q8_0",
+   "model": "Xyntetik-Kvist-14B",
+   "quantization": "Q8_0",
+   "features": [
+    "text"
+   ],
+   "repo": "Joakimpalm-Zen/Xyntetik-Kvist-14B-GGUF",
+   "file": "Xyntetik-Kvist-14B-Q8_0.gguf",
+   "bytes": 15363224384,
+   "sha256": "cdb73543a6fc22f7faa5bbab0176ab2d5b1b590b46870d2d22f2a2510caaacb6",
+   "pass": {
+    "cuda": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "xyntetik-kvist-14b-q5_0-mix",
+   "model": "Xyntetik-Kvist-14B",
+   "quantization": "Q5_0 mix",
+   "features": [
+    "text"
+   ],
+   "repo": "Joakimpalm-Zen/Xyntetik-Kvist-14B-GGUF",
+   "file": "Xyntetik-Kvist-14B-Q5_0-mix.gguf",
+   "bytes": 10295023424,
+   "sha256": "37af54b4cef4445bbbf23e8fbf0ceec8dc9b01b38dab0dc7f9e2bd2fd79f3a56",
+   "pass": {
+    "cuda": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "xyntetik-kvist-14b-iq4_nl-mix",
+   "model": "Xyntetik-Kvist-14B",
+   "quantization": "IQ4_NL mix",
+   "features": [
+    "text"
+   ],
+   "repo": "Joakimpalm-Zen/Xyntetik-Kvist-14B-GGUF",
+   "file": "Xyntetik-Kvist-14B-IQ4_NL-mix.gguf",
+   "bytes": 7612384384,
+   "sha256": "c74b27a5a39c894c4d1a1a2ae140de0cee125fc5cc9a7c96db9b7355bf8709a3",
+   "pass": {
+    "cuda": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "qwen3-30b-a3b-expq4_0-attnq8_0",
+   "model": "Qwen3-30B-A3B selective precision",
+   "quantization": "Q8_0 attention / Q4_0 experts",
+   "features": [
+    "text"
+   ],
+   "repo": "Joakimpalm-Zen/Qwen3-30B-A3B-selective-attnQ8_0-expQ4_0-GGUF",
+   "file": "Qwen3-30B-A3B-expq4_0-attnq8_0.gguf",
+   "bytes": 17988417024,
+   "sha256": "df02efa815a74e6207f9e01f2d38272c1e2718bb23aec544709a02a2c7d5b206",
+   "pass": {
+    "cuda": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "qwen3-coder-30b-a3b-instruct-keep120-q4_k_m",
+   "model": "Qwen3-Coder-30B-A3B keep-120",
+   "quantization": "Q4_K_M, 120 experts",
+   "features": [
+    "text"
+   ],
+   "repo": "Joakimpalm-Zen/Qwen3-Coder-30B-A3B-Instruct-keep120-Q4_K_M-GGUF",
+   "file": "Qwen3-Coder-30B-A3B-Instruct-keep120-Q4_K_M.gguf",
+   "bytes": 17531967808,
+   "sha256": "3ac8568224a15ea49db6affdd195ba48e8b2d7c6325c7849b9829381e89163a1",
+   "pass": {
+    "cuda": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "gemma-4-e2b-it-q4_k_m-q4_0-mix",
+   "model": "Gemma 4 E2B",
+   "quantization": "Q4_K_M/Q4_0 mix",
+   "features": [
+    "text"
+   ],
+   "repo": "Joakimpalm-Zen/gemma-4-E2B-it-Q4_0-GGUF",
+   "file": "gemma-4-E2B-it-Q4_K_M-Q4_0-mix.gguf",
+   "bytes": 2631015904,
+   "sha256": "16ffaa2ea568e7a0c9b5c6ddbd39a376879f9ac007861334974de39f4cc52e3f",
+   "pass": {
+    "cpu": {
+     "date": "2026-10-23",
+     "device_class": "macos-arm64-metal",
+     "runner_version": "1.5.1"
+    },
+    "metal": {
+     "date": "2026-10-23",
+     "device_class": "macos-arm64-metal",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "nvidia-nemotron-nano-9b-v2-q8_0",
+   "model": "NVIDIA Nemotron Nano 9B v2",
+   "quantization": "Q8_0",
+   "features": [
+    "text"
+   ],
+   "repo": "Joakimpalm-Zen/NVIDIA-Nemotron-Nano-9B-v2-Q8_0-GGUF",
+   "file": "NVIDIA-Nemotron-Nano-9B-v2-Q8_0.gguf",
+   "bytes": 9458093632,
+   "sha256": "d3224286484df1ae79c2b74d2a0913e1bbb5a364b0dd7c1061c95fa97ee608d7",
+   "pass": {
+    "cuda": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "gemma-4-31b-it-attn48-removed-q4_0",
+   "model": "Gemma 4 31B, attention block 48 removed",
+   "quantization": "Q4_0 (Google QAT), one attention sublayer removed",
+   "features": [
+    "text"
+   ],
+   "repo": "Joakimpalm-Zen/gemma-4-31B-it-attn48-removed-Q4_0-GGUF",
+   "file": "gemma-4-31B-it-attn48-removed-q4_0.gguf",
+   "bytes": 17576681600,
+   "sha256": "d7eaef9a8c05d8ad5cc63e4b37767113498b6ec6a31863519f5399f12cdb3134",
+   "pass": {
+    "cuda": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "muse-glimmer-30b-surgical-4p75-q4_k",
+   "model": "Muse-Glimmer-30B surgical",
+   "quantization": "Q4_K",
+   "features": [
+    "text"
+   ],
+   "repo": "Joakimpalm-Zen/Muse-Glimmer-30B-Surgical-Q4_K-GGUF",
+   "file": "Muse-Glimmer-30B-surgical-4p75-Q4_K.gguf",
+   "bytes": 15686266304,
+   "sha256": "103aa117dfce88974bd78e03ee6ca6601c720f01a1ec24ee1cfd0e5fe2f77ce6",
+   "pass": {
+    "cuda": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "muse-glimmer-30b-surgical-6p34-q8_0",
+   "model": "Muse-Glimmer-30B surgical",
+   "quantization": "Q8_0",
+   "features": [
+    "text"
+   ],
+   "repo": "Joakimpalm-Zen/Muse-Glimmer-30B-Surgical-Q8_0-GGUF",
+   "file": "Muse-Glimmer-30B-surgical-6p34-Q8_0.gguf",
+   "bytes": 29612961216,
+   "sha256": "d7bb5c6f3b7170160322c684f338c0db630ea24ab09b896a6c97c8c415f58d4d",
+   "pass": {
+    "cpu": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "muse-glimmer-30b-surgical-6p34-q4_k-recovered",
+   "model": "Muse-Glimmer-30B surgical",
+   "quantization": "Q4_K, recovered scales",
+   "features": [
+    "text"
+   ],
+   "repo": "Joakimpalm-Zen/Muse-Glimmer-30B-Surgical-6p34-Q4_K-recovered-GGUF",
+   "file": "Muse-Glimmer-30B-surgical-6p34-Q4_K-recovered.gguf",
+   "bytes": 15686266304,
+   "sha256": "12a429483b18aefcfd9cdc41afb156f339d610be0fdd66fdaf5391e9df1cbb19",
+   "pass": {
+    "cuda": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "qwen3-4b-runner-tooluse-merged-q8_0",
+   "model": "Qwen3-4B Runner ToolUse",
+   "quantization": "Q8_0",
+   "features": [
+    "text"
+   ],
+   "repo": "Joakimpalm-Zen/Qwen3-4B-Runner-ToolUse-Q4_K_M",
+   "file": "merged-Q8_0.gguf",
+   "bytes": 4280405440,
+   "sha256": "b9d21e525d91b20a1fc3437cf34c7ecfa03afda722d960b95bcfd113f2b7ea02",
+   "pass": {
+    "cuda": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "qwen3-4b-runner-tooluse-lora",
+   "model": "Qwen3-4B Runner ToolUse",
+   "quantization": "adapter (F32/F16 LoRA tensors)",
+   "features": [
+    "adapters"
+   ],
+   "repo": "Joakimpalm-Zen/Qwen3-4B-Runner-ToolUse-Q4_K_M",
+   "file": "Qwen3-4B-ToolUse-LoRA.gguf",
+   "bytes": 66094752,
+   "sha256": "ea38f80c33d381c9aa62c874920d2fa058dd307e7186e9b7c347d782f35b88e4",
+   "pass": {
+    "cpu": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "qwen3.8-flash-next-mtp-q8_0",
+   "model": "Qwen3.8-Flash-Next",
+   "quantization": "Q8_0",
+   "features": [
+    "mtp"
+   ],
+   "repo": "Joakimpalm-Zen/Qwen3.8-Flash-Next-MTP-GGUF",
+   "file": "Qwen3.8-Flash-Next-MTP-Q8_0.gguf",
+   "bytes": 4165605056,
+   "sha256": "cd2f837a63f0b6ea1d951976e161fc40648932ffaf59194aed3557175638000b",
+   "pass": {
+    "cpu": {
+     "date": "2026-10-24",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.5.1"
+    }
+   }
+  }
+ ]
+}
