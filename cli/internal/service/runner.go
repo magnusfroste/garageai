@@ -173,9 +173,27 @@ func InstalledRunnerVersion() string {
 	if err != nil {
 		return ""
 	}
-	for _, w := range strings.Fields(string(out)) {
-		if strings.HasPrefix(w, "v") && strings.Count(w, ".") == 2 {
-			return strings.TrimRight(w, ",;")
+	return parseRunnerVersion(string(out))
+}
+
+// parseRunnerVersion finds the release in `runner --version` output. Runner prints "runner 1.4.2"
+// (optionally followed by a build flavour); releases are tagged "v1.4.2", so the result always
+// carries the "v".
+func parseRunnerVersion(out string) string {
+	for _, w := range strings.Fields(out) {
+		w = strings.TrimPrefix(strings.TrimRight(w, ",;"), "v")
+		parts := strings.Split(w, ".")
+		if len(parts) != 3 {
+			continue
+		}
+		ok := true
+		for _, p := range parts {
+			if p == "" || strings.Trim(p, "0123456789") != "" {
+				ok = false
+			}
+		}
+		if ok {
+			return "v" + w
 		}
 	}
 	return ""
