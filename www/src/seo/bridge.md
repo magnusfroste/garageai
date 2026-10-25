@@ -1,11 +1,11 @@
 ---
 path: "/bridge"
 title: "Earn Money With Your GPU — GarageAI Bridge"
-description: "Connect a gaming PC, Mac or Linux machine to GarageAI with one line, approve it in the browser and earn your price for every token it serves. Open source."
+description: "Share a gaming PC, Mac or Linux machine on GarageAI with one line: serve your models, try everyone else's, and earn credits for every token. Open source."
 kicker: "GarageAI Bridge · for GPU owners"
-breadcrumb: "Earn with your GPU"
-h1: "Earn money with the GPU you already own"
-lead: "GarageAI Bridge connects your computer to GarageAI's marketplace for AI inference. Run one line, approve the computer in the browser, and in a few minutes your GPU earns the price you set for every token it serves. Bridge is open source, opens no ports, and your machine stays yours first."
+breadcrumb: "Share your GPU"
+h1: "Share the GPU you already own, explore everyone's models"
+lead: "GarageAI Bridge connects your computer to GarageAI, an open network of garages that share their GPUs and models. Run one line and approve the computer in the browser: in a few minutes others can use the models you choose to share, including your own fine-tunes, and you can explore models from other garages that the big APIs don't offer. Every token you serve earns credits at the price you set. Bridge is open source, opens no ports, and your machine stays yours first."
 commands:
   - label: "macOS and Linux, in the terminal"
     command: "curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.sh | sh -s -- connect"
@@ -52,13 +52,15 @@ related:
 - A runtime with a model loaded: **Ollama, LM Studio, llama.cpp, vLLM, SGLang** or **Xyntetik Runner**. No runtime yet? `garageai runtime` checks whether Xyntetik Runner, a one-file engine made in Sweden, fits your machine, and `garageai runtime install` sets it up with a model.
 - A normal home or office internet connection. You open no ports on your router.
 
-## How you get paid
+## What you get back
 
-You set the price per million tokens, input and output. You earn it for every token your garage serves, whether a buyer picked your garage or the request came through the pool, and there is no platform fee during launch.
+**Access to more models.** Other garages share models you may not find elsewhere: community fine-tunes, distills and models in other languages, all through the same API.
+
+**Credits.** You set the price per million tokens, input and output. You earn it for every token your garage serves, whether a buyer picked your garage or the request came through the pool, and there is no platform fee during launch.
 
 - **Now:** every token your garage serves is counted at your price and shown in *My garages*.
 - **Next:** use your earnings as GarageAI credits on any model, for example larger models than your own machine runs. Everything earned from launch carries over.
-- **Later:** payouts to your bank account through Stripe.
+- **Later, not yet scheduled:** payouts to your bank account through Stripe.
 
 ## What Bridge does on your computer
 

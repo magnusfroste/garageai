@@ -34,7 +34,6 @@ phases:
     status: "upcoming"
     items:
       - "Use your earnings as credits on any model (everything earned from launch carries over)"
-      - "Payouts to your bank account through Stripe"
       - "Bridge pauses automatically when you game or render"
       - "Models chosen in the portal and by Smart for Xyntetik Runner too"
       - "A TCP fallback for networks that block UDP (until then, the NetBird mesh)"
@@ -49,6 +48,7 @@ phases:
     badgeColor: "var(--color-warning)"
     status: "upcoming"
     items:
+      - "Payouts to your bank account through Stripe (not yet scheduled)"
       - "A control panel in Bridge: see what your GPU can earn and go live with one click"
       - "Sell when your machine is idle, or when electricity is cheap"
       - "Garages powered by solar, home batteries and EV batteries"

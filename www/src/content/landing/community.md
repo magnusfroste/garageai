@@ -25,14 +25,15 @@ buildItems:
   - "Read or improve GarageAI Bridge, the program that connects a garage: cli/"
   - "Report issues and ideas on GitHub"
   - "Share how you run your garage so others can learn from it"
+  - "Serve your own fine-tune or distill so others can try it"
 spreadTitle: "🌍 Spread the Vision"
 spreadItems:
-  - "Tell people with idle GPUs that they can earn from them"
+  - "Tell people with a GPU and a favourite model that they can share both"
   - "Point developers to an OpenAI-compatible, Europe-first alternative"
   - "Introduce us to companies interested in a pilot"
   - "Talk to your local energy company about solar and EV batteries"
 joinTitle: "Join Early"
-joinText: "The first garages are live. Offer your GPU, use the API, or follow along on GitHub."
+joinText: "The first garages are live. Share your GPU and your models, try everyone else's, or follow along and talk to us on GitHub."
 joinButtons:
   - text: "🚀 Offer Your GPU"
     url: "https://app.garageai.eu/connect"
