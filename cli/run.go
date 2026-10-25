@@ -74,6 +74,7 @@ func heartbeat(cfg *service.Config, client *portal.Client) int {
 	}
 	fmt.Println(line)
 	maybeSelfUpdate(cfg, res)
+	maybeUpgradeRunner(cfg)
 	// Managed models: fetch or remove what the portal wants. beat re-reads the inventory and
 	// re-sends the heartbeat: during a long pull so the garage does not look dead, and after a
 	// reconcile that changed anything so the portal sees the outcome and the new model together
@@ -166,6 +167,9 @@ func agent(cfg *service.Config) *portal.Agent {
 	}
 	for _, m := range service.ModelStates(service.LoadModelsState()) {
 		a.Models = append(a.Models, portal.AgentModel{Model: m.Model, Status: m.Status, By: m.By, CompletedMB: m.CompletedMB, TotalMB: m.TotalMB, Error: m.Error, At: m.At})
+	}
+	if e := ust.RunnerError; e != "" {
+		a.Problems = append(a.Problems, portal.AgentProblem{Severity: "warning", Code: "runner_update_failed", Message: e})
 	}
 	for _, pr := range p.Problems {
 		// The heartbeat's own state is known where it arrives, and the log doctor reads it from is
