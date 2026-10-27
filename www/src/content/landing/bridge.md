@@ -34,7 +34,7 @@ features:
     color: "var(--color-warning)"
   - icon: "🩺"
     title: "garageai doctor, and a runtime if you have none"
-    text: "doctor shows what runs on your machine, what is wrong and exactly how to fix it. No runtime yet? garageai runtime checks whether Xyntetik Runner, a one-file engine made in Sweden, fits your machine, and garageai runtime install sets it up as a service with a model."
+    text: "doctor shows what runs on your machine, what is wrong and exactly how to fix it. No runtime yet? garageai runtime checks whether Xyntetik Runner, a one-file engine made in Sweden, fits your machine, and garageai runtime install sets it up as a service with a model; Bridge then keeps it up to date, updating only when the machine is quiet and rolling back if anything fails."
     color: "var(--color-tertiary)"
   - icon: "🔄"
     title: "Keeps itself and your garage up to date"
