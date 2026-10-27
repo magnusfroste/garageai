@@ -50,6 +50,7 @@ Buyers ──HTTPS──▶ LiteLLM gateway (EU) ──WireGuard tunnel (Bridge)
 | [`infra/gateway/`](infra/gateway/README.md) | The core on one EU VPS: LiteLLM gateway and its routing rules, the Bridge tunnel hub, Operations Center, health checks, backups (NetBird only as the fallback for networks that block UDP) |
 | [`www/`](www) | The Astro site at [www.garageai.eu](https://www.garageai.eu): page copy in [`www/src/content/`](www/src/content), legal texts in [`www/src/legal/`](www/src/legal) |
 | [`scripts/garageai-connect.sh`](scripts/garageai-connect.sh) | The previous connect script, kept as a backup and reference (Windows: `garageai-connect.ps1`) |
+| [`docs/www-and-portal.md`](docs/www-and-portal.md) | Who does what: the site (explain, persuade, search) and the portal (do, live data), and who owns each touchpoint |
 | [`docs/architecture.md`](docs/architecture.md) | Where logic lives: portal, gateway, Bridge, Operations Center; the control plane later |
 | [`docs/bridge.md`](docs/bridge.md) | Bridge's vision and roadmap |
 | [`docs/garage-troubleshooting.md`](docs/garage-troubleshooting.md) | What each problem Bridge reports means and how to fix it |
