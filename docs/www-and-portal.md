@@ -38,5 +38,5 @@ links.
 
 - Portal meta description still reads "earn money with your own GPU": change to the site's wording, for example "Share your GPU and your models, try everyone else's: open models from garages across Europe through one OpenAI-compatible API."
 - Portal page titles: one per page (Models, Garages, Documentation) instead of the same title everywhere.
-- The portal's nav item **Pricing** points to `/models`; `/pricing` is a 404. Either point it to `https://www.garageai.eu/#pricing` or name it Models.
+- **Pricing is not a menu item on either site** (decided 2026-10-27). What drives this audience is which models exist, whether they work and whether it is safe; price is a detail per model. Prices show per model in the portal's catalogue, and how pricing works is explained at `https://www.garageai.eu/#pricing`, linked from the catalogue. The section stays on the site, reachable by search and links, not from the nav.
 - A public, signed-out endpoint with the catalogue (and later network figures), so the site can build a static, crawlable model list at build time without copying data.

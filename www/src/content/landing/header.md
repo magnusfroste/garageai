@@ -14,8 +14,6 @@ navLinks:
     sectionId: "how-it-works"
   - label: "Technology"
     sectionId: "technology"
-  - label: "Pricing"
-    sectionId: "pricing"
   - label: "For Business"
     sectionId: "for-business"
   - label: "Roadmap"
