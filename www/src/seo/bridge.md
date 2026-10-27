@@ -49,7 +49,7 @@ related:
 ## What you need
 
 - **macOS** (Apple silicon), **Linux** or **Windows**, with a GPU.
-- A runtime with a model loaded: **Ollama, LM Studio, llama.cpp, vLLM, SGLang** or **Xyntetik Runner**. No runtime yet? `garageai runtime` checks whether Xyntetik Runner, a one-file engine made in Sweden, fits your machine, and `garageai runtime install` sets it up with a model.
+- A runtime with a model loaded: **Ollama, LM Studio, llama.cpp, vLLM, SGLang** or **Xyntetik Runner**. No runtime yet? `garageai runtime` checks whether Xyntetik Runner, a one-file engine made in Sweden, fits your machine, and `garageai runtime install` sets it up with a model. Bridge keeps it up to date from then on: it updates when the machine is quiet and rolls back if anything fails.
 - A normal home or office internet connection. You open no ports on your router.
 
 ## What you get back
