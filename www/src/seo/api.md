@@ -37,8 +37,8 @@ commands:
 ctas:
   - text: "Get an API key"
     url: "https://app.garageai.eu/auth?intent=buyer"
-  - text: "See the models and prices"
-    url: "https://app.garageai.eu"
+  - text: "See the live models and prices"
+    url: "https://app.garageai.eu/models"
 faqs:
   - question: "Is the GarageAI API compatible with the OpenAI API?"
     answer: "Yes. It accepts OpenAI-format chat completions at https://api.garageai.eu/v1, including streaming, so the OpenAI SDKs for Python and JavaScript, agents and coding tools work by setting the base URL and your GarageAI key."
@@ -51,6 +51,10 @@ faqs:
   - question: "What happens when a garage goes offline?"
     answer: "In a pool, the request is retried on another garage. If the only garage serving a model is away, the API answers 503 with Retry-After, which SDKs and agents retry, rather than model not found."
 related:
+  - text: "The full API reference (in the portal)"
+    url: "https://app.garageai.eu/api"
+  - text: "The live model catalogue, and the garages behind it"
+    url: "https://app.garageai.eu/models"
   - text: "Pricing: every garage sets its own price"
     url: "/#pricing"
   - text: "Earn with your own GPU instead"
