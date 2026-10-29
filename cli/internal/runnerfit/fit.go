@@ -1,7 +1,7 @@
 // Package runnerfit decides whether Xyntetik Runner is a good runtime for this machine, and with
 // which model. It is a pure function of what doctor already knows (OS, architecture, GPUs, memory,
 // runtimes that answer), so the recommendation is testable and the same in doctor, connect and
-// `garageai runtime`. Facts about Runner come from its README and MANUAL (v1.6.0, 2026-10-24), and its validated
+// `garageai runtime`. Facts about Runner come from its README and MANUAL (v1.7.0, 2026-10-28), and its validated
 // models from its docs/model-tiers.json at that release (tiers.go):
 // release binaries for linux/amd64, darwin/arm64 and windows/amd64; NVIDIA through CUDA with a
 // driver from the R580 series or newer (no toolkit); Apple silicon through Metal; no Vulkan, so
@@ -16,7 +16,7 @@ import (
 
 // Version is the Runner release Bridge installs. Pinned, like Bridge's own stable version: Runner
 // releases often (three in two days), and a new one is tried on our garages before it moves here.
-const Version = "v1.6.0"
+const Version = "v1.7.0"
 
 // Port Runner serves on (its default). Loopback only by design; the Bridge tunnel reaches it there.
 const Port = 8080
