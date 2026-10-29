@@ -11,6 +11,11 @@ chain-test.json for the Ops page (the collector alerts when the last run failed 
 Also a failure path each night: a model name that does not exist must end as `failed` with a
 reason, not hang.
 
+A night is skipped, not failed, when the garage is off on purpose (paused, or a planned stop in
+Ops) or asleep: no heartbeat for AWAKE_MINUTES after waiting WAKE_WAIT for it to wake, or no
+heartbeat by the time a pull that was never picked up runs out. Ops warns once nothing has been
+tested for three days.
+
 Runs as a systemd timer (garageai-chain-test.timer, 04:00 UTC). Portal side: the
 managed-models-ops edge function (want / cancel / status, gateway key). Needs the gateway key
 (GARAGEAI_GATEWAY_KEY) and portal URL (GARAGEAI_PORTAL_URL) from /etc/garageai/gateway-health.env.
@@ -38,6 +43,10 @@ HISTORY = os.path.join(os.path.dirname(collect.OUT_DIR), "chain-tests.json")
 KEEP = 60
 POLL = 30
 # Generous: a heartbeat is 5 minutes, a pull a few, the acceptance test a minute, the gateway sync a minute.
+# A Mac garage that sleeps sends no heartbeat and cannot pick up the pull: wait this long for it to
+# wake before the test, and call a garage with an older heartbeat asleep.
+WAKE_WAIT = 30 * 60
+AWAKE_MINUTES = 10
 LIMITS = {"pull": 20 * 60, "offered": 12 * 60, "routed": 6 * 60, "removed": 15 * 60, "unrouted": 6 * 60, "failed": 15 * 60}
 
 
@@ -171,10 +180,35 @@ def away(env):
     return None
 
 
+def heartbeat_minutes(env):
+    """Minutes since the test garage's last heartbeat, from the portal's gateway targets; None when
+    unknown (no list, or the garage never reported)."""
+    try:
+        _, _, targets = collect.portal_targets(env)
+    except Exception:  # noqa: BLE001 - unknown: run the test and let it say what it finds
+        return None
+    t = next((x for x in targets or [] if x.get("garage") == GARAGE), None)
+    return collect.minutes_since((t or {}).get("last_heartbeat_at"))
+
+
+def asleep(env):
+    """Why the test garage is asleep, or None. Waits up to WAKE_WAIT for a heartbeat first: a Mac
+    wakes now and then, and the night should test the chain, not the garage's power settings
+    (garage-m1 asleep at 04:00 on 2026-10-25 and 2026-10-29)."""
+    t0 = time.time()
+    while True:
+        m = heartbeat_minutes(env)
+        if m is None or m <= AWAKE_MINUTES:
+            return None
+        if time.time() - t0 > WAKE_WAIT:
+            return f"asleep (no heartbeat for {m} min, waited {WAKE_WAIT // 60} min for it to wake)"
+        time.sleep(POLL)
+
+
 def run(env):
     portal = Portal(env)
     steps = []
-    why = away(env)
+    why = away(env) or asleep(env)
     if why:
         log(f"chain test skipped: {GARAGE} is {why}")
         return {"ok": None, "skipped": f"{GARAGE} is {why}", "steps": steps}
@@ -199,6 +233,11 @@ def run(env):
         m = managed(portal.status(), MODEL)
         steps[-1]["detail"] += f" (status {m.get('status')}: {m.get('error') or '-'})"
         portal.cancel(MODEL)
+        # Never picked up and no heartbeat now: the garage fell asleep during the test. That says
+        # nothing about the chain, so it is a skip, not a failure.
+        hb = heartbeat_minutes(env)
+        if m.get("status") == "wanted" and hb is not None and hb > AWAKE_MINUTES:
+            return {"ok": None, "skipped": f"{GARAGE} fell asleep during the test (no heartbeat for {hb} min; the pull was never picked up)", "steps": steps}
         return {"ok": False, "steps": steps, "error": "pull"}
 
     # Offered = the portal decided to sell it (any test status; "routed" below checks the gateway).
