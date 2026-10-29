@@ -8,10 +8,12 @@ import (
 	"strings"
 )
 
-// Runner's own list of the model files it re-checks on every release (docs/model-tiers.json, Tier 1),
-// with the backends each one passed on. tiers.json is a compact snapshot taken at the pinned
-// Version: regenerate it whenever Version moves (the PR that bumps Runner shows both), so Bridge
-// recommends what that exact release was validated with, and never fetches a list at run time.
+// Runner's roster of the model files it validates (docs/model-tiers.json), with the backends each
+// one passed on. Since 1.7.0 Tier 1 holds only the files above Runner's download bar and Tier 2
+// carries the same kind of recorded pass, so both count. tiers.json is a compact snapshot taken at
+// the pinned Version: regenerate it whenever Version moves (the PR that bumps Runner shows both),
+// so Bridge recommends what that exact release was validated with, and never fetches a list at run
+// time.
 //
 //go:embed tiers.json
 var tiersJSON []byte
