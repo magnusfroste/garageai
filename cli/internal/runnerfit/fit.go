@@ -1,7 +1,7 @@
 // Package runnerfit decides whether Xyntetik Runner is a good runtime for this machine, and with
 // which model. It is a pure function of what doctor already knows (OS, architecture, GPUs, memory,
 // runtimes that answer), so the recommendation is testable and the same in doctor, connect and
-// `garageai runtime`. Facts about Runner come from its README and MANUAL (v1.7.0, 2026-10-28), and its validated
+// `garageai runtime`. Facts about Runner come from its README and MANUAL (v1.7.1, 2026-10-29), and its validated
 // models from its docs/model-tiers.json at that release (tiers.go):
 // release binaries for linux/amd64, darwin/arm64 and windows/amd64; NVIDIA through CUDA with a
 // driver from the R580 series or newer (no toolkit); Apple silicon through Metal; no Vulkan, so
@@ -16,7 +16,7 @@ import (
 
 // Version is the Runner release Bridge installs. Pinned, like Bridge's own stable version: Runner
 // releases often (three in two days), and a new one is tried on our garages before it moves here.
-const Version = "v1.7.0"
+const Version = "v1.7.1"
 
 // Port Runner serves on (its default). Loopback only by design; the Bridge tunnel reaches it there.
 const Port = 8080
@@ -44,6 +44,7 @@ type Model struct {
 	Name   string  // what the operator reads
 	SizeGB float64 // download size
 	Why    string
+	Tools  bool // calls tools, which agents need
 }
 
 // Verdict values.
@@ -64,9 +65,9 @@ type Assessment struct {
 }
 
 var (
-	granite = Model{HF: "ibm-granite/granite-4.1-3b-GGUF:Q8_0", Name: "Granite 4.1 3B (Q8_0)", SizeGB: 3.6,
+	granite = Model{HF: "ibm-granite/granite-4.1-3b-GGUF:Q8_0", Name: "Granite 4.1 3B (Q8_0)", SizeGB: 3.6, Tools: true,
 		Why: "the smallest model that passes Runner's fidelity gate; Runner's own recommendation from 8 GB"}
-	qwen30 = Model{HF: "Joakimpalm-Zen/Qwen3-30B-A3B-selective-attnQ8_0-expQ4_0-GGUF", Name: "Qwen3 30B-A3B (selective precision)", SizeGB: 18.0,
+	qwen30 = Model{HF: "Joakimpalm-Zen/Qwen3-30B-A3B-selective-attnQ8_0-expQ4_0-GGUF", Name: "Qwen3 30B-A3B (selective precision)", SizeGB: 18.0, Tools: true,
 		Why: "Runner's lead artifact: passes the fidelity gate where the official Q4_K_M fails, and only 3B parameters are active per token"}
 	gemmaSmoke = Model{HF: "Joakimpalm-Zen/gemma-4-E2B-it-Q4_0-GGUF", Name: "Gemma 4 E2B (Q4_0, smoke test)", SizeGB: 2.6,
 		Why: "the only Runner-published model that fits; it fails Runner's fidelity gate, so treat it as a trial"}
@@ -142,10 +143,11 @@ func Assess(m Machine) Assessment {
 	default:
 		a.Model = gemmaSmoke
 	}
-	// A validated model wins unless it is much smaller than what the machine can run: Runner has
-	// validated few models per backend so far (one on Metal), and a 64 GB Mac should not get a 2.6 GB
-	// model because it is the only one on the list.
-	if v, ok := validatedModel(a.Backend, modelBudget); ok && v.SizeGB >= a.Model.SizeGB*0.75 {
+	// A validated model wins unless it is much smaller than what the machine can run (a 64 GB Mac
+	// should not get a 2.6 GB model because it is the only one on the list), or it cannot call tools
+	// where our pick can: agents are most of the traffic, and a 16 GB Mac should keep Granite 4.1 3B
+	// over Nemotron Bolt E4B (text only, no fidelity measurement yet; Runner 1.7.1).
+	if v, ok := validatedModel(a.Backend, modelBudget); ok && v.SizeGB >= a.Model.SizeGB*0.75 && (v.Tools || !a.Model.Tools) {
 		a.Model = v
 	}
 
