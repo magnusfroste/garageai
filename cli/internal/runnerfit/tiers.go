@@ -108,7 +108,7 @@ func validatedModel(backend string, budgetGB float64) (Model, bool) {
 	if r.tools() {
 		why += "; it calls tools, which agents need"
 	}
-	return Model{HF: r.hf(), Name: fmt.Sprintf("%s (%s)", r.Model, r.Quantization), SizeGB: roundGB(float64(r.Bytes) / 1e9), Why: why}, true
+	return Model{HF: r.hf(), Name: fmt.Sprintf("%s (%s)", r.Model, r.Quantization), SizeGB: roundGB(float64(r.Bytes) / 1e9), Why: why, Tools: r.tools()}, true
 }
 
 func roundGB(v float64) float64 { return float64(int(v*10+0.5)) / 10 }

@@ -1,5 +1,5 @@
 {
- "source": "Joakimpalm-Zen/xyntetik-runner docs/model-tiers.json at v1.7.0 (tier1 and tier2, single-file rows with a recorded pass, passing backends only)",
+ "source": "Joakimpalm-Zen/xyntetik-runner docs/model-tiers.json at v1.7.1 (tier1 and tier2, single-file rows with a recorded pass, passing backends only)",
  "schema": "xyntetik.runner.model-tiers.v1",
  "rows": [
   {
@@ -60,6 +60,36 @@
      "date": "2026-10-24",
      "device_class": "linux-x86_64-cuda",
      "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "nemotron-3.5-bolt-e4b-q4_k_m",
+   "model": "Nemotron 3.5 Bolt E4B",
+   "tier": "tier2",
+   "quantization": "Q4_K_M (publisher)",
+   "features": [
+    "text"
+   ],
+   "repo": "nvidia/NVIDIA-Nemotron-3.5-Bolt-E4B-4GB",
+   "file": "Nemotron-3.5-Bolt-E4B-Q4_K_M.gguf",
+   "bytes": 6180446208,
+   "sha256": "c8af2b8aea10a690a1d9491db744a9446660173cb38fc489612b556615a69612",
+   "pass": {
+    "cpu": {
+     "date": "2026-10-29",
+     "device_class": "windows-x86_64-cuda",
+     "runner_version": "1.7.0"
+    },
+    "cuda": {
+     "date": "2026-10-28",
+     "device_class": "windows-x86_64-cuda",
+     "runner_version": "1.7.0"
+    },
+    "metal": {
+     "date": "2026-10-29",
+     "device_class": "macos-arm64-metal",
+     "runner_version": "1.7.0"
     }
    }
   },
@@ -137,10 +167,15 @@
    "bytes": 5347917952,
    "sha256": "16a9369d0805f80b7377d25d87f937a90c05dc04ad79173a52001e42c9aab311",
    "pass": {
-    "cuda": {
-     "date": "2026-10-23",
+    "cpu": {
+     "date": "2026-10-29",
      "device_class": "windows-x86_64-cuda",
-     "runner_version": "1.5.1"
+     "runner_version": "1.7.0"
+    },
+    "cuda": {
+     "date": "2026-10-29",
+     "device_class": "windows-x86_64-cuda",
+     "runner_version": "1.7.0"
     }
    }
   },
@@ -507,6 +542,11 @@
      "date": "2026-10-24",
      "device_class": "linux-x86_64-cuda",
      "runner_version": "1.5.1"
+    },
+    "metal": {
+     "date": "2026-10-28",
+     "device_class": "macos-arm64-metal",
+     "runner_version": "1.7.0"
     }
    }
   },
@@ -527,6 +567,31 @@
      "date": "2026-10-24",
      "device_class": "linux-x86_64-cuda",
      "runner_version": "1.5.1"
+    }
+   }
+  },
+  {
+   "id": "qwen3-4b-q4_k_m-bartowski",
+   "model": "Qwen3-4B",
+   "tier": "tier2",
+   "quantization": "Q4_K_M (bartowski)",
+   "features": [
+    "text"
+   ],
+   "repo": "bartowski/Qwen_Qwen3-4B-GGUF",
+   "file": "Qwen_Qwen3-4B-Q4_K_M.gguf",
+   "bytes": 2497280960,
+   "sha256": "fbe1d5edd4ce802ae3ae7c7e4ab7d09789d697fdac1fc7929f8df4ca3c41bae3",
+   "pass": {
+    "cpu": {
+     "date": "2026-10-28",
+     "device_class": "macos-arm64-metal",
+     "runner_version": "1.7.0"
+    },
+    "metal": {
+     "date": "2026-10-28",
+     "device_class": "macos-arm64-metal",
+     "runner_version": "1.7.0"
     }
    }
   }
