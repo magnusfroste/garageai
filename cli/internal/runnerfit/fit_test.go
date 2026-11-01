@@ -59,3 +59,33 @@ func TestValidatedModel(t *testing.T) {
 		t.Fatal("nothing fits 2 GB")
 	}
 }
+
+// A file Runner says fails its fidelity bar, or one whose licence limits commercial use, runs but
+// is never recommended to a garage that sells its answers (Runner 1.10.0 admits both kinds at Tier 2).
+func TestValidatedModelSellableOnly(t *testing.T) {
+	var failing, restricted int
+	for _, r := range tierRows {
+		if r.FailsFidelity {
+			failing++
+		}
+		if restrictedLicences[r.Licence] {
+			restricted++
+		}
+	}
+	if failing == 0 || restricted == 0 {
+		t.Fatalf("snapshot should hold both kinds to test against (failing %d, restricted %d)", failing, restricted)
+	}
+	for _, backend := range []string{"CPU", "CUDA", "Metal"} {
+		for budget := 1.0; budget <= 128; budget += 0.5 {
+			m, ok := validatedModel(backend, budget)
+			if !ok {
+				continue
+			}
+			for _, r := range tierRows {
+				if r.hf() == m.HF && !r.sellable() {
+					t.Fatalf("%s %.1f GB recommends %s (fails fidelity %v, licence %s)", backend, budget, r.ID, r.FailsFidelity, r.Licence)
+				}
+			}
+		}
+	}
+}
