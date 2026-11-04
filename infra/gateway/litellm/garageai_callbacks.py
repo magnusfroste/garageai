@@ -62,9 +62,23 @@
     market requests skip that garage (others take them; a buyer of that garage alone gets 503 with
     Retry-After). Requests already running are never cut. A garage whose model_info says
     owner_priority "share" is not held. The hold lives in memory: a restart ends every hold.
+11. A start for garages that wait (2026-11-04). `garageai/auto` is an ordered list with one garage per
+    model, so a new garage that serves a model on that list (qwen3.8-27b on a home RTX 5090) got 6
+    requests in two weeks while auto served 5,700: its operator sees nothing happen. Now a market
+    garage that serves the same model as an auto entry, but is not itself on the list, and has
+    served fewer than BOOST_TARGET market requests in the last 24 h, is put first for BOOST_SHARE of
+    the small auto requests (prompt <= BOOST_MAX_PROMPT tokens, so an agent's 100k-token prompt never
+    lands on an unmeasured home GPU), the one that has waited most first. Everything else still
+    applies: its window (the router's pre-call check drops it when the prompt does not fit, and the
+    request goes down the auto list as before), rule 6's prefill time, rule 10's owner hold. The next
+    turn of a conversation it served goes back to it (rule 7). A failure takes the garage out of the
+    start for BOOST_PAUSE_S, and the retry goes down the auto list. The buyer pays the garage's pool
+    price and sees the model's name (rule 9). Counts live in memory: after a restart every garage
+    counts as waiting until it has served again, which costs at most BOOST_SHARE of small requests.
 """
 import asyncio
 import hashlib
+import random
 import re
 import statistics
 import time
@@ -630,7 +644,8 @@ def name_the_model(obj, request_data):
     # Always a public name: the served model's catalogue name, or garageai/auto when it is not known.
     # LiteLLM's own restamp is switched off for these requests (RAW_NAME_KEY), so this is the last word
     # on the field and a provider's internal model id can never reach the buyer.
-    canon = _auto_names().get(served_deployment_id(obj, request_data)) or AUTO_NAME
+    sid = served_deployment_id(obj, request_data)
+    canon = _auto_names().get(sid) or _boost_ids.get(sid) or AUTO_NAME
     if isinstance(obj, (bytes, str)):
         old = '"model":"' + AUTO_NAME + '"'
         new = '"model":"' + canon + '"'
@@ -698,6 +713,101 @@ def apply_owner_hold(deployments, now=None):
 
 
 _held = {}                  # model group -> (time, retry-after seconds) when the hold left nothing
+
+
+# ---------------------------------------------------------------- 11: a start for garages that wait
+
+BOOST_SHARE = 0.25          # share of small auto requests offered to a garage that waits
+BOOST_TARGET = 10           # market requests in BOOST_WINDOW_S below which a garage waits
+BOOST_WINDOW_S = 86400
+BOOST_MAX_PROMPT = 16000    # tokens: chat-sized requests only
+BOOST_PAUSE_S = 1800        # no start for a garage whose started request failed, for this long
+BOOST_KEY = "garageai_boost"  # in the request's metadata: this request was offered a start once
+_served_at = {}             # garage -> deque of times it served a market request
+_boost_failed = {}          # garage -> time its started request failed
+_boost_ids = {}             # deployment id -> canonical name, for requests rule 11 started there
+
+
+def note_served(garage, now=None):
+    if not garage:
+        return
+    now = time.time() if now is None else now
+    q = _served_at.setdefault(garage, deque())
+    q.append(now)
+    while q and now - q[0] > BOOST_WINDOW_S:
+        q.popleft()
+    while len(q) > BOOST_TARGET:  # only "fewer than the target or not" matters
+        q.popleft()
+
+
+def served_recently(garage, now=None):
+    now = time.time() if now is None else now
+    return sum(1 for t in _served_at.get(garage, ()) if now - t <= BOOST_WINDOW_S)
+
+
+def boost_candidates(model_list, now=None):
+    """Market pool deployments of garages that wait and serve a model on the auto list."""
+    now = time.time() if now is None else now
+    auto = [d for d in model_list or [] if d.get("model_name") == AUTO_NAME]
+    canon = set(auto_canonical_names(model_list).values())
+    on_list = {(d.get("model_info") or {}).get("garage") for d in auto}
+    out = []
+    for d in model_list or []:
+        info = d.get("model_info") or {}
+        g = info.get("garage")
+        if (info.get("garage_tier") != "pool" or is_private(d) or d.get("model_name") not in canon
+                or not g or g in on_list or not info.get("id")):
+            continue
+        if now - _boost_failed.get(g, 0) < BOOST_PAUSE_S or served_recently(g, now) >= BOOST_TARGET:
+            continue
+        out.append(d)
+    return out
+
+
+def choose_boost(model_list, prompt_tokens, conv, now=None, roll=None):
+    """Rule 11: the deployment to put first for this auto request, or None."""
+    now = time.time() if now is None else now
+    if not prompt_tokens or prompt_tokens > BOOST_MAX_PROMPT:
+        return None
+    cands, _ = apply_owner_hold(boost_candidates(model_list, now), now)
+    cands = [d for d in cands if prompt_tokens / max(prefill_speed(d) or UNMEASURED_GARAGE_TPS, 1.0) <= PREFER_S]
+    if not cands:
+        return None
+    sticky = _sticky.get(conv) if conv else None
+    if sticky and now - sticky[2] <= STICKY_S:
+        for d in cands:
+            if (d.get("model_info") or {}).get("id") == sticky[0]:
+                return d
+    if (random.random() if roll is None else roll) >= BOOST_SHARE:
+        return None
+    least = min(served_recently((d.get("model_info") or {}).get("garage"), now) for d in cands)
+    return random.choice([d for d in cands if served_recently((d.get("model_info") or {}).get("garage"), now) == least])
+
+
+def first_in_line(deployment):
+    """A copy of the deployment that the router's order filter puts before every auto entry."""
+    return {**deployment, "litellm_params": {**(deployment.get("litellm_params") or {}), "order": 0},
+            "model_info": {**(deployment.get("model_info") or {}), "order": 0}}
+
+
+def _request_meta(request_kwargs):
+    for key in ("litellm_metadata", "metadata"):
+        m = (request_kwargs or {}).get(key)
+        if isinstance(m, dict):
+            return m
+    return None
+
+
+def _garage_of_id(model_id):
+    try:
+        from litellm.proxy.proxy_server import llm_router
+        for d in getattr(llm_router, "model_list", None) or []:
+            info = d.get("model_info") or {}
+            if info.get("id") == model_id:
+                return info.get("garage")
+    except Exception:  # noqa: BLE001
+        pass
+    return None
 
 
 class GarageAICallbacks(CustomLogger):
@@ -802,13 +912,30 @@ class GarageAICallbacks(CustomLogger):
                     if not kept:
                         _held[model] = (time.time(), max(wait, 1))
                 healthy_deployments = kept
+            boost = None
+            if model == AUTO_NAME and isinstance(healthy_deployments, list) and healthy_deployments:
+                # Rule 11: once per request, so a retry goes down the auto list.
+                meta = _request_meta(request_kwargs)
+                if meta is not None and not meta.get(BOOST_KEY):
+                    await seed_speeds()
+                    from litellm.proxy.proxy_server import llm_router
+                    msgs = messages if messages is not None else (request_kwargs or {}).get("messages")
+                    d = choose_boost(getattr(llm_router, "model_list", None),
+                                     estimate_tokens(msgs, request_kwargs), conversation_key(model, msgs, request_kwargs))
+                    if d is not None:
+                        meta[BOOST_KEY] = (d.get("model_info") or {}).get("garage")
+                        _boost_ids[(d.get("model_info") or {}).get("id")] = d.get("model_name")
+                        boost = first_in_line(d)
+                        print(f"garageai: start: auto request offered to {meta[BOOST_KEY]} ({d.get('model_name')})", flush=True)
             if not isinstance(healthy_deployments, list) or len(healthy_deployments) < 2:
-                return healthy_deployments
+                return ([boost] if boost else []) + (healthy_deployments or [])
             await seed_speeds()
             msgs = messages if messages is not None else (request_kwargs or {}).get("messages")
             prompt = estimate_tokens(msgs, request_kwargs)
             conv = conversation_key(model, msgs, request_kwargs)
             chosen, why = choose_deployments(healthy_deployments, prompt, conv)
+            if boost:
+                return [boost] + (chosen or healthy_deployments)
             if why and why != "sticky":
                 print(f"garageai: routing model={model} prompt~{prompt}: {why}", flush=True)
             if not chosen:
@@ -848,6 +975,8 @@ class GarageAICallbacks(CustomLogger):
             remember(conv, model_id, prompt)
             if str(group).startswith(MINE_PREFIX):
                 mark_owner_active(garage_of_mine(group))
+            elif group and not str(group).startswith("probe/"):
+                note_served(_garage_of_id(model_id))
         except Exception:  # noqa: BLE001 - bookkeeping only
             pass
 
@@ -857,6 +986,11 @@ class GarageAICallbacks(CustomLogger):
             if str(slo.get("model_group")).startswith(MINE_PREFIX):
                 mark_owner_active(garage_of_mine(slo.get("model_group")))
             conv = conversation_key(slo.get("model_group"), kwargs.get("messages"), kwargs)
+            if slo.get("model_id") in _boost_ids and slo.get("model_group") == AUTO_NAME:
+                g = _garage_of_id(slo.get("model_id"))
+                if g:
+                    _boost_failed[g] = time.time()
+                    print(f"garageai: start: {g} failed a started request; no start for {BOOST_PAUSE_S // 60} min", flush=True)
             if conv and _sticky.get(conv, (None,))[0] == slo.get("model_id"):
                 _sticky.pop(conv, None)  # the retry and the next turn go elsewhere
         except Exception:  # noqa: BLE001 - bookkeeping only
