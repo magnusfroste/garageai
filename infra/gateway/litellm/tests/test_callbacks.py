@@ -3,6 +3,7 @@
 with the new garageai_callbacks.py copied in first (see infra/gateway/README.md), or after a deploy."""
 import importlib.util
 import sys
+import time
 
 spec = importlib.util.spec_from_file_location("cb", sys.argv[1] if len(sys.argv) > 1 else "/app/garageai_callbacks.py")
 cb = importlib.util.module_from_spec(spec)
@@ -179,6 +180,58 @@ check("auto name: not for other models", cb.keep_served_name({"model": "qwen/qwe
 cb._auto_names = lambda: {}
 r3 = _R(); r3.model = "openai/kluster"; r3._hidden_params = {"model_id": "unknown"}
 check("auto name: never a raw provider id (falls back to garageai/auto)", cb.name_the_model(r3, {"model": "garageai/auto"}).model, "garageai/auto")
+cb._auto_names = orig
+
+# ---- rule 11: a start for garages that wait
+def dep(name, gid, garage, tier, order=None, canon=None, private=False):
+    info = {"id": gid, "garage": garage, "garage_tier": "private" if private else tier}
+    if canon:
+        info["canonical_model"] = canon
+    lp = {"model": "openai/" + gid}
+    if order is not None:
+        lp["order"] = order
+    return {"model_name": name, "litellm_params": lp, "model_info": info}
+
+
+ML = [dep("garageai/auto", "auto-av", "autoversio", "auto", 1, "deepseek/deepseek-v4.1-flash"),
+      dep("garageai/auto", "auto-south", "autoversio-south", "auto", 3, "qwen/qwen3.8-27b"),
+      dep("qwen/qwen3.8-27b", "pool-south", "autoversio-south", "pool"),
+      dep("qwen/qwen3.8-27b", "pool-5090", "home-5090", "pool"),
+      dep("qwen/qwen3.8-27b", "pool-mac", "mac-mini", "pool"),
+      dep("qwen/qwen3-14b", "pool-cpu", "cpu-box", "pool"),
+      dep("mine/home-5090/qwen/qwen3.8-27b", "mine-5090", "home-5090", "private", private=True)]
+cb._served_at.clear(); cb._boost_failed.clear(); cb._owner_until.clear(); cb._sticky.clear(); cb._speeds.clear()
+ids = lambda ds: sorted((d.get("model_info") or {}).get("id") for d in ds)
+check("start: same model as an auto entry, not on the list, market only", ids(cb.boost_candidates(ML)), ["pool-5090", "pool-mac"])
+for _ in range(cb.BOOST_TARGET):
+    cb.note_served("mac-mini")
+check("start: a garage that served enough no longer waits", ids(cb.boost_candidates(ML)), ["pool-5090"])
+cb._served_at.clear()
+check("start: not for a big prompt", cb.choose_boost(ML, 50000, None, roll=0.0), None)
+check("start: not when the roll says no", cb.choose_boost(ML, 2000, None, roll=0.9), None)
+cb.note_served("mac-mini")
+check("start: the garage that waited most first", cb.choose_boost(ML, 2000, None, roll=0.0)["model_info"]["id"], "pool-5090")
+cb._boost_failed["home-5090"] = time.time()
+check("start: a failed garage pauses", cb.choose_boost(ML, 2000, None, roll=0.0)["model_info"]["id"], "pool-mac")
+cb._boost_failed.clear()
+cb.mark_owner_active("home-5090")
+check("start: an owner-held garage is skipped", cb.choose_boost(ML, 2000, None, roll=0.0)["model_info"]["id"], "pool-mac")
+cb._owner_until.clear()
+cb._speeds["pool-5090"] = cb.deque([10.0] * 5); cb._speeds["pool-mac"] = cb.deque([10.0] * 5)
+check("start: not when prefill would be too slow", cb.choose_boost(ML, 2000, None, roll=0.0), None)
+cb._speeds.clear()
+cb._sticky["c1"] = ("pool-mac", 1500, time.time())
+check("start: a conversation goes back to the garage that served it", cb.choose_boost(ML, 2000, "c1", roll=0.99)["model_info"]["id"], "pool-mac")
+cb._sticky.clear()
+f = cb.first_in_line(ML[3])
+check("start: put first (order 0) on a copy", (f["litellm_params"]["order"], f["model_info"]["order"], "order" in ML[3]["litellm_params"]), (0, 0, False))
+import litellm.utils as lu
+check("start: the router's order filter keeps only it", ids(lu.get_order_filtered_deployments([f, ML[0], ML[1]])), ["pool-5090"])
+check("start: when it is dropped, auto's order holds", ids(lu.get_order_filtered_deployments([ML[0], ML[1]])), ["auto-av"])
+cb._boost_ids["pool-5090"] = "qwen/qwen3.8-27b"
+orig = cb._auto_names; cb._auto_names = lambda: {}
+r4 = _R(); r4.model = "garageai/auto"; r4._hidden_params = {"model_id": "pool-5090"}
+check("start: the buyer sees the model's name", cb.name_the_model(r4, {"model": "garageai/auto"}).model, "qwen/qwen3.8-27b")
 cb._auto_names = orig
 
 print("all tests passed" if not fails else f"{fails} test(s) failed")

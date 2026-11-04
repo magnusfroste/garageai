@@ -235,7 +235,12 @@ Most traffic comes from coding agents (Claude Code on `/v1/messages`, Codex on
   - answers in the words agents act on: OpenAI format `code: "context_length_exceeded"` and
     "maximum context length is N tokens", Anthropic format "prompt is too long: N tokens >
     M maximum" or "input length and `max_tokens` exceed context limit"; upstream context
-    errors that slip through are rewritten the same way, without internal names.
+    errors that slip through are rewritten the same way, without internal names;
+  - gives garages that wait a start (rule 11): a market garage serving the same model as an
+    auto entry, but not on the auto list, with fewer than 10 market requests in 24 h, is put first
+    for 25 % of small (≤ 16k-token) `garageai/auto` requests. It must fit the prompt and start it
+    in time; a failure pauses it for 30 min and the retry goes down the auto list. Look for
+    `garageai: start:` in the LiteLLM log.
 - `stream_timeout: 300`, `request_timeout: 600`: prefilling an agent-sized prompt takes
   minutes on home GPUs and busy providers; the stream timeout includes the wait for the
   first token.
