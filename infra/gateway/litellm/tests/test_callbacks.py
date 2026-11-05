@@ -236,5 +236,46 @@ r4 = _R(); r4.model = "garageai/auto"; r4._hidden_params = {"model_id": "pool-50
 check("start: the buyer sees the model's name", cb.name_the_model(r4, {"model": "garageai/auto"}).model, "qwen/qwen3.8-27b")
 cb._auto_names = orig
 
+# Rule 12 (2026-11-05): the runtime's token count is checked against our own.
+uc = cb.usage_check
+check("usage: an honest count adds up", uc(300, 1000, 280, 950), None)
+check("usage: tokenizer slack allowed", uc(int(280 * 1.3) + 60, 1000, 280, 950), None)
+check("usage: a padded answer count is caught", uc(100000, 1000, 5, 950) is not None, True)
+check("usage: hidden reasoning is taken off the reported count", uc(500, 1000, 60, 950, reasoning_tokens=440), None)
+check("usage: shown reasoning is counted with the answer", uc(500, 1000, 480, 950, reasoning_tokens=440, reasoning_shown=True), None)
+check("usage: a padded prompt count is caught", "prompt" in (uc(10, 50000, 10, 1000) or ""), True)
+check("usage: images and tools make the prompt looser", uc(10, 2400, 10, 1000), None)
+check("usage: prompt not counted -> not checked", uc(10, 50000, 10, 0), None)
+ans = {"id": "chatcmpl-1", "object": "chat.completion", "model": "qwen", "usage": {"completion_tokens": 9},
+       "choices": [{"index": 0, "finish_reason": "stop", "message": {"role": "assistant", "content": "Kalmar",
+                    "tool_calls": [{"id": "c1", "type": "function", "function": {"name": "f", "arguments": "{\"x\": 1}"}}]}}]}
+t, shown = cb.answer_text(ans)
+check("usage: answer text = content + tool arguments, not ids or usage", ("Kalmar" in t, '{"x": 1}' in t, "chatcmpl" in t, "stop" in t, shown), (True, True, False, False, False))
+ans["choices"][0]["message"]["reasoning_content"] = "let me think"
+check("usage: reasoning text counts as shown", cb.answer_text(ans)[1], True)
+cb._suspect.clear()
+check("usage: nothing suspect -> list untouched", cb.drop_suspects(ML) is ML, True)
+cb._suspect["home-5090"] = time.time()
+check("usage: a suspect garage is routed around", ids(cb.drop_suspects(ML)), ids([d for d in ML if d["model_info"]["garage"] != "home-5090"]))
+check("usage: and comes back after SUSPECT_S", ids(cb.drop_suspects(ML, now=time.time() + cb.SUSPECT_S + 1)), ids(ML))
+cb._suspect.clear()
+
+
+async def _run_check():
+    cb._suspect.clear()
+    kw = {"standard_logging_object": {"model_group": "qwen/qwen3.8-27b", "model_id": "pool-5090", "id": "call-1",
+                                      "completion_tokens": 50000, "prompt_tokens": 20, "metadata": {"usage_object": {}}},
+          "messages": [U("Name one Swedish city.")]}
+    why = await cb.check_usage(kw, ans)
+    kw["standard_logging_object"]["completion_tokens"] = 12
+    ok = await cb.check_usage(kw, ans)
+    kw["standard_logging_object"]["model_group"] = "mine/home-5090/qwen/qwen3.8-27b"
+    kw["standard_logging_object"]["completion_tokens"] = 50000
+    mine = await cb.check_usage(kw, ans)
+    return why is not None, ok, mine
+
+import asyncio as _aio
+check("usage: the success hook flags a padded count, passes an honest one, ignores mine/", _aio.run(_run_check()), (True, None, None))
+
 print("all tests passed" if not fails else f"{fails} test(s) failed")
 sys.exit(1 if fails else 0)

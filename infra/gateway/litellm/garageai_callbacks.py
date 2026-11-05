@@ -78,6 +78,17 @@
     A request that caps its answer below BOOST_MIN_OUTPUT tokens gets no start (2026-11-05): the first
     garages run qwen3.8-27b with thinking on, which spent 242-400 tokens on a one-word answer, so a
     20-token cap came back empty (finish "length") where DeepSeek answered in 4.
+12. The runtime's token count is checked (2026-11-05). LiteLLM bills from the `usage` the runtime
+    reports (for a stream, its usage chunk wins), and the spend log keeps no answer text, so a
+    modified runtime could report 100,000 completion tokens for a five-word answer: the buyer pays,
+    the operator is credited, and nothing could show it afterwards. Now every market answer is
+    counted here: the reported completion tokens (less reported reasoning tokens when the reasoning
+    is not in the answer) may exceed our count of the answer by USAGE_RATIO plus USAGE_SLACK, and
+    the reported prompt tokens our count of the prompt by PROMPT_RATIO plus PROMPT_SLACK (images and
+    tool schemas count differently per runtime). Beyond that the request is logged with its call id
+    as `garageai: usage:` (the spend row stands; an admin corrects it from the line), and a garage
+    is routed around for SUSPECT_S; a provider is only logged, since it carries auto. Hidden
+    reasoning cannot be counted: a runtime can still pad `reasoning_tokens`, which the line shows.
 """
 import asyncio
 import hashlib
@@ -803,16 +814,122 @@ def _request_meta(request_kwargs):
     return None
 
 
-def _garage_of_id(model_id):
+def _deployment_of_id(model_id):
     try:
         from litellm.proxy.proxy_server import llm_router
         for d in getattr(llm_router, "model_list", None) or []:
-            info = d.get("model_info") or {}
-            if info.get("id") == model_id:
-                return info.get("garage")
+            if (d.get("model_info") or {}).get("id") == model_id:
+                return d
     except Exception:  # noqa: BLE001
         pass
     return None
+
+
+def _garage_of_id(model_id):
+    return ((_deployment_of_id(model_id) or {}).get("model_info") or {}).get("garage")
+
+
+# ---------------------------------------------------------------- 12: the runtime's token count is checked
+
+USAGE_RATIO = 1.3           # reported answer tokens may exceed our count by this factor...
+USAGE_SLACK = 64            # ...plus this many (chat template, stop token, tokenizer differences)
+PROMPT_RATIO = 2.0          # the prompt is looser: images and tool schemas count differently per runtime
+PROMPT_SLACK = 500
+SUSPECT_S = 3600            # a garage whose count did not add up is routed around for this long
+ANSWER_SKIP_KEYS = SKIP_KEYS | {"object", "created", "finish_reason", "usage", "index", "logprobs",
+                                "system_fingerprint", "service_tier", "status", "stop_reason", "stop_sequence"}
+_suspect = {}               # garage -> time its count last did not add up
+
+
+def answer_text(response):
+    """(every text the runtime returned as the answer, whether reasoning text was among it)."""
+    if hasattr(response, "model_dump"):
+        try:
+            response = response.model_dump()
+        except Exception:  # noqa: BLE001
+            response = dict(response) if isinstance(response, dict) else {}
+    if not isinstance(response, dict):
+        return "", False
+    parts = []
+    body = {k: v for k, v in response.items() if k not in ANSWER_SKIP_KEYS}
+    _collect_answer(body, parts)
+    text = "\n".join(parts)
+    return text, _has_key(body, ("reasoning_content", "reasoning", "thinking"))
+
+
+def _collect_answer(node, out):
+    if isinstance(node, str):
+        out.append(node)
+    elif isinstance(node, dict):
+        for key, value in node.items():
+            if key not in ANSWER_SKIP_KEYS:
+                _collect_answer(value, out)
+    elif isinstance(node, list):
+        for value in node:
+            _collect_answer(value, out)
+
+
+def _has_key(node, keys):
+    if isinstance(node, dict):
+        return any(k in node and node[k] for k in keys) or any(_has_key(v, keys) for v in node.values())
+    if isinstance(node, list):
+        return any(_has_key(v, keys) for v in node)
+    return False
+
+
+def usage_check(reported_completion, reported_prompt, counted_answer, counted_prompt, reasoning_tokens=0,
+                reasoning_shown=False):
+    """None when the runtime's count adds up, else a short reason. counted_prompt 0 = not counted."""
+    visible = reported_completion or 0
+    if not reasoning_shown:
+        visible -= reasoning_tokens or 0
+    if visible > counted_answer * USAGE_RATIO + USAGE_SLACK:
+        return (f"reported {reported_completion} completion tokens ({reasoning_tokens or 0} reasoning), "
+                f"the answer counts {counted_answer}")
+    if counted_prompt and reported_prompt and reported_prompt > counted_prompt * PROMPT_RATIO + PROMPT_SLACK:
+        return f"reported {reported_prompt} prompt tokens, the prompt counts {counted_prompt}"
+    return None
+
+
+def drop_suspects(deployments, now=None):
+    now = time.time() if now is None else now
+    if not _suspect:
+        return deployments
+    return [d for d in deployments if now - _suspect.get((d.get("model_info") or {}).get("garage"), 0) >= SUSPECT_S]
+
+
+async def check_usage(kwargs, response_obj):
+    """Rule 12, after a market request succeeded: compare the runtime's usage with our own count."""
+    slo = kwargs.get("standard_logging_object") or {}
+    group = str(slo.get("model_group") or "")
+    if not group or group.startswith(MINE_PREFIX) or group.startswith("probe/"):
+        return None
+    usage = ((slo.get("metadata") or {}).get("usage_object") or {})
+    reasoning = ((usage.get("completion_tokens_details") or {}).get("reasoning_tokens")) or 0
+    text, shown = answer_text(response_obj)
+    if not text and not slo.get("completion_tokens"):
+        return None
+    counted_answer = await asyncio.to_thread(litellm.token_counter, text=text) if text else 0
+    counted_prompt = 0
+    if kwargs.get("messages"):
+        try:
+            counted_prompt = await asyncio.to_thread(estimate_tokens, kwargs.get("messages"), kwargs)
+        except Exception:  # noqa: BLE001 - the prompt check is optional
+            counted_prompt = 0
+    why = usage_check(slo.get("completion_tokens"), slo.get("prompt_tokens"), counted_answer, counted_prompt,
+                      reasoning, shown)
+    if not why:
+        return None
+    d = _deployment_of_id(slo.get("model_id")) or {}
+    info = d.get("model_info") or {}
+    garage = info.get("garage") or slo.get("model_id")
+    if info.get("connection_type") == "endpoint":
+        print(f"garageai: usage: provider {garage} model={group} id={slo.get('id')}: {why}", flush=True)
+    else:
+        _suspect[garage] = time.time()
+        print(f"garageai: usage: garage {garage} model={group} id={slo.get('id')}: {why} "
+              f"-> routed around for {SUSPECT_S // 60} min; check the spend row", flush=True)
+    return why
 
 
 class GarageAICallbacks(CustomLogger):
@@ -909,6 +1026,11 @@ class GarageAICallbacks(CustomLogger):
                 if len(kept) != len(healthy_deployments):
                     print(f"garageai: routing model={model}: left out {len(healthy_deployments) - len(kept)} private deployment(s)", flush=True)
                 healthy_deployments = kept
+                # Rule 12: a garage whose token count did not add up waits out SUSPECT_S.
+                kept = drop_suspects(healthy_deployments)
+                if len(kept) != len(healthy_deployments):
+                    print(f"garageai: usage: model={model}: left out {len(healthy_deployments) - len(kept)} suspect deployment(s)", flush=True)
+                healthy_deployments = kept
             if isinstance(healthy_deployments, list) and not str(model).startswith(MINE_PREFIX) and _owner_until:
                 # Rule 10: the market waits while an owner uses their own machine.
                 kept, wait = apply_owner_hold(healthy_deployments)
@@ -985,6 +1107,10 @@ class GarageAICallbacks(CustomLogger):
                 note_served(_garage_of_id(model_id))
         except Exception:  # noqa: BLE001 - bookkeeping only
             pass
+        try:
+            await check_usage(kwargs, response_obj)
+        except Exception as e:  # noqa: BLE001 - the check must never break logging
+            print(f"garageai: usage check skipped: {e}", flush=True)
 
     async def async_log_failure_event(self, kwargs, response_obj, start_time, end_time):
         try:

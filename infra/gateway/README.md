@@ -242,6 +242,13 @@ Most traffic comes from coding agents (Claude Code on `/v1/messages`, Codex on
     (no `max_tokens` below 1000: the first garages run a thinking model). It must fit the prompt and start it
     in time; a failure pauses it for 30 min and the retry goes down the auto list. Look for
     `garageai: start:` in the LiteLLM log.
+  - checks the runtime's token count (rule 12): LiteLLM bills from the `usage` the runtime
+    reports and the spend log keeps no answer text, so the gateway counts every market answer
+    itself. Reported completion tokens (less hidden reasoning tokens) may exceed that count by
+    30 % + 64, the prompt by 2× + 500. Beyond that, `garageai: usage:` names the garage, the
+    call id and both counts; a garage is routed around for 60 min, a provider only logged. The
+    spend row is not changed: an admin corrects it from the line. Hidden reasoning cannot be
+    counted, so the line also shows the reported reasoning tokens.
 - `stream_timeout: 300`, `request_timeout: 600`: prefilling an agent-sized prompt takes
   minutes on home GPUs and busy providers; the stream timeout includes the wait for the
   first token.
