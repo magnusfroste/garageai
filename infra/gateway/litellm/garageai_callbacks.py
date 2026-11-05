@@ -75,6 +75,9 @@
     start for BOOST_PAUSE_S, and the retry goes down the auto list. The buyer pays the garage's pool
     price and sees the model's name (rule 9). Counts live in memory: after a restart every garage
     counts as waiting until it has served again, which costs at most BOOST_SHARE of small requests.
+    A request that caps its answer below BOOST_MIN_OUTPUT tokens gets no start (2026-11-05): the first
+    garages run qwen3.8-27b with thinking on, which spent 242-400 tokens on a one-word answer, so a
+    20-token cap came back empty (finish "length") where DeepSeek answered in 4.
 """
 import asyncio
 import hashlib
@@ -721,6 +724,7 @@ BOOST_SHARE = 0.25          # share of small auto requests offered to a garage t
 BOOST_TARGET = 10           # market requests in BOOST_WINDOW_S below which a garage waits
 BOOST_WINDOW_S = 86400
 BOOST_MAX_PROMPT = 16000    # tokens: chat-sized requests only
+BOOST_MIN_OUTPUT = 1000     # tokens: a lower max_tokens leaves a thinking model no room to answer
 BOOST_PAUSE_S = 1800        # no start for a garage whose started request failed, for this long
 BOOST_KEY = "garageai_boost"  # in the request's metadata: this request was offered a start once
 _served_at = {}             # garage -> deque of times it served a market request
@@ -764,10 +768,11 @@ def boost_candidates(model_list, now=None):
     return out
 
 
-def choose_boost(model_list, prompt_tokens, conv, now=None, roll=None):
-    """Rule 11: the deployment to put first for this auto request, or None."""
+def choose_boost(model_list, prompt_tokens, conv, now=None, roll=None, max_output=0):
+    """Rule 11: the deployment to put first for this auto request, or None. max_output is the
+    request's own answer cap, 0 when it sets none."""
     now = time.time() if now is None else now
-    if not prompt_tokens or prompt_tokens > BOOST_MAX_PROMPT:
+    if not prompt_tokens or prompt_tokens > BOOST_MAX_PROMPT or 0 < max_output < BOOST_MIN_OUTPUT:
         return None
     cands, _ = apply_owner_hold(boost_candidates(model_list, now), now)
     cands = [d for d in cands if prompt_tokens / max(prefill_speed(d) or UNMEASURED_GARAGE_TPS, 1.0) <= PREFER_S]
@@ -921,7 +926,8 @@ class GarageAICallbacks(CustomLogger):
                     from litellm.proxy.proxy_server import llm_router
                     msgs = messages if messages is not None else (request_kwargs or {}).get("messages")
                     d = choose_boost(getattr(llm_router, "model_list", None),
-                                     estimate_tokens(msgs, request_kwargs), conversation_key(model, msgs, request_kwargs))
+                                     estimate_tokens(msgs, request_kwargs), conversation_key(model, msgs, request_kwargs),
+                                     max_output=_requested_output(request_kwargs or {}))
                     if d is not None:
                         meta[BOOST_KEY] = (d.get("model_info") or {}).get("garage")
                         _boost_ids[(d.get("model_info") or {}).get("id")] = d.get("model_name")

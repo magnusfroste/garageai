@@ -209,6 +209,8 @@ check("start: a garage that served enough no longer waits", ids(cb.boost_candida
 cb._served_at.clear()
 check("start: not for a big prompt", cb.choose_boost(ML, 50000, None, roll=0.0), None)
 check("start: not when the roll says no", cb.choose_boost(ML, 2000, None, roll=0.9), None)
+check("start: not when max_tokens leaves a thinking model no room", cb.choose_boost(ML, 2000, None, roll=0.0, max_output=20), None)
+check("start: a large or unset max_tokens still gets one", cb.choose_boost(ML, 2000, None, roll=0.0, max_output=4000) is not None and cb.choose_boost(ML, 2000, None, roll=0.0) is not None, True)
 cb.note_served("mac-mini")
 check("start: the garage that waited most first", cb.choose_boost(ML, 2000, None, roll=0.0)["model_info"]["id"], "pool-5090")
 cb._boost_failed["home-5090"] = time.time()
