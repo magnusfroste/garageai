@@ -3,7 +3,7 @@
 
 Runs every minute on the gateway (garageai-ops.timer) and writes one JSON file with
 everything an operator needs to see: the gateway host, containers, certificates,
-backups, the NetBird mesh, every garage and provider, gateway traffic and errors, the
+backups, the Bridge tunnel hub, every garage and provider, gateway traffic and errors, the
 portal seen from outside, and a list of current alerts. The page in index.html renders
 it. The file holds no secrets: no keys, no tokens, no prompts.
 
@@ -12,7 +12,7 @@ Output: /var/lib/garageai-ops/www/ops.json; state in /var/lib/garageai-ops/state
 
 History and events: /var/lib/garageai-ops/history.db (SQLite). Samples every minute (30 days),
 events (180 days): alerts opened and resolved, reboots, container restarts, version changes,
-deployed files, merges to main, mesh and supply changes, and notes. Every 5 minutes the page's
+deployed files, merges to main, supply changes, and notes. Every 5 minutes the page's
 history.json is written from it (and from LiteLLM's spend logs for hourly traffic).
   garageai-ops-collect --note "text"      add a note to the event log (e.g. a maintenance window)
   garageai-ops-collect --silence GARAGE 36h [reason]   planned stop: its alerts become info, no Telegram
@@ -46,10 +46,9 @@ STATE = "/var/lib/garageai-ops/state.json"
 HEALTH_LAST = "/var/lib/garageai-health/last.json"
 BACKUP_DIR = "/var/backups/garageai"
 LITELLM_DIR = "/opt/garageai/litellm"
-CERT_HOSTS = ["api.garageai.eu", "llm.garageai.eu", "netbird.garageai.eu", "ops.garageai.eu", "app.garageai.eu", "www.garageai.eu"]
+CERT_HOSTS = ["api.garageai.eu", "llm.garageai.eu", "ops.garageai.eu", "app.garageai.eu", "www.garageai.eu"]
 TIMERS = ["garageai-health.timer", "garageai-backup.timer", "garageai-chain-test.timer", "garageai-ops.timer", "garageai-guard.timer", "garageai-ops-live.service", "garageai-hub.service", "garageai-ops-api.service"]
 GUARD_STATUS = "/var/lib/garageai-guard/status.json"
-EXPECTED_POLICIES = {"gateway-to-garages"}
 UA = "garageai-ops/1 (+https://garageai.eu)"
 HISTORY_MINUTES = 24 * 60
 REPO = "magnusfroste/garageai"
@@ -241,61 +240,6 @@ def containers():
     return sorted(rows, key=lambda r: r["name"] or "")
 
 
-# ---------------------------------------------------------------- mesh
-def mesh(env):
-    local = {}
-    try:
-        st = json.loads(sh(["netbird", "status", "--json"]) or "{}")
-        local = {
-            "management": (st.get("management") or {}).get("connected"),
-            "signal": (st.get("signal") or {}).get("connected"),
-            "relays_available": sum(1 for r in (st.get("relays") or {}).get("details", []) if r.get("available")),
-            "relays_total": len((st.get("relays") or {}).get("details", [])),
-            "ip": st.get("netbirdIp"),
-            "version": st.get("daemonVersion"),
-        }
-        links = {}
-        for p in (st.get("peers") or {}).get("details") or []:  # null when the gateway has no NetBird peers left
-            links[(p.get("fqdn") or "").split(".")[0]] = {
-                "status": p.get("status"), "type": p.get("connectionType"),
-                "latency_ms": round((p.get("latency") or 0) / 1e6, 1) if isinstance(p.get("latency"), (int, float)) else p.get("latency"),
-                "handshake": p.get("lastWireguardHandshake"),
-            }
-    except ValueError:
-        links = {}
-    api = env.get("NETBIRD_API_URL", "").rstrip("/")
-    token = env.get("NETBIRD_API_TOKEN", "")
-    peers, valid_keys, key_names, policies = [], None, [], []
-    if api and token:
-        hdr = {"Authorization": f"Token {token}", "Accept": "application/json"}
-        code, body, _ = http(f"{api}/peers", hdr)
-        if code == 200:
-            for p in json.loads(body):
-                name = p.get("name")
-                peers.append({
-                    "name": name, "connected": p.get("connected"), "last_seen": p.get("last_seen"),
-                    "version": p.get("version"), "os": p.get("os"), "country": p.get("country_code"),
-                    "groups": [g.get("name") for g in p.get("groups") or [] if g.get("name") != "All"],
-                    "link": links.get(name),
-                })
-        code, body, _ = http(f"{api}/setup-keys", hdr)
-        if code == 200:
-            valid = [k for k in json.loads(body) if k.get("valid") and not k.get("revoked")]
-            valid_keys, key_names = len(valid), sorted(k.get("name", "?") for k in valid)
-        code, body, _ = http(f"{api}/policies", hdr)
-        if code == 200:
-            for p in json.loads(body):
-                rules = p.get("rules") or []
-                policies.append({
-                    "name": p.get("name"), "enabled": p.get("enabled"),
-                    "sources": sorted({g.get("name") for r in rules for g in r.get("sources") or []}),
-                    "destinations": sorted({g.get("name") for r in rules for g in r.get("destinations") or []}),
-                    "ports": sorted({pt for r in rules for pt in r.get("ports") or []}),
-                    "bidirectional": any(r.get("bidirectional") for r in rules),
-                })
-    return {"local": local, "peers": peers, "valid_setup_keys": valid_keys, "valid_setup_key_names": key_names, "policies": policies}
-
-
 # ---------------------------------------------------------------- garages and providers
 def portal_targets(env):
     url = env.get("GARAGEAI_PORTAL_URL", "").rstrip("/")
@@ -417,7 +361,7 @@ def garages(env, state, targets):
         row = {
             "garage": name, "type": "provider" if t.get("endpoint") else "mesh",
             "mesh": h.get("mesh_connected"), "runtime_ok": h.get("runtime_ok"), "error": h.get("runtime_error"),
-            # Not registered yet: the operator is still onboarding (joined the mesh or not, no host and port in
+            # Not registered yet: the operator is still onboarding (tunnel up or not, no host and port in
             # the portal). That is not an outage.
             "onboarding": not t.get("endpoint") and not (t.get("host") and t.get("port")),
             # The connect script's latest step, from the portal (gateway-targets), while onboarding.
@@ -431,7 +375,7 @@ def garages(env, state, targets):
             "agent": agent_report(t),
             # The garage's heartbeat comes from another machine than the one it was linked to.
             "machine_mismatch": t.get("machine_mismatch") is True,
-            "transport": t.get("transport") or ("provider" if t.get("endpoint") else "netbird"),
+            "transport": t.get("transport") or ("provider" if t.get("endpoint") else "tunnel"),
             # The engine it serves with, and a pause set in the portal (gateway-targets sends paused
             # garages with paused: true so the hub keeps their tunnel; before, they vanished from Ops:
             # garage-m4, 2026-10-18).
@@ -539,7 +483,7 @@ def gateway_log_counts():
 def outside():
     rows = []
     for name, url in (("gateway", "https://llm.garageai.eu/health/liveliness"), ("gateway (api)", "https://api.garageai.eu/health/liveliness"), ("portal", "https://app.garageai.eu/"),
-                      ("site", "https://www.garageai.eu/"), ("netbird", "https://netbird.garageai.eu/")):
+                      ("site", "https://www.garageai.eu/")):
         code, _, ms = http(url, timeout=10)
         rows.append({"name": name, "url": url, "status": code, "ms": ms})
     return rows
@@ -694,30 +638,11 @@ def versions(env, state, conts):
     rows.append({"component": "LiteLLM (gateway)", "running": litellm, "latest": latest,
                  "update": bool(latest and litellm and latest != litellm),
                  "how": "set LITELLM_VERSION in /opt/garageai/litellm/.env, then: cd /opt/garageai/litellm && sudo docker compose pull && sudo docker compose up -d"})
-    nb = {}
-    api, token = env.get("NETBIRD_API_URL", "").rstrip("/"), env.get("NETBIRD_API_TOKEN", "")
-    if api and token:
-        code, body, _ = http(f"{api}/instance/version", {"Authorization": f"Token {token}"})
-        nb = json.loads(body) if code == 200 else {}
-    server_img = image_of(conts, "netbird-server").rsplit(":", 1)[-1]
-    rows.append({"component": "NetBird management/relay", "running": nb.get("management_current_version") or server_img,
-                 "latest": nb.get("management_available_version"), "update": bool(nb.get("management_update_available")),
-                 "pinned": server_img != "latest",
-                 "how": "change the netbird-server tag in /opt/garageai/netbird/docker-compose.yml, then: sudo docker compose pull && sudo docker compose up -d (quiet time)"})
-    dash_img = image_of(conts, "netbird-dashboard").rsplit(":", 1)[-1]
-    dash_avail = nb.get("dashboard_available_version")
-    rows.append({"component": "NetBird dashboard", "running": dash_img, "latest": dash_avail and f"v{dash_avail}",
-                 "update": bool(dash_avail and dash_img not in (f"v{dash_avail}", dash_avail, "latest")), "pinned": dash_img != "latest",
-                 "how": "change the dashboard tag in /opt/garageai/netbird/docker-compose.yml, then: sudo docker compose up -d"})
-    client = sh(["netbird", "version"]).strip()
-    rows.append({"component": "NetBird client (gateway peer)", "running": client, "latest": nb.get("management_available_version"),
-                 "update": bool(client and nb.get("management_available_version") and client != nb.get("management_available_version")),
-                 "how": "sudo apt update && sudo apt install --only-upgrade netbird"})
-    traefik = image_of(conts, "netbird-traefik").rsplit(":", 1)[-1]
+    traefik = image_of(conts, "garageai-traefik").rsplit(":", 1)[-1]
     t_latest = cached(state, "traefik_latest", 3600, lambda: (github_json("repos/traefik/traefik/releases/latest") or {}).get("tag_name"))
     rows.append({"component": "Traefik", "running": traefik, "latest": t_latest,
                  "update": bool(t_latest and not t_latest.startswith(traefik)),
-                 "how": "minor/patch updates arrive with the floating tag on recreate; a new minor needs the tag changed in /opt/garageai/netbird/docker-compose.yml"})
+                 "how": "change the image tag in /opt/garageai/traefik/docker-compose.yml, then: cd /opt/garageai/traefik && sudo docker compose pull && sudo docker compose up -d (quiet time: a few seconds without HTTPS)"})
     os_name = ""
     try:
         os_name = dict(l.strip().split("=", 1) for l in open("/etc/os-release") if "=" in l).get("PRETTY_NAME", "").strip('"')
@@ -752,7 +677,7 @@ def source(state):
         files.append({"deployed": deployed, "source": repo_path,
                       "status": "missing" if have is None else "unknown" if want is None else "in sync" if want == have else "differs from main"})
     return {"repo": REPO, "main": main, "main_short": (main or "")[:7], "checkout": local and local[:7], "checkout_branch": branch,
-            "files": files, "netbird_compose": "/opt/garageai/netbird/docker-compose.yml (installer-generated, not in the repo)"}
+            "files": files}
 
 
 def logs(conts):
@@ -803,8 +728,6 @@ def action_for(text, page, garage, code=None):
         return "One garage name on two machines: see mix-ups in the guide", f"{KB}#mix-ups-we-have-seen"
     if "is stuck at" in t or "has not reported a step" in t or "is onboarding" in t:
         return "Open the garage's onboarding in Admin: the failed step and Bridge's profile say what is wrong on the machine", f"{ADMIN}/garages?garage={g}"
-    if "setup key" in t:
-        return "Unused NetBird keys: revoke them in the NetBird dashboard (tunnel garages need none)", "https://netbird.garageai.eu/setup-keys"
     if "no context window" in t:
         return "The window arrives with the heartbeat once the model is loaded; or set it in Admin → Models", f"{ADMIN}/models"
     if "requests waiting" in t or "the garage is full" in t:
@@ -826,11 +749,7 @@ def action_for(text, page, garage, code=None):
     if "backup" in t:
         return "systemctl start garageai-backup, then journalctl -u garageai-backup", None
     if "certificate" in t:
-        return "Traefik renews certificates itself; docker logs netbird-traefik shows ACME errors", None
-    if "netbird client is not connected" in t:
-        return "On the gateway: sudo netbird status, then sudo netbird up", None
-    if "policy" in t:
-        return "Check the policy in the NetBird dashboard; garages must never reach the gateway", "https://netbird.garageai.eu/acls"
+        return "Traefik renews certificates itself; docker logs garageai-traefik shows ACME errors", None
     if "gateway-targets answered" in t or "ops-summary" in t:
         return "The portal's function failed: check its logs in Lovable/Supabase", None
     if "unknown api key" in t:
@@ -925,15 +844,6 @@ def alerts(d):
             add("critical", f"Certificate for {c['host']} expires in {c['days_left']} days", "server")
         elif c["days_left"] < 14:
             add("warning", f"Certificate for {c['host']} expires in {c['days_left']} days", "server")
-    # NetBird is only the fallback for networks that block UDP since 2026-10-18 (every garage runs
-    # on Bridge's own tunnel; the peers were cleaned up). What matters is that the fallback works
-    # and stays one-way; setup keys and extra policies no longer say anything.
-    m = d["mesh"]
-    if m["local"].get("management") is False or m["local"].get("signal") is False:
-        add("warning", "The UDP fallback (NetBird) is down: the gateway's NetBird client is not connected to management/signal", "mesh")
-    for p in m.get("policies", []):
-        if p["bidirectional"]:
-            add("critical", f"NetBird policy {p['name']} is bidirectional: garages could reach the gateway", "mesh")
     if d["portal"]["targets_status"] != 200:
         add("critical", f"Portal gateway-targets answered {d['portal']['targets_status']}", "supply")
     for o in d.get("onboarding", []):
@@ -953,7 +863,7 @@ def alerts(d):
                 add("info", f"{g['garage']} is onboarding, stuck at {' '.join(str(st.get('step', '?')).split())}: {st.get('message', '')}", "onboarding", garage=g["garage"])
             else:
                 add("info", f"{g['garage']} is onboarding: " + (f"{' '.join(str(st.get('step')).split())} ({st.get('status')})" if st.get("step")
-                    else f"{'joined the mesh, ' if g['mesh'] else ''}not registered with the portal yet"), "onboarding", garage=g["garage"])
+                    else f"{'tunnel up, ' if g['mesh'] else ''}not registered with the portal yet"), "onboarding", garage=g["garage"])
             continue
         if not g["runtime_ok"] or g["mesh"] is False:
             machine = ((g.get("agent") or {}).get("machine") or {})
@@ -978,17 +888,8 @@ def alerts(d):
         ag = g.get("agent") or {}
         if ag and (ag.get("age_min") or 0) < HEARTBEAT_SILENT_MINUTES:
             for pr in ag.get("problems", []):
-                # What the gateway sees from outside beats the garage's own view: on the mesh and
-                # answering through it means NetBird runs and the runtime listens on the network.
-                # The gateway's own view of the mesh decides: up means the garage's view is wrong,
-                # down is already the "tunnel down" alert. Never a second alert for one outage.
-                if pr.get("code", "").startswith("netbird_"):
-                    continue
-                # A tunnel garage's runtime is meant to stay on localhost (older Bridges still report these).
-                if g.get("transport") == "tunnel" and pr.get("code") in ("localhost_only", "ollama_host_not_persistent", "other_vpn"):
-                    continue
-                if pr.get("code") == "localhost_only" and g["runtime_ok"]:
-                    continue
+                # What the gateway sees from outside beats the garage's own view: the tunnel is the hub's
+                # handshake, and down is already the "tunnel down" alert. Never a second alert for one outage.
                 if ((g.get("agent") or {}).get("state") or {}).get("kind") in ("maintenance", "starting", "away") and pr.get("code") in ("no_runtime", "port_mismatch", "runtime_in_terminal", "small_context"):
                     continue  # the runtime is away on purpose: doctor's "no runtime answers" is expected, not news
                 # Bridge's errors are warnings here (the probes above say whether buyers are hurt);
@@ -1340,9 +1241,7 @@ def detect_events(db, d, state):
         "versions": {v["component"]: v["running"] for v in d.get("versions", []) if v.get("running")},
         "files": {f: sha256_file(f) for f in DEPLOYED},
         "main": (d.get("source") or {}).get("main"),
-        "peers": sorted(p["name"] for p in d["mesh"].get("peers", [])),
         "garages": sorted(g["garage"] for g in d["garages"]),
-        "setup_keys": d["mesh"].get("valid_setup_keys"),
         "blocked": {b["ip"]: b["since"] for b in (d.get("guard") or {}).get("active", [])},
     }
     prev = state.get("events_prev")
@@ -1381,10 +1280,6 @@ def detect_events(db, d, state):
     if cur["main"] and prev.get("main") and cur["main"] != prev["main"]:
         msg = ((github_json(f"repos/{REPO}/commits/{cur['main']}") or {}).get("commit") or {}).get("message", "")
         add_event(db, "info", "source", "updates", f"main -> {cur['main'][:7]}: {msg.splitlines()[0] if msg else ''}".rstrip(": "))
-    for name in sorted(set(cur["peers"]) - set(prev["peers"])):
-        add_event(db, "info", "mesh", "mesh", f"New NetBird peer (UDP fallback): {name}")
-    for name in sorted(set(prev["peers"]) - set(cur["peers"])):
-        add_event(db, "info", "mesh", "mesh", f"NetBird peer removed: {name}")
     for name in sorted(set(cur["garages"]) - set(prev["garages"])):
         add_event(db, "info", "supply", "supply", f"Added to supply: {name}")
     for name in sorted(set(prev["garages"]) - set(cur["garages"])):
@@ -1394,9 +1289,6 @@ def detect_events(db, d, state):
             b = next(x for x in d["guard"]["active"] if x["ip"] == ip)
             add_event(db, "warning", "guard", "traffic", f"Blocked {ip} for {'7 days (repeated)' if b.get('repeat') else '24 h'}: "
                                                          f"{b['count']} {b['reason']} within 2 min")
-    keys, before = cur["setup_keys"], prev.get("setup_keys")
-    if keys is not None and before is not None and keys > before:
-        add_event(db, "info", "mesh", "mesh", f"NetBird setup key created ({keys} valid)")
 
 
 def recent_events(db, limit, since=0):
@@ -1673,7 +1565,6 @@ def main():
         "chain_test": chain_test_info(),
         "certs": [cert_days(h) for h in CERT_HOSTS],
         "containers": containers(),
-        "mesh": mesh(env),
         "portal": {"targets_status": code, "targets_ms": ms, "garages_listed": len(targets or [])},
         "garages": garages(env, state, targets),
         "traffic": traffic(),

@@ -4,8 +4,8 @@ Research date: 2026-10-05. Every engine claim carries a source tag `[Sn]` that p
 Version numbers and dates come from each project's GitHub releases API on 2026-10-05 [S0] unless another source is given.
 Where something could not be checked, the report says "unverified" and does not guess.
 
-**What the gateway allows today:** TCP 11434, 1234, 8080 and 8000 into garages.
-**What `garageai-connect.sh` knows today:** runtime ids `ollama|lmstudio|llamacpp|vllm|paddock|unsloth|other`. Only the first four have default ports. The probe is fixed to `GET http://<ip>:<port>/v1/models` and reads `.data[].id`. An optional `RUNTIME_API_KEY` is sent as a Bearer token.
+**What the gateway allowed until 2026-11** (the NetBird policy): TCP 11434, 1234, 8080 and 8000 into garages. On the Bridge tunnel any port works (§4b).
+**What the connect script knew** (removed in 2026-11; Bridge's runtimes are in `cli/internal/runtime`): runtime ids `ollama|lmstudio|llamacpp|vllm|paddock|unsloth|other`. Only the first four have default ports. The probe is fixed to `GET http://<ip>:<port>/v1/models` and reads `.data[].id`. An optional `RUNTIME_API_KEY` is sent as a Bearer token.
 
 ---
 
@@ -114,7 +114,7 @@ Legend: Y = yes, N = no, ? = unverified. "Bind flag" is the exact way to listen 
 
 ## 4. Concrete changes
 
-### 4a. `scripts/garageai-connect.sh` (proposal only; the file is being edited on another branch)
+### 4a. `scripts/garageai-connect.sh` (historical proposal; the script was removed in 2026-11)
 
 ```bash
 default_port() {
@@ -151,11 +151,13 @@ Other script items:
 
 ### 4b. Gateway port policy
 
-Today: 11434, 1234, 8080, 8000.
-- **Add now:** 11540 (Paddock), 8888 (Unsloth), 30000 (SGLang).
-- **Add if we list them:** 13305 (Lemonade). 11541–11549 if Paddock-manager-spawned endpoints should work.
-- **Better long-term:** have the connect script register the garage's chosen port and open only that `peer:port` in the NetBird policy for that garage. Then there is no global allowlist to maintain, and any engine with a `/v1` API works with `--port`.
-- **Until then:** the hints for low-priority engines (Jan, KoboldCpp, Aphrodite, LMDeploy, Xinference, text-generation-webui) should tell operators to run them on 8000 or 8080.
+No longer needed (2026-11). The list of allowed runtime ports lived in the NetBird policy, which
+is gone. With the Bridge tunnel there is no port allowlist on the gateway: the hub
+(`infra/gateway/hub/garageai-hub.py`) gives each garage one /32 and its nftables only stop
+garages from opening connections, and on the garage Bridge answers inside the tunnel only on the
+port it registered for the runtime, forwarding to `127.0.0.1:<port>` with a path allowlist. So
+every port is already "only that garage's runtime port", and any engine with a `/v1` API works
+with `--port`, including Paddock (11540), Unsloth (8888), SGLang (30000) and Lemonade (13305).
 
 ---
 

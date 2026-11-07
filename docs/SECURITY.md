@@ -12,7 +12,7 @@ You will get an answer as soon as possible, and credit when the fix ships unless
 
 ## Scope
 
-- The connect script ([`scripts/garageai-connect.sh`](../scripts/garageai-connect.sh)) and the heartbeat it installs
+- Bridge ([`cli/`](../cli/README.md)), the tunnel and the heartbeat it installs
 - The gateway setup in [`infra/gateway/`](../infra/gateway/README.md)
 - The site in [`www/`](../www)
 

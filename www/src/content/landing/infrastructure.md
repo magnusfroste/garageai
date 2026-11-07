@@ -15,7 +15,7 @@ layers:
     icon: "🔐"
     title: "Bridge's encrypted tunnel"
     subtitle: "WireGuard, built into Bridge"
-    details: "GarageAI Bridge carries the tunnel itself: WireGuard in user space, with no VPN app and no network interface on your machine. It dials out to a hub on the EU gateway, so you open no ports, and it forwards only the runtime's port to your runtime on localhost. Garages can only answer the gateway, never start connections, and cannot reach each other. Where a network blocks UDP, Bridge can use GarageAI's self-hosted NetBird mesh instead."
+    details: "GarageAI Bridge carries the tunnel itself: WireGuard in user space, with no VPN app and no network interface on your machine. It dials out to a hub on the EU gateway, so you open no ports, and it forwards only the runtime's port to your runtime on localhost. Garages can only answer the gateway, never start connections, and cannot reach each other. A fallback over TCP for networks that block UDP is on the roadmap."
     color: "var(--color-accent)"
   - step: "03"
     icon: "🔀"

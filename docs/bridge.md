@@ -23,8 +23,8 @@ script stays as an internal backup and reference. Phase 0 is done and phase 1 is
     `contexts`) are the interface to the portal and the Operations Center.
   - Bridge and `garageai-connect.sh` speak it identically: `scripts/tests/parity-doctor.sh`
     proves it.
-  - The script keeps working until Bridge has parity, so the portal and ops never notice the
-    switch.
+  - The script kept working until Bridge had parity, so the portal and ops never noticed the
+    switch. It was removed with NetBird in 2026-11.
 - **Deterministic discovery, judgment on top.** Bridge itself sees the machine: ports, runtimes,
   models, GPU, firewall. The agent (phase 3) explains and chooses fixes on top of that profile.
   Detection does not depend on a model.
@@ -106,6 +106,10 @@ program, an outbound tunnel, a local forward.
   forwarder) keeps NetBird's server and dashboard but binds Bridge to internal APIs that change
   often and a 40–60 MB binary. An own WireGuard hub is less code to depend on, less to run, and
   fully ours. The hub was chosen as the end state.
+- **Status 2026-11-07: done.** Every garage runs on the Bridge tunnel; the gateway's Traefik has
+  its own stack (infra/gateway/traefik) and NetBird's server, dashboard and the gateway's NetBird
+  client are switched off. There is no fallback for networks that block UDP until the TCP
+  fallback exists.
 - **Spike (2–3 days) before building it:** wireguard-go netstack in Bridge against a WireGuard
   end on the gateway, forward to a local runtime, measure throughput and reconnect behaviour,
   and connect one real garage (the Mac) that way. The spike decides; if it holds, this is the

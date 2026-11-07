@@ -49,7 +49,7 @@ partners:
     url: "https://www.autoversio.com"
   - name: "Liteit"
     url: "https://www.liteit.se"
-credits: "Built on open source: WireGuard, LiteLLM and NetBird."
+credits: "Built on open source: WireGuard and LiteLLM."
 copyright: "© 2026 Liteit AB · GarageAI · Bridge under the MIT License · Made in Sweden 🇸🇪 · Built for Europe 🇪🇺"
 ---
 

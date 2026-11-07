@@ -4,9 +4,14 @@ Bridge carries the garage's tunnel to the gateway itself, in user space. There i
 client, no network interface on the garage, and no system routes. The runtime stays on
 `127.0.0.1`. This page is the design. Read it before the gateway hub (step C) is built.
 
+Status 2026-11: **the only transport.** NetBird was removed from the gateway in November 2026
+(server, dashboard and the gateway's client switched off; Traefik moved to its own stack,
+infra/gateway/traefik). There is no fallback for networks that block UDP until the TCP fallback
+below exists.
+
 Status 2026-10-12, evening: **the default for new garages** (Bridge v0.4.2). garage-m1, garage-m2,
 garage-m4 and an outside operator's Mac mini (with Tailscale, Ollama on localhost) run on it, and so
-does dgx-city. NetBird stays as the fallback (`--tunnel netbird`) until the TCP fallback exists.
+does dgx-city. NetBird stayed as the fallback (`--tunnel netbird`) until it was removed in 2026-11.
 
 Status 2026-10-12, morning:
 - **The spike holds over the internet** (`spikes/bridge-tunnel/README.md`). It was 16 ms vs
@@ -38,7 +43,7 @@ garage (Bridge, user space)                       gateway
   port, and forwards to `127.0.0.1:<port>`. LiteLLM's `api_base` keeps the mesh shape
   (`http://<tunnel ip>:<port>/v1`). Only the host part differs from NetBird.
 - **On the gateway, the hub is a kernel WireGuard interface (`wg-hub`)**, not user space. LiteLLM's
-  container reaches `10.66.0.0/16` through the host the same way it reaches NetBird's `wt0` today,
+  container reaches `10.66.0.0/16` through the host, the same way it reached NetBird's `wt0`,
   and the kernel is faster and survives our own process restarts. The protocol is the same, so a
   user-space garage talks to a kernel hub unchanged.
 
@@ -52,16 +57,16 @@ garage (Bridge, user space)                       gateway
 4. If the key changes (a reinstall), the portal replaces the old one. The hub then drops the old
    peer and adds the new one. One garage has one key at a time.
 
-The hub's private key lives only on the gateway (`/etc/garageai/hub.key`, 0600).
+The hub's private key lives only on the gateway (`/etc/wireguard/garageai-hub.key`, 0600).
 
 ## The hub service (gateway, `garageai-hub`)
 
-- Every 30 s it reads the garages that use the tunnel from `gateway-targets` (new fields
+- Every 10 s it reads the garages that use the tunnel from `gateway-targets` (new fields
   `tunnel_public_key` and `tunnel_ip`), and reconciles `wg-hub` with `wg set` and `wg syncconf`.
   It adds new peers, removes deleted or disabled garages, and changes keys. There are no
   endpoints, and `allowed-ips` is the garage's `/32`.
 - It reports each peer's latest handshake and transfer to the Operations Center: the Mesh page
-  and the "tunnel down" signal. This is the same model as today's NetBird peer status.
+  and the "tunnel down" signal. This replaced NetBird's peer status.
 - If the portal cannot be reached, it keeps the last peer set. It never empties the hub because of
   a failed read.
 
@@ -103,7 +108,7 @@ require. Streaming passes through unbuffered; the wait for the first byte allows
   sends a handshake at once, instead of waiting for the next keepalive. The aim is about 1 s after
   the new network is up, against ≤ 25 s in the spike.
 - **`garageai connect --tunnel bridge`** opts in: the mesh steps use the tunnel instead of NetBird.
-  NetBird stays the default until the tunnel has run on three garages.
+  NetBird stayed the default until the tunnel had run on three garages (since 2026-11 the tunnel is the only transport).
 - **doctor** reports the tunnel: up, latest handshake, hub reachable over UDP. A new problem,
   `tunnel_udp_blocked`, comes with the TCP fallback below.
 

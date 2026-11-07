@@ -3,8 +3,8 @@
 # Contents: LiteLLM Postgres (keys, budgets, models, spend), LiteLLM .env (master and
 # salt key), the Bridge tunnel hub's key (/etc/wireguard/garageai-hub.key: lose it and every
 # garage must connect again), /etc/garageai (gateway-health.env, ops-api.key, hub-peers.json),
-# the ops .env, NetBird config.yaml (store encryption key) and data volume, Let's Encrypt
-# certificates. Kept 7 days in /var/backups/garageai (root only).
+# the ops .env, the Traefik compose file and its Let's Encrypt volume (certificates and the
+# ACME account). Kept 7 days in /var/backups/garageai (root only).
 #
 # Off the machine (since 2026-10-13): with BACKUP_PASSPHRASE in /etc/garageai/backup.env the
 # archive is encrypted (gpg, AES256) and, with BACKUP_S3_REMOTE (an rclone remote in
@@ -28,11 +28,9 @@ cp /opt/garageai/litellm/config.yaml /opt/garageai/litellm/docker-compose.yml "$
 cp /etc/wireguard/garageai-hub.key "$WORK/garageai-hub.key"
 tar -C /etc -czf "$WORK/etc-garageai.tgz" garageai
 [[ -f /opt/garageai/ops/.env ]] && cp /opt/garageai/ops/.env "$WORK/ops.env"
-cp /opt/garageai/netbird/config.yaml "$WORK/netbird-config.yaml"
-cp /opt/garageai/netbird/docker-compose.yml "$WORK/netbird-docker-compose.yml"
-for vol in netbird_netbird_data netbird_netbird_traefik_letsencrypt; do
-  docker run --rm -v "$vol":/data:ro -v "$WORK":/out alpine:3 tar -C /data -czf "/out/$vol.tgz" .
-done
+cp /opt/garageai/traefik/docker-compose.yml "$WORK/traefik-docker-compose.yml"
+docker run --rm -v garageai_traefik_letsencrypt:/data:ro -v "$WORK":/out alpine:3 \
+  tar -C /data -czf /out/garageai_traefik_letsencrypt.tgz .
 
 if [[ -n ${BACKUP_PASSPHRASE:-} ]]; then
   OUT="$DEST/garageai-$STAMP.tgz.gpg"

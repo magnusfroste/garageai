@@ -1,10 +1,10 @@
 # LiteLLM gateway for GarageAI.
 #
-# Runs on the same VPS as the NetBird stack and is published through NetBird's
-# built-in Traefik (entrypoint "websecure", cert resolver "letsencrypt"), so the
-# VPS has a single reverse proxy and a single set of certificates.
+# Published through the gateway's Traefik (infra/gateway/traefik: entrypoint "websecure",
+# cert resolver "letsencrypt"), so the VPS has a single reverse proxy and a single set of
+# certificates. Garages are reached through the Bridge tunnel hub (wg-hub) on the host.
 #
-# Start the NetBird stack first: this file joins its Docker network.
+# Start the Traefik stack first: this file joins its Docker network (PROXY_NETWORK).
 #   cp .env.example .env   # then fill in the values
 #   docker compose up -d
 
@@ -27,10 +27,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    networks: [internal, netbird]
+    networks: [internal, proxy]
     labels:
       - traefik.enable=true
-      - traefik.docker.network=${NETBIRD_NETWORK:?set NETBIRD_NETWORK in .env}
+      - traefik.docker.network=${PROXY_NETWORK:-garageai_proxy}
       - traefik.http.services.litellm.loadbalancer.server.port=4000
       # Public: only the LLM API and liveness checks, rate limited per client IP.
       - traefik.http.routers.litellm.rule=Host(`${LITELLM_DOMAIN:?set LITELLM_DOMAIN in .env}`) && (Path(`/v1/chat/completions`) || Path(`/chat/completions`) || Path(`/v1/completions`) || Path(`/completions`) || Path(`/v1/embeddings`) || Path(`/embeddings`) || Path(`/v1/models`) || Path(`/models`) || Path(`/v1/messages`) || Path(`/v1/messages/count_tokens`) || Path(`/v1/responses`) || Path(`/health/liveliness`) || Path(`/health/readiness`))
@@ -167,7 +167,7 @@ services:
       POSTGRES_DB: litellm
     volumes:
       - pgdata:/var/lib/postgresql/data
-    # Not on the netbird network and no published port: only LiteLLM reaches it.
+    # Not on the proxy network and no published port: only LiteLLM reaches it.
     logging:
       driver: json-file
       options: {max-size: "10m", max-file: "3"}
@@ -180,8 +180,8 @@ services:
 
 networks:
   internal: {}
-  netbird:
-    name: ${NETBIRD_NETWORK:?set NETBIRD_NETWORK in .env}
+  proxy:
+    name: ${PROXY_NETWORK:-garageai_proxy}
     external: true
 
 volumes:

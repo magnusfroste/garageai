@@ -4,7 +4,7 @@
 `wg-hub` is a kernel WireGuard interface, 10.66.0.1/16, UDP 51830. Each garage that uses the Bridge
 tunnel is one peer: its public key and its /32. There are no endpoints: the hub learns each garage's
 address from its handshakes, whatever NAT it is behind. LiteLLM reaches garages at
-http://<tunnel ip>:<port>/v1 through the host, as it reaches NetBird's wt0.
+http://<tunnel ip>:<port>/v1 through the host.
 
 Every 10 s this service:
 - reads the garages with transport "tunnel" from the portal (gateway-targets);

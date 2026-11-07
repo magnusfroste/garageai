@@ -1,5 +1,5 @@
 # GarageAI Operations Center: a static page plus ops.json, written every minute by
-# garageai-ops-collect on the host. Served by nginx behind NetBird's Traefik, with HTTPS
+# garageai-ops-collect on the host. Served by nginx behind the gateway's Traefik, with HTTPS
 # and a sign-in with a 30-day session cookie (nginx auth_request against garageai-ops-api). Read-only, with one exception: the page can set and end its own silences, through
 # a small API on the host (/api/, garageai-ops-api).
 #
@@ -25,11 +25,11 @@ services:
     logging:
       driver: json-file
       options: {max-size: "10m", max-file: "3"}
-    networks: [netbird]
+    networks: [proxy]
     extra_hosts: ["host.docker.internal:host-gateway"]   # the host's ops API, for /api/
     labels:
       - traefik.enable=true
-      - traefik.docker.network=netbird_netbird
+      - traefik.docker.network=garageai_proxy
       - traefik.http.routers.ops-center.rule=Host(`${OPS_DOMAIN:?set OPS_DOMAIN in .env}`)
       - traefik.http.routers.ops-center.entrypoints=websecure
       - traefik.http.routers.ops-center.tls=true
@@ -44,6 +44,6 @@ services:
       - traefik.http.services.ops.loadbalancer.server.port=80
 
 networks:
-  netbird:
-    name: netbird_netbird
+  proxy:
+    name: garageai_proxy
     external: true
