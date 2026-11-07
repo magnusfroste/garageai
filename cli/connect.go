@@ -91,6 +91,10 @@ func parseConnectArgs(args []string, o *Options) error {
 		}
 		var v string
 		var err error
+		if a == "--tunnel" && i+1 < len(args) && args[i+1] == "bridge" {
+			i++ // the opt-in of v0.4.0, now the only way: nothing to choose
+			continue
+		}
 		if netbirdFlags[a] {
 			return fmt.Errorf("%w: %s", errNetBirdFlag, a)
 		}

@@ -105,7 +105,7 @@ func TestNetBirdFlagsRefused(t *testing.T) {
 		{"--setup-key", "SK", "--management-url", "https://nb"},
 		{"--management-url", "https://nb"},
 		{"--tunnel", "netbird"},
-		{"--tunnel", "bridge"},
+		{"--tunnel"},
 		{"--skip-install"},
 		{"--runtime", "vllm", "--skip-install", "--yes"},
 	} {
@@ -117,6 +117,10 @@ func TestNetBirdFlagsRefused(t *testing.T) {
 	o := optionsFromEnv()
 	if err := parseConnectArgs([]string{"--runtime", "vllm", "--yes"}, &o); err != nil {
 		t.Errorf("plain options refused: %v", err)
+	}
+	// --tunnel bridge was the documented opt-in from v0.4.0 and is in operators' notes: still fine.
+	if err := parseConnectArgs([]string{"--tunnel", "bridge", "--runtime", "ollama"}, &o); err != nil || o.Runtime != "ollama" {
+		t.Errorf("--tunnel bridge: got %v (runtime %q), want accepted", err, o.Runtime)
 	}
 	if err := parseConnectArgs([]string{"--wireguard"}, &o); err == nil || errors.Is(err, errNetBirdFlag) {
 		t.Errorf("an unknown option: got %v, want unknown option", err)
