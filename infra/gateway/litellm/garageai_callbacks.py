@@ -90,6 +90,16 @@
     as `garageai: usage:` (the spend row stands; an admin corrects it from the line), and a garage
     is routed around for SUSPECT_S; a provider is only logged, since it carries auto. Hidden
     reasoning cannot be counted: a runtime can still pad `reasoning_tokens`, which the line shows.
+    Since 2026-11-07 the same pass counts tool calls that came back without arguments (a call the
+    buyer's agent cannot act on) and logs them as `garageai: tool:`; measured only, for now.
+
+13. Thinking off unless asked for (2026-11-07). The first garages run thinking models: "one word"
+    took 240–400 tokens and 8–15 s on qwen3.8-27b where DeepSeek took 4 tokens and 1 s, and the
+    buyer paid for thoughts never shown. A market request that says nothing about reasoning (no
+    `reasoning_effort`, `reasoning`, `thinking`, `chat_template_kwargs`…) is sent to an Ollama or
+    vLLM deployment with `reasoning_effort: "none"`, which both honour (verified through the
+    gateway on mac-mini-1cab and dgx-city). A buyer who wants reasoning asks for it in the
+    request. Providers, Runner, private machines and probes are left as they are.
 """
 import asyncio
 import hashlib
@@ -792,9 +802,9 @@ def choose_boost(model_list, prompt_tokens, conv, now=None, roll=None, max_outpu
         return None
     sticky = _sticky.get(conv) if conv else None
     if sticky and now - sticky[2] <= STICKY_S:
-        for d in cands:
-            if (d.get("model_info") or {}).get("id") == sticky[0]:
-                return d
+        # A conversation stays where its prefix is cached: back to the garage that started it,
+        # never taken from the deployment that has served it so far (2026-11-07).
+        return next((d for d in cands if (d.get("model_info") or {}).get("id") == sticky[0]), None)
     if (random.random() if roll is None else roll) >= BOOST_SHARE:
         return None
     least = min(served_recently((d.get("model_info") or {}).get("garage"), now) for d in cands)
@@ -866,6 +876,19 @@ def has_tool_call(response):
     return _has_key(_as_dict(response), ("tool_calls", "function_call"))
 
 
+def empty_tool_calls(response):
+    """How many tool calls in the answer carry no arguments: a call the buyer's agent cannot act
+    on (measured 2026-11-06: 3 of 8 forced calls from a provider came back `{}`)."""
+    n = 0
+    for choice in _as_dict(response).get("choices") or []:
+        msg = (choice or {}).get("message") or {}
+        for call in msg.get("tool_calls") or []:
+            args = ((call or {}).get("function") or {}).get("arguments")
+            if args is None or str(args).strip() in ("", "{}", "null"):
+                n += 1
+    return n
+
+
 def _collect_answer(node, out):
     if isinstance(node, str):
         out.append(node)
@@ -926,13 +949,19 @@ async def check_usage(kwargs, response_obj):
             counted_prompt = await asyncio.to_thread(estimate_tokens, kwargs.get("messages"), kwargs)
         except Exception:  # noqa: BLE001 - the prompt check is optional
             counted_prompt = 0
+    d = _deployment_of_id(slo.get("model_id")) or {}
+    info = d.get("model_info") or {}
+    garage = info.get("garage") or slo.get("model_id")
+    empty = empty_tool_calls(response_obj)
+    if empty:
+        # Measured, not acted on yet: how often a runtime answers a tool call the agent cannot use.
+        print(f"garageai: tool: {'provider' if info.get('connection_type') == 'endpoint' else 'garage'} {garage} "
+              f"runtime={info.get('runtime')} model={group} id={slo.get('id')}: {empty} tool call(s) with empty "
+              f"arguments, {slo.get('completion_tokens')} completion tokens reported", flush=True)
     why = usage_check(slo.get("completion_tokens"), slo.get("prompt_tokens"), counted_answer, counted_prompt,
                       reasoning, shown, tool_call=has_tool_call(response_obj))
     if not why:
         return None
-    d = _deployment_of_id(slo.get("model_id")) or {}
-    info = d.get("model_info") or {}
-    garage = info.get("garage") or slo.get("model_id")
     if info.get("connection_type") == "endpoint":
         print(f"garageai: usage: provider {garage} model={group} id={slo.get('id')}: {why}", flush=True)
     else:
@@ -940,6 +969,33 @@ async def check_usage(kwargs, response_obj):
         print(f"garageai: usage: garage {garage} model={group} id={slo.get('id')}: {why} "
               f"-> routed around for {SUSPECT_S // 60} min; check the spend row", flush=True)
     return why
+
+
+# ---------------------------------------------------------------- 13: thinking off unless asked for
+
+THINK_RUNTIMES = ("ollama", "vllm")  # both take reasoning_effort "none" through the gateway (verified 2026-11-07)
+THINK_KEYS = ("reasoning_effort", "reasoning", "thinking", "think", "chat_template_kwargs", "enable_thinking")
+
+
+def asked_for_thinking(kwargs):
+    """True when the buyer's request says anything about reasoning, whichever API's words it uses."""
+    if any(kwargs.get(k) is not None for k in THINK_KEYS):
+        return True
+    extra = kwargs.get("extra_body")
+    return isinstance(extra, dict) and any(k in extra for k in THINK_KEYS)
+
+
+def quiet_thinking(kwargs):
+    """Rule 13 on the chosen deployment: a market request that says nothing about reasoning runs
+    without it on a runtime that can switch it off. Returns (kwargs, whether it was switched off)."""
+    info = _deployment_info(kwargs)
+    group = str(_meta(kwargs).get("model_group") or "")
+    if info.get("runtime") not in THINK_RUNTIMES or group.startswith(MINE_PREFIX) or group.startswith("probe/"):
+        return kwargs, False
+    if asked_for_thinking(kwargs):
+        return kwargs, False
+    kwargs["reasoning_effort"] = "none"
+    return kwargs, True
 
 
 class GarageAICallbacks(CustomLogger):
@@ -1140,6 +1196,10 @@ class GarageAICallbacks(CustomLogger):
 
     async def async_pre_call_deployment_hook(self, kwargs, call_type):
         try:
+            kwargs, quiet = quiet_thinking(kwargs)
+            if quiet:
+                print(f"garageai: thinking off: model={_meta(kwargs).get('model_group')} "
+                      f"runtime={_deployment_info(kwargs).get('runtime')}", flush=True)
             return provider_time_limit(kwargs)
         except Exception:  # noqa: BLE001 - never fail a request because of the time limit
             return None

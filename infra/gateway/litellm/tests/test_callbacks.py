@@ -224,6 +224,10 @@ check("start: not when prefill would be too slow", cb.choose_boost(ML, 2000, Non
 cb._speeds.clear()
 cb._sticky["c1"] = ("pool-mac", 1500, time.time())
 check("start: a conversation goes back to the garage that served it", cb.choose_boost(ML, 2000, "c1", roll=0.99)["model_info"]["id"], "pool-mac")
+cb._sticky["c2"] = ("auto-av", 1500, time.time())
+check("start: a conversation cached elsewhere is never taken", cb.choose_boost(ML, 2000, "c2", roll=0.0), None)
+cb._sticky["c3"] = ("auto-av", 1500, time.time() - cb.STICKY_S - 1)
+check("start: once its cache is stale it may be offered one", cb.choose_boost(ML, 2000, "c3", roll=0.0) is not None, True)
 cb._sticky.clear()
 f = cb.first_in_line(ML[3])
 check("start: put first (order 0) on a copy", (f["litellm_params"]["order"], f["model_info"]["order"], "order" in ML[3]["litellm_params"]), (0, 0, False))
@@ -256,6 +260,11 @@ ans = {"id": "chatcmpl-1", "object": "chat.completion", "model": "qwen", "usage"
 t, shown = cb.answer_text(ans)
 check("usage: answer text = content + tool arguments, not ids or usage", ("Kalmar" in t, '{"x": 1}' in t, "chatcmpl" in t, "stop" in t, shown), (True, True, False, False, False))
 check("usage: a tool call is seen as one", (cb.has_tool_call(ans), cb.has_tool_call({"choices": [{"message": {"content": "hi", "tool_calls": None}}]})), (True, False))
+empty = {"choices": [{"message": {"content": "", "tool_calls": [
+    {"id": "c1", "type": "function", "function": {"name": "f", "arguments": "{}"}},
+    {"id": "c2", "type": "function", "function": {"name": "g", "arguments": ""}},
+    {"id": "c3", "type": "function", "function": {"name": "h", "arguments": "{\"path\": \"a\"}"}}]}}]}
+check("tool: empty arguments are counted, real ones not", (cb.empty_tool_calls(empty), cb.empty_tool_calls(ans), cb.empty_tool_calls({"choices": [{"message": {"content": "hi"}}]})), (2, 0, 0))
 ans["choices"][0]["message"]["reasoning_content"] = "let me think"
 check("usage: reasoning text counts as shown", cb.answer_text(ans)[1], True)
 cb._suspect.clear()
@@ -281,6 +290,21 @@ async def _run_check():
 
 import asyncio as _aio
 check("usage: the success hook flags a padded count, passes an honest one, ignores mine/", _aio.run(_run_check()), (True, None, None))
+
+# Rule 13 (2026-11-07): thinking off unless asked for.
+def _dk(runtime, group="garageai/auto", **extra):
+    return {"model": "openai/x", "messages": [U("hi")], "model_info": {"id": "d1", "garage": "g", "runtime": runtime},
+            "litellm_params": {"metadata": {"model_group": group}}, **extra}
+check("thinking: off on ollama for a market request", cb.quiet_thinking(_dk("ollama")), ({**_dk("ollama"), "reasoning_effort": "none"}, True))
+check("thinking: off on vllm", cb.quiet_thinking(_dk("vllm"))[1], True)
+check("thinking: a provider is left alone", cb.quiet_thinking(_dk("openai"))[1], False)
+check("thinking: Runner is left alone", cb.quiet_thinking(_dk("xyntetik"))[1], False)
+check("thinking: the owner's own machine is left alone", cb.quiet_thinking(_dk("ollama", group="mine/g/qwen/qwen3"))[1], False)
+check("thinking: a probe is left alone", cb.quiet_thinking(_dk("ollama", group="probe/g"))[1], False)
+for k, v in (("reasoning_effort", "high"), ("thinking", {"type": "enabled", "budget_tokens": 1024}), ("reasoning", {"effort": "low"}),
+             ("chat_template_kwargs", {"enable_thinking": True}), ("extra_body", {"chat_template_kwargs": {"enable_thinking": True}})):
+    kw, quiet = cb.quiet_thinking(_dk("ollama", **{k: v}))
+    check(f"thinking: the buyer's own {k} is kept", (quiet, kw.get(k), kw.get("reasoning_effort") if k != "reasoning_effort" else kw[k]), (False, v, None if k != "reasoning_effort" else v))
 
 print("all tests passed" if not fails else f"{fails} test(s) failed")
 sys.exit(1 if fails else 0)
