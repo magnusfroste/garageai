@@ -29,9 +29,8 @@ cp /etc/wireguard/garageai-hub.key "$WORK/garageai-hub.key"
 tar -C /etc -czf "$WORK/etc-garageai.tgz" garageai
 [[ -f /opt/garageai/ops/.env ]] && cp /opt/garageai/ops/.env "$WORK/ops.env"
 cp /opt/garageai/traefik/docker-compose.yml "$WORK/traefik-docker-compose.yml"
-for vol in garageai_traefik_letsencrypt; do
-  docker run --rm -v "$vol":/data:ro -v "$WORK":/out alpine:3 tar -C /data -czf "/out/$vol.tgz" .
-done
+docker run --rm -v garageai_traefik_letsencrypt:/data:ro -v "$WORK":/out alpine:3 \
+  tar -C /data -czf /out/garageai_traefik_letsencrypt.tgz .
 
 if [[ -n ${BACKUP_PASSPHRASE:-} ]]; then
   OUT="$DEST/garageai-$STAMP.tgz.gpg"
