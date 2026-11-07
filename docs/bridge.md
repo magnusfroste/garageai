@@ -23,8 +23,8 @@ script stays as an internal backup and reference. Phase 0 is done and phase 1 is
     `contexts`) are the interface to the portal and the Operations Center.
   - Bridge and `garageai-connect.sh` speak it identically: `scripts/tests/parity-doctor.sh`
     proves it.
-  - The script keeps working until Bridge has parity, so the portal and ops never notice the
-    switch.
+  - The script kept working until Bridge had parity, so the portal and ops never noticed the
+    switch. It was removed with NetBird in 2026-11.
 - **Deterministic discovery, judgment on top.** Bridge itself sees the machine: ports, runtimes,
   models, GPU, firewall. The agent (phase 3) explains and chooses fixes on top of that profile.
   Detection does not depend on a model.

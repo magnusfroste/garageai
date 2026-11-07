@@ -4,8 +4,8 @@ Research date: 2026-10-05. Every engine claim carries a source tag `[Sn]` that p
 Version numbers and dates come from each project's GitHub releases API on 2026-10-05 [S0] unless another source is given.
 Where something could not be checked, the report says "unverified" and does not guess.
 
-**What the gateway allows today:** TCP 11434, 1234, 8080 and 8000 into garages.
-**What `garageai-connect.sh` knows today:** runtime ids `ollama|lmstudio|llamacpp|vllm|paddock|unsloth|other`. Only the first four have default ports. The probe is fixed to `GET http://<ip>:<port>/v1/models` and reads `.data[].id`. An optional `RUNTIME_API_KEY` is sent as a Bearer token.
+**What the gateway allowed until 2026-11** (the NetBird policy): TCP 11434, 1234, 8080 and 8000 into garages. On the Bridge tunnel any port works (§4b).
+**What the connect script knew** (removed in 2026-11; Bridge's runtimes are in `cli/internal/runtime`): runtime ids `ollama|lmstudio|llamacpp|vllm|paddock|unsloth|other`. Only the first four have default ports. The probe is fixed to `GET http://<ip>:<port>/v1/models` and reads `.data[].id`. An optional `RUNTIME_API_KEY` is sent as a Bearer token.
 
 ---
 
@@ -114,7 +114,7 @@ Legend: Y = yes, N = no, ? = unverified. "Bind flag" is the exact way to listen 
 
 ## 4. Concrete changes
 
-### 4a. `scripts/garageai-connect.sh` (proposal only; the file is being edited on another branch)
+### 4a. `scripts/garageai-connect.sh` (historical proposal; the script was removed in 2026-11)
 
 ```bash
 default_port() {
