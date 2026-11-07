@@ -1,5 +1,5 @@
 {
- "source": "Joakimpalm-Zen/xyntetik-runner docs/model-tiers.json at v1.10.0 (tier1 and tier2, single-file rows with a recorded pass, passing backends only; licence and whether the row's claim says it fails the fidelity bar)",
+ "source": "Joakimpalm-Zen/xyntetik-runner docs/model-tiers.json at v1.15.0 (tier1 and tier2, single-file rows with a recorded pass, passing backends only; licence and whether the row's claim says it fails the fidelity bar)",
  "schema": "xyntetik.runner.model-tiers.v1",
  "rows": [
   {
@@ -95,9 +95,9 @@
      "runner_version": "1.7.0"
     },
     "cuda": {
-     "date": "2026-10-28",
+     "date": "2026-11-03",
      "device_class": "windows-x86_64-cuda",
-     "runner_version": "1.7.0"
+     "runner_version": "1.12.0"
     },
     "metal": {
      "date": "2026-10-29",
@@ -252,14 +252,14 @@
   {
    "id": "qwen3.8-27b-gsq-rco-iq3_s-recovered",
    "model": "Qwen3.8-27B",
-   "tier": "tier1",
+   "tier": "tier2",
    "quantization": "IQ3_S codebook mix, recovered scales",
    "features": [
     "text",
     "tools:qwen38"
    ],
    "licence": "apache-2.0",
-   "fails_fidelity": false,
+   "fails_fidelity": true,
    "repo": "Joakimpalm-Zen/Qwen3.8-27B-GSQ-RCO-IQ3_S-recovered-GGUF",
    "file": "Qwen3.8-27B-GSQ-RCO-IQ3_S-recovered.gguf",
    "bytes": 11771546784,
@@ -452,9 +452,9 @@
      "runner_version": "1.7.1"
     },
     "cuda": {
-     "date": "2026-10-29",
+     "date": "2026-11-03",
      "device_class": "windows-x86_64-cuda",
-     "runner_version": "1.7.1"
+     "runner_version": "1.12.0"
     },
     "metal": {
      "date": "2026-10-23",
@@ -692,6 +692,227 @@
    }
   },
   {
+   "id": "empero-qwen3.8-35b-a3b-distill-q6_k",
+   "model": "Qwen3.8-35B-A3B-Distill (empero-ai's finetune of Qwen3.6-35B-A3B)",
+   "tier": "tier2",
+   "quantization": "Q6_K (empero-ai)",
+   "features": [
+    "text"
+   ],
+   "licence": "apache-2.0",
+   "fails_fidelity": false,
+   "repo": "empero-ai/Qwen3.8-35B-A3B-Distill-GGUF",
+   "file": "Qwen3.8-35B-A3B-Q6_K.gguf",
+   "bytes": 29208731296,
+   "sha256": "0bb743311ee5d58eeeeff67d42d0e62a52347539e825ceb320d1a2178003f47b",
+   "pass": {
+    "cpu": {
+     "date": "2026-11-06",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.14.0"
+    },
+    "cuda": {
+     "date": "2026-11-06",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.14.0"
+    }
+   }
+  },
+  {
+   "id": "sage-a1.5-q6_k",
+   "model": "Sage-A1.5 (InternScience's, built on Qwen3.6-35B-A3B and Agents-A1)",
+   "tier": "tier2",
+   "quantization": "Q6_K (InternScience)",
+   "features": [
+    "text"
+   ],
+   "licence": "apache-2.0",
+   "fails_fidelity": false,
+   "repo": "InternScience/Sage-A1.5-Q6_K-GGUF",
+   "file": "Sage-A1.5-Q6_K.gguf",
+   "bytes": 29208731872,
+   "sha256": "6862a4df34d209fc83d454f491460a4ebac23d1778c563b3266acf81bcd2397e",
+   "pass": {
+    "cpu": {
+     "date": "2026-11-06",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.14.0"
+    },
+    "cuda": {
+     "date": "2026-11-06",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.14.0"
+    }
+   }
+  },
+  {
+   "id": "ornith-1.5-35b-a3b-q8_0",
+   "model": "Ornith-1.5-35B-A3B (ornith-ai)",
+   "tier": "tier2",
+   "quantization": "Q8_0 (ornith-ai)",
+   "features": [
+    "text"
+   ],
+   "licence": "mit",
+   "fails_fidelity": false,
+   "repo": "ornith-ai/Ornith-1.5-35B-A3B-GGUF",
+   "file": "Ornith-1.5-35B-Q8_0.gguf",
+   "bytes": 37802149280,
+   "sha256": "de46c4baf4b4dd85ea438bb0f757f21c38841a353506579979bba114311658c3",
+   "pass": {
+    "cpu": {
+     "date": "2026-11-05",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.13.0"
+    },
+    "cuda": {
+     "date": "2026-11-05",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.13.0"
+    }
+   }
+  },
+  {
+   "id": "minicpm-v-4.7-35b-a3b-q8_0",
+   "model": "MiniCPM-V-4.7-35B-A3B (openbmb)",
+   "tier": "tier2",
+   "quantization": "Q8_0 (openbmb)",
+   "features": [
+    "text"
+   ],
+   "licence": "apache-2.0",
+   "fails_fidelity": false,
+   "repo": "openbmb/MiniCPM-V-4.7-35B-A3B-gguf",
+   "file": "MiniCPM-V-4_7-35B-A3B-Q8_0.gguf",
+   "bytes": 36902368928,
+   "sha256": "851fdec9d87d689342c3df04e509de4565ac3a96a226f06e7b12af651311b5ef",
+   "pass": {
+    "cpu": {
+     "date": "2026-11-06",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.14.0"
+    },
+    "cuda": {
+     "date": "2026-11-06",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.14.0"
+    }
+   }
+  },
+  {
+   "id": "granite-4.2-30b-q4_k_m",
+   "model": "Granite-4.2-30B",
+   "tier": "tier2",
+   "quantization": "Q4_K_M (IBM)",
+   "features": [
+    "text",
+    "tools"
+   ],
+   "licence": "apache-2.0",
+   "fails_fidelity": true,
+   "repo": "ibm-granite/granite-4.2-30b-GGUF",
+   "file": "granite-4.2-30b-Q4_K_M.gguf",
+   "bytes": 17721455328,
+   "sha256": "f299dace85d77ee0e24ca0b6720bd211b1f4cd1f65b9c0a2111e79692e29c9be",
+   "pass": {
+    "cuda": {
+     "date": "2026-11-03",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.12.0"
+    }
+   }
+  },
+  {
+   "id": "granite-4.2-30b-q8_0",
+   "model": "Granite-4.2-30B",
+   "tier": "tier2",
+   "quantization": "Q8_0 (IBM)",
+   "features": [
+    "text"
+   ],
+   "licence": "apache-2.0",
+   "fails_fidelity": false,
+   "repo": "ibm-granite/granite-4.2-30b-GGUF",
+   "file": "granite-4.2-30b-Q8_0.gguf",
+   "bytes": 31111705312,
+   "sha256": "005b0933353e9ba219b26e2667705bdb8dbc74eb50e4a4e6cb70fca108710f81",
+   "pass": {
+    "cpu": {
+     "date": "2026-11-04",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.12.0"
+    }
+   }
+  },
+  {
+   "id": "nemotron-3.5-lightning-30b-a3b-q4_0",
+   "model": "Nemotron 3.5 Lightning-30B-A3B (NVIDIA)",
+   "tier": "tier2",
+   "quantization": "Q4_0 (ggml-org)",
+   "features": [
+    "text",
+    "tools"
+   ],
+   "licence": "openmdw-1.1",
+   "fails_fidelity": false,
+   "repo": "ggml-org/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF",
+   "file": "NVIDIA-Nemotron-3.5-Lightning-30B-A3B-Q4_0.gguf",
+   "bytes": 18898091584,
+   "sha256": "61f87e75974e4b535dcdf9aad056541a9514f1dfa4538b463b081d19b7a00e3c",
+   "pass": {
+    "cpu": {
+     "date": "2026-11-03",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.12.0"
+    }
+   }
+  },
+  {
+   "id": "qwen3.6-27b-q4_k_m",
+   "model": "Qwen3.6-27B",
+   "tier": "tier2",
+   "quantization": "Q4_K_M (ggml-org)",
+   "features": [
+    "text",
+    "tools"
+   ],
+   "licence": "apache-2.0",
+   "fails_fidelity": true,
+   "repo": "ggml-org/Qwen3.6-27B-GGUF",
+   "file": "Qwen3.6-27B-Q4_K_M.gguf",
+   "bytes": 19095766304,
+   "sha256": "65b753ea835627f7b511143c6ceb976525c7f21f5df8c664bc0a9c23d1c49921",
+   "pass": {
+    "cuda": {
+     "date": "2026-11-04",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.12.0"
+    }
+   }
+  },
+  {
+   "id": "qwen3.6-27b-q8_0",
+   "model": "Qwen3.6-27B",
+   "tier": "tier2",
+   "quantization": "Q8_0 (ggml-org)",
+   "features": [
+    "text"
+   ],
+   "licence": "apache-2.0",
+   "fails_fidelity": false,
+   "repo": "ggml-org/Qwen3.6-27B-GGUF",
+   "file": "Qwen3.6-27B-Q8_0.gguf",
+   "bytes": 28595762464,
+   "sha256": "73f8260284708ed78ae266df672288b6ad1f2c73ec7ffeb7514b5cecdba646c9",
+   "pass": {
+    "cpu": {
+     "date": "2026-11-04",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.12.0"
+    }
+   }
+  },
+  {
    "id": "cloudflare-clef-flash",
    "model": "Cloudflare Clef Flash (clef, on Qwen3.5-9B)",
    "tier": "tier2",
@@ -746,6 +967,28 @@
    }
   },
   {
+   "id": "nemotron-3-nano-30b-a3b-q4_k_m",
+   "model": "NVIDIA Nemotron 3 Nano 30B-A3B (NVIDIA)",
+   "tier": "tier2",
+   "quantization": "Q4_K_M (ggml-org's automatic conversion)",
+   "features": [
+    "text"
+   ],
+   "licence": "nvidia-nemotron-open-model-license",
+   "fails_fidelity": false,
+   "repo": "ggml-org/NVIDIA-Nemotron-3-Nano-30B-A3B-GGUF",
+   "file": "NVIDIA-Nemotron-3-Nano-30B-A3B-Q4_K_M.gguf",
+   "bytes": 22421827488,
+   "sha256": "0f111a0d49777a2a0178758b1aee14e5365c495987499401ef3ebe87754322a8",
+   "pass": {
+    "cpu": {
+     "date": "2026-11-05",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.13.0"
+    }
+   }
+  },
+  {
    "id": "mellum2.1-12b-a2.5b-thinking-q4_k_m",
    "model": "Mellum2.1-12B-A2.5B-Thinking (JetBrains)",
    "tier": "tier1",
@@ -754,7 +997,7 @@
     "text"
    ],
    "licence": "apache-2.0",
-   "fails_fidelity": false,
+   "fails_fidelity": true,
    "repo": "JetBrains/Mellum2.1-12B-A2.5B-Thinking-GGUF",
    "file": "Mellum2.1-12B-A2.5B-Thinking-Q4_K_M.gguf",
    "bytes": 8071295264,
@@ -769,6 +1012,60 @@
      "date": "2026-10-29",
      "device_class": "windows-x86_64-cuda",
      "runner_version": "1.7.0"
+    }
+   }
+  },
+  {
+   "id": "mellum2.1-12b-a2.5b-thinking-q5_k_s",
+   "model": "Mellum2.1-12B-A2.5B-Thinking (JetBrains)",
+   "tier": "tier2",
+   "quantization": "Q5_K_S (bartowski, importance matrix calibration-v6): expert gate and up Q5_K, expert down Q5_1, attention, embeddings and output Q8_0 (eleven middle-layer attn_q at Q6_K or Q5_K), routers F32",
+   "features": [
+    "text"
+   ],
+   "licence": "apache-2.0",
+   "fails_fidelity": false,
+   "repo": "bartowski/Mellum2.1-12B-A2.5B-Thinking-GGUF",
+   "file": "Mellum2.1-12B-A2.5B-Thinking-Q5_K_S.gguf",
+   "bytes": 8963422944,
+   "sha256": "9fe81c18e6628a918757a356614abb4590b5c415a8281272fae3298eafb678c1",
+   "pass": {
+    "cpu": {
+     "date": "2026-11-04",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.12.0"
+    },
+    "cuda": {
+     "date": "2026-11-04",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.12.0"
+    }
+   }
+  },
+  {
+   "id": "mellum2.1-12b-a2.5b-thinking-selective-q8_0-expq5_k",
+   "model": "Mellum2.1-12B-A2.5B-Thinking (JetBrains)",
+   "tier": "tier2",
+   "quantization": "Runner's selective rewrite (R4.33, --rewrite --type-plan): Q8_0 by default, expert gate and up Q5_K, expert down Q5_1 (896 wide, too narrow for Q5_K's 256-wide block), routers F32 (kept); no importance matrix",
+   "features": [
+    "text"
+   ],
+   "licence": "apache-2.0",
+   "fails_fidelity": false,
+   "repo": "Joakimpalm-Zen/Mellum2.1-12B-A2.5B-Thinking-selective-Q8_0-expQ5_K-GGUF",
+   "file": "Mellum2.1-12B-A2.5B-Thinking-selective-q8_0-expq5_k.gguf",
+   "bytes": 8994830528,
+   "sha256": "8a1458812a81e61229018184968ae954f0f943d31ad8c8cc8144326d73b76af6",
+   "pass": {
+    "cpu": {
+     "date": "2026-11-06",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.13.0"
+    },
+    "cuda": {
+     "date": "2026-11-06",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.13.0"
     }
    }
   },
@@ -833,6 +1130,186 @@
      "date": "2026-10-29",
      "device_class": "macos-arm64-metal",
      "runner_version": "1.7.1"
+    }
+   }
+  },
+  {
+   "id": "hemmingway-1-q4_k_m",
+   "model": "Hemmingway-1 (HemmingwayAI)",
+   "tier": "tier2",
+   "quantization": "Q4_K_M (mradermacher)",
+   "features": [
+    "text"
+   ],
+   "licence": "cc-by-nc-4.0",
+   "fails_fidelity": true,
+   "repo": "mradermacher/Hemmingway-1-GGUF",
+   "file": "Hemmingway-1.Q4_K_M.gguf",
+   "bytes": 16810715360,
+   "sha256": "d8a77565035547f39388969e1ef0e83f646f366e7bdef1e1ce63ad0b0d785dbc",
+   "pass": {
+    "cpu": {
+     "date": "2026-11-01",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.10.0"
+    }
+   }
+  },
+  {
+   "id": "hemmingway-1-q8_0",
+   "model": "Hemmingway-1 (HemmingwayAI)",
+   "tier": "tier2",
+   "quantization": "Q8_0 (mradermacher)",
+   "features": [
+    "text"
+   ],
+   "licence": "cc-by-nc-4.0",
+   "fails_fidelity": false,
+   "repo": "mradermacher/Hemmingway-1-GGUF",
+   "file": "Hemmingway-1.Q8_0.gguf",
+   "bytes": 29047085280,
+   "sha256": "10b566343db6905215c2d635285ffb43ada05a2f9b1e8e85562c8e366fac1809",
+   "pass": {
+    "cpu": {
+     "date": "2026-11-01",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.10.0"
+    }
+   }
+  },
+  {
+   "id": "hemmingway-1.5-q4_k_m",
+   "model": "Hemmingway-1.5 (HemmingwayAI)",
+   "tier": "tier2",
+   "quantization": "Q4_K_M (bartowski, imatrix)",
+   "features": [
+    "text"
+   ],
+   "licence": "cc-by-nc-4.0",
+   "fails_fidelity": false,
+   "repo": "bartowski/HemmingwayAI_Hemmingway-1.5-GGUF",
+   "file": "HemmingwayAI_Hemmingway-1.5-Q4_K_M.gguf",
+   "bytes": 17442400608,
+   "sha256": "69b4d499e3df0b43033b9ea9f0fbd0e558975729643c670a69aef10a316c4a16",
+   "pass": {
+    "cpu": {
+     "date": "2026-11-01",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.10.0"
+    }
+   }
+  },
+  {
+   "id": "hemmingway-1.5-q8_0",
+   "model": "Hemmingway-1.5 (HemmingwayAI)",
+   "tier": "tier2",
+   "quantization": "Q8_0 (bartowski)",
+   "features": [
+    "text"
+   ],
+   "licence": "cc-by-nc-4.0",
+   "fails_fidelity": false,
+   "repo": "bartowski/HemmingwayAI_Hemmingway-1.5-GGUF",
+   "file": "HemmingwayAI_Hemmingway-1.5-Q8_0.gguf",
+   "bytes": 29116389728,
+   "sha256": "8b3c689c88395942c3e3caf3dac1f1d70fe16f86f490bd783bf44afa32834b4e",
+   "pass": {
+    "cpu": {
+     "date": "2026-11-01",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.10.0"
+    }
+   }
+  },
+  {
+   "id": "ministral-3-3b-instruct-2512-q4_k_m",
+   "model": "Ministral 3 3B Instruct 2512 (Mistral AI)",
+   "tier": "tier2",
+   "quantization": "Q4_K_M (Mistral AI)",
+   "features": [
+    "text",
+    "tools"
+   ],
+   "licence": "apache-2.0",
+   "fails_fidelity": true,
+   "repo": "mistralai/Ministral-3-3B-Instruct-2512-GGUF",
+   "file": "Ministral-3-3B-Instruct-2512-Q4_K_M.gguf",
+   "bytes": 2147023008,
+   "sha256": "9ed150d4367e68df0ac8e1540f6ddc65b42d0ee26378329d1ecbca60f93fc5f8",
+   "pass": {
+    "cpu": {
+     "date": "2026-11-01",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.10.0"
+    }
+   }
+  },
+  {
+   "id": "ministral-3-3b-instruct-2512-q8_0",
+   "model": "Ministral 3 3B Instruct 2512 (Mistral AI)",
+   "tier": "tier2",
+   "quantization": "Q8_0 (Mistral AI)",
+   "features": [
+    "text",
+    "tools"
+   ],
+   "licence": "apache-2.0",
+   "fails_fidelity": false,
+   "repo": "mistralai/Ministral-3-3B-Instruct-2512-GGUF",
+   "file": "Ministral-3-3B-Instruct-2512-Q8_0.gguf",
+   "bytes": 3652204704,
+   "sha256": "8c2b72eb5861304fcfd5e82f1eddd6efa4115737f4239fd216a028a8852413ef",
+   "pass": {
+    "cpu": {
+     "date": "2026-11-01",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.10.0"
+    }
+   }
+  },
+  {
+   "id": "devstral-small-2-24b-instruct-2512-q4_k_m",
+   "model": "Devstral Small 2 24B Instruct 2512 (Mistral AI)",
+   "tier": "tier2",
+   "quantization": "Q4_K_M (unsloth)",
+   "features": [
+    "text",
+    "tools"
+   ],
+   "licence": "apache-2.0",
+   "fails_fidelity": false,
+   "repo": "unsloth/Devstral-Small-2-24B-Instruct-2512-GGUF",
+   "file": "Devstral-Small-2-24B-Instruct-2512-Q4_K_M.gguf",
+   "bytes": 14334446752,
+   "sha256": "d14ba9edee1bb4c4996a726deb81e49ae81800a3216f0774634238c380aee496",
+   "pass": {
+    "cpu": {
+     "date": "2026-11-02",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.11.0"
+    }
+   }
+  },
+  {
+   "id": "devstral-small-2-24b-instruct-2512-q8_0",
+   "model": "Devstral Small 2 24B Instruct 2512 (Mistral AI)",
+   "tier": "tier2",
+   "quantization": "Q8_0 (unsloth)",
+   "features": [
+    "text",
+    "tools"
+   ],
+   "licence": "apache-2.0",
+   "fails_fidelity": false,
+   "repo": "unsloth/Devstral-Small-2-24B-Instruct-2512-GGUF",
+   "file": "Devstral-Small-2-24B-Instruct-2512-Q8_0.gguf",
+   "bytes": 25055317152,
+   "sha256": "0760502e9228234f6cfa843f8870b8fc91c46a13664cf766c639229cccc80866",
+   "pass": {
+    "cpu": {
+     "date": "2026-11-02",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.11.0"
     }
    }
   },
@@ -1205,9 +1682,68 @@
    "sha256": "b46fedd33e0bfb0cae308aa3c158d0a4b2c4a1d2185a1ed6f093cdaf39064772",
    "pass": {
     "cpu": {
-     "date": "2026-10-30",
+     "date": "2026-11-05",
      "device_class": "linux-x86_64-cuda",
-     "runner_version": "1.9.0"
+     "runner_version": "1.13.0"
+    },
+    "cuda": {
+     "date": "2026-11-05",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.13.0"
+    }
+   }
+  },
+  {
+   "id": "deepseek-v2-lite-chat-q8_0",
+   "model": "DeepSeek-V2-Lite-Chat (DeepSeek)",
+   "tier": "tier2",
+   "quantization": "Q8_0 (mradermacher, static): every matrix Q8_0, norms and routers F32",
+   "features": [
+    "text"
+   ],
+   "licence": "deepseek",
+   "fails_fidelity": false,
+   "repo": "mradermacher/DeepSeek-V2-Lite-Chat-GGUF",
+   "file": "DeepSeek-V2-Lite-Chat.Q8_0.gguf",
+   "bytes": 16702518016,
+   "sha256": "78a1a180db56416782f71cd7e019ea3d7227cf11a918de9ca1d50f038caba0ec",
+   "pass": {
+    "cpu": {
+     "date": "2026-11-04",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.12.0"
+    },
+    "cuda": {
+     "date": "2026-11-05",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.13.0"
+    }
+   }
+  },
+  {
+   "id": "deepseek-v2-lite-chat-q6_k",
+   "model": "DeepSeek-V2-Lite-Chat (DeepSeek)",
+   "tier": "tier2",
+   "quantization": "Q6_K (mradermacher, static): every matrix Q6_K except the expert down tensors and the dense block's down (rows 1,408 and 10,944 wide, not multiples of 256) at Q8_0; norms and routers F32",
+   "features": [
+    "text"
+   ],
+   "licence": "deepseek",
+   "fails_fidelity": false,
+   "repo": "mradermacher/DeepSeek-V2-Lite-Chat-GGUF",
+   "file": "DeepSeek-V2-Lite-Chat.Q6_K.gguf",
+   "bytes": 14066972416,
+   "sha256": "3f634b8f08f4ef1039389e51989c77cce7f4ba22472f1493076c4f979dd417b9",
+   "pass": {
+    "cpu": {
+     "date": "2026-11-04",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.12.0"
+    },
+    "cuda": {
+     "date": "2026-11-05",
+     "device_class": "linux-x86_64-cuda",
+     "runner_version": "1.13.0"
     }
    }
   }

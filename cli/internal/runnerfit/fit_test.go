@@ -47,7 +47,7 @@ func TestValidatedModel(t *testing.T) {
 	if m, ok := validatedModel("CPU", 9.6); !ok || !m.Tools {
 		t.Fatalf("CPU 16 GB should get a model that calls tools: %+v %v", m, ok)
 	}
-	if m, ok := validatedModel("CUDA", 12); !ok || m.HF != "ibm-granite/granite-4.2-8b-GGUF:granite-4.2-8b-Q4_K_M" && m.HF != "unsloth/gemma-4-12b-it-qat-GGUF:gemma-4-12b-it-qat-Q4_0" {
+	if m, ok := validatedModel("CUDA", 12); !ok || m.HF != "ibm-granite/granite-4.2-8b-GGUF:granite-4.2-8b-Q4_K_M" && m.HF != "google/gemma-4-12B-it-qat-q4_0-gguf:gemma-4-12b-it-qat-q4_0" {
 		t.Logf("CUDA 12 GB picks %s", m.HF)
 	}
 	for _, r := range tierRows {
@@ -61,7 +61,7 @@ func TestValidatedModel(t *testing.T) {
 }
 
 // A file Runner says fails its fidelity bar, or one whose licence limits commercial use, runs but
-// is never recommended to a garage that sells its answers (Runner 1.10.0 admits both kinds at Tier 2).
+// is never recommended to a garage that sells its answers (Runner 1.15.0 admits both kinds at Tier 2).
 func TestValidatedModelSellableOnly(t *testing.T) {
 	var failing, restricted int
 	for _, r := range tierRows {
@@ -87,5 +87,35 @@ func TestValidatedModelSellableOnly(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// Runner words a failing file's claim in more than one way; each of these says the file misses the
+// bar (Runner 1.15.0), and Hemmingway's CC-BY-NC-4.0 forbids selling its answers.
+func TestNotSellableRows(t *testing.T) {
+	want := map[string]bool{
+		"qwen3.8-27b-gsq-rco-iq3_s-recovered": true, // "0.41 mean KLD ..., 8x the bar"; was the CUDA 16 GB pick at 1.10.0
+		"granite-4.2-30b-q4_k_m":              true, // "runs below the fidelity bar"; calls tools, would take a 24 GB card
+		"qwen3.6-27b-q4_k_m":                  true, // "runs below the fidelity bar"
+		"mellum2.1-12b-a2.5b-thinking-q4_k_m": true, // "fails the 0.05 bar"
+		"hemmingway-1.5-q8_0":                 true, // passes, but non-commercial
+		"granite-4.2-30b-q8_0":                false,
+		"deepseek-v2-lite-chat-q6_k":          false, // "both below the bar" is about its siblings
+	}
+	seen := 0
+	for _, r := range tierRows {
+		if notSellable, ok := want[r.ID]; ok {
+			seen++
+			if r.sellable() == notSellable {
+				t.Errorf("%s: sellable %v (fails fidelity %v, licence %s)", r.ID, r.sellable(), r.FailsFidelity, r.Licence)
+			}
+		}
+	}
+	if seen != len(want) {
+		t.Errorf("found %d of %d rows in tiers.json", seen, len(want))
+	}
+	// The 16 GB card that got the 8x-the-bar Qwen3.8-27B at 1.10.0 now gets Gemma 4 12B.
+	if m, _ := validatedModel("CUDA", 16); m.HF != "google/gemma-4-12B-it-qat-q4_0-gguf:gemma-4-12b-it-qat-q4_0" {
+		t.Errorf("CUDA 16 GB: %s", m.HF)
 	}
 }
