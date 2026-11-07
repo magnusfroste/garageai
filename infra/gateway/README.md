@@ -249,7 +249,14 @@ Most traffic comes from coding agents (Claude Code on `/v1/messages`, Codex on
     a malformed call still reports its tokens), the prompt by 2× + 500. Beyond that, `garageai: usage:` names the garage, the
     call id and both counts; a garage is routed around for 60 min, a provider only logged. The
     spend row is not changed: an admin corrects it from the line. Hidden reasoning cannot be
-    counted, so the line also shows the reported reasoning tokens.
+    counted, so the line also shows the reported reasoning tokens. The same pass logs tool calls
+    that came back without arguments as `garageai: tool:` (measured only, so far).
+  - switches thinking off unless asked for (rule 13): a market request that says nothing about
+    reasoning goes to an Ollama or vLLM deployment with `reasoning_effort: "none"`; a buyer who
+    wants reasoning sets `reasoning_effort` (or `thinking` on /v1/messages). Providers, Runner,
+    private machines and probes are untouched. Look for `garageai: thinking off:` in the log.
+  - a conversation that has a deployment keeps it (rule 7, tightened): rule 11 never takes a
+    request from a conversation whose prefix is cached elsewhere.
 - `stream_timeout: 300`, `request_timeout: 600`: prefilling an agent-sized prompt takes
   minutes on home GPUs and busy providers; the stream timeout includes the wait for the
   first token.
