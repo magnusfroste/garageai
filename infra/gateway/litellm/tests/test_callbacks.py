@@ -246,11 +246,16 @@ check("usage: shown reasoning is counted with the answer", uc(500, 1000, 480, 95
 check("usage: a padded prompt count is caught", "prompt" in (uc(10, 50000, 10, 1000) or ""), True)
 check("usage: images and tools make the prompt looser", uc(10, 2400, 10, 1000), None)
 check("usage: prompt not counted -> not checked", uc(10, 50000, 10, 0), None)
+check("usage: a tool call gets the wider margin (measured: 108 reported for 8 counted)", uc(108, 400, 8, 390, tool_call=True), None)
+check("usage: tool call, 439 reported for 253 counted, adds up", uc(439, 18752, 253, 18000, tool_call=True), None)
+check("usage: a padded tool call is still caught", uc(50000, 400, 8, 390, tool_call=True) is not None, True)
+check("usage: plain text keeps the tight margin", uc(108, 400, 8, 390) is not None, True)
 ans = {"id": "chatcmpl-1", "object": "chat.completion", "model": "qwen", "usage": {"completion_tokens": 9},
        "choices": [{"index": 0, "finish_reason": "stop", "message": {"role": "assistant", "content": "Kalmar",
                     "tool_calls": [{"id": "c1", "type": "function", "function": {"name": "f", "arguments": "{\"x\": 1}"}}]}}]}
 t, shown = cb.answer_text(ans)
 check("usage: answer text = content + tool arguments, not ids or usage", ("Kalmar" in t, '{"x": 1}' in t, "chatcmpl" in t, "stop" in t, shown), (True, True, False, False, False))
+check("usage: a tool call is seen as one", (cb.has_tool_call(ans), cb.has_tool_call({"choices": [{"message": {"content": "hi", "tool_calls": None}}]})), (True, False))
 ans["choices"][0]["message"]["reasoning_content"] = "let me think"
 check("usage: reasoning text counts as shown", cb.answer_text(ans)[1], True)
 cb._suspect.clear()

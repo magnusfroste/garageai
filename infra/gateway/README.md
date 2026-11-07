@@ -245,7 +245,8 @@ Most traffic comes from coding agents (Claude Code on `/v1/messages`, Codex on
   - checks the runtime's token count (rule 12): LiteLLM bills from the `usage` the runtime
     reports and the spend log keeps no answer text, so the gateway counts every market answer
     itself. Reported completion tokens (less hidden reasoning tokens) may exceed that count by
-    30 % + 64, the prompt by 2× + 500. Beyond that, `garageai: usage:` names the garage, the
+    30 % + 64 (a tool call 2× + 200: its structure is not in the answer, and a runtime that drops
+    a malformed call still reports its tokens), the prompt by 2× + 500. Beyond that, `garageai: usage:` names the garage, the
     call id and both counts; a garage is routed around for 60 min, a provider only logged. The
     spend row is not changed: an admin corrects it from the line. Hidden reasoning cannot be
     counted, so the line also shows the reported reasoning tokens.

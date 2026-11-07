@@ -83,8 +83,9 @@
     modified runtime could report 100,000 completion tokens for a five-word answer: the buyer pays,
     the operator is credited, and nothing could show it afterwards. Now every market answer is
     counted here: the reported completion tokens (less reported reasoning tokens when the reasoning
-    is not in the answer) may exceed our count of the answer by USAGE_RATIO plus USAGE_SLACK, and
-    the reported prompt tokens our count of the prompt by PROMPT_RATIO plus PROMPT_SLACK (images and
+    is not in the answer) may exceed our count of the answer by USAGE_RATIO plus USAGE_SLACK (a tool
+    call by TOOL_RATIO plus TOOL_SLACK: measured 2026-11-06, a provider reported 108 tokens for a call
+    whose arguments it then dropped, and 439 for one that counted 253), and the reported prompt tokens our count of the prompt by PROMPT_RATIO plus PROMPT_SLACK (images and
     tool schemas count differently per runtime). Beyond that the request is logged with its call id
     as `garageai: usage:` (the spend row stands; an admin corrects it from the line), and a garage
     is routed around for SUSPECT_S; a provider is only logged, since it carries auto. Hidden
@@ -833,6 +834,8 @@ def _garage_of_id(model_id):
 
 USAGE_RATIO = 1.3           # reported answer tokens may exceed our count by this factor...
 USAGE_SLACK = 64            # ...plus this many (chat template, stop token, tokenizer differences)
+TOOL_RATIO = 2.0            # a tool call carries structure the answer does not show, and a runtime
+TOOL_SLACK = 200            # that drops a malformed call still reports its tokens (measured 2026-11-06)
 PROMPT_RATIO = 2.0          # the prompt is looser: images and tool schemas count differently per runtime
 PROMPT_SLACK = 500
 SUSPECT_S = 3600            # a garage whose count did not add up is routed around for this long
@@ -841,20 +844,26 @@ ANSWER_SKIP_KEYS = SKIP_KEYS | {"object", "created", "finish_reason", "usage", "
 _suspect = {}               # garage -> time its count last did not add up
 
 
-def answer_text(response):
-    """(every text the runtime returned as the answer, whether reasoning text was among it)."""
+def _as_dict(response):
     if hasattr(response, "model_dump"):
         try:
             response = response.model_dump()
         except Exception:  # noqa: BLE001
             response = dict(response) if isinstance(response, dict) else {}
-    if not isinstance(response, dict):
-        return "", False
+    return response if isinstance(response, dict) else {}
+
+
+def answer_text(response):
+    """(every text the runtime returned as the answer, whether reasoning text was among it)."""
     parts = []
-    body = {k: v for k, v in response.items() if k not in ANSWER_SKIP_KEYS}
+    body = {k: v for k, v in _as_dict(response).items() if k not in ANSWER_SKIP_KEYS}
     _collect_answer(body, parts)
     text = "\n".join(parts)
     return text, _has_key(body, ("reasoning_content", "reasoning", "thinking"))
+
+
+def has_tool_call(response):
+    return _has_key(_as_dict(response), ("tool_calls", "function_call"))
 
 
 def _collect_answer(node, out):
@@ -878,12 +887,13 @@ def _has_key(node, keys):
 
 
 def usage_check(reported_completion, reported_prompt, counted_answer, counted_prompt, reasoning_tokens=0,
-                reasoning_shown=False):
+                reasoning_shown=False, tool_call=False):
     """None when the runtime's count adds up, else a short reason. counted_prompt 0 = not counted."""
     visible = reported_completion or 0
     if not reasoning_shown:
         visible -= reasoning_tokens or 0
-    if visible > counted_answer * USAGE_RATIO + USAGE_SLACK:
+    ratio, slack = (TOOL_RATIO, TOOL_SLACK) if tool_call else (USAGE_RATIO, USAGE_SLACK)
+    if visible > counted_answer * ratio + slack:
         return (f"reported {reported_completion} completion tokens ({reasoning_tokens or 0} reasoning), "
                 f"the answer counts {counted_answer}")
     if counted_prompt and reported_prompt and reported_prompt > counted_prompt * PROMPT_RATIO + PROMPT_SLACK:
@@ -917,7 +927,7 @@ async def check_usage(kwargs, response_obj):
         except Exception:  # noqa: BLE001 - the prompt check is optional
             counted_prompt = 0
     why = usage_check(slo.get("completion_tokens"), slo.get("prompt_tokens"), counted_answer, counted_prompt,
-                      reasoning, shown)
+                      reasoning, shown, tool_call=has_tool_call(response_obj))
     if not why:
         return None
     d = _deployment_of_id(slo.get("model_id")) or {}
