@@ -24,8 +24,7 @@ import (
 // operator (their browser, their session) before connect re-runs itself as root.
 //
 // It fills o (and the GARAGEAI_* environment the root half reads) with the garage's name, the
-// register URL and token, the setup key and the management URL, and the runtime it found when
-// none was given.
+// register URL and token, and the runtime it found when none was given.
 func link(o *Options, runtimeGiven bool) int {
 	facts := profile.Build(version)
 	if !runtimeGiven {
@@ -41,7 +40,7 @@ func link(o *Options, runtimeGiven bool) int {
 	}
 	host, mid := computerName(o.Name), machine.ID()
 	req := portal.LinkRequest{MachineID: mid, Hostname: host, OS: facts.Machine.OS, Arch: facts.Machine.Arch,
-		BridgeVersion: version, Runtime: o.Runtime, SuggestedName: suggestName(host, mid), Transport: map[string]string{"bridge": "tunnel", "netbird": "netbird"}[o.Tunnel]}
+		BridgeVersion: version, Runtime: o.Runtime, SuggestedName: suggestName(host, mid), Transport: "tunnel"}
 	if facts.Machine.MemoryGB != nil {
 		req.MemoryGB = *facts.Machine.MemoryGB
 	}
@@ -105,10 +104,8 @@ func link(o *Options, runtimeGiven bool) int {
 	fmt.Printf("  %s Approved: this machine is the garage %s\n\n", sgr("32", "✓"), sgr("1", res.Garage.Name))
 
 	o.Name, o.RegisterURL, o.RegisterToken = res.Garage.Name, res.RegisterURL, res.RegisterToken
-	o.SetupKey, o.ManagementURL = res.SetupKey, res.ManagementURL
 	for k, v := range map[string]string{
 		"GARAGEAI_NODE_NAME": o.Name, "GARAGEAI_REGISTER_URL": o.RegisterURL, "GARAGEAI_REGISTER_TOKEN": o.RegisterToken,
-		"GARAGEAI_SETUP_KEY": o.SetupKey, "GARAGEAI_MANAGEMENT_URL": o.ManagementURL,
 		"GARAGEAI_RUNTIME": o.Runtime, "GARAGEAI_PORT": strconv.Itoa(o.Port),
 	} {
 		os.Setenv(k, v)
@@ -142,16 +139,13 @@ func hasRuntimeOn(p profile.Profile, port int) bool {
 var connectKinds = map[string]bool{"ollama": true, "lmstudio": true, "llamacpp": true, "vllm": true, "sglang": true,
 	"paddock": true, "unsloth": true, "mlx": true, "lemonade": true, "xyntetik": true}
 
-// pickRuntime chooses the runtime to connect when the operator named none: one with models, and
-// of those the one the mesh can already reach.
+// pickRuntime chooses the runtime to connect when the operator named none: the first one with
+// models, else the first one. Where it listens does not matter: the tunnel reaches localhost.
 func pickRuntime(p profile.Profile) (string, int, bool) {
 	best, score := -1, -1
 	for i, r := range p.Runtimes {
 		s := 0
 		if len(r.Models) > 0 {
-			s += 2
-		}
-		if r.Network {
 			s++
 		}
 		if s > score {

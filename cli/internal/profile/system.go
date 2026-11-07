@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/csv"
 	"encoding/json"
-	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -66,7 +65,7 @@ func machine() Machine {
 	return m
 }
 
-// unameArch matches what `uname -m` prints, as the bash script reports.
+// unameArch matches what `uname -m` prints, as profiles always reported it.
 func unameArch() string {
 	switch {
 	case runtime.GOARCH == "amd64":
@@ -100,106 +99,6 @@ func gpus() []GPU {
 			g.MemoryMB = intp(int(n / (1 << 20)))
 		}
 		return append(out, g)
-	}
-	return out
-}
-
-func netbird() NetBird {
-	nb := NetBird{}
-	if _, err := exec.LookPath("netbird"); err != nil {
-		return nb
-	}
-	nb.Installed = true
-	nb.Version = strp(strings.TrimSpace(strings.SplitN(run("netbird", "version"), "\n", 2)[0]))
-	var st struct {
-		NetbirdIP  string `json:"netbirdIp"`
-		Management struct {
-			Connected bool `json:"connected"`
-		} `json:"management"`
-	}
-	if json.Unmarshal([]byte(run("netbird", "status", "--json")), &st) == nil {
-		nb.Connected = st.Management.Connected
-		nb.MeshIP = strp(strings.SplitN(st.NetbirdIP, "/", 2)[0])
-	}
-	if !nb.Connected {
-		// A normal user may not be allowed to ask the NetBird service (macOS). The mesh address on
-		// the tunnel interface (100.64.0.0/10) shows the client is up all the same.
-		if ip := meshIPFromInterfaces(); ip != "" {
-			nb.Connected, nb.MeshIP = true, &ip
-		}
-	}
-	return nb
-}
-
-// MeshNet is GarageAI's NetBird network. Only an address inside it is the garage's mesh address:
-// Tailscale and other WireGuard VPNs also hand out 100.64.0.0/10 addresses on utun interfaces, and
-// one of those must never be taken for the mesh (GARAGEAI_MESH_CIDR overrides, for other setups).
-func MeshNet() *net.IPNet {
-	cidr := os.Getenv("GARAGEAI_MESH_CIDR")
-	if cidr == "" {
-		cidr = "100.83.0.0/16"
-	}
-	_, n, err := net.ParseCIDR(cidr)
-	if err != nil {
-		_, n, _ = net.ParseCIDR("100.83.0.0/16")
-	}
-	return n
-}
-
-var cgnat = &net.IPNet{IP: net.IPv4(100, 64, 0, 0).To4(), Mask: net.CIDRMask(10, 32)}
-
-// tunnelAddrs: the IPv4 addresses on tunnel interfaces (wt*, nb*, utun*, tailscale*, zt*) in 100.64.0.0/10.
-func tunnelAddrs() []net.IP {
-	var out []net.IP
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return nil
-	}
-	for _, it := range ifaces {
-		n := it.Name
-		if !(strings.HasPrefix(n, "wt") || strings.HasPrefix(n, "nb") || strings.HasPrefix(n, "utun") || strings.HasPrefix(n, "tailscale") || strings.HasPrefix(n, "zt")) {
-			continue
-		}
-		addrs, _ := it.Addrs()
-		for _, a := range addrs {
-			if ipn, ok := a.(*net.IPNet); ok {
-				if v4 := ipn.IP.To4(); v4 != nil && cgnat.Contains(v4) {
-					out = append(out, v4)
-				}
-			}
-		}
-	}
-	return out
-}
-
-func meshIPFromInterfaces() string {
-	mesh := MeshNet()
-	for _, ip := range tunnelAddrs() {
-		if mesh.Contains(ip) {
-			return ip.String()
-		}
-	}
-	return ""
-}
-
-// otherVPNs names other mesh VPNs on this machine (Tailscale, ZeroTier): they run next to NetBird,
-// and operators worry that they do not.
-func otherVPNs() []string {
-	var out []string
-	_, tsApp := os.Stat("/Applications/Tailscale.app")
-	_, tsCLI := exec.LookPath("tailscale")
-	foreign := false
-	mesh := MeshNet()
-	for _, ip := range tunnelAddrs() {
-		if !mesh.Contains(ip) {
-			foreign = true
-		}
-	}
-	if tsApp == nil || tsCLI == nil || foreign {
-		out = append(out, "Tailscale")
-	}
-	if _, err := exec.LookPath("zerotier-cli"); err == nil {
-		out = append(out, "ZeroTier")
 	}
 	return out
 }
@@ -320,15 +219,15 @@ func readBridgeConfig(cfg *GarageAI) bool {
 	if c.Port > 0 {
 		cfg.ConfiguredPort = &c.Port
 	}
-	if c.Transport == "tunnel" {
-		cfg.Transport, cfg.TunnelIP = "tunnel", c.MeshIP
-	}
+	// The Bridge tunnel is the only transport: a config without one (written before transport
+	// existed) is a tunnel garage too.
+	cfg.Transport, cfg.TunnelIP = "tunnel", c.MeshIP
 	return true
 }
 
 func jsonString(v any) string { b, _ := json.Marshal(v); return string(b) }
 
-// ollamaContextTarget mirrors the connect script: more memory, a bigger window.
+// ollamaContextTarget: more memory, a bigger window.
 // ContextTarget is the window Bridge recommends for this machine's memory (Ollama and Runner).
 func ContextTarget(mem *int) int { return ollamaContextTarget(mem) }
 
@@ -351,33 +250,10 @@ func ollamaContextTarget(mem *int) int {
 	return 8192
 }
 
-// localFacts: the heartbeat's last output, whether OLLAMA_HOST is set for good on macOS (the
-// LaunchAgent the connect script offers), and after how many minutes a Mac goes to sleep.
-// userHomes is this user's home and, when running as root (the heartbeat under launchd, or sudo),
-// also the home of the user at the console or behind sudo: their settings are the ones that count.
-func userHomes() []string {
-	var homes []string
-	if home, err := os.UserHomeDir(); err == nil {
-		homes = append(homes, home)
-	}
-	if os.Geteuid() == 0 {
-		for _, u := range []string{os.Getenv("SUDO_USER"), strings.TrimSpace(run("stat", "-f", "%Su", "/dev/console"))} {
-			if u != "" && u != "root" && !strings.ContainsAny(u, "/.") {
-				homes = append(homes, filepath.Join("/Users", u))
-			}
-		}
-	}
-	return homes
-}
-
-func localFacts(hb Heartbeat) (last string, ollamaPersistent bool, sleepMin, displayMin int) {
+// localFacts: the heartbeat's last output, and after how many minutes a Mac goes to sleep.
+func localFacts(hb Heartbeat) (last string, sleepMin, displayMin int) {
 	switch runtime.GOOS {
 	case "darwin":
-		for _, home := range userHomes() {
-			if _, err := os.Stat(filepath.Join(home, "Library/LaunchAgents/eu.garageai.ollama-host.plist")); err == nil {
-				ollamaPersistent = true
-			}
-		}
 		// pmset: "sleep N" is minutes after the display turns off ("displaysleep M"); 0 = never.
 		for _, line := range strings.Split(run("pmset", "-g"), "\n") {
 			if f := strings.Fields(line); len(f) >= 2 {

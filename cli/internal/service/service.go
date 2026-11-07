@@ -19,9 +19,9 @@ type Config struct {
 	Runtime       string `json:"runtime"`
 	Port          int    `json:"port"`
 	RuntimeAPIKey string `json:"runtime_api_key,omitempty"`
-	MeshIP        string `json:"mesh_ip,omitempty"`
-	// The Bridge tunnel (docs/bridge-tunnel.md) instead of NetBird: transport "tunnel", the
-	// garage's address in it, the hub's key and endpoint. The private key is in TunnelKeyPath().
+	MeshIP        string `json:"mesh_ip,omitempty"` // the garage's address in the Bridge tunnel (10.66.x.y)
+	// The Bridge tunnel (docs/bridge-tunnel.md), the only transport: transport "tunnel", the hub's
+	// key and endpoint. The private key is in TunnelKeyPath().
 	// Self-update: nil means on. garageai connect --no-auto-update sets it to false.
 	AutoUpdate   *bool  `json:"auto_update,omitempty"`
 	Transport    string `json:"transport,omitempty"`
@@ -44,6 +44,9 @@ func Load() (*Config, error) {
 	var c Config
 	if err := json.Unmarshal(b, &c); err != nil {
 		return nil, fmt.Errorf("%s: %w", ConfigPath(), err)
+	}
+	if c.Transport == "" {
+		c.Transport = "tunnel" // the only transport; configs from before the field carry none
 	}
 	return &c, nil
 }
@@ -96,12 +99,15 @@ func LoadPublic() (*Public, error) {
 	if err := json.Unmarshal(b, &p); err != nil {
 		return nil, err
 	}
+	if p.Transport == "" {
+		p.Transport = "tunnel"
+	}
 	return &p, nil
 }
 
 // WritePublic writes the secret-free configuration world-readable (0644), next to the root-only
 // one. bridge.json is 0600, so doctor run by the operator could not see the transport or the port
-// and reported NetBird problems on a tunnel garage (dgx-city, 2026-10-12). The heartbeat writes it
+// and reported problems that did not apply to a tunnel garage (dgx-city, 2026-10-12). The heartbeat writes it
 // too, so garages set up before this file existed get it on their next run.
 func WritePublic(c *Config) error {
 	p := PublicPath()

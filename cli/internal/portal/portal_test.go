@@ -40,7 +40,7 @@ func fakePortal(t *testing.T, status int, reply string) (*Client, *seen) {
 
 func TestRegisterPayloadMatchesTheScript(t *testing.T) {
 	c, s := fakePortal(t, 200, `{"acceptance":[{"model":"qwen3:4b","passed":true,"tokens_per_second":29.3,"ttft_ms":565}]}`)
-	res, err := c.Register(context.Background(), Registration{Name: "m2", MeshIP: "100.83.1.2", Port: 11434, Runtime: "ollama",
+	res, err := c.Register(context.Background(), Registration{Name: "m2", MeshIP: "10.66.1.2", Port: 11434, Runtime: "ollama",
 		Models: []string{"qwen3:4b"}, Contexts: map[string]int{"qwen3:4b": 8192}, RuntimeAPIKey: ""})
 	if err != nil || len(res.Acceptance) != 1 || !res.Acceptance[0].Passed || *res.Acceptance[0].TokensPerSecond != 29.3 {
 		t.Fatalf("register: %v %+v", err, res)

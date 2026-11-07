@@ -30,9 +30,3 @@ func (c *Client) TunnelAssign(ctx context.Context, publicKey string) (*TunnelGra
 	}
 	return &g, nil
 }
-
-// TunnelRelease tells the portal this garage is back on NetBird.
-func (c *Client) TunnelRelease(ctx context.Context) error {
-	_, err := c.post(ctx, c.sibling("tunnel-assign"), map[string]bool{"release": true}, nil, 20*time.Second)
-	return err
-}

@@ -90,7 +90,7 @@ func probe(port int, binds []string, owner Listener) *Runtime {
 		}
 		rt.Models = append(rt.Models, md)
 	}
-	rt.Network = anyOf(binds, "0.0.0.0", "*", "::") || anyPrefix(binds, "100.")
+	rt.Network = anyOf(binds, "0.0.0.0", "*", "::")
 
 	if knownPort(port) && KnownRuntime != "" && KnownRuntime != "ollama" {
 		rt.Kind = KnownRuntime // the garage's configured runtime on its configured port: no need to ask
@@ -301,15 +301,6 @@ func anyOf(list []string, vals ...string) bool {
 			if a == v {
 				return true
 			}
-		}
-	}
-	return false
-}
-
-func anyPrefix(list []string, prefix string) bool {
-	for _, a := range list {
-		if strings.HasPrefix(a, prefix) {
-			return true
 		}
 	}
 	return false

@@ -48,7 +48,7 @@ type LinkRequest struct {
 	GPU           string   `json:"gpu,omitempty"`
 	MemoryGB      int      `json:"memory_gb,omitempty"`
 	Runtime       string   `json:"runtime,omitempty"`
-	Transport     string   `json:"transport,omitempty"` // "tunnel" or "netbird": the portal skips the NetBird setup key for "tunnel"
+	Transport     string   `json:"transport,omitempty"` // always "tunnel": the Bridge tunnel is the only transport
 	Models        []string `json:"models,omitempty"`
 	SuggestedName string   `json:"suggested_name,omitempty"`
 }
@@ -70,8 +70,6 @@ type LinkResult struct {
 	} `json:"garage"`
 	RegisterURL   string `json:"register_url"`
 	RegisterToken string `json:"register_token"`
-	SetupKey      string `json:"setup_key"`
-	ManagementURL string `json:"management_url"`
 }
 
 func linkPost(ctx context.Context, name string, body, out any) (int, error) {

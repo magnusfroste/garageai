@@ -1,0 +1,20 @@
+name: Gateway
+
+on:
+  pull_request:
+    paths: ['infra/gateway/**', '.github/workflows/gateway.yml']
+  push:
+    branches: [main]
+    paths: ['infra/gateway/**', '.github/workflows/gateway.yml']
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck
+        run: shellcheck -S warning infra/gateway/register-node.sh infra/gateway/backup/garageai-backup
+      - name: gateway Python compiles
+        run: |
+          python3 -m py_compile infra/gateway/health/garageai-health.py infra/gateway/guard/garageai-guard.py \
+            infra/gateway/hub/garageai-hub.py infra/gateway/ops/garageai-ops-collect.py

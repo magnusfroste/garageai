@@ -2,9 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -39,7 +42,7 @@ func TestLinkStopsWithoutRuntime(t *testing.T) {
 func TestPickRuntime(t *testing.T) {
 	p := profile.Profile{Runtimes: []profile.Runtime{
 		{Kind: "llamacpp", Port: 8080},
-		{Kind: "ollama", Port: 11434, Network: true, Models: []profile.Model{{ID: "qwen3:4b"}}},
+		{Kind: "ollama", Port: 11434, Models: []profile.Model{{ID: "qwen3:4b"}}},
 		{Kind: "myserver", Port: 9000, Models: []profile.Model{{ID: "x"}}},
 	}}
 	if k, port, ok := pickRuntime(p); !ok || k != "ollama" || port != 11434 {
@@ -66,15 +69,15 @@ func TestLinkFlow(t *testing.T) {
 				w.Write([]byte(`{"status":"pending"}`))
 				return
 			}
-			w.Write([]byte(`{"status":"approved","garage":{"id":"g1","name":"garage-m2"},"register_url":"https://p/functions/v1/register-node","register_token":"grg_t","setup_key":"SK","management_url":"https://nb"}`))
+			w.Write([]byte(`{"status":"approved","garage":{"id":"g1","name":"garage-m2"},"register_url":"https://p/functions/v1/register-node","register_token":"grg_t"}`))
 		}
 	}))
 	defer srv.Close()
 	t.Setenv("GARAGEAI_PORTAL_API", srv.URL)
 	t.Setenv("DISPLAY", "")
 	t.Setenv("WAYLAND_DISPLAY", "")
-	for _, k := range []string{"GARAGEAI_REGISTER_TOKEN", "GARAGEAI_SETUP_KEY", "GARAGEAI_NODE_NAME", "GARAGEAI_REGISTER_URL",
-		"GARAGEAI_MANAGEMENT_URL", "GARAGEAI_RUNTIME", "GARAGEAI_PORT"} {
+	for _, k := range []string{"GARAGEAI_REGISTER_TOKEN", "GARAGEAI_NODE_NAME", "GARAGEAI_REGISTER_URL",
+		"GARAGEAI_RUNTIME", "GARAGEAI_PORT"} {
 		t.Setenv(k, "")
 	}
 	runtimeCheck = func(profile.Profile, int) bool { return true }
@@ -83,7 +86,7 @@ func TestLinkFlow(t *testing.T) {
 	if code := link(&o, true); code != 0 {
 		t.Fatalf("link exit %d", code)
 	}
-	if o.Name != "garage-m2" || o.RegisterToken != "grg_t" || o.SetupKey != "SK" || o.Runtime != "vllm" {
+	if o.Name != "garage-m2" || o.RegisterToken != "grg_t" || o.Runtime != "vllm" {
 		t.Fatalf("options: %+v", o)
 	}
 	if os.Getenv("GARAGEAI_REGISTER_TOKEN") != "grg_t" || os.Getenv("GARAGEAI_PORT") != "8000" {
@@ -91,33 +94,49 @@ func TestLinkFlow(t *testing.T) {
 	}
 	// On a Mac the computer's name (scutil) is used instead of the hostname.
 	mid, _ := started["machine_id"].(string)
-	if started["suggested_name"] != suggestName(computerName("testhost"), mid) || started["bridge_version"] == nil {
+	if started["suggested_name"] != suggestName(computerName("testhost"), mid) || started["bridge_version"] == nil || started["transport"] != "tunnel" {
 		t.Fatalf("start request: %v", started)
 	}
 }
 
-// The Bridge tunnel is the default; a NetBird setup key or --tunnel netbird means NetBird.
-func TestTunnelDefault(t *testing.T) {
-	t.Setenv("GARAGEAI_TUNNEL", "")
-	for _, c := range []struct {
-		args []string
-		want string
-	}{
-		{nil, "bridge"},
-		{[]string{"--setup-key", "SK", "--management-url", "https://nb"}, "netbird"},
-		{[]string{"--tunnel", "netbird"}, "netbird"},
-		{[]string{"--tunnel", "bridge", "--setup-key", "SK"}, "bridge"},
+// The NetBird options of old one-paste lines still parse, and are refused with the explanation.
+func TestNetBirdFlagsRefused(t *testing.T) {
+	for _, args := range [][]string{
+		{"--setup-key", "SK", "--management-url", "https://nb"},
+		{"--management-url", "https://nb"},
+		{"--tunnel", "netbird"},
+		{"--tunnel"},
+		{"--skip-install"},
+		{"--runtime", "vllm", "--skip-install", "--yes"},
 	} {
 		o := optionsFromEnv()
-		if err := parseConnectArgs(c.args, &o); err != nil {
-			t.Fatalf("%v: %v", c.args, err)
-		}
-		if o.Tunnel != c.want {
-			t.Errorf("%v: tunnel %q, want %q", c.args, o.Tunnel, c.want)
+		if err := parseConnectArgs(args, &o); !errors.Is(err, errNetBirdFlag) {
+			t.Errorf("%v: got %v, want the NetBird explanation", args, err)
 		}
 	}
 	o := optionsFromEnv()
-	if err := parseConnectArgs([]string{"--tunnel", "wireguard"}, &o); err == nil {
-		t.Error("accepted --tunnel wireguard")
+	if err := parseConnectArgs([]string{"--runtime", "vllm", "--yes"}, &o); err != nil {
+		t.Errorf("plain options refused: %v", err)
+	}
+	// --tunnel bridge was the documented opt-in from v0.4.0 and is in operators' notes: still fine.
+	if err := parseConnectArgs([]string{"--tunnel", "bridge", "--runtime", "ollama"}, &o); err != nil || o.Runtime != "ollama" {
+		t.Errorf("--tunnel bridge: got %v (runtime %q), want accepted", err, o.Runtime)
+	}
+	if err := parseConnectArgs([]string{"--wireguard"}, &o); err == nil || errors.Is(err, errNetBirdFlag) {
+		t.Errorf("an unknown option: got %v, want unknown option", err)
+	}
+}
+
+// connect itself prints the short explanation and exits 2.
+func TestConnectExplainsNetBirdFlag(t *testing.T) {
+	r, w, _ := os.Pipe()
+	stderr := os.Stderr
+	os.Stderr = w
+	code := connect([]string{"--setup-key", "SK"})
+	w.Close()
+	os.Stderr = stderr
+	out, _ := io.ReadAll(r)
+	if code != 2 || !strings.Contains(string(out), "NetBird is no longer used") || !strings.Contains(string(out), "without --setup-key") {
+		t.Fatalf("exit %d, stderr %q", code, out)
 	}
 }

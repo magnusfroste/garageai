@@ -1,7 +1,7 @@
 // GarageAI Bridge: the bridge between an operator's GPU and the GarageAI network, as one command,
 // `garageai`. The roadmap is docs/bridge.md.
 //
-//	garageai connect [options]   join the mesh, register the runtime, install the heartbeat
+//	garageai connect [options]   open the tunnel, register the runtime, install the heartbeat
 //	garageai doctor [--json]     what runs on this machine, what is wrong, and how to fix it
 //	garageai run [--once]        the heartbeat (what the installed service runs)
 //	garageai uninstall           remove the heartbeat and Bridge's configuration
@@ -78,8 +78,8 @@ func main() {
 }
 
 // completePath adds the usual program directories to PATH. The heartbeat runs under launchd or
-// systemd with a minimal PATH (/usr/bin:/bin:/usr/sbin:/sbin), where netbird in /usr/local/bin or a
-// Homebrew tool is not found and doctor would report NetBird as missing.
+// systemd with a minimal PATH (/usr/bin:/bin:/usr/sbin:/sbin), where a tool in /usr/local/bin or
+// Homebrew (nvidia-smi, a runtime's CLI) is not found and doctor would report wrongly.
 func completePath() {
 	have := map[string]bool{}
 	for _, d := range filepath.SplitList(os.Getenv("PATH")) {
@@ -123,17 +123,14 @@ func usage(code int) {
 	fmt.Fprintln(os.Stderr, `GarageAI Bridge — connects your GPU to the GarageAI network
 
 usage:
-  garageai connect [options]   join the mesh, check the runtime, register, install the heartbeat
+  garageai connect [options]   open the tunnel, check the runtime, register, install the heartbeat
       Without options you approve this machine in the browser; nothing to copy.
-      --setup-key KEY --management-url URL     (from the portal's command; the key is used once)
       --register-url URL --register-token TOK  (from the portal's command)
       --runtime ollama|lmstudio|llamacpp|vllm|sglang|paddock|unsloth|mlx|lemonade|other
-      --port N  --name NAME  --models a,b  --runtime-api-key KEY  --skip-install  --no-heartbeat  --yes
+      --port N  --name NAME  --models a,b  --runtime-api-key KEY  --no-heartbeat  --yes
       --no-auto-update             keep this version until you run garageai update yourself
-      --tunnel bridge|netbird      bridge (default): Bridge carries the tunnel itself, no NetBird, and the
-                                   runtime can stay on localhost. netbird: the NetBird mesh, the fallback
-                                   for networks that block UDP
-      Every option can also be given as GARAGEAI_SETUP_KEY, GARAGEAI_REGISTER_TOKEN, ... in the environment.
+      Bridge carries its own tunnel to the gateway (outgoing UDP); the runtime can stay on localhost.
+      Every option can also be given as GARAGEAI_REGISTER_TOKEN, GARAGEAI_RUNTIME, ... in the environment.
   garageai doctor [--json]     what runs on this machine, what is wrong, and how to fix it
   garageai run [--once]        the heartbeat: report the runtime's models (the service runs this)
   garageai uninstall           remove the heartbeat and Bridge's configuration
@@ -199,13 +196,6 @@ func printHuman(p profile.Profile) {
 		}
 		fmt.Println()
 	}
-	nb := "not installed"
-	if p.NetBird.Installed {
-		nb = "installed, not connected"
-		if p.NetBird.Connected && p.NetBird.MeshIP != nil {
-			nb = "connected as " + *p.NetBird.MeshIP
-		}
-	}
 	if p.Tunnel != nil {
 		st := "service not installed"
 		if p.Tunnel.Installed {
@@ -215,9 +205,9 @@ func printHuman(p profile.Profile) {
 			}
 		}
 		fmt.Printf("  Tunnel   Bridge tunnel %s, %s\n", p.Tunnel.IP, st)
-		nb = "not needed (Bridge carries the tunnel)"
+	} else {
+		fmt.Println("  Tunnel   not set up (garageai connect)")
 	}
-	fmt.Println("  NetBird  " + nb)
 	hb := "not installed"
 	if p.Heartbeat.Installed {
 		hb = "installed, not running"
@@ -292,11 +282,9 @@ func printHuman(p profile.Profile) {
 		fmt.Println("  Runtime  none found")
 	}
 	for _, rt := range p.Runtimes {
-		reach := "only this machine"
+		reach := "only this machine (not linked yet)"
 		if p.Tunnel != nil {
 			reach = "reached through the Bridge tunnel" // the tunnel forwards to localhost: listening wider is not needed
-		} else if rt.Network {
-			reach = "reachable over the mesh"
 		}
 		fmt.Printf("  Runtime  %s on port %d (%s), %d model(s), listens on %s: %s\n", rt.Kind, rt.Port, rt.API, len(rt.Models), strings.Join(rt.Binds, " "), reach)
 		loaded := map[string]int{}

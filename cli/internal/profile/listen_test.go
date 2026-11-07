@@ -82,20 +82,10 @@ func TestProbeAndProblems(t *testing.T) {
 	if rt == nil || rt.Kind != "vllm" || rt.Network || len(rt.Models) != 1 || *rt.Models[0].Context != 32768 {
 		t.Fatalf("vLLM-like runtime probed as %+v", rt)
 	}
-	p := Profile{Runtimes: []Runtime{*rt}, NetBird: NetBird{Installed: true, Connected: true}, GPUs: []GPU{{Name: "x"}}}
-	codes := map[string]bool{}
-	for _, pr := range problems(p) {
-		codes[pr.Code] = true
-	}
-	if !codes["localhost_only"] || codes["no_runtime"] {
-		t.Errorf("problems for a localhost-only runtime: %v", codes)
-	}
-	rt.Binds, rt.Network = []string{"0.0.0.0"}, true
-	p.Runtimes = []Runtime{*rt}
-	for _, pr := range problems(p) {
-		if pr.Code == "localhost_only" {
-			t.Error("a network bind is reported as localhost-only")
-		}
+	// On the tunnel a runtime on 127.0.0.1 is the desired state: no problem at all.
+	p := Profile{Runtimes: []Runtime{*rt}, GPUs: []GPU{{Name: "x"}}}
+	if ps := problems(p); len(ps) != 0 {
+		t.Errorf("problems for a healthy localhost runtime: %+v", ps)
 	}
 }
 
@@ -106,7 +96,7 @@ func TestOllamaSmallContext(t *testing.T) {
 		t.Fatalf("Ollama probed as %+v", rt)
 	}
 	mem := 16
-	p := Profile{Machine: Machine{MemoryGB: &mem}, Runtimes: []Runtime{*rt}, NetBird: NetBird{Installed: true, Connected: true}}
+	p := Profile{Machine: Machine{MemoryGB: &mem}, Runtimes: []Runtime{*rt}}
 	found := false
 	for _, pr := range problems(p) {
 		found = found || (pr.Code == "small_context" && strings.Contains(pr.Fix, "16384"))
@@ -124,8 +114,8 @@ func TestFlagsNeverHoldTheKey(t *testing.T) {
 }
 
 func TestMacProblems(t *testing.T) {
-	base := Profile{NetBird: NetBird{Installed: true, Connected: true}, GPUs: []GPU{{Name: "Apple M2"}},
-		Runtimes: []Runtime{{Kind: "ollama", Port: 11434, Network: true, Binds: []string{"*"}}}}
+	base := Profile{GPUs: []GPU{{Name: "Apple M2"}},
+		Runtimes: []Runtime{{Kind: "ollama", Port: 11434, Binds: []string{"127.0.0.1"}}}}
 	codes := func(p Profile) map[string]bool {
 		c := map[string]bool{}
 		for _, pr := range problems(p) {
@@ -135,11 +125,11 @@ func TestMacProblems(t *testing.T) {
 	}
 	p := base
 	p.darwin, p.sleepMinutes = true, 10
-	if c := codes(p); !c["ollama_host_not_persistent"] || !c["mac_sleeps"] {
-		t.Errorf("a Mac with Ollama, no LaunchAgent and sleep after 10 min: %v", c)
+	if c := codes(p); !c["mac_sleeps"] || c["ollama_host_not_persistent"] {
+		t.Errorf("a Mac with Ollama on localhost and sleep after 10 min: %v", c)
 	}
-	p.ollamaHostPersistent, p.sleepMinutes = true, 0
-	if c := codes(p); c["ollama_host_not_persistent"] || c["mac_sleeps"] {
+	p.sleepMinutes = 0
+	if c := codes(p); c["mac_sleeps"] {
 		t.Errorf("a well set-up Mac still has Mac problems: %v", c)
 	}
 	p = base
@@ -149,7 +139,7 @@ func TestMacProblems(t *testing.T) {
 	}
 	p = base // Linux: Mac rules never apply
 	p.sleepMinutes = 10
-	if c := codes(p); c["mac_sleeps"] || c["ollama_host_not_persistent"] {
+	if c := codes(p); c["mac_sleeps"] {
 		t.Errorf("Mac problems on Linux: %v", c)
 	}
 }

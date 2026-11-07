@@ -1,4 +1,4 @@
-// Package portal talks to the GarageAI portal the way garageai-connect.sh does: register-node,
+// Package portal talks to the GarageAI portal: register-node,
 // node-heartbeat and onboarding-report, with the garage's register token.
 package portal
 
