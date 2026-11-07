@@ -362,7 +362,7 @@
       <section class="page" data-page="models">
         <div id="alerts-models"></div>
         <div class="card"><h2>Catalogue</h2><div class="sub" id="models-sub"></div><div id="models"></div>
-          <div class="note">Context and output cap are what the gateway enforces. "Runtime" is the window the garage's runtime reports, read by the gateway over the mesh every 10 minutes. Prices are per million tokens.</div></div>
+          <div class="note">Context and output cap are what the gateway enforces. "Runtime" is the window the garage's runtime reports, read by the gateway through the tunnel every 10 minutes. Prices are per million tokens.</div></div>
       </section>
 
       <section class="page" data-page="live">
@@ -387,11 +387,7 @@
 
       <section class="page" data-page="mesh">
         <div id="alerts-mesh"></div>
-        <div class="card" id="tunnel-card"><h2>Bridge tunnel hub</h2><div class="sub">Garages that carry their own tunnel in Bridge (no NetBird): the hub learns each garage's address from its handshake.</div><div id="tunnel"></div></div>
-        <div class="card"><h2>UDP fallback (NetBird)</h2><div class="sub">For networks that block UDP, where Bridge's tunnel cannot run. No garage uses it today; it goes when Bridge has its own fallback over TCP 443.</div><div id="mesh-local"></div></div>
-        <div class="card" hidden><h2>Peers</h2><div id="mesh-peers"></div></div>
-        <div class="card" hidden><h2>Access policies</h2><div id="mesh-policies"></div>
-          <div class="note">The gateway reaches the garages; garages must never reach the gateway (one way only).</div></div>
+        <div class="card" id="tunnel-card"><h2>Bridge tunnel hub</h2><div class="sub">Every garage carries its own WireGuard tunnel in Bridge to the hub on the gateway (wg-hub, UDP 51830): the hub learns each garage's address from its handshake. The gateway reaches the garages; garages can never reach the gateway or each other (nftables, one way only).</div><div id="tunnel"></div></div>
       </section>
 
       <section class="page" data-page="server">
@@ -442,7 +438,7 @@ const PAGES = [
   { id: "models", title: "Models", icon: "models", sub: "What buyers can call: public names, garages, prices, context windows, checked against the runtimes" },
   { id: "traffic", title: "Traffic", icon: "traffic", sub: "Requests, tokens, latency and gateway errors" },
   { group: "Infrastructure" },
-  { id: "mesh", title: "Tunnel", icon: "mesh", sub: "Bridge's tunnel hub, and NetBird as the UDP fallback" },
+  { id: "mesh", title: "Tunnel", icon: "mesh", sub: "Bridge's tunnel hub: each garage's handshake, address and traffic" },
   { id: "server", title: "Server", icon: "server", sub: "Gateway host, containers, timers, backup and certificates" },
   { id: "updates", title: "Updates", icon: "updates", sub: "Running vs latest versions, and deployed files vs main" },
 ];
@@ -550,7 +546,7 @@ function renderChrome(d) {
   const pick = re => (d.versions || []).find(x => re.test(x.component));
   $("build").innerHTML = `<h4>Running</h4>
     <div class="row"><span>${icon("git", "i")} main</span><span><a href="https://github.com/${esc(src.repo)}/commit/${esc(src.main)}" target="_blank" rel="noopener">${esc(src.main_short)}</a></span></div>
-    ${row("LiteLLM", pick(/^LiteLLM/))}${row("NetBird", pick(/NetBird.*(server|management)/i))}${row("Dashboard", pick(/dashboard/i))}${row("Traefik", pick(/^Traefik/))}${row("Host", pick(/Host|OS/i))}
+    ${row("LiteLLM", pick(/^LiteLLM/))}${row("Traefik", pick(/^Traefik/))}${row("Host", pick(/Host|OS/i))}
     <div class="row"><span>Uptime</span><span>${d.host.uptime_hours < 48 ? d.host.uptime_hours + " h" : Math.round(d.host.uptime_hours / 24) + " d"}</span></div>`;
   $("build").querySelectorAll(".row svg").forEach(s => { s.style.width = "13px"; s.style.height = "13px"; s.style.verticalAlign = "-2px"; });
 }
@@ -627,7 +623,6 @@ function renderDashboard(d) {
   const req1 = sum(t1, "requests"), fail1 = sum(t1, "failed");
   const p95 = Math.max(0, ...t1.map(r => r.ttft_p95_s || 0)), p50 = t1.length ? Math.max(...t1.map(r => r.ttft_p50_s || 0)) : null;
   const h = d.host, memPct = Math.round(100 * (1 - h.mem_available_mb / h.mem_total_mb));
-  const peers = d.mesh.peers || [], L = d.mesh.local;
   const updates = (d.versions || []).filter(v => v.update).length, drift = (d.source?.files || []).filter(f => f.status !== "in sync").length;
   const logs = d.logs?.containers || [], logMb = sum(logs, "log_mb"), unrotated = logs.filter(l => !l.max_size).length;
   const certMin = Math.min(...d.certs.map(c => c.days_left ?? 999), ...G.map(g => g.provider?.tls?.days_left ?? 999));
@@ -648,7 +643,7 @@ function renderDashboard(d) {
       value: `$${sum(t24, "spend_usd").toFixed(2)}`, detail: `${fmt(sum(t24, "requests"))} requests · ${short(sum(t24, "prompt_tokens") + sum(t24, "completion_tokens"))} tokens` },
     { page: "mesh", icon: "mesh", label: "Tunnel", status: lvl("mesh"),
       value: `${(d.tunnel?.peers || []).filter(p => p.connected).length}<small> / ${(d.tunnel?.peers || []).length} garages</small>`,
-      detail: `UDP fallback (NetBird) ${L.management && L.signal ? "up" : '<span class="warning">down</span>'}` },
+      detail: d.tunnel ? `hub on UDP ${esc(d.tunnel.port)}${d.tunnel.stale ? ' · <span class="warning">hub status is stale</span>' : ""}` : '<span class="warning">hub status not found</span>' },
     { page: "server", icon: "server", label: "Gateway server", status: lvl("server"),
       value: `${memPct}<small> % memory</small>`, detail: `disk ${h.disk_used_pct} % · load ${h.load[0]} on ${h.cpus} CPUs${h.reboot_required ? ' · <span class="warning">reboot</span>' : ""}`,
       extra: hist?.host?.length > 4 ? spark(hist.host.slice(-96).map(r => [r[0], r[1]]), 100) : bar(memPct, memPct > 90 ? "critical" : memPct > 80 ? "warning" : "") },
@@ -715,7 +710,7 @@ function renderPages(d) {
   $("onb").innerHTML = table([
     ["Garage", o => `${dot(o.stuck ? "warning" : "info")}<b>${esc(o.garage)}</b>`],
     ["Created", o => o.created_at ? ago(o.created_at) : "—"],
-    ["Mesh", o => o.mesh ? '<span class="ok">joined</span>' : o.mesh === false ? '<span class="small">not yet</span>' : "—"],
+    ["Tunnel", o => o.mesh ? '<span class="ok">up</span>' : o.mesh === false ? '<span class="small">not yet</span>' : "—"],
     ["Last step", o => o.step ? `${esc(o.step)}<div class="small">${esc(o.status || "")}${o.message ? ": " + esc(o.message) : ""}</div>` : '<span class="small">no report yet (older connect script, or not run)</span>'],
     ["Problems", o => o.problems?.length ? o.problems.map(c => pill("warning", esc(c))).join(" ") : "—"],
     ["Waiting", o => `${dur(o.minutes)}${o.stuck ? " " + pill("warning", "stuck") : ""}`, "num"],
@@ -727,7 +722,7 @@ function renderPages(d) {
     ["Garage", p => `${dot(p.connected ? "ok" : "critical")}<b>${esc(p.garage)}</b>`], ["Tunnel IP", p => `<code>${esc(p.ip)}</code>`],
     ["Connects from", p => p.endpoint ? esc(p.endpoint) : "—"], ["Last handshake", p => p.handshake_s == null ? "never" : p.handshake_s < 60 ? `${p.handshake_s} s ago` : `${Math.round(p.handshake_s / 60)} min ago`],
     ["Traffic", p => `${p.rx_mb} MB in · ${p.tx_mb} MB out`],
-  ], tu.peers) : '<div class="small">No garage uses the Bridge tunnel yet.</div>') + `<div class="note">UDP ${tu.port}${tu.stale ? ' · <span class="warning">hub status is stale</span>' : ""}</div>`;
+  ], tu.peers) : '<div class="small">No garage is connected to the hub.</div>') + `<div class="note">UDP ${tu.port}${tu.stale ? ' · <span class="warning">hub status is stale</span>' : ""}</div>`;
   ["onboarding", "business", "supply", "models", "traffic", "mesh", "server", "updates", "logs"].forEach(p => pageAlerts(p, d.alerts));
   renderSilences(d);
 
@@ -809,13 +804,6 @@ function renderPages(d) {
         ["Blocked", b => ago(b.since)], ["Until", b => esc(b.until.replace("T", " ").slice(0, 16)) + (b.repeat ? " " + pill("warning", "repeat") : "")]], gd.active)
       : '<div class="small">No client is blocked right now.</div>')
     + (gd.recent.length ? `<div class="note">Last 30 days: ${gd.recent.length} block${gd.recent.length > 1 ? "s" : ""}. Lift one on the gateway: <code>sudo garageai-guard --unban IP</code></div>` : "");
-  const m = d.mesh, L = m.local;
-  $("mesh-local").innerHTML = `<div>${dot(L.management && L.signal ? "ok" : "warning")}${L.management && L.signal ? "Ready" : '<span class="warning">Down</span>'} · NetBird ${esc(L.version)} · relays ${L.relays_available}/${L.relays_total} · ${(m.peers || []).filter(p => p.name !== "ubuntu-4gb-hel1-2").length} garage(s) on it${(m.policies || []).some(p => p.bidirectional) ? ' · <span class="critical">a policy is bidirectional</span>' : ""}</div>`;
-  $("mesh-peers").innerHTML = table([["Peer", p => `${dot(p.connected ? "ok" : "muted")}${esc(p.name)}`], ["Groups", p => esc(p.groups.join(", "))],
-    ["Link from gateway", p => p.link ? `${esc(p.link.status)} · ${esc(p.link.type || "—")}${p.link.latency_ms ? ` · ${p.link.latency_ms} ms` : ""}` : "—"],
-    ["Country", p => esc(p.country)], ["NetBird", p => esc(p.version)], ["OS", p => esc(p.os)], ["Last seen", p => p.connected ? "now" : ago(p.last_seen)]], m.peers);
-  $("mesh-policies").innerHTML = table([["Policy", p => `${dot(p.bidirectional ? "critical" : "ok")}${esc(p.name)}`], ["From", p => esc(p.sources.join(", "))],
-    ["To", p => esc(p.destinations.join(", "))], ["Ports", p => esc(p.ports.join(", "))], ["Direction", p => p.bidirectional ? '<span class="critical">both ways</span>' : "one way"]], m.policies);
 
   const h = d.host;
   $("host").innerHTML = `<div class="kv">
@@ -854,8 +842,7 @@ function renderPages(d) {
   $("source").innerHTML = `<div class="kv" style="margin-bottom:12px">
       <div>Repository</div><div><a href="https://github.com/${esc(src.repo)}/commits/main" target="_blank" rel="noopener">${esc(src.repo)}</a></div>
       <div>main on GitHub</div><div><code>${esc(src.main_short)}</code></div>
-      <div>Checkout on the gateway</div><div><code>${esc(src.checkout)}</code> (${esc(src.checkout_branch)})</div>
-      <div>NetBird compose</div><div class="small">${esc(src.netbird_compose)}</div></div>`
+      <div>Checkout on the gateway</div><div><code>${esc(src.checkout)}</code> (${esc(src.checkout_branch)})</div></div>`
     + table([["Deployed file", f => `${dot(f.status === "in sync" ? "ok" : f.status === "unknown" ? "muted" : "warning")}<code>${esc(f.deployed)}</code>`],
              ["Source in repo", f => `<code>${esc(f.source)}</code>`], ["Status", f => pill(f.status === "in sync" ? "ok" : f.status === "unknown" ? "muted" : "warning", esc(f.status))]], src.files || []);
 

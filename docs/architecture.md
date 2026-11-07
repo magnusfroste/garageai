@@ -1,7 +1,7 @@
 # Where logic lives
 
 GarageAI has four parts: the **portal** (app.garageai.eu, Lovable/Supabase, repo
-`garageai-portal`), the **gateway** (LiteLLM, Traefik and NetBird on the Hetzner VPS), **Bridge**
+`garageai-portal`), the **gateway** (LiteLLM, Traefik and the Bridge tunnel hub on the Hetzner VPS), **Bridge**
 on each garage (`cli/`), and the **Operations Center** (`infra/gateway/ops/`). This page says which
 part decides what. It applies to every change, whoever makes it: here, in Lovable, or on the
 website.
@@ -30,7 +30,7 @@ measured lives in the Operations Center.
   portal marks models healthy or unhealthy and runs the daily acceptance tests.
 - **Bridge → portal:** `register-node`, `node-heartbeat`, `onboarding-report` and the browser link.
 - **Portal and gateway → Operations Center:** `gateway-targets` and `ops-summary` (the portal,
-  with the gateway key), LiteLLM's database and API, NetBird's API, the host itself.
+  with the gateway key), LiteLLM's database and API, the tunnel hub's status, the host itself.
 
 ## Why this split survives failures
 
@@ -162,8 +162,8 @@ than one deployment, `garageai/auto` included:
 
 `garageai-backup.timer` (03:30 UTC nightly, `infra/gateway/backup/`) takes what cannot be
 recreated: LiteLLM's Postgres (keys, deployments, spend), LiteLLM's `.env` (master and salt key),
-the tunnel hub's key, `/etc/garageai`, the ops `.env`, NetBird's config and volumes, the
-certificates. Encrypted with the passphrase in `/etc/garageai/backup.env` and copied to the S3
+the tunnel hub's key, `/etc/garageai`, the ops `.env`, the Traefik compose file and its
+certificate volume. Encrypted with the passphrase in `/etc/garageai/backup.env` and copied to the S3
 bucket in `BACKUP_S3_REMOTE` once that is set (decision 2026-10-13: Hetzner snapshots of the VPS
 until there are more customers, then the bucket); 7 days kept locally. The Operations Center warns
 when the newest is older than 26 h or a configured off-site copy failed. **The passphrase lives in Magnus's password manager

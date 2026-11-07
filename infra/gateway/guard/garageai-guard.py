@@ -10,7 +10,7 @@ A real buyer with a wrong key sees a few 401s, not 30 in two minutes.
 
 Blocking is an nftables set with timeouts (table inet garageai_guard), dropped before Docker's
 NAT so it covers every container behind Traefik. Bans survive a reboot: the state file is
-replayed into the set on every run. Never blocked: private, loopback and mesh addresses, the
+replayed into the set on every run. Never blocked: private, loopback and tunnel addresses, the
 gateway itself, and GUARD_ALLOW (comma-separated IPs) in /etc/garageai/guard.env.
 
 State and status: /var/lib/garageai-guard/ (status.json is shown in the Operations Center).
@@ -32,7 +32,7 @@ DIR = "/var/lib/garageai-guard"
 STATE = f"{DIR}/state.json"
 STATUS = f"{DIR}/status.json"
 ENV = "/etc/garageai/guard.env"
-TRAEFIK = "netbird-traefik"
+TRAEFIK = "garageai-traefik"   # infra/gateway/traefik
 ROUTERS = ("litellm@docker", "litellm-admin@docker", "litellm-deny@docker", "litellm-api@docker", "litellm-api-deny@docker")
 WINDOW = 120                      # seconds
 RULES = {401: (30, "invalid API keys"), 403: (60, "blocked paths")}
@@ -49,8 +49,9 @@ def sh(cmd, check=False):
 
 
 def protected():
+    # 10.0.0.0/8 covers the Bridge tunnel (wg-hub, 10.66.0.0/16).
     nets = [ipaddress.ip_network(n) for n in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8",
-                                              "100.64.0.0/10", "::1/128", "fc00::/7", "fe80::/10")]
+                                              "::1/128", "fc00::/7", "fe80::/10")]
     own = sh(["hostname", "-I"]).stdout.split()
     allow = []
     try:

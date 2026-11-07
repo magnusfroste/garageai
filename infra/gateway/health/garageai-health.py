@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """garageai-health — level 1 and 2 health checks for every garage, run on the gateway.
 
-Level 1 (tunnel):  is the garage's NetBird peer connected to the management server?
-Level 2 (runtime): does the runtime answer GET /v1/models over the mesh, and with which models?
+Level 1 (tunnel):  has the garage's Bridge tunnel handshaken with the hub (wg-hub) in the last 3 minutes?
+Level 2 (runtime): does the runtime answer GET /v1/models through the tunnel, and with which models?
 No tokens are generated. Level 3 (does the model actually generate) stays with the portal's
 acceptance test and hourly probe.
 
 Every run:
   1. targets  = GET  {portal}/functions/v1/gateway-targets      (falls back to a local file)
-  2. level 1  = NetBird management API /peers (connected flag), by pinned peer id
-  3. level 2  = GET http://<host>:<port>/v1/models over the mesh, 5 s timeout
+  2. level 1  = the hub's /var/lib/garageai-hub/status.json (latest handshake), by tunnel ip
+  3. level 2  = GET http://<host>:<port>/v1/models through the tunnel, 5 s timeout
   4. results  = POST {portal}/functions/v1/gateway-health-report (skipped in observe mode)
 The gateway authenticates to the portal with the LiteLLM master key, a secret both already hold.
 The last results are always written to /var/lib/garageai-health/last.json.
@@ -17,8 +17,6 @@ The last results are always written to /var/lib/garageai-health/last.json.
 Config (environment, e.g. /etc/garageai/gateway-health.env):
   GARAGEAI_PORTAL_URL        https://<project>.supabase.co
   GARAGEAI_GATEWAY_KEY       the LiteLLM master key
-  NETBIRD_API_URL            https://netbird.example.eu/api
-  NETBIRD_API_TOKEN          NetBird token (read peers only is enough)
   GARAGEAI_TARGETS_FILE      optional local targets, used when the portal endpoint is missing
 """
 import json, os, sys, time, urllib.error, urllib.request
@@ -98,23 +96,8 @@ def tunnel_connected():
             for p in (st.get("peers") or {}).values() if p.get("ip")}
 
 
-def peers_connected(nb_url, nb_token):
-    """{peer_id: connected, name: connected} from the NetBird management API, or None."""
-    try:
-        _, peers = http("GET", f"{nb_url}/peers", {"Authorization": f"Token {nb_token}",
-                                                   "Accept": "application/json"}, timeout=15)
-    except Exception as e:  # noqa: BLE001
-        print(f"netbird peers: {e}", file=sys.stderr)
-        return None
-    out = {}
-    for p in peers:
-        out[p["id"]] = bool(p.get("connected"))
-        out.setdefault("name:" + p.get("name", ""), bool(p.get("connected")))
-    return out
-
-
 def check_runtime(host, port, key, url=None):
-    """url: a provider's https base (…/v1); otherwise a mesh garage's host and port."""
+    """url: a provider's https base (…/v1); otherwise a tunnel garage's host and port."""
     headers = {"Authorization": f"Bearer {key}"} if key else {}
     try:
         _, data = http("GET", f"{url.rstrip('/')}/models" if url else f"http://{host}:{port}/v1/models", headers)
@@ -132,31 +115,22 @@ def check_runtime(host, port, key, url=None):
 def main():
     portal = os.environ.get("GARAGEAI_PORTAL_URL", "").rstrip("/")
     gw_key = os.environ.get("GARAGEAI_GATEWAY_KEY", "")
-    nb_url = os.environ.get("NETBIRD_API_URL", "").rstrip("/")
-    nb_token = os.environ.get("NETBIRD_API_TOKEN", "")
     targets, source = load_targets(portal, gw_key, os.environ.get("GARAGEAI_TARGETS_FILE"))
-    connected = peers_connected(nb_url, nb_token) if nb_url and nb_token else None
     tunnels = tunnel_connected()
 
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     results = []
     for t in targets:
-        peer = t.get("peer_id")
         if t.get("endpoint"):
             # A provider behind a public HTTPS endpoint: no tunnel to check.
             mesh = None
             runtime_ok, err, models = check_runtime(None, None, t.get("runtime_api_key"), url=t.get("url"))
-        elif t.get("transport") == "tunnel":
-            # A Bridge tunnel garage: the hub's latest handshake says whether it is connected.
+        else:
+            # A garage: every garage is a Bridge tunnel garage (a missing transport means tunnel), and
+            # the hub's latest handshake says whether it is connected.
             mesh = None if tunnels is None else tunnels.get(t.get("host"), False)
             if mesh is False:
                 runtime_ok, err, models = False, "tunnel_disconnected", None
-            else:
-                runtime_ok, err, models = check_runtime(t["host"], t["port"], t.get("runtime_api_key"))
-        else:
-            mesh = None if connected is None else connected.get(peer, connected.get("name:" + t["garage"], False))
-            if mesh is False:
-                runtime_ok, err, models = False, "mesh_disconnected", None
             else:
                 runtime_ok, err, models = check_runtime(t["host"], t["port"], t.get("runtime_api_key"))
         results.append({"garage": t["garage"], "checked_at": now, "mesh_connected": mesh,

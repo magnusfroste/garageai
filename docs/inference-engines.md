@@ -151,11 +151,13 @@ Other script items:
 
 ### 4b. Gateway port policy
 
-Today: 11434, 1234, 8080, 8000.
-- **Add now:** 11540 (Paddock), 8888 (Unsloth), 30000 (SGLang).
-- **Add if we list them:** 13305 (Lemonade). 11541–11549 if Paddock-manager-spawned endpoints should work.
-- **Better long-term:** have the connect script register the garage's chosen port and open only that `peer:port` in the NetBird policy for that garage. Then there is no global allowlist to maintain, and any engine with a `/v1` API works with `--port`.
-- **Until then:** the hints for low-priority engines (Jan, KoboldCpp, Aphrodite, LMDeploy, Xinference, text-generation-webui) should tell operators to run them on 8000 or 8080.
+No longer needed (2026-11). The list of allowed runtime ports lived in the NetBird policy, which
+is gone. With the Bridge tunnel there is no port allowlist on the gateway: the hub
+(`infra/gateway/hub/garageai-hub.py`) gives each garage one /32 and its nftables only stop
+garages from opening connections, and on the garage Bridge answers inside the tunnel only on the
+port it registered for the runtime, forwarding to `127.0.0.1:<port>` with a path allowlist. So
+every port is already "only that garage's runtime port", and any engine with a `/v1` API works
+with `--port`, including Paddock (11540), Unsloth (8888), SGLang (30000) and Lemonade (13305).
 
 ---
 

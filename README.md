@@ -28,7 +28,7 @@ Buyers ──HTTPS──▶ LiteLLM gateway (EU) ──WireGuard tunnel (Bridge)
 ### Offer your GPU
 
 1. **Start the "Offer your GPU" wizard** at [app.garageai.eu](https://app.garageai.eu/auth?intent=operator) — macOS, Linux or Windows with Ollama, LM Studio, llama.cpp, vLLM, SGLang, Xyntetik Runner or Paddock (beta). No engine yet? `garageai runtime install` sets up Xyntetik Runner, a one-file engine made in Sweden, with a model that fits the machine. Create your garage and set your price per million tokens.
-2. **Run one command.** The wizard gives you a command that installs [GarageAI Bridge](cli/README.md), one small open-source program (`garageai`), and runs `garageai connect`. Bridge opens its own encrypted WireGuard tunnel to the gateway (no VPN app, and your runtime can stay on localhost; [NetBird](https://netbird.io) is the fallback for networks that block UDP), checks your runtime, registers your models and installs a heartbeat service that keeps the offered models in sync. No inbound ports are opened. It asks for your password once. Every step is reported to the wizard, so if something stops you see what to fix; `garageai doctor` shows the same on the machine, and `garageai uninstall` removes it again.
+2. **Run one command.** The wizard gives you a command that installs [GarageAI Bridge](cli/README.md), one small open-source program (`garageai`), and runs `garageai connect`. Bridge opens its own encrypted WireGuard tunnel to the gateway (no VPN app, and your runtime can stay on localhost; a TCP fallback for networks that block UDP is on the roadmap), checks your runtime, registers your models and installs a heartbeat service that keeps the offered models in sync. No inbound ports are opened. It asks for your password once. Every step is reported to the wizard, so if something stops you see what to fix; `garageai doctor` shows the same on the machine, and `garageai uninstall` removes it again.
 
    **Windows** (Bridge 1.0): the same, from PowerShell opened as Administrator. The tunnel runs as a Windows service and the heartbeat as a scheduled task, so the garage keeps serving after a reboot without anyone logged in.
 3. **Pass the acceptance test.** Every model is tested through the gateway with a real streamed request — time-to-first-token and tokens per second are measured before it can be sold.
@@ -36,7 +36,7 @@ Buyers ──HTTPS──▶ LiteLLM gateway (EU) ──WireGuard tunnel (Bridge)
 
 ### Under the hood
 
-- **The tunnel** — Bridge carries a WireGuard tunnel in user space from each garage out to a hub on the gateway ([design](docs/bridge-tunnel.md)); a self-hosted NetBird mesh is the fallback. Garages are never exposed to the public internet.
+- **The tunnel** — Bridge carries a WireGuard tunnel in user space from each garage out to a hub on the gateway ([design](docs/bridge-tunnel.md)); a TCP fallback for networks that block UDP is on the roadmap. Garages are never exposed to the public internet.
 - **The gateway** — [LiteLLM](https://github.com/BerriAI/litellm) on an EU VPS routes each request over the mesh, counts tokens per key and model, and handles retries and failover. Setup: [`infra/gateway/`](infra/gateway/README.md).
 - **Bridge** — the `garageai` binary on each garage ([`cli/`](cli/README.md)): doctor, connect (browser link, no tokens to paste), the tunnel, a heartbeat that reports models and context windows, self-update, and models fetched on the portal's request ([vision and phases](docs/bridge.md)).
 - **Where logic lives** — the portal decides, the gateway executes within seconds, Bridge sees the machine, the Operations Center measures ([architecture](docs/architecture.md)). Security for garage owners: [what runs on your machine](docs/garage-security.md).
@@ -47,7 +47,7 @@ Buyers ──HTTPS──▶ LiteLLM gateway (EU) ──WireGuard tunnel (Bridge)
 | Path | What it is |
 |---|---|
 | [`cli/`](cli/README.md) | GarageAI Bridge (`garageai`): connects a garage with its own WireGuard tunnel, heartbeat, self-update, the menu-bar icon, `garageai runtime` |
-| [`infra/gateway/`](infra/gateway/README.md) | The core on one EU VPS: LiteLLM gateway and its routing rules, the Bridge tunnel hub, Operations Center, health checks, backups (NetBird only as the fallback for networks that block UDP) |
+| [`infra/gateway/`](infra/gateway/README.md) | The core on one EU VPS: LiteLLM gateway and its routing rules, the Bridge tunnel hub, Operations Center, health checks, backups; a TCP fallback for networks that block UDP is on the roadmap |
 | [`www/`](www) | The Astro site at [www.garageai.eu](https://www.garageai.eu): page copy in [`www/src/content/`](www/src/content), legal texts in [`www/src/legal/`](www/src/legal) |
 | [`scripts/garageai-connect.sh`](scripts/garageai-connect.sh) | The previous connect script, kept as a backup and reference (Windows: `garageai-connect.ps1`) |
 | [`docs/www-and-portal.md`](docs/www-and-portal.md) | Who does what: the site (explain, persuade, search) and the portal (do, live data), and who owns each touchpoint |

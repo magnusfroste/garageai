@@ -106,6 +106,10 @@ program, an outbound tunnel, a local forward.
   forwarder) keeps NetBird's server and dashboard but binds Bridge to internal APIs that change
   often and a 40–60 MB binary. An own WireGuard hub is less code to depend on, less to run, and
   fully ours. The hub was chosen as the end state.
+- **Status 2026-11-07: done.** Every garage runs on the Bridge tunnel; the gateway's Traefik has
+  its own stack (infra/gateway/traefik) and NetBird's server, dashboard and the gateway's NetBird
+  client are switched off. There is no fallback for networks that block UDP until the TCP
+  fallback exists.
 - **Spike (2–3 days) before building it:** wireguard-go netstack in Bridge against a WireGuard
   end on the gateway, forward to a local runtime, measure throughput and reconnect behaviour,
   and connect one real garage (the Mac) that way. The spike decides; if it holds, this is the

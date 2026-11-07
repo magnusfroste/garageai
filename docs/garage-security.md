@@ -32,10 +32,6 @@ it. Bridge does keep a UDP socket open for the tunnel, but WireGuard answers not
 authenticate, so from the internet it looks like nothing at all. Because your machine is the one
 that connects out, it works behind a home router, behind NAT, on a laptop that changes network.
 
-The earlier setup, a [NetBird](https://netbird.io) mesh with a network interface, is still
-available as a fallback (`garageai connect --tunnel netbird`), with the same one rule: **the
-gateway may connect to garages on the runtime ports**, nothing else.
-
 ## Why not port forwarding, ngrok or a personal VPN?
 
 | | What it means for you |
@@ -100,10 +96,9 @@ Two things you should know, because they follow from how runtimes work:
   and Responses variants), the read-only Ollama endpoints the health check uses, and `/metrics`.
   Ollama's management commands (pull, delete, create) and anything else on the port answer 403
   from Bridge itself and never reach the runtime. This is a property of your machine, not a
-  promise about the gateway. (With the NetBird fallback the runtime is reached directly, so there
-  the promise still applies.)
-- **With the NetBird fallback the runtime listens on `0.0.0.0`**, which also opens it to your own
-  home network (not to the internet). With the Bridge tunnel (the default) it stays on localhost.
+  promise about the gateway.
+- **Your runtime stays on localhost.** Nothing on your home network, and nothing on the internet,
+  can reach it through GarageAI.
 
 ## Security review
 
@@ -169,7 +164,7 @@ and turn it off again before resuming.
 
 ```bash
 garageai doctor      # tunnel, runtime, heartbeat: what works and what to fix
-garageai uninstall   # remove the heartbeat and Bridge's settings (then: sudo netbird down)
+garageai uninstall   # remove the heartbeat, the tunnel and Bridge's settings
 ```
 
 Stopping your runtime or shutting down the machine also takes your garage off the market

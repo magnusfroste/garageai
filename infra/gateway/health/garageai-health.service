@@ -1,6 +1,6 @@
 [Unit]
 Description=GarageAI garage health checks (tunnel and runtime)
-After=network-online.target netbird.service
+After=network-online.target garageai-hub.service
 
 [Service]
 Type=oneshot
