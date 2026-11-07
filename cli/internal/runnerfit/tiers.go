@@ -11,9 +11,9 @@ import (
 // Runner's roster of the model files it validates (docs/model-tiers.json), with the backends each
 // one passed on. Since 1.7.0 Tier 1 holds only the files above Runner's download bar and Tier 2
 // carries the same kind of recorded pass, so both count. tiers.json is a compact snapshot taken at
-// the pinned Version: regenerate it whenever Version moves (the PR that bumps Runner shows both),
-// so Bridge recommends what that exact release was validated with, and never fetches a list at run
-// time.
+// the pinned Version: regenerate it whenever Version moves (`python3 gen-tiers.py vX.Y.Z >
+// tiers.json`; the PR that bumps Runner shows both), so Bridge recommends what that exact release
+// was validated with, and never fetches a list at run time.
 //
 //go:embed tiers.json
 var tiersJSON []byte
@@ -28,7 +28,8 @@ type tierRow struct {
 	Bytes        int64    `json:"bytes"`
 	Licence      string   `json:"licence"`
 	// FailsFidelity: Runner's own claim for the row says the file fails its fidelity bar against
-	// the parent model (it then names the file that passes); it runs, but should not be sold.
+	// the parent model ("fails the fidelity bar", "runs below the fidelity bar", "8x the bar": the
+	// wordings gen-tiers.py knows); it runs, but should not be sold.
 	FailsFidelity bool                `json:"fails_fidelity"`
 	Pass          map[string]tierPass `json:"pass"` // backend (cpu, cuda, metal) -> its passing gate
 }
@@ -67,7 +68,8 @@ func (r tierRow) chatModel() bool {
 // restrictedLicences limit who may use the model commercially; a garage sells its answers, so
 // Bridge does not recommend them (the operator can still choose one).
 var restrictedLicences = map[string]bool{
-	"lfm1.0": true, // LFM Open License v1.0: commercial use only under US$10M annual revenue
+	"lfm1.0":       true, // LFM Open License v1.0: commercial use only under US$10M annual revenue
+	"cc-by-nc-4.0": true, // Creative Commons non-commercial (Hemmingway 1 and 1.5, Runner 1.15.0)
 }
 
 // sellable: fit to be recommended to a garage that sells answers.
@@ -91,7 +93,7 @@ func (r tierRow) hf() string {
 
 // cpuMaxGB: the largest file recommended on the CPU. Decode there is bounded by memory bandwidth
 // over the file size: a 7 GB file reads at most about 5 tokens/s on a laptop's dual-channel RAM, a
-// 5.3 GB one about 7, so Granite 4.2 8B is preferred over Gemma 4 12B (Runner 1.10.0 passes both).
+// 5.3 GB one about 7, so Granite 4.2 8B is preferred over Gemma 4 12B (Runner 1.15.0 passes both).
 const cpuMaxGB = 6
 
 // validatedModel picks the best Tier 1 model for a backend ("CUDA", "Metal", "CPU") within budgetGB
