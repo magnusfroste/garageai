@@ -1,11 +1,11 @@
-// Package profile builds the garage profile for GarageAI Bridge: what runs on this machine and what is wrong, in the
-// same JSON (schema 1) as `garageai-connect.sh --doctor --json`. Discovery is deterministic: it
+// Package profile builds the garage profile for GarageAI Bridge: what runs on this machine and what is wrong, as
+// JSON (schema 1) for the portal and the Operations Center. Discovery is deterministic: it
 // lists the TCP ports that listen, asks each candidate whether it is an OpenAI-compatible API, and
 // reads a few start flags. Keys and whole command lines are never part of a profile.
 package profile
 
 // Profile is schema 1. Field names and meaning are the contract with the portal and the
-// Operations Center: change them only together with garageai-connect.sh.
+// Operations Center: change them only together with those.
 type Profile struct {
 	Schema        int       `json:"schema"`
 	ScriptVersion string    `json:"script_version"`
@@ -13,7 +13,6 @@ type Profile struct {
 	GeneratedAt   string    `json:"generated_at"`
 	Machine       Machine   `json:"machine"`
 	GPUs          []GPU     `json:"gpus"`
-	NetBird       NetBird   `json:"netbird"`
 	Runtimes      []Runtime `json:"runtimes"`
 	Firewall      Firewall  `json:"firewall"`
 	Heartbeat     Heartbeat `json:"heartbeat"`
@@ -23,14 +22,13 @@ type Profile struct {
 	OK            bool      `json:"ok"`
 
 	// Inputs to the problem rules that are not part of the profile itself.
-	darwin               bool
-	heartbeatLast        string
-	ollamaHostPersistent bool
-	sleepMinutes         int
-	laptop               bool // a Mac with a battery: its "prevent sleeping" setting only holds on the power adapter
-	winSleepACMin        int  // Windows: minutes until sleep on the power adapter (0 = never, -1 = unknown)
-	winLidSleepsAC       bool // Windows laptop: closing the lid on the power adapter sleeps or hibernates
-	displayMinutes       int
+	darwin         bool
+	heartbeatLast  string
+	sleepMinutes   int
+	laptop         bool // a Mac with a battery: its "prevent sleeping" setting only holds on the power adapter
+	winSleepACMin  int  // Windows: minutes until sleep on the power adapter (0 = never, -1 = unknown)
+	winLidSleepsAC bool // Windows laptop: closing the lid on the power adapter sleeps or hibernates
+	displayMinutes int
 }
 
 type Machine struct {
@@ -45,13 +43,6 @@ type GPU struct {
 	MemoryMB      *int   `json:"memory_mb"`
 	Driver        string `json:"driver,omitempty"`
 	UnifiedMemory bool   `json:"unified_memory,omitempty"`
-}
-
-type NetBird struct {
-	Installed bool    `json:"installed"`
-	Version   *string `json:"version"`
-	Connected bool    `json:"connected"`
-	MeshIP    *string `json:"mesh_ip"`
 }
 
 type Model struct {
@@ -82,7 +73,7 @@ type Runtime struct {
 	PID           int           `json:"-"`
 	API           string        `json:"api"`
 	Binds         []string      `json:"binds"`
-	Network       bool          `json:"network"`
+	Network       bool          `json:"network"` // listens on all interfaces (not needed: the tunnel reaches localhost)
 	Models        []Model       `json:"models"`
 	Version       *string       `json:"version"`
 	OllamaLoaded  []LoadedModel `json:"ollama_loaded"`
@@ -101,7 +92,7 @@ type Heartbeat struct {
 	Active    bool `json:"active"`
 }
 
-// Tunnel is Bridge's own tunnel (docs/bridge-tunnel.md), when the garage uses it.
+// Tunnel is Bridge's own tunnel (docs/bridge-tunnel.md), when this machine is linked.
 type Tunnel struct {
 	IP        string `json:"ip"`
 	Installed bool   `json:"installed"`
@@ -111,7 +102,7 @@ type Tunnel struct {
 type GarageAI struct {
 	ConfiguredRuntime *string `json:"configured_runtime"`
 	ConfiguredPort    *int    `json:"configured_port"`
-	Transport         string  `json:"transport,omitempty"` // "tunnel" when Bridge carries the tunnel itself
+	Transport         string  `json:"transport,omitempty"` // "tunnel" when this machine is linked (the only transport)
 	TunnelIP          string  `json:"tunnel_ip,omitempty"`
 }
 

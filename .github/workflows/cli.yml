@@ -2,18 +2,17 @@ name: Bridge (Go)
 
 on:
   pull_request:
-    paths: ['cli/**', 'scripts/garageai-connect.sh', 'scripts/tests/**', '.github/workflows/cli.yml']
+    paths: ['cli/**', '.github/workflows/cli.yml']
   push:
     branches: [main]
-    paths: ['cli/**', 'scripts/garageai-connect.sh', 'scripts/tests/**', '.github/workflows/cli.yml']
+    paths: ['cli/**', '.github/workflows/cli.yml']
     # A tag bridge-vX.Y.Z builds the binaries and publishes them as a release: publishing is
     # `git tag bridge-v0.2.0 && git push origin bridge-v0.2.0` and nothing else.
     tags: ['bridge-v*']
 
 jobs:
   test:
-    # Unit tests on the three operating systems operators use; on Linux and macOS also parity
-    # with garageai-connect.sh --doctor --json against a fake runtime.
+    # Unit tests on the three operating systems operators use.
     strategy:
       fail-fast: false
       matrix:
@@ -33,15 +32,11 @@ jobs:
         shell: bash
         run: |
           go build -o garageai .
-          # A CI runner has no runtime and no NetBird, so doctor exits 1 (problems found): expected.
+          # A CI runner has no runtime, so doctor exits 1 (problems found): expected.
           ./garageai doctor --json > profile.json || true
           cat profile.json
           python3 -c "import json; p=json.load(open('profile.json')); assert p['schema']==1 and isinstance(p['problems'], list) and p['machine']['os'], p"
           ./garageai doctor || true
-      - name: parity with garageai-connect.sh
-        if: runner.os != 'Windows'
-        shell: bash
-        run: /bin/bash ../scripts/tests/parity-doctor.sh "$PWD/garageai"
       - name: Windows services round trip (schtasks, sc, icacls) with a built garageai.exe
         if: runner.os == 'Windows'
         shell: pwsh

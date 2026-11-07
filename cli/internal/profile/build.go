@@ -31,17 +31,17 @@ func Build(version string) Profile {
 	wg.Add(4)
 	go func() { defer wg.Done(); p.Machine = machine() }()
 	go func() { defer wg.Done(); p.GPUs = gpus() }()
-	go func() { defer wg.Done(); p.NetBird = netbird(); p.Firewall = firewall() }()
+	go func() { defer wg.Done(); p.Firewall = firewall() }()
 	go func() { defer wg.Done(); hb, cfg = heartbeatAndConfig() }()
 	p.Runtimes = discover(listeners())
 	wg.Wait()
 	p.Heartbeat, p.GarageAI = hb, cfg
-	if cfg.Transport == "tunnel" {
+	if cfg.Transport == "tunnel" { // linked: Bridge's config (or the tunnel service) is there
 		inst, active := service.TunnelInstalled()
 		p.Tunnel = &Tunnel{IP: cfg.TunnelIP, Installed: inst, Active: active}
 	}
 	p.darwin = runtime.GOOS == "darwin"
-	p.heartbeatLast, p.ollamaHostPersistent, p.sleepMinutes, p.displayMinutes = localFacts(hb)
+	p.heartbeatLast, p.sleepMinutes, p.displayMinutes = localFacts(hb)
 	p.laptop = p.darwin && strings.Contains(run("pmset", "-g", "batt"), "InternalBattery")
 	if runtime.GOOS == "windows" {
 		p.winSleepACMin, p.winLidSleepsAC = windowsSleep()
@@ -106,29 +106,6 @@ func problems(p Profile) []Problem {
 	}
 	target := ollamaContextTarget(p.Machine.MemoryGB)
 	for _, rt := range p.Runtimes {
-		if !rt.Network {
-			fix := "Restart it bound to 0.0.0.0"
-			switch rt.Kind {
-			case "ollama":
-				fix = fmt.Sprintf("Set OLLAMA_HOST=0.0.0.0:%d and restart Ollama", rt.Port)
-			case "lmstudio":
-				fix = "LM Studio: Developer → Settings → Serve on Local Network"
-			case "vllm", "sglang":
-				fix = "Restart it with --host 0.0.0.0"
-			case "llamacpp":
-				fix = "Restart llama-server with --host 0.0.0.0"
-			case "xyntetik":
-				fix = "Xyntetik Runner serves localhost only by design: connect with the Bridge tunnel (the default), which reaches it on 127.0.0.1"
-			}
-			if p.GarageAI.Transport == "tunnel" {
-				// Bridge forwards the tunnel to 127.0.0.1: localhost is exactly right for the runtime,
-				// and anything else on localhost (Ollama's own runner, a second runtime) is out of the
-				// gateway's reach anyway. Before v0.6.2 doctor flagged Ollama's runner on garage-m1/m4.
-			} else {
-				add("error", "localhost_only", fmt.Sprintf("%s on port %d only listens on %s, so the gateway cannot reach it",
-					rt.Kind, rt.Port, strings.Join(rt.Binds, ", ")), fix)
-			}
-		}
 		if rt.API == "openai (needs API key)" {
 			fix := "Pass the same key with --runtime-api-key when you connect"
 			if os.Geteuid() != 0 && p.GarageAI.ConfiguredPort != nil && rt.Port == *p.GarageAI.ConfiguredPort {
@@ -153,19 +130,6 @@ func problems(p Profile) []Problem {
 			add("info", "no_cached_token_report", fmt.Sprintf("%s on port %d does not report cached prompt tokens, so buyers pay full input price for cache hits", rt.Kind, rt.Port),
 				"Add --enable-prompt-tokens-details to the vLLM command")
 		}
-	}
-	if vpns := otherVPNs(); len(vpns) > 0 && p.GarageAI.Transport != "tunnel" {
-		add("info", "other_vpn", strings.Join(vpns, " and ")+" is installed: NetBird runs next to it and only routes GarageAI's "+MeshNet().String(),
-			"Nothing to do. Only a device of yours with an address in "+MeshNet().String()+" would be out of reach while NetBird is on")
-	}
-	tunnel := p.GarageAI.Transport == "tunnel"
-	switch {
-	case tunnel:
-		// The Bridge tunnel replaces NetBird: whether NetBird is there does not matter.
-	case !p.NetBird.Installed:
-		add("error", "netbird_missing", "NetBird is not installed", "Run: garageai connect (it installs NetBird)")
-	case !p.NetBird.Connected:
-		add("error", "netbird_disconnected", "NetBird is installed but not connected", "sudo netbird up, or get a new command from the portal")
 	}
 	if cp := p.GarageAI.ConfiguredPort; cp != nil {
 		found, kinds := false, []string{}
@@ -205,9 +169,9 @@ func problems(p Profile) []Problem {
 			}
 		}
 	}
-	if p.GarageAI.Transport == "tunnel" {
+	if p.GarageAI.Transport == "tunnel" { // linked: the tunnel is how the gateway reaches this garage
 		if inst, active := service.TunnelInstalled(); !inst {
-			add("error", "tunnel_missing", "This garage uses the Bridge tunnel, but the tunnel service is not installed", "Run: garageai connect --tunnel bridge")
+			add("error", "tunnel_missing", "This garage is linked, but the Bridge tunnel service is not installed", "Run: garageai connect")
 		} else if !active {
 			add("error", "tunnel_stopped", "The Bridge tunnel service is installed but not running, so the gateway cannot reach this garage",
 				"Linux: sudo systemctl restart garageai-tunnel. macOS: sudo launchctl kickstart -k system/eu.garageai.tunnel. Then: garageai doctor")
@@ -237,14 +201,6 @@ func problems(p Profile) []Problem {
 			"My garages → New command, and run that command here")
 	}
 	if p.darwin {
-		hasOllama := false
-		for _, rt := range p.Runtimes {
-			hasOllama = hasOllama || rt.Kind == "ollama"
-		}
-		if hasOllama && !p.ollamaHostPersistent && !tunnel {
-			add("warning", "ollama_host_not_persistent", "OLLAMA_HOST is not set permanently: after a restart Ollama listens on localhost again",
-				"Ollama app: Settings → 'Expose Ollama to the network'. Homebrew or terminal: start it with OLLAMA_HOST=0.0.0.0:11434")
-		}
 		if p.sleepMinutes > 0 {
 			msg := fmt.Sprintf("This Mac sleeps %d min after its display turns off", p.sleepMinutes)
 			if p.displayMinutes > 0 {
@@ -293,15 +249,7 @@ func runAsServiceFix(kind string) string {
 	return "Run it as a service (systemd, launchd or Docker with --restart) instead of in a terminal"
 }
 
-// MeshIPFromInterfaces is the NetBird address on this machine's tunnel interface, or "".
-func MeshIPFromInterfaces() string { return meshIPFromInterfaces() }
-
-// Network reports whether a runtime bound to these addresses is reachable from the mesh.
-func Network(binds []string) bool {
-	return anyOf(binds, "0.0.0.0", "*", "::") || anyPrefix(binds, "100.")
-}
-
-// OllamaContextTarget is the window the connect script recommends for this machine's memory.
+// OllamaContextTarget is the window Bridge recommends for this machine's memory.
 func OllamaContextTarget(mem *int) int { return ollamaContextTarget(mem) }
 
 // loopbackOpen: something accepts TCP connections on 127.0.0.1:port.

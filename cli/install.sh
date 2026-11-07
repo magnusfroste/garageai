@@ -15,13 +15,13 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.sh | sh -s -- connect
 #
-# Options after `connect` go to it, so one line also connects with the Bridge tunnel (no NetBird):
+# Options after `connect` go to it, so one line also picks the runtime:
 #
-#   curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.sh | sh -s -- connect --tunnel bridge
+#   curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.sh | sh -s -- connect --runtime vllm --port 8000
 set -eu
 
 then=""
-if [ "${1:-}" = "connect" ]; then then=connect; shift; fi   # the rest are connect's options (e.g. --tunnel bridge)
+if [ "${1:-}" = "connect" ]; then then=connect; shift; fi   # the rest are connect's options (e.g. --runtime vllm)
 
 REPO="${GARAGEAI_BRIDGE_REPO:-magnusfroste/garageai}"
 VERSION="${GARAGEAI_BRIDGE_VERSION:-latest}"

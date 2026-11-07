@@ -35,7 +35,7 @@ func run(args []string) int {
 	_ = service.WritePublic(cfg)                                             // garages set up before v0.4.5 get the secret-free config for doctor
 	os.Remove(service.BinaryPath() + ".old")                                 // Windows: the previous version, stepped aside by the last self-update
 	for {
-		if cfg.Transport == "tunnel" && service.EnsureTunnelRunning() {
+		if service.EnsureTunnelRunning() {
 			fmt.Println(time.Now().UTC().Format(time.RFC3339), "the tunnel service stood still: started it again")
 		}
 		code := heartbeat(cfg, client)
@@ -160,11 +160,9 @@ func agent(cfg *service.Config) *portal.Agent {
 	tel := machine.Collect()
 	a.Machine = &tel
 	a.State, a.Nodes, _, _ = effectiveState(time.Now())
-	if cfg.Transport == "tunnel" {
-		a.Requests = tunnel.ReadSummary(5 * time.Minute)
-		now := time.Now()
-		a.Energy = energy.Summarize(energy.ReadMinutes(), tunnel.ReadSamples(), now.Add(-5*time.Minute), now)
-	}
+	a.Requests = tunnel.ReadSummary(5 * time.Minute)
+	now := time.Now()
+	a.Energy = energy.Summarize(energy.ReadMinutes(), tunnel.ReadSamples(), now.Add(-5*time.Minute), now)
 	for _, m := range service.ModelStates(service.LoadModelsState()) {
 		a.Models = append(a.Models, portal.AgentModel{Model: m.Model, Status: m.Status, By: m.By, CompletedMB: m.CompletedMB, TotalMB: m.TotalMB, Error: m.Error, At: m.At})
 	}
@@ -211,8 +209,8 @@ func nonEmpty(m map[string]int) map[string]int {
 	return m
 }
 
-// uninstall removes the heartbeat service and Bridge's configuration. The runtime and NetBird
-// stay; the garage is removed under My garages in the portal.
+// uninstall removes the heartbeat and tunnel services and Bridge's configuration. The runtime
+// stays; the garage is removed under My garages in the portal.
 func uninstall(args []string) int {
 	yes := len(args) > 0 && (args[0] == "--yes" || args[0] == "-y")
 	if !isAdmin() {
@@ -222,7 +220,7 @@ func uninstall(args []string) int {
 	if runtime.GOOS == "windows" {
 		_ = tray.RemoveLoginItem(true)
 	}
-	fmt.Println("This removes Bridge's heartbeat and configuration. Your runtime, models and NetBird are not touched.")
+	fmt.Println("This removes Bridge's heartbeat, its tunnel and its configuration. Your runtime and models are not touched.")
 	if !yes {
 		fmt.Print("Continue? [y/N] ")
 		var a string
@@ -234,8 +232,8 @@ func uninstall(args []string) int {
 	}
 	service.Remove()
 	service.RemoveLegacyScriptHeartbeat()
-	fmt.Println("  ✓ Heartbeat removed. The garage shows as offline on GarageAI after 15 minutes.")
-	fmt.Println("  To leave the mesh too: sudo netbird down. Finally, remove the garage under My garages in the portal.")
+	fmt.Println("  ✓ Heartbeat and tunnel removed. The garage shows as offline on GarageAI after 15 minutes.")
+	fmt.Println("  Finally, remove the garage under My garages in the portal.")
 	return 0
 }
 
@@ -321,18 +319,16 @@ func writeStatus(cfg *service.Config, models []string, contexts map[string]int, 
 				TokensToday: g.TokensToday, EarnedToday: g.EarnedToday, Currency: g.Currency}
 		}
 	}
-	if cfg.Transport == "tunnel" {
-		// Today's energy for the menu-bar icon: since local midnight. The request samples cover the
-		// last hour only, so today's tokens come from the energy minutes' own day and the samples
-		// that remain; the portal's daily figures are the complete ones.
-		now := time.Now()
-		y, m, d := now.Date()
-		if e := energy.Summarize(energy.ReadMinutes(), tunnel.ReadSamples(), time.Date(y, m, d, 0, 0, 0, 0, now.Location()), now); e != nil {
-			st.Energy = &service.StatusEnergy{Wh: e.Wh, BusyWh: e.BusyWh, AvgW: e.AvgW, Source: e.Source}
-		}
-		if e := energy.Summarize(energy.ReadMinutes(), tunnel.ReadSamples(), now.Add(-time.Hour), now); e != nil && st.Energy != nil {
-			st.Energy.HourTokensPerKWh = e.TokensPerKWh
-		}
+	// Today's energy for the menu-bar icon: since local midnight. The request samples cover the
+	// last hour only, so today's tokens come from the energy minutes' own day and the samples
+	// that remain; the portal's daily figures are the complete ones.
+	now := time.Now()
+	y, m, d := now.Date()
+	if e := energy.Summarize(energy.ReadMinutes(), tunnel.ReadSamples(), time.Date(y, m, d, 0, 0, 0, 0, now.Location()), now); e != nil {
+		st.Energy = &service.StatusEnergy{Wh: e.Wh, BusyWh: e.BusyWh, AvgW: e.AvgW, Source: e.Source}
+	}
+	if e := energy.Summarize(energy.ReadMinutes(), tunnel.ReadSamples(), now.Add(-time.Hour), now); e != nil && st.Energy != nil {
+		st.Energy.HourTokensPerKWh = e.TokensPerKWh
 	}
 	if e := service.WriteStatus(st); e != nil {
 		fmt.Printf("%s could not write %s: %v\n", time.Now().UTC().Format(time.RFC3339), service.StatusPath(), e)

@@ -21,11 +21,11 @@ import (
 func tunnelCmd() int {
 	cfg, err := service.Load()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "garageai tunnel: no configuration:", err, "(run garageai connect --tunnel bridge)")
+		fmt.Fprintln(os.Stderr, "garageai tunnel: no configuration:", err, "(run garageai connect)")
 		return 2
 	}
 	if cfg.Transport != "tunnel" || cfg.MeshIP == "" || cfg.HubPublicKey == "" || cfg.HubEndpoint == "" {
-		fmt.Fprintln(os.Stderr, "garageai tunnel: this garage is not set up for the Bridge tunnel (run garageai connect --tunnel bridge)")
+		fmt.Fprintln(os.Stderr, "garageai tunnel: this garage is not set up for the Bridge tunnel (run garageai connect)")
 		return 2
 	}
 	key, err := os.ReadFile(service.TunnelKeyPath())
