@@ -23,9 +23,21 @@ export const GET: APIRoute = async () => {
     return `## ${field('h1')} (https://www.garageai.eu${field('path')})\n\n${field('lead')}\n\n${body}`;
   };
   const pages = [bridgePage, apiPage, myMachinePage].map(page).join('\n\n');
+  // The hardware setup guides, from the same entry as the "Pick your setup" cards.
+  const setupsEntry = await getEntry('landing', 'setups');
+  const setups = ((setupsEntry?.data as any)?.setups ?? [])
+    .filter((s: any) => s.url)
+    .map((s: any) => {
+      const models = (s.models ?? []).map((m: any) => `- ${m.memory}: ${m.model}`).join('\n');
+      const steps = (s.steps ?? []).map((x: string, i: number) => `${i + 1}. ${x}`).join('\n');
+      const faqs = (s.faqs ?? []).map((f: any) => `**${f.question}** ${f.answer}`).join('\n\n');
+      return `## ${s.h1} (https://www.garageai.eu${s.url})\n\n${s.lead}\n\nRuntime: ${s.runtime}.\n\n${s.modelsTitle}:\n${models}\n\nSteps:\n${steps}\n\n${faqs}`;
+    })
+    .join('\n\n');
   const body =
     `${summary}\n\n## Frequently asked questions\n\n${qa}\n\n` +
     `${pages}\n\n` +
+    `${setups}\n\n` +
     `## Is it safe to share from my computer? (https://www.garageai.eu/security)\n\n${security}\n`;
   return new Response(body, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
 };

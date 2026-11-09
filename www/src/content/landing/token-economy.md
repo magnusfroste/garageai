@@ -2,7 +2,7 @@
 section: "token-economy"
 title: "Pricing"
 subtitle: "Every garage sets its own price."
-description: "GarageAI has no price list of its own. Each garage sets a price per million tokens, input and output, for the models it offers. Buyers prepay credits and pay per token: the price of the garage that served the request. Cached input, a prompt prefix the garage has already processed, is billed at the garage's lower cache-read price. No subscriptions and no reserved-capacity contracts."
+description: "GarageAI has no price list of its own. Each garage sets a price per million tokens, input and output, for the models it offers. Everything is paid in GarageAI credits: buyers top them up and spend them per token at the price of the garage that served the request, and garages earn them for every token they serve. Cached input, a prompt prefix the garage has already processed, is billed at the garage's lower cache-read price. No subscriptions and no reserved-capacity contracts."
 order: 5
 buyOptions:
   - icon: "📍"
@@ -23,14 +23,14 @@ buyOptions:
       - "If a garage drops out, the request moves to another"
 buyerNotes:
   - "The model catalogue shows each model's prices and the garages that offer it"
-  - "Prepaid credits, topped up by card via Stripe"
+  - "Prepaid GarageAI credits, topped up by card via Stripe; today 1 credit = 1 USD of usage"
   - "Usage is metered per API key and per model"
 operatorPoints:
   - "You set your price per million tokens, input and output, plus a lower cache-read price for cached input, in the portal, and can change it any time"
   - "The same price applies when your garage serves requests through the pool"
-  - "You earn your price for every token your garage serves. No platform fee during launch; a platform fee will be introduced later."
-  - "How you get paid, in three steps. Now: every token your garage serves is counted at your price and shown in My garages."
-  - "Next: use your earnings as GarageAI credits on any model, for example larger models than your own machine runs. Everything earned from launch carries over; requests paid with free starting credits do not create earnings."
+  - "Every token your garage serves earns you credits at your price. No platform fee during launch; a platform fee will be introduced later."
+  - "What you earn, in three steps. Now: every token your garage serves is counted in credits at your price and shown in My garages."
+  - "Next: spend those credits on any model, for example larger models than your own machine runs. Everything earned from launch carries over; requests paid with free starting credits do not create earnings."
   - "Later, not yet scheduled: payouts to your bank account through Stripe, monthly above a minimum, after an identity check and the tax reporting EU rules require. Bank payouts cover earnings from the day they start."
 poolTitle: "How the pool works"
 poolDescription: "The pool lets buyers use a model without picking a garage. Nobody sets a pool price: each request is billed at the price of the garage that answered it."

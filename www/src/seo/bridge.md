@@ -1,6 +1,6 @@
 ---
 path: "/bridge"
-title: "Earn Money With Your GPU — GarageAI Bridge"
+title: "Share Your GPU, Earn Credits — GarageAI Bridge"
 description: "Share a gaming PC, Mac or Linux machine on GarageAI with one line: serve your models, try everyone else's, and earn credits for every token. Open source."
 kicker: "GarageAI Bridge · for GPU owners"
 breadcrumb: "Share your GPU"
@@ -19,7 +19,7 @@ ctas:
     url: "https://github.com/magnusfroste/garageai/blob/main/cli/README.md"
 faqs:
   - question: "How much can I earn with my GPU?"
-    answer: "It depends on demand for the models you serve and on the price you set per million tokens; GarageAI does not promise a figure. You earn your price for every token your garage serves, also through the pool, and there is no platform fee during launch. A GPU that sits idle earns nothing, so popular models, a fair price and a machine that stays on earn the most."
+    answer: "Your GPU earns GarageAI credits, and how many depends on demand for the models you serve and on the price you set per million tokens; GarageAI does not promise a figure. Every token your garage serves, also through the pool, earns credits at your price, and there is no platform fee during launch. A GPU that sits idle earns nothing, so popular models, a fair price and a machine that stays on earn the most."
   - question: "Which GPU do I need?"
     answer: "Any machine that runs an open model at a useful speed: a Mac with Apple silicon, a gaming PC with an NVIDIA RTX card, a Linux workstation or an AI box such as the DGX Spark. There is no fixed minimum. Every model passes an acceptance test with a real request, which measures time to first token and tokens per second, before it is sold. The site's Pick your setup section suggests a first model per amount of GPU memory."
   - question: "Can I still use my computer for games or work?"
@@ -56,10 +56,10 @@ related:
 
 **Access to more models.** Other garages share models you may not find elsewhere: community fine-tunes, distills and models in other languages, all through the same API.
 
-**Credits.** You set the price per million tokens, input and output. You earn it for every token your garage serves, whether a buyer picked your garage or the request came through the pool, and there is no platform fee during launch.
+**Credits.** You set the price per million tokens, input and output. Every token your garage serves earns GarageAI credits at that price, whether a buyer picked your garage or the request came through the pool, and there is no platform fee during launch.
 
-- **Now:** every token your garage serves is counted at your price and shown in *My garages*.
-- **Next:** use your earnings as GarageAI credits on any model, for example larger models than your own machine runs. Everything earned from launch carries over.
+- **Now:** the credits are counted at your price and shown in *My garages*.
+- **Next:** spend them on any model, for example larger models than your own machine runs. Everything earned from launch carries over.
 - **Later, not yet scheduled:** payouts to your bank account through Stripe.
 
 ## What Bridge does on your computer

@@ -20,7 +20,7 @@ rows:
   - feature: "Local GPUs and datacenter providers in the same catalogue"
     values: ["yes", "no", "no", "no"]
     note: "Aggregators only resell cloud providers; GPU networks only have nodes."
-  - feature: "Pay in euros by card, invoice for companies"
+  - feature: "Pay with credits topped up by card, invoice for companies"
     values: ["yes", "no", "yes", "yes"]
     note: "Crypto networks pay out and charge in tokens or wallets."
   - feature: "EU gateway and our own encrypted tunnel, no US tunnel service in the path"
