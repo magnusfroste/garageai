@@ -89,13 +89,12 @@ func sameFile(a, b string) bool {
 	return err1 == nil && err2 == nil && os.SameFile(fa, fb)
 }
 
-// refreshCopy replaces the operator's copy dest with src. Only as the operator: as root or an
-// elevated Administrator, writing into a user's directory would let that user redirect the
-// write (a symlink or junction) anywhere on the machine. On Windows the running exe steps aside
-// as .old, which the next run removes.
+// refreshCopy replaces the operator's copy dest with src. Only as the operator (writeOwnCopyRefusal):
+// as root, writing into a user's directory would let that user redirect the write (a symlink)
+// anywhere on the machine. On Windows the running exe steps aside as .old, which the next run removes.
 func refreshCopy(dest, src string) error {
-	if isAdmin() {
-		return errors.New("not as Administrator or root; run it once in a normal window to update it")
+	if why := writeOwnCopyRefusal(dest); why != "" {
+		return errors.New(why)
 	}
 	fi, err := os.Lstat(dest)
 	if err != nil || !fi.Mode().IsRegular() {

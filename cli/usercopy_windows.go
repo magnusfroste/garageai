@@ -27,6 +27,9 @@ func refreshUserCopies() {
 	if b, err := os.ReadFile(mark); err == nil && strings.TrimSpace(string(b)) == version {
 		return
 	}
+	if err := service.AllowUsersRun(service.BinaryPath()); err != nil {
+		return
+	}
 	var list *windows.WTS_SESSION_INFO
 	var n uint32
 	if err := windows.WTSEnumerateSessions(0, 0, 1, &list, &n); err != nil {
@@ -59,5 +62,29 @@ func refreshUserCopies() {
 	}
 	if reached {
 		_ = os.WriteFile(mark, []byte(version), 0o644)
+	}
+}
+
+// writeOwnCopyRefusal on Windows: the copy must be under this account's own LOCALAPPDATA, with no
+// junction or symlink on the way, and the writer must not be SYSTEM. Elevated is fine: on a
+// machine with UAC off or the built-in Administrator every window is elevated (garage-w11,
+// 2026-11-09), and an account cannot gain anything by redirecting its own writes.
+func writeOwnCopyRefusal(dest string) string {
+	if u, err := windows.GetCurrentProcessToken().GetTokenUser(); err == nil && u.User.Sid.IsWellKnown(windows.WinLocalSystemSid) {
+		return "not as SYSTEM"
+	}
+	base := os.Getenv("LOCALAPPDATA")
+	rel, err := filepath.Rel(base, dest)
+	if base == "" || err != nil || rel == "." || strings.HasPrefix(rel, "..") {
+		return "not in this account's own LOCALAPPDATA"
+	}
+	for p := filepath.Dir(dest); ; p = filepath.Dir(p) {
+		fi, err := os.Lstat(p)
+		if err != nil || !fi.IsDir() || fi.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0 {
+			return p + " is a link or junction"
+		}
+		if len(p) <= len(base) {
+			return ""
+		}
 	}
 }
