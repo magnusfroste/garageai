@@ -136,6 +136,14 @@ func windowsRestrict(path string, isDir, usersRead bool) error {
 	return run("icacls", args...)
 }
 
+// AllowUsersRun lets every user read and run the service's copy of Bridge (never change it), so
+// the heartbeat can run it as a signed-in user to refresh that user's own copy, and an older own
+// copy can hand over to it. The binary holds no secrets; bridge.json stays Administrators/SYSTEM.
+// Without it Windows refused the run-as-user refresh on garage-w11 (v1.5.1, 2026-11-09).
+func AllowUsersRun(path string) error {
+	return run("icacls", path, "/grant:r", sidUsers+":RX")
+}
+
 // WindowsLogPath is where the tunnel service writes (a service has no console).
 func WindowsLogPath() string {
 	return filepath.Join(os.Getenv("ProgramData"), "GarageAI", "tunnel.log")
