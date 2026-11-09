@@ -36,6 +36,9 @@ func main() {
 	if len(args) == 0 {
 		usage(2)
 	}
+	if code, ok := useServiceCopy(args); ok {
+		os.Exit(code)
+	}
 	switch args[0] {
 	case "version", "--version", "-v":
 		fmt.Println("GarageAI Bridge", version)
@@ -45,6 +48,8 @@ func main() {
 		os.Exit(connect(args[1:]))
 	case "__hold": // Windows: the elevated window elevate() opens; stays open at the end
 		os.Exit(holdWindow(args[1:]))
+	case "__refresh-user-copy": // Windows: the heartbeat runs this as each signed-in user
+		os.Exit(refreshUserCopyCmd())
 	case "__connect-as-root":
 		os.Exit(connectAsRoot())
 	case "run":

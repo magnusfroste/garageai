@@ -38,6 +38,7 @@ func run(args []string) int {
 		if service.EnsureTunnelRunning() {
 			fmt.Println(time.Now().UTC().Format(time.RFC3339), "the tunnel service stood still: started it again")
 		}
+		refreshUserCopies()
 		code := heartbeat(cfg, client)
 		if once {
 			return code
