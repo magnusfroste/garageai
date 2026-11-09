@@ -90,6 +90,11 @@ const Setups = ({
               </li>
             ))}
           </ol>
+          {s.url && (
+            <a href={s.url} className="mt-5 text-sm font-semibold no-underline" style={{ color: s.color }}>
+              Full guide for {s.title} →
+            </a>
+          )}
         </motion.div>
       ))}
     </div>

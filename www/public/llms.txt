@@ -50,6 +50,7 @@ Garage nodes running largely on locally produced energy (rooftop solar, home bat
 - Share your GPU (GarageAI Bridge): https://www.garageai.eu/bridge
 - OpenAI-compatible API for developers: https://www.garageai.eu/api
 - My machine, your own AI from your phone: https://www.garageai.eu/my-machine
+- Setup guides by hardware (runtime, model by memory, steps): gaming PC with an RTX card https://www.garageai.eu/setups/gaming-pc, Mac with Apple silicon https://www.garageai.eu/setups/mac, Linux workstation or DGX Spark https://www.garageai.eu/setups/workstation, AMD Ryzen AI Max or Radeon https://www.garageai.eu/setups/amd
 - Full text for AI assistants (this file plus every FAQ answer): https://www.garageai.eu/llms-full.txt
 - Connect a GPU (GarageAI Bridge): https://app.garageai.eu/connect
 - Portal (sign up): https://app.garageai.eu/auth

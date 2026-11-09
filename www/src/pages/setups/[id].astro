@@ -1,0 +1,66 @@
+---
+import SeoPage from '../../components/SeoPage.astro';
+import { getEntry } from 'astro:content';
+
+// One landing page per hardware profile in "Pick your setup" (/setups/gaming-pc, /mac, ...).
+// Everything comes from src/content/landing/setups.md, the same entry the cards on the start
+// page render, so the card and its page can never say different things.
+export async function getStaticPaths() {
+  const entry = await getEntry('landing', 'setups');
+  const setups = ((entry?.data as any)?.setups ?? []).filter((s: any) => s.url);
+  return setups.map((s: any) => ({ params: { id: s.id }, props: { s } }));
+}
+
+const { s } = Astro.props as { s: any };
+const commands = {
+  windows: 'irm https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.ps1 | iex; garageai connect',
+  unix: 'curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.sh | sh -s -- connect',
+};
+const command = commands[s.os === 'windows' ? 'windows' : 'unix'];
+const note =
+  s.os === 'windows'
+    ? 'Nothing secret in the line. Bridge asks for Administrator once. On a Mac or Linux, see /bridge for the other line.'
+    : 'Nothing secret in the line. On Windows, use the PowerShell line on /bridge.';
+---
+
+<SeoPage
+  path={s.url}
+  title={s.seoTitle}
+  description={s.seoDescription}
+  kicker={`Pick your setup · ${s.title}`}
+  breadcrumb={s.title}
+  h1={s.h1}
+  lead={s.lead}
+  commands={[{ label: s.commandLabel, command, note }]}
+  ctas={[
+    { text: 'Connect your GPU', url: 'https://app.garageai.eu/connect' },
+    { text: 'How GarageAI Bridge works', url: '/bridge' },
+  ]}
+  faqs={s.faqs ?? []}
+  related={[
+    { text: 'Share your GPU: everything about GarageAI Bridge', url: '/bridge' },
+    { text: 'Use your own machine from your phone, privately and free', url: '/my-machine' },
+    { text: 'Is it safe to share from my computer?', url: '/security' },
+    { text: 'Other setups', url: '/#pick-your-setup' },
+  ]}
+>
+  <h2>Runtime</h2>
+  <p><strong>{s.runtime}</strong>. No runtime yet? <code>garageai runtime</code> checks whether Xyntetik Runner fits this machine, and <code>garageai runtime install</code> sets it up with a model.</p>
+
+  <h2>{s.modelsTitle}</h2>
+  <table>
+    <thead><tr><th>Memory</th><th>Model</th></tr></thead>
+    <tbody>
+      {(s.models ?? []).map((m: any) => <tr><td>{m.memory}</td><td>{m.model}</td></tr>)}
+    </tbody>
+  </table>
+  <p>These are popular open models that fit the memory listed. The wizard in the portal shows which models buyers are asking for right now.</p>
+
+  <h2>Three steps to go live</h2>
+  <ol>
+    {(s.steps ?? []).map((step: string) => <li>{step}</li>)}
+  </ol>
+
+  <h2>What you get back</h2>
+  <p>Every token your garage serves earns GarageAI credits at the price you set per million tokens, and the same account can use every model on the network, including larger ones than this machine runs. Bridge opens no ports, passes only inference requests to your runtime and never reports prompts, keys or command lines.</p>
+</SeoPage>
