@@ -133,6 +133,16 @@
   table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
   th, td { text-align:left; padding:7px 8px; border-top:1px solid var(--line); vertical-align:top; }
   th { color:var(--muted); font-weight:500; font-size:12px; border-top:none; white-space:nowrap; }
+  th.sort { cursor:pointer; user-select:none; } th.sort:hover { color:var(--ink); } th.sorted { color:var(--ink); }
+  table.dense td { padding-top:6px; padding-bottom:6px; } table.dense code { font-size:12px; word-break:break-all; }
+  table.dense td.checks { min-width:220px; font-size:12px; } table.dense .pill { white-space:nowrap; }
+  .mfilter { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:10px 0 12px; }
+  .mfilter input, .mfilter select { font:inherit; font-size:13px; padding:6px 10px; border-radius:8px; border:1px solid var(--line); background:var(--panel); color:var(--ink); max-width:100%; }
+  .mfilter input { flex:1 1 220px; min-width:0; }
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .seg button { font:inherit; font-size:12px; padding:6px 10px; border:0; background:var(--panel); color:var(--muted); cursor:pointer; }
+  .seg button + button { border-left:1px solid var(--line); }
+  .seg button.on { background:var(--line); color:var(--ink); }
   .num { text-align:right; }
   .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; vertical-align:middle; flex:none; }
   .ok { color:var(--ok); } .warning { color:var(--warn); } .critical { color:var(--crit); } .info { color:var(--info); } .muted { color:var(--muted); }
@@ -361,7 +371,15 @@
 
       <section class="page" data-page="models">
         <div id="alerts-models"></div>
-        <div class="card"><h2>Catalogue</h2><div class="sub" id="models-sub"></div><div id="models"></div>
+        <div class="card"><h2>Catalogue</h2><div class="sub" id="models-sub"></div>
+          <div class="mfilter">
+            <input id="mf-q" type="search" placeholder="Filter: name, garage, runtime model…" oninput="mfSet('q', this.value)" autocomplete="off">
+            <select id="mf-tier" onchange="mfSet('tier', this.value)"></select>
+            <select id="mf-garage" onchange="mfSet('garage', this.value)"></select>
+            <span class="seg" id="mf-state"></span>
+            <span class="small" id="mf-count"></span>
+          </div>
+          <div id="models"></div>
           <div class="note">Context and output cap are what the gateway enforces. "Runtime" is the window the garage's runtime reports, read by the gateway through the tunnel every 10 minutes. Prices are per million tokens.</div></div>
       </section>
 
@@ -456,6 +474,53 @@ const table = (cols, rows) => rows && rows.length ? `<table><tr>${cols.map(c => 
 const worst = list => list.some(a => a.level === "critical") ? "critical" : list.some(a => a.level === "warning") ? "warning" : "ok";
 const sum = (rows, k) => (rows || []).reduce((t, r) => t + (r[k] || 0), 0);
 let data = null;
+
+/* ---------- Models page: filter and sort in the browser, no reload; the choice survives refreshes */
+const MF = (() => { try { return Object.assign({ q: "", tier: "", garage: "", state: "all", sort: "public", dir: 1 }, JSON.parse(localStorage.getItem("ops-mf") || "{}")); } catch (e) { return { q: "", tier: "", garage: "", state: "all", sort: "public", dir: 1 }; } })();
+let mfRows = [], mfCtx = null, mfTimer = null;
+const mfProblem = r => !r.up || r.checks.some(c => c.level !== "info") || (r.price_in == null && r.tier !== "private") || !r.context;
+const MF_COLS = [
+  ["Public name", r => `${dot(r.checks.some(c => c.level === "warning") ? "warning" : r.up ? "ok" : "critical")}<code>${esc(r.public)}</code>`, "", r => r.public],
+  ["Tier", r => pill("muted", esc(r.tier)), "", r => r.tier],
+  ["Garage", r => esc(r.garage), "", r => r.garage],
+  ["Runtime model", r => `<code class="small">${esc(r.runtime_model)}</code>`, "", r => r.runtime_model],
+  ["Context", r => r.runtime_context && r.runtime_context !== r.context ? mfCtx(r) : mfCtx({ ...r, runtime_context: null }), "num", r => r.context || 0],
+  ["Max out", r => r.max_output ? short(r.max_output) : "—", "num", r => r.max_output || 0],
+  ["In / out $/M", r => r.price_in == null || r.price_out == null ? (r.tier === "private" ? '<span class="small">free, owner</span>' : pill("warning", "no price")) : `${r.price_in} / ${r.price_out}`, "num", r => r.price_in == null ? Infinity : r.price_in + r.price_out / 1000],
+  ["Cache read $/M", r => r.price_cache == null ? (r.tier === "private" ? "—" : pill("warning", "none")) : `${r.price_cache}${r.price_in ? `<div class="small">${Math.round(100 * r.price_cache / r.price_in)} % of input</div>` : ""}`, "num", r => r.price_cache == null ? Infinity : r.price_cache],
+  ["Checks", r => r.checks.length ? r.checks.map(c => `<div class="${c.level}">${esc(c.text)}</div>`).join("") : r.up ? '<span class="ok">ok</span>' : '<span class="critical">down</span>', "checks", r => (r.up ? 0 : 100) + r.checks.filter(c => c.level !== "info").length * 10 + r.checks.length],
+];
+function mfSave() { try { localStorage.setItem("ops-mf", JSON.stringify(MF)); } catch (e) {} }
+function mfSet(k, v) {
+  MF[k] = v; mfSave();
+  if (k === "q") { clearTimeout(mfTimer); mfTimer = setTimeout(drawModels, 60); } else drawModels();
+}
+function mfSort(i) {
+  const key = MF_COLS[i][0];
+  if (MF.sort === key) MF.dir = -MF.dir; else { MF.sort = key; MF.dir = MF_COLS[i][2] === "num" ? -1 : 1; }
+  mfSave(); drawModels();
+}
+function renderModels(rows, ctxCell) {
+  mfRows = rows; mfCtx = ctxCell;
+  const opt = (id, label, vals, cur) => { $(id).innerHTML = `<option value="">${label}</option>` + vals.map(v => `<option${v === cur ? " selected" : ""}>${esc(v)}</option>`).join(""); };
+  opt("mf-tier", "All tiers", [...new Set(rows.map(r => r.tier))].sort(), MF.tier);
+  opt("mf-garage", "All garages", [...new Set(rows.map(r => r.garage))].sort(), MF.garage);
+  if (document.activeElement !== $("mf-q")) $("mf-q").value = MF.q;
+  drawModels();
+}
+function drawModels() {
+  const n = mfRows.filter(mfProblem).length;
+  $("mf-state").innerHTML = [["all", "All"], ["problems", `Problems ${n}`], ["ok", "OK"]].map(([k, l]) => `<button class="${MF.state === k ? "on" : ""}" onclick="mfSet('state','${k}')">${l}</button>`).join("");
+  const words = MF.q.toLowerCase().split(/\s+/).filter(Boolean);
+  const rows = mfRows.filter(r => (!MF.tier || r.tier === MF.tier) && (!MF.garage || r.garage === MF.garage)
+    && (MF.state === "all" || (MF.state === "problems") === mfProblem(r))
+    && words.every(w => `${r.public} ${r.garage} ${r.runtime_model} ${r.tier}`.toLowerCase().includes(w)));
+  const ci = Math.max(0, MF_COLS.findIndex(c => c[0] === MF.sort)), key = MF_COLS[ci][3];
+  rows.sort((a, b) => { const x = key(a), y = key(b); return (typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y))) * MF.dir || a.public.localeCompare(b.public); });
+  $("mf-count").textContent = rows.length === mfRows.length ? `${rows.length} deployments` : `${rows.length} of ${mfRows.length}`;
+  $("models").innerHTML = rows.length ? `<table class="dense"><tr>${MF_COLS.map((c, i) => `<th class="sort ${c[2]}${i === ci ? " sorted" : ""}" onclick="mfSort(${i})">${c[0]}${i === ci ? (MF.dir > 0 ? " ↑" : " ↓") : ""}</th>`).join("")}</tr>${
+    rows.map(r => `<tr>${MF_COLS.map(c => `<td class="${c[2]}">${c[1](r)}</td>`).join("")}</tr>`).join("")}</table>` : `<div class="small">No model matches the filter.</div>`;
+}
 
 /* ---------- navigation */
 function renderNav(alerts) {
@@ -734,17 +799,7 @@ function renderPages(d) {
     const mismatch = r.runtime_context && r.context > r.runtime_context;
     return `<span class="${mismatch ? "warning" : ""}">${k(r.context)}</span>${r.runtime_context ? `<div class="small">runtime ${k(r.runtime_context)}</div>` : ""}`;
   };
-  $("models").innerHTML = table([
-    ["Public name", r => `${dot(r.checks.some(c => c.level === "warning") ? "warning" : r.up ? "ok" : "critical")}<code>${esc(r.public)}</code>`],
-    ["Tier", r => pill("muted", esc(r.tier))],
-    ["Garage", r => esc(r.garage)],
-    ["Runtime model", r => `<code class="small">${esc(r.runtime_model)}</code>`],
-    ["Context", ctxCell, "num"],
-    ["Max out", r => r.max_output ? short(r.max_output) : "—", "num"],
-    ["In / out $/M", r => r.price_in == null || r.price_out == null ? pill("warning", "no price") : `${r.price_in} / ${r.price_out}`, "num"],
-    ["Cache read $/M", r => r.price_cache == null ? pill("warning", "none") : `${r.price_cache}${r.price_in ? `<div class="small">${Math.round(100 * r.price_cache / r.price_in)} % of input</div>` : ""}`, "num"],
-    ["Checks", r => r.checks.length ? r.checks.map(c => `<div class="${c.level}">${esc(c.text)}</div>`).join("") : '<span class="ok">ok</span>'],
-  ], deps);
+  renderModels(deps, ctxCell);
 
   // What the garage says about itself: its heartbeat and, with Bridge, what doctor finds there.
   const SEV = { error: "critical", warning: "warning", info: "muted" };
