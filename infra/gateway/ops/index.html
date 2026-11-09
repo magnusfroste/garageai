@@ -135,14 +135,14 @@
   th { color:var(--muted); font-weight:500; font-size:12px; border-top:none; white-space:nowrap; }
   th.sort { cursor:pointer; user-select:none; } th.sort:hover { color:var(--ink); } th.sorted { color:var(--ink); }
   table.dense td { padding-top:6px; padding-bottom:6px; } table.dense code { font-size:12px; word-break:break-all; }
-  table.dense td.checks { min-width:220px; font-size:12px; } table.dense .pill { white-space:nowrap; }
+  table.dense td.checks { min-width:220px; font-size:12px; } table.dense td.num { white-space:nowrap; } table.dense td.wide { min-width:230px; } table.dense .pill { white-space:nowrap; }
   .mfilter { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:10px 0 12px; }
   .mfilter input, .mfilter select { font:inherit; font-size:13px; padding:6px 10px; border-radius:8px; border:1px solid var(--line); background:var(--panel); color:var(--ink); max-width:100%; }
   .mfilter input { flex:1 1 220px; min-width:0; }
   .seg { display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
   .seg button { font:inherit; font-size:12px; padding:6px 10px; border:0; background:var(--panel); color:var(--muted); cursor:pointer; }
   .seg button + button { border-left:1px solid var(--line); }
-  .seg button.on { background:var(--line); color:var(--ink); }
+  .seg button.on { background:var(--line); color:var(--ink); } .seg button.warn:not(.on) { color:var(--warn); }
   .num { text-align:right; }
   .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; vertical-align:middle; flex:none; }
   .ok { color:var(--ok); } .warning { color:var(--warn); } .critical { color:var(--crit); } .info { color:var(--info); } .muted { color:var(--muted); }
@@ -334,7 +334,7 @@
         <div class="card"><h2>New buyers, last 30 days</h2><div class="sub">From sign-up to the first answered request. An account stuck more than 30 minutes at a step is listed (id only, no name or e-mail). Test keys are left out.</div><div id="buyer-funnel"></div></div>
         <div class="card"><h2>Accounts and garages created, from the portal</h2><div id="biz-onb"></div></div>
         <div class="card"><h2>Time to live, last 30 days</h2><div class="sub">From a garage's first onboarding report to its registration passing the acceptance test. The number every onboarding change is judged by.</div>
-          <div class="kpis" id="onb-kpis"></div><div class="grid"><div id="onb-failed"></div><div id="onb-problems"></div></div><div id="onb-sessions"></div></div>
+          <div class="kpis" id="onb-kpis"></div><div class="grid"><div id="onb-failed"></div><div id="onb-problems"></div></div><div id="onb-sessions"><h3 style="font-size:13px;margin:12px 0 6px">Latest onboardings</h3><div id="onb-sessions-t"></div></div></div>
       </section>
 
       <section class="page" data-page="business">
@@ -371,15 +371,7 @@
 
       <section class="page" data-page="models">
         <div id="alerts-models"></div>
-        <div class="card"><h2>Catalogue</h2><div class="sub" id="models-sub"></div>
-          <div class="mfilter">
-            <input id="mf-q" type="search" placeholder="Filter: name, garage, runtime model…" oninput="mfSet('q', this.value)" autocomplete="off">
-            <select id="mf-tier" onchange="mfSet('tier', this.value)"></select>
-            <select id="mf-garage" onchange="mfSet('garage', this.value)"></select>
-            <span class="seg" id="mf-state"></span>
-            <span class="small" id="mf-count"></span>
-          </div>
-          <div id="models"></div>
+        <div class="card"><h2>Catalogue</h2><div class="sub" id="models-sub"></div><div id="models"></div>
           <div class="note">Context and output cap are what the gateway enforces. "Runtime" is the window the garage's runtime reports, read by the gateway through the tunnel every 10 minutes. Prices are per million tokens.</div></div>
       </section>
 
@@ -475,51 +467,66 @@ const worst = list => list.some(a => a.level === "critical") ? "critical" : list
 const sum = (rows, k) => (rows || []).reduce((t, r) => t + (r[k] || 0), 0);
 let data = null;
 
-/* ---------- Models page: filter and sort in the browser, no reload; the choice survives refreshes */
-const MF = (() => { try { return Object.assign({ q: "", tier: "", garage: "", state: "all", sort: "public", dir: 1 }, JSON.parse(localStorage.getItem("ops-mf") || "{}")); } catch (e) { return { q: "", tier: "", garage: "", state: "all", sort: "public", dir: 1 }; } })();
-let mfRows = [], mfCtx = null, mfTimer = null;
-const mfProblem = r => !r.up || r.checks.some(c => c.level !== "info") || (r.price_in == null && r.tier !== "private") || !r.context;
-const MF_COLS = [
-  ["Public name", r => `${dot(r.checks.some(c => c.level === "warning") ? "warning" : r.up ? "ok" : "critical")}<code>${esc(r.public)}</code>`, "", r => r.public],
-  ["Tier", r => pill("muted", esc(r.tier)), "", r => r.tier],
-  ["Garage", r => esc(r.garage), "", r => r.garage],
-  ["Runtime model", r => `<code class="small">${esc(r.runtime_model)}</code>`, "", r => r.runtime_model],
-  ["Context", r => r.runtime_context && r.runtime_context !== r.context ? mfCtx(r) : mfCtx({ ...r, runtime_context: null }), "num", r => r.context || 0],
-  ["Max out", r => r.max_output ? short(r.max_output) : "—", "num", r => r.max_output || 0],
-  ["In / out $/M", r => r.price_in == null || r.price_out == null ? (r.tier === "private" ? '<span class="small">free, owner</span>' : pill("warning", "no price")) : `${r.price_in} / ${r.price_out}`, "num", r => r.price_in == null ? Infinity : r.price_in + r.price_out / 1000],
-  ["Cache read $/M", r => r.price_cache == null ? (r.tier === "private" ? "—" : pill("warning", "none")) : `${r.price_cache}${r.price_in ? `<div class="small">${Math.round(100 * r.price_cache / r.price_in)} % of input</div>` : ""}`, "num", r => r.price_cache == null ? Infinity : r.price_cache],
-  ["Checks", r => r.checks.length ? r.checks.map(c => `<div class="${c.level}">${esc(c.text)}</div>`).join("") : r.up ? '<span class="ok">ok</span>' : '<span class="critical">down</span>', "checks", r => (r.up ? 0 : 100) + r.checks.filter(c => c.level !== "info").length * 10 + r.checks.length],
-];
-function mfSave() { try { localStorage.setItem("ops-mf", JSON.stringify(MF)); } catch (e) {} }
-function mfSet(k, v) {
-  MF[k] = v; mfSave();
-  if (k === "q") { clearTimeout(mfTimer); mfTimer = setTimeout(drawModels, 60); } else drawModels();
+/* ---------- smart tables: filter and sort in the browser, no reload; each table's choice survives refreshes
+   cols: [label, render, class, sortKey]. A column with a sortKey sorts on a click (numbers largest first).
+   opt: text (what the filter box searches), selects [{label, get}], problem (row → bool: All / Problems / OK),
+   sort and dir (the default), min (rows before the filter bar shows; sorting always works), noun, after (html). */
+const ST = (() => { try { return JSON.parse(localStorage.getItem("ops-st") || "{}"); } catch (e) { return {}; } })();
+const stDefs = {};
+let stTimer = null;
+function stState(id, opt) { return ST[id] = Object.assign({ q: "", sel: {}, state: "all", sort: opt.sort || null, dir: opt.dir || 1 }, ST[id] || {}); }
+function stSave() { try { localStorage.setItem("ops-st", JSON.stringify(ST)); } catch (e) {} }
+function stSet(id, k, v, i) {
+  const st = ST[id];
+  if (k === "sel") st.sel[i] = v; else st[k] = v;
+  stSave();
+  if (k === "q") { clearTimeout(stTimer); stTimer = setTimeout(() => stDraw(id), 60); } else stDraw(id);
 }
-function mfSort(i) {
-  const key = MF_COLS[i][0];
-  if (MF.sort === key) MF.dir = -MF.dir; else { MF.sort = key; MF.dir = MF_COLS[i][2] === "num" ? -1 : 1; }
-  mfSave(); drawModels();
+function stSort(id, i) {
+  const st = ST[id], c = stDefs[id].cols[i];
+  if (st.sort === c[0]) st.dir = -st.dir; else { st.sort = c[0]; st.dir = c[2] === "num" ? -1 : 1; }
+  stSave(); stDraw(id);
 }
-function renderModels(rows, ctxCell) {
-  mfRows = rows; mfCtx = ctxCell;
-  const opt = (id, label, vals, cur) => { $(id).innerHTML = `<option value="">${label}</option>` + vals.map(v => `<option${v === cur ? " selected" : ""}>${esc(v)}</option>`).join(""); };
-  opt("mf-tier", "All tiers", [...new Set(rows.map(r => r.tier))].sort(), MF.tier);
-  opt("mf-garage", "All garages", [...new Set(rows.map(r => r.garage))].sort(), MF.garage);
-  if (document.activeElement !== $("mf-q")) $("mf-q").value = MF.q;
-  drawModels();
+function smartTable(id, cols, rows, opt = {}) {
+  const el = $(id); if (!el) return;
+  rows = rows || [];
+  stDefs[id] = { cols, rows, opt };
+  const st = stState(id, opt), bar = rows.length >= (opt.min ?? 6) || !!$(id + "-q");
+  if (bar && !$(id + "-q")) {
+    el.innerHTML = `<div class="mfilter">${opt.text ? `<input id="${id}-q" type="search" placeholder="Filter…" oninput="stSet('${id}','q',this.value)" autocomplete="off">` : `<span id="${id}-q" hidden></span>`}${
+      (opt.selects || []).map((x, i) => `<select id="${id}-s${i}" onchange="stSet('${id}','sel',this.value,${i})"></select>`).join("")}${
+      opt.problem ? `<span class="seg" id="${id}-seg"></span>` : ""}<span class="small" id="${id}-n"></span></div><div id="${id}-b"></div><div id="${id}-a"></div>`;
+  } else if (!bar) el.innerHTML = `<div id="${id}-b"></div><div id="${id}-a"></div>`;
+  if (bar) {
+    const q = $(id + "-q"); if (q.tagName === "INPUT" && document.activeElement !== q) q.value = st.q;
+    (opt.selects || []).forEach((x, i) => {
+      const vals = [...new Set(rows.map(x.get).filter(v => v != null && v !== ""))].sort((m, n) => String(m).localeCompare(String(n)));
+      $(`${id}-s${i}`).innerHTML = `<option value="">${esc(x.label)}</option>` + vals.map(v => `<option${String(v) === st.sel[i] ? " selected" : ""}>${esc(v)}</option>`).join("");
+    });
+  }
+  $(id + "-a").innerHTML = opt.after || "";
+  stDraw(id);
 }
-function drawModels() {
-  const n = mfRows.filter(mfProblem).length;
-  $("mf-state").innerHTML = [["all", "All"], ["problems", `Problems ${n}`], ["ok", "OK"]].map(([k, l]) => `<button class="${MF.state === k ? "on" : ""}" onclick="mfSet('state','${k}')">${l}</button>`).join("");
-  const words = MF.q.toLowerCase().split(/\s+/).filter(Boolean);
-  const rows = mfRows.filter(r => (!MF.tier || r.tier === MF.tier) && (!MF.garage || r.garage === MF.garage)
-    && (MF.state === "all" || (MF.state === "problems") === mfProblem(r))
-    && words.every(w => `${r.public} ${r.garage} ${r.runtime_model} ${r.tier}`.toLowerCase().includes(w)));
-  const ci = Math.max(0, MF_COLS.findIndex(c => c[0] === MF.sort)), key = MF_COLS[ci][3];
-  rows.sort((a, b) => { const x = key(a), y = key(b); return (typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y))) * MF.dir || a.public.localeCompare(b.public); });
-  $("mf-count").textContent = rows.length === mfRows.length ? `${rows.length} deployments` : `${rows.length} of ${mfRows.length}`;
-  $("models").innerHTML = rows.length ? `<table class="dense"><tr>${MF_COLS.map((c, i) => `<th class="sort ${c[2]}${i === ci ? " sorted" : ""}" onclick="mfSort(${i})">${c[0]}${i === ci ? (MF.dir > 0 ? " ↑" : " ↓") : ""}</th>`).join("")}</tr>${
-    rows.map(r => `<tr>${MF_COLS.map(c => `<td class="${c[2]}">${c[1](r)}</td>`).join("")}</tr>`).join("")}</table>` : `<div class="small">No model matches the filter.</div>`;
+function stDraw(id) {
+  const { cols, rows: all, opt } = stDefs[id], st = ST[id], bar = !!$(id + "-n");
+  let rows = all;
+  if (bar) {
+    const words = st.q.toLowerCase().split(/\s+/).filter(Boolean);
+    rows = all.filter(r => (opt.selects || []).every((x, i) => !st.sel[i] || String(x.get(r)) === st.sel[i])
+      && (!opt.problem || st.state === "all" || (st.state === "problems") === !!opt.problem(r))
+      && (!opt.text || words.every(w => opt.text(r).toLowerCase().includes(w))));
+    if (opt.problem) { const n = all.filter(opt.problem).length;
+      $(id + "-seg").innerHTML = [["all", "All"], ["problems", `Problems ${n}`], ["ok", "OK"]].map(([k, l]) => `<button class="${st.state === k ? "on" : ""}${k === "problems" && n ? " warn" : ""}" onclick="stSet('${id}','state','${k}')">${l}</button>`).join(""); }
+    $(id + "-n").textContent = rows.length === all.length ? `${all.length} ${opt.noun || "rows"}` : `${rows.length} of ${all.length}`;
+  }
+  const ci = cols.findIndex(c => c[0] === st.sort && c[3]);
+  if (ci >= 0) { const key = cols[ci][3];
+    rows = rows.slice().sort((a, b) => { const x = key(a), y = key(b);
+      if (x == null || y == null) return x == null ? (y == null ? 0 : 1) : -1; // empty last, either way
+      return (typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y))) * st.dir; }); }
+  $(id + "-b").innerHTML = rows.length ? `<table class="dense"><tr>${cols.map((c, i) => `<th class="${c[2] || ""}${c[3] ? " sort" : ""}${i === ci ? " sorted" : ""}"${c[3] ? ` onclick="stSort('${id}',${i})"` : ""}>${c[0]}${i === ci ? (st.dir > 0 ? " ↑" : " ↓") : ""}</th>`).join("")}</tr>${
+    rows.map(r => `<tr class="${opt.rowClass ? opt.rowClass(r) : ""}">${cols.map(c => `<td class="${c[2] || ""}">${c[1](r)}</td>`).join("")}</tr>`).join("")}</table>`
+    : `<div class="small">${all.length ? "Nothing matches the filter." : opt.empty || "None."}</div>`;
 }
 
 /* ---------- navigation */
@@ -738,9 +745,11 @@ function renderDashboard(d) {
 function renderFunnel(f, dur) {
   if (!f) {
     $("onb-kpis").innerHTML = '<div class="small">No onboarding data from the portal yet (ops-summary has no onboarding_funnel).</div>';
-    ["onb-failed", "onb-problems", "onb-sessions"].forEach(id => $(id).innerHTML = "");
+    ["onb-failed", "onb-problems"].forEach(id => $(id).innerHTML = "");
+    $("onb-sessions").hidden = true;
     return;
   }
+  $("onb-sessions").hidden = false;
   const kpi = (label, value, detail) => `<div class="kpi" style="display:block;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px"><div class="label">${label}</div><div class="value">${value}</div><div class="detail">${detail}</div></div>`;
   const t = f.by_tool || {}, l = f.links;
   $("onb-kpis").innerHTML = [
@@ -756,16 +765,18 @@ function renderFunnel(f, dur) {
     ? table([["", r => fmtKey(r[0])], ["Onboardings", r => fmt(r[1]), "num"]], rows) : '<div class="small">None.</div>');
   $("onb-failed").innerHTML = counts("Where they failed", f.failed_steps || [], esc);
   $("onb-problems").innerHTML = counts("Problems doctor found", f.problems || [], k => pill("warning", esc(k)));
-  $("onb-sessions").innerHTML = `<h3 style="font-size:13px;margin:12px 0 6px">Latest onboardings</h3>` + table([
-    ["Garage", s => `<b>${esc(s.garage)}</b>`],
-    ["Started", s => s.first_event_at ? ago(s.first_event_at) : "—"],
-    ["Entry", s => s.entry ? esc(s.entry) : "—"],
-    ["With", s => /bridge/i.test(`${s.tool || ""} ${s.bridge_version || ""}`) ? esc(s.bridge_version || "Bridge") : "script"],
-    ["Time to live", s => s.minutes_to_live == null ? '<span class="small">not live</span>' : dur(s.minutes_to_live), "num"],
-    ["Reports", s => fmt(s.events ?? 0), "num"],
-    ["Failed steps", s => (s.failed_steps || []).length ? (s.failed_steps || []).map(x => pill("warning", esc(x))).join(" ") : "—"],
-    ["Problems", s => (s.problems || []).length ? s.problems.map(x => pill("muted", esc(x))).join(" ") : "—"],
-  ], f.recent || []);
+  const withOf = s => /bridge/i.test(`${s.tool || ""} ${s.bridge_version || ""}`) ? (s.bridge_version || "Bridge") : "script";
+  smartTable("onb-sessions-t", [
+    ["Garage", s => `<b>${esc(s.garage)}</b>`, "", s => s.garage],
+    ["Started", s => s.first_event_at ? ago(s.first_event_at) : "—", "", s => s.first_event_at],
+    ["Entry", s => s.entry ? esc(s.entry) : "—", "", s => s.entry],
+    ["With", s => esc(withOf(s)), "", withOf],
+    ["Time to live", s => s.minutes_to_live == null ? '<span class="small">not live</span>' : dur(s.minutes_to_live), "num", s => s.minutes_to_live],
+    ["Reports", s => fmt(s.events ?? 0), "num", s => s.events ?? 0],
+    ["Failed steps", s => (s.failed_steps || []).length ? (s.failed_steps || []).map(x => pill("warning", esc(x))).join(" ") : "—", "", s => (s.failed_steps || []).length || null],
+    ["Problems", s => (s.problems || []).length ? s.problems.map(x => pill("muted", esc(x))).join(" ") : "—", "", s => (s.problems || []).length || null],
+  ], f.recent || [], { text: s => `${s.garage} ${s.entry || ""} ${withOf(s)} ${(s.failed_steps || []).join(" ")} ${(s.problems || []).join(" ")}`, noun: "onboardings",
+    selects: [{ label: "All entries", get: s => s.entry }, { label: "Bridge and script", get: withOf }], problem: s => s.minutes_to_live == null });
 }
 
 /* ---------- pages */
@@ -783,11 +794,12 @@ function renderPages(d) {
   renderFunnel(d.onboarding_funnel, dur);
   const tu = d.tunnel;
   $("tunnel-card").hidden = !tu;
-  if (tu) $("tunnel").innerHTML = (tu.peers.length ? table([
-    ["Garage", p => `${dot(p.connected ? "ok" : "critical")}<b>${esc(p.garage)}</b>`], ["Tunnel IP", p => `<code>${esc(p.ip)}</code>`],
-    ["Connects from", p => p.endpoint ? esc(p.endpoint) : "—"], ["Last handshake", p => p.handshake_s == null ? "never" : p.handshake_s < 60 ? `${p.handshake_s} s ago` : `${Math.round(p.handshake_s / 60)} min ago`],
-    ["Traffic", p => `${p.rx_mb} MB in · ${p.tx_mb} MB out`],
-  ], tu.peers) : '<div class="small">No garage is connected to the hub.</div>') + `<div class="note">UDP ${tu.port}${tu.stale ? ' · <span class="warning">hub status is stale</span>' : ""}</div>`;
+  if (tu) smartTable("tunnel", [
+    ["Garage", p => `${dot(p.connected ? "ok" : "critical")}<b>${esc(p.garage)}</b>`, "", p => p.garage], ["Tunnel IP", p => `<code>${esc(p.ip)}</code>`, "", p => p.ip.split(".").map(x => x.padStart(3, "0")).join(".")],
+    ["Connects from", p => p.endpoint ? esc(p.endpoint) : "—", "", p => p.endpoint], ["Last handshake", p => p.handshake_s == null ? "never" : p.handshake_s < 60 ? `${p.handshake_s} s ago` : `${Math.round(p.handshake_s / 60)} min ago`, "num", p => p.handshake_s == null ? null : -p.handshake_s],
+    ["Traffic", p => `${p.rx_mb} MB in · ${p.tx_mb} MB out`, "num", p => (p.rx_mb || 0) + (p.tx_mb || 0)],
+  ], tu.peers, { text: p => `${p.garage} ${p.ip} ${p.endpoint || ""}`, noun: "garages", sort: "Garage", problem: p => !p.connected,
+    after: `<div class="note">UDP ${tu.port}${tu.stale ? ' · <span class="warning">hub status is stale</span>' : ""}</div>` });
   ["onboarding", "business", "supply", "models", "traffic", "mesh", "server", "updates", "logs"].forEach(p => pageAlerts(p, d.alerts));
   renderSilences(d);
 
@@ -799,7 +811,19 @@ function renderPages(d) {
     const mismatch = r.runtime_context && r.context > r.runtime_context;
     return `<span class="${mismatch ? "warning" : ""}">${k(r.context)}</span>${r.runtime_context ? `<div class="small">runtime ${k(r.runtime_context)}</div>` : ""}`;
   };
-  renderModels(deps, ctxCell);
+  smartTable("models", [
+    ["Public name", r => `${dot(r.checks.some(c => c.level === "warning") ? "warning" : r.up ? "ok" : "critical")}<code>${esc(r.public)}</code>`, "", r => r.public],
+    ["Tier", r => pill("muted", esc(r.tier)), "", r => r.tier],
+    ["Garage", r => esc(r.garage), "", r => r.garage],
+    ["Runtime model", r => `<code class="small">${esc(r.runtime_model)}</code>`, "", r => r.runtime_model],
+    ["Context", r => ctxCell(r.runtime_context && r.runtime_context !== r.context ? r : { ...r, runtime_context: null }), "num", r => r.context || 0],
+    ["Max out", r => r.max_output ? short(r.max_output) : "—", "num", r => r.max_output || 0],
+    ["In / out $/M", r => r.price_in == null || r.price_out == null ? (r.tier === "private" ? '<span class="small">free, owner</span>' : pill("warning", "no price")) : `${r.price_in} / ${r.price_out}`, "num", r => r.price_in == null ? null : r.price_in + r.price_out / 1000],
+    ["Cache read $/M", r => r.price_cache == null ? (r.tier === "private" ? "—" : pill("warning", "none")) : `${r.price_cache}${r.price_in ? `<div class="small">${Math.round(100 * r.price_cache / r.price_in)} % of input</div>` : ""}`, "num", r => r.price_cache],
+    ["Checks", r => r.checks.length ? r.checks.map(c => `<div class="${c.level}">${esc(c.text)}</div>`).join("") : r.up ? '<span class="ok">ok</span>' : '<span class="critical">down</span>', "checks", r => (r.up ? 0 : 100) + r.checks.filter(c => c.level !== "info").length * 10 + r.checks.length],
+  ], deps, { text: r => `${r.public} ${r.garage} ${r.runtime_model} ${r.tier}`, noun: "deployments", sort: "Public name",
+    selects: [{ label: "All tiers", get: r => r.tier }, { label: "All garages", get: r => r.garage }],
+    problem: r => !r.up || r.checks.some(c => c.level !== "info") || (r.price_in == null && r.tier !== "private") || !r.context });
 
   // What the garage says about itself: its heartbeat and, with Bridge, what doctor finds there.
   const SEV = { error: "critical", warning: "warning", info: "muted" };
@@ -818,30 +842,35 @@ function renderPages(d) {
     return `${hb}<div class="small">Bridge ${esc(a.version || "?")} · ${esc(a.os || "")}</div>${state}${nodes}${machine}${reqs}` + (probs || '<div class="small ok">no problems reported</div>');
   };
   const canary = new Set(((d.business || {}).bridge_versions?.garages || []).filter(x => x.canary).map(x => x.name));
-  $("garages").innerHTML = table([
-    ["Name", g => `${dot(g.onboarding || g.paused || d.silences?.[g.garage] ? "info" : g.runtime_ok && g.mesh !== false ? "ok" : "critical")}<b>${gLink(g.garage)}</b>${g.paused ? " " + pill("info", "paused in portal") : ""}${d.silences?.[g.garage] ? " " + pill("info", "planned stop") : ""}${canary.has(g.garage) ? " " + pill("muted", "canary") : ""}`],
-    ["Type", g => pill("muted", g.type)],
-    ["Engine", g => esc(({ ollama: "Ollama", vllm: "vLLM", xyntetik: "Xyntetik Runner", llamacpp: "llama.cpp", lmstudio: "LM Studio", sglang: "SGLang", provider: "provider" })[g.engine] || g.engine || "—")],
-    ["Tunnel", g => g.type === "provider" ? "HTTPS" : g.mesh ? `<span class="ok">up</span>` : `<span class="critical">down</span>`],
+  const engineOf = g => ({ ollama: "Ollama", vllm: "vLLM", xyntetik: "Xyntetik Runner", llamacpp: "llama.cpp", lmstudio: "LM Studio", sglang: "SGLang", provider: "provider" })[g.engine] || g.engine || "—";
+  smartTable("garages", [
+    ["Name", g => `${dot(g.onboarding || g.paused || d.silences?.[g.garage] ? "info" : g.runtime_ok && g.mesh !== false ? "ok" : "critical")}<b>${gLink(g.garage)}</b>${g.paused ? " " + pill("info", "paused in portal") : ""}${d.silences?.[g.garage] ? " " + pill("info", "planned stop") : ""}${canary.has(g.garage) ? " " + pill("muted", "canary") : ""}`, "", g => g.garage],
+    ["Type", g => pill("muted", g.type), "", g => g.type],
+    ["Engine", g => esc(engineOf(g)), "", engineOf],
+    ["Tunnel", g => g.type === "provider" ? "HTTPS" : g.mesh ? `<span class="ok">up</span>` : `<span class="critical">down</span>`, "", g => g.type === "provider" ? 2 : g.mesh ? 1 : 0],
     ["Runtime", g => g.onboarding ? `${pill("info", "onboarding")}${g.onboarding_step ? `<div class="small">${esc(g.onboarding_step.step)} · ${esc(g.onboarding_step.status)}${g.onboarding_step.message ? ": " + esc(g.onboarding_step.message) : ""}</div>` : ""}`
-      : g.runtime_ok ? `<span class="ok">answers</span>` : `<span class="critical">${esc(g.error || "down")}</span>`],
-    ["Models", g => g.models, "num"],
-    ["Up 1 h", g => g.up_1h_pct == null ? "—" : `${g.up_1h_pct} %`, "num"],
-    ["Up 24 h", g => g.up_24h_pct == null ? "—" : `${g.up_24h_pct} %<div class="small">${Math.round(g.minutes_tracked/60)} h tracked</div>`, "num"],
+      : g.runtime_ok ? `<span class="ok">answers</span>` : `<span class="critical">${esc(g.error || "down")}</span>`, "", g => g.onboarding ? 1 : g.runtime_ok ? 2 : 0],
+    ["Models", g => g.models, "num", g => g.models],
+    ["Up 1 h", g => g.up_1h_pct == null ? "—" : `${g.up_1h_pct} %`, "num", g => g.up_1h_pct],
+    ["Up 24 h", g => g.up_24h_pct == null ? "—" : `${g.up_24h_pct} %<div class="small">${Math.round(g.minutes_tracked/60)} h tracked</div>`, "num", g => g.up_24h_pct],
     ["Load", g => g.vllm ? `${g.vllm.running} running, <span class="${g.queue_minutes >= 5 ? "warning" : ""}">${g.vllm.waiting} waiting${g.queue_minutes >= 2 ? ` for ${g.queue_minutes} min` : ""}</span><div class="small">KV cache ${g.vllm.kv_cache_pct} %${g.vllm.prompt_tok_s != null ? `, ${g.vllm.prompt_tok_s} in / ${g.vllm.gen_tok_s} out tok/s` : ""}</div>` : g.provider ? `<span class="small">${esc((g.provider.ips||[]).slice(0,2).join(", "))}${(g.provider.ips||[]).length > 2 ? ` +${g.provider.ips.length-2}` : ""}${g.provider.private_ip ? ' <span class="critical">private!</span>' : ""}</span>` : "—"],
-    ["TLS", g => g.provider && g.provider.tls ? `${g.provider.tls.days_left ?? "?"} d` : "—", "num"],
-    ["From the garage", insideCell],
-    ["Checked", g => ago(g.checked_at)],
-  ], d.garages) + `<div class="note">Portal gateway-targets: ${d.portal.targets_status} in ${d.portal.targets_ms} ms, ${d.portal.garages_listed} listed.</div>`;
+    ["TLS", g => g.provider && g.provider.tls ? `${g.provider.tls.days_left ?? "?"} d` : "—", "num", g => g.provider?.tls?.days_left],
+    ["From the garage", insideCell, "wide"],
+    ["Checked", g => ago(g.checked_at), "", g => g.checked_at],
+  ], d.garages, { text: g => `${g.garage} ${g.type} ${engineOf(g)} ${g.error || ""} ${g.agent?.version || ""}`, noun: "garages", sort: "Name",
+    selects: [{ label: "All types", get: g => g.type }, { label: "All engines", get: engineOf }],
+    problem: g => !g.onboarding && !g.paused && !d.silences?.[g.garage] && !(g.runtime_ok && g.mesh !== false),
+    after: `<div class="note">Portal gateway-targets: ${d.portal.targets_status} in ${d.portal.targets_ms} ms, ${d.portal.garages_listed} listed.</div>` });
 
   const tcols = [
-    ["Garage", r => r.garage === "?" ? '<span class="small">not routed</span>' : esc(r.garage)], ["Model", r => `<code>${esc(r.model)}</code>`],
-    ["Requests", r => fmt(r.requests), "num"], ["Failed", r => r.failed ? `<span class="critical">${r.failed}</span>` : 0, "num"],
-    ["Input tok", r => fmt(r.prompt_tokens), "num"], ["Output tok", r => fmt(r.completion_tokens), "num"],
-    ["Avg prompt", r => fmt(r.avg_prompt), "num"], ["TTFT p50 / p95", r => `${r.ttft_p50_s ?? "—"} / ${r.ttft_p95_s ?? "—"} s`, "num"],
-    ["Spend", r => `$${(r.spend_usd ?? 0).toFixed(4)}`, "num"]];
-  $("traffic").innerHTML = table(tcols, d.traffic.last_hour);
-  $("traffic24").innerHTML = table(tcols, d.traffic.last_24h);
+    ["Garage", r => r.garage === "?" ? '<span class="small">not routed</span>' : esc(r.garage), "", r => r.garage], ["Model", r => `<code>${esc(r.model)}</code>`, "", r => r.model],
+    ["Requests", r => fmt(r.requests), "num", r => r.requests], ["Failed", r => r.failed ? `<span class="critical">${r.failed}</span>` : 0, "num", r => r.failed],
+    ["Input tok", r => fmt(r.prompt_tokens), "num", r => r.prompt_tokens], ["Output tok", r => fmt(r.completion_tokens), "num", r => r.completion_tokens],
+    ["Avg prompt", r => fmt(r.avg_prompt), "num", r => r.avg_prompt], ["TTFT p50 / p95", r => `${r.ttft_p50_s ?? "—"} / ${r.ttft_p95_s ?? "—"} s`, "num", r => r.ttft_p95_s],
+    ["Spend", r => `$${(r.spend_usd ?? 0).toFixed(4)}`, "num", r => r.spend_usd]];
+  const topt = { text: r => `${r.garage} ${r.model}`, noun: "garage × model", sort: "Requests", dir: -1, selects: [{ label: "All garages", get: r => r.garage }], problem: r => r.failed > 0 };
+  smartTable("traffic", tcols, d.traffic.last_hour, topt);
+  smartTable("traffic24", tcols, d.traffic.last_24h, topt);
 
   const e = d.errors_last_hour;
   const erow = (label, n, bad) => `<div>${label}</div><div class="${bad ? "warning" : ""}">${n}</div>`;
@@ -989,9 +1018,9 @@ function renderBusiness(b) {
     tile("money", "Credit outstanding", usd(cr.outstanding_balance_usd), "prepaid by buyers, not yet used"),
     tile("warn", "Low credit", fmt(by.low_credit ?? 0), "active buyers under $1", (by.low_credit || 0) >= 5 ? "warning" : "ok"),
   ].join("");
-  const ops = (b.operators || []).slice().sort((x, y) => (y.earned_7d_usd || 0) - (x.earned_7d_usd || 0));
-  $("biz-ops").innerHTML = table([["Garage", o => esc(o.garage)], ["24 h", o => usd(o.earned_24h_usd), "num"], ["7 days", o => usd(o.earned_7d_usd), "num"],
-    ["Total", o => usd(o.earned_total_usd), "num"], ["Terms", o => o.terms_accepted ? '<span class="ok">accepted</span>' : pill("warning", "missing")]], ops);
+  smartTable("biz-ops", [["Garage", o => esc(o.garage), "", o => o.garage], ["24 h", o => usd(o.earned_24h_usd), "num", o => o.earned_24h_usd || 0], ["7 days", o => usd(o.earned_7d_usd), "num", o => o.earned_7d_usd || 0],
+    ["Total", o => usd(o.earned_total_usd), "num", o => o.earned_total_usd || 0], ["Terms", o => o.terms_accepted ? '<span class="ok">accepted</span>' : pill("warning", "missing"), "", o => o.terms_accepted ? 1 : 0]], b.operators || [],
+    { text: o => o.garage, noun: "garages", sort: "7 days", dir: -1, problem: o => !o.terms_accepted });
   $("biz-stripe").innerHTML = `<div class="kv">
     <div>Last webhook</div><div>${st.last_webhook_at ? `${ago(st.last_webhook_at)} <span class="small">${esc(st.last_webhook_at)}</span>` : "—"}</div>
     <div>Last top-up</div><div>${st.last_topup_at ? `${ago(st.last_topup_at)} <span class="small">${esc(st.last_topup_at)}</span>` : "—"}</div>
@@ -1153,30 +1182,30 @@ function renderHistory() {
     const sp = (q, k, max) => { const pts = series(q, k); return pts.filter(p => p[1] != null).length > 1 ? spark(pts, max) : '<span class="small">—</span>'; };
     // Few requests say little: colour the success rate only from 20 requests up.
     const sc = (v, n) => v == null || n < 20 ? "" : v >= 99 ? "ok" : v >= 90 ? "warning" : "critical";
-    $("quality").innerHTML = qs.length ? table([
-      ["Garage", ([g]) => esc(g)],
-      ["Requests 24 h", ([, q]) => fmt(q.last_24h?.requests ?? 0), "num"],
-      ["Success 24 h", ([, q]) => q.last_24h?.success_pct == null ? "—" : `<span class="${sc(q.last_24h.success_pct, q.last_24h.requests)}">${q.last_24h.success_pct} %</span>`, "num"],
-      ["First token p50 / p95", ([, q]) => q.last_24h ? `${q.last_24h.ttft_p50 ?? "—"} / ${q.last_24h.ttft_p95 ?? "—"} s` : "—", "num"],
-      ["Output tok/s", ([, q]) => q.last_24h?.tps_p50 ?? "—", "num"],
-      ["Cached input", ([, q]) => q.last_24h?.cached_pct == null ? "—" : `${q.last_24h.cached_pct} %`, "num"],
+    smartTable("quality", [
+      ["Garage", ([g]) => esc(g), "", ([g]) => g],
+      ["Requests 24 h", ([, q]) => fmt(q.last_24h?.requests ?? 0), "num", ([, q]) => q.last_24h?.requests ?? 0],
+      ["Success 24 h", ([, q]) => q.last_24h?.success_pct == null ? "—" : `<span class="${sc(q.last_24h.success_pct, q.last_24h.requests)}">${q.last_24h.success_pct} %</span>`, "num", ([, q]) => q.last_24h?.success_pct],
+      ["First token p50 / p95", ([, q]) => q.last_24h ? `${q.last_24h.ttft_p50 ?? "—"} / ${q.last_24h.ttft_p95 ?? "—"} s` : "—", "num", ([, q]) => q.last_24h?.ttft_p95],
+      ["Output tok/s", ([, q]) => q.last_24h?.tps_p50 ?? "—", "num", ([, q]) => q.last_24h?.tps_p50],
+      ["Cached input", ([, q]) => q.last_24h?.cached_pct == null ? "—" : `${q.last_24h.cached_pct} %`, "num", ([, q]) => q.last_24h?.cached_pct],
       ["Success, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "success_pct", 100)}</div>`],
       ["First token p95, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "ttft_p95")}</div>`],
       ["Output tok/s, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "tps_p50")}</div>`],
-    ], qs) : '<div class="small">No traffic yet.</div>';
+    ], qs, { text: ([g]) => g, noun: "garages", sort: "Requests 24 h", dir: -1, problem: ([, q]) => q.last_24h?.requests >= 20 && q.last_24h?.success_pct < 99 });
     const qe = Object.entries(hist.quality_by_engine || {}).sort((a, b) => (b[1].last_24h?.requests || 0) - (a[1].last_24h?.requests || 0));
     const engineName = { ollama: "Ollama", vllm: "vLLM", xyntetik: "Xyntetik Runner", llamacpp: "llama.cpp", lmstudio: "LM Studio", sglang: "SGLang", paddock: "Paddock", provider: "Provider (its own)", unknown: "Unknown (garage gone)" };
-    $("quality-engine").innerHTML = qe.length ? table([
-      ["Engine", ([e]) => esc(engineName[e] || e)],
-      ["Requests 24 h", ([, q]) => fmt(q.last_24h?.requests ?? 0), "num"],
-      ["Success 24 h", ([, q]) => q.last_24h?.success_pct == null ? "—" : `<span class="${sc(q.last_24h.success_pct, q.last_24h.requests)}">${q.last_24h.success_pct} %</span>`, "num"],
-      ["First token p50 / p95", ([, q]) => q.last_24h ? `${q.last_24h.ttft_p50 ?? "—"} / ${q.last_24h.ttft_p95 ?? "—"} s` : "—", "num"],
-      ["Output tok/s", ([, q]) => q.last_24h?.tps_p50 ?? "—", "num"],
-      ["Cached input", ([, q]) => q.last_24h?.cached_pct == null ? "—" : `${q.last_24h.cached_pct} %`, "num"],
+    smartTable("quality-engine", [
+      ["Engine", ([e]) => esc(engineName[e] || e), "", ([e]) => engineName[e] || e],
+      ["Requests 24 h", ([, q]) => fmt(q.last_24h?.requests ?? 0), "num", ([, q]) => q.last_24h?.requests ?? 0],
+      ["Success 24 h", ([, q]) => q.last_24h?.success_pct == null ? "—" : `<span class="${sc(q.last_24h.success_pct, q.last_24h.requests)}">${q.last_24h.success_pct} %</span>`, "num", ([, q]) => q.last_24h?.success_pct],
+      ["First token p50 / p95", ([, q]) => q.last_24h ? `${q.last_24h.ttft_p50 ?? "—"} / ${q.last_24h.ttft_p95 ?? "—"} s` : "—", "num", ([, q]) => q.last_24h?.ttft_p95],
+      ["Output tok/s", ([, q]) => q.last_24h?.tps_p50 ?? "—", "num", ([, q]) => q.last_24h?.tps_p50],
+      ["Cached input", ([, q]) => q.last_24h?.cached_pct == null ? "—" : `${q.last_24h.cached_pct} %`, "num", ([, q]) => q.last_24h?.cached_pct],
       ["Success, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "success_pct", 100)}</div>`],
       ["First token p95, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "ttft_p95")}</div>`],
       ["Output tok/s, 7 days", ([, q]) => `<div style="width:110px">${sp(q, "tps_p50")}</div>`],
-    ], qe) : '<div class="small">No traffic yet.</div>';
+    ], qe, { text: ([e]) => `${e} ${engineName[e] || ""}`, noun: "engines", sort: "Requests 24 h", dir: -1, problem: ([, q]) => q.last_24h?.requests >= 20 && q.last_24h?.success_pct < 99 });
   }
   if (page === "server") {
     const h = hist.host;
@@ -1347,14 +1376,21 @@ function renderLive() {
   const fresh = new Set();
   const rows = (live.recent || []).map(r => { const id = r.t + r.key + r.garage; if (liveSeen.size && !liveSeen.has(id)) fresh.add(id); return { ...r, _id: id }; });
   liveSeen = new Set(rows.map(r => r._id));
-  $("live-recent").innerHTML = rows.length ? `<table><tr><th>When</th><th>Key</th><th>Model → garage</th><th class="num">In / out</th><th class="num">First token</th><th class="num">Total</th><th></th></tr>${rows.map(r =>
-    `<tr class="${fresh.has(r._id) ? "fresh-row" : ""}"><td>${ago(r.t)}</td><td><b>${esc(r.key)}</b>${r.owner ? `<div class="small">${esc(r.owner)}</div>` : ""}</td><td><code>${esc(r.model)}</code><div class="small">→ ${esc(r.garage)}${r.tier === "dedicated" ? " (dedicated)" : ""}${r.auto_order != null ? ` (auto #${r.auto_order})` : ""}</div></td>
-    <td class="num">${short(r.in)} / ${short(r.out)}</td><td class="num">${r.ttft_ms != null ? (r.ttft_ms / 1000).toFixed(1) + " s" : "—"}</td><td class="num">${r.ms != null ? (r.ms / 1000).toFixed(1) + " s" : "—"}</td><td>${r.ok ? '<span class="ok">ok</span>' : '<span class="critical">failed</span>'}</td></tr>`).join("")}</table>`
-    : '<div class="small">No requests in the last 15 minutes.</div>';
-  $("live-keys").innerHTML = table([
-    ["Key", k => `<b>${esc(k.key)}</b>`], ["Owner", k => esc(k.owner || "—")], ["Requests", k => fmt(k.n), "num"],
-    ["Tokens", k => short(k.tokens), "num"], ["Spend", k => "$" + (k.spend ?? 0).toFixed(4), "num"], ["Last", k => secs(k.last_s)],
-  ], live.keys || []);
+  smartTable("live-recent", [
+    ["When", r => ago(r.t), "", r => r.t],
+    ["Key", r => `<b>${esc(r.key)}</b>${r.owner ? `<div class="small">${esc(r.owner)}</div>` : ""}`, "", r => r.key],
+    ["Model → garage", r => `<code>${esc(r.model)}</code><div class="small">→ ${esc(r.garage)}${r.tier === "dedicated" ? " (dedicated)" : ""}${r.auto_order != null ? ` (auto #${r.auto_order})` : ""}</div>`, "", r => `${r.model} ${r.garage}`],
+    ["In / out", r => `${short(r.in)} / ${short(r.out)}`, "num", r => r.in],
+    ["First token", r => r.ttft_ms != null ? (r.ttft_ms / 1000).toFixed(1) + " s" : "—", "num", r => r.ttft_ms],
+    ["Total", r => r.ms != null ? (r.ms / 1000).toFixed(1) + " s" : "—", "num", r => r.ms],
+    ["", r => r.ok ? '<span class="ok">ok</span>' : '<span class="critical">failed</span>'],
+  ], rows, { text: r => `${r.key} ${r.owner || ""} ${r.model} ${r.garage}`, noun: "requests", sort: "When", dir: -1, empty: "No requests in the last 15 minutes.",
+    selects: [{ label: "All keys", get: r => r.key }, { label: "All garages", get: r => r.garage }, { label: "All models", get: r => r.model }],
+    problem: r => !r.ok, rowClass: r => fresh.has(r._id) ? "fresh-row" : "" });
+  smartTable("live-keys", [
+    ["Key", k => `<b>${esc(k.key)}</b>`, "", k => k.key], ["Owner", k => esc(k.owner || "—"), "", k => k.owner], ["Requests", k => fmt(k.n), "num", k => k.n],
+    ["Tokens", k => short(k.tokens), "num", k => k.tokens], ["Spend", k => "$" + (k.spend ?? 0).toFixed(4), "num", k => k.spend ?? 0], ["Last", k => secs(k.last_s), "num", k => k.last_s == null ? null : -k.last_s],
+  ], live.keys || [], { text: k => `${k.key} ${k.owner || ""}`, noun: "keys", sort: "Requests", dir: -1 });
   $("live-fresh").textContent = `Updated ${new Date(live.generated_at).toLocaleTimeString()} · every 5 s while this page is open`;
 }
 
