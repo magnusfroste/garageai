@@ -48,7 +48,7 @@ nextTitle: "Coming to Bridge"
 next:
   - "Models chosen in the portal, fetched by Bridge for Xyntetik Runner too (today: Ollama)"
   - "Pause automatically when you game or render"
-  - "A control panel: see what your GPU can earn, go live with one click"
+  - "A control panel: see what your GPU earns in credits, go live with one click"
 ctaText: "Connect your GPU"
 ctaUrl: "https://app.garageai.eu/connect"
 secondaryText: "Everything about Bridge: what you need, how you get paid, what it does on your computer →"

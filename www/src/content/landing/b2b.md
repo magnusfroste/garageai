@@ -16,7 +16,7 @@ offerings:
   - icon: "💶"
     title: "Offer spare capacity"
     color: "var(--color-warning)"
-    text: "Have GPUs that sit idle outside office hours? Offer them on the marketplace, set your own price and earn it for every token served."
+    text: "Have GPUs that sit idle outside office hours? Offer them on the marketplace, set your own price and earn credits at that price for every token served."
 useCases:
   - icon: "🤖"
     sector: "Agents & automation"

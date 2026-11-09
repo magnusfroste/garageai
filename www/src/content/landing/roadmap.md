@@ -49,7 +49,7 @@ phases:
     status: "upcoming"
     items:
       - "Payouts to your bank account through Stripe (not yet scheduled)"
-      - "A control panel in Bridge: see what your GPU can earn and go live with one click"
+      - "A control panel in Bridge: see what your GPU earns in credits and go live with one click"
       - "Sell when your machine is idle, or when electricity is cheap"
       - "Garages powered by solar, home batteries and EV batteries"
       - "Larger regional clusters"

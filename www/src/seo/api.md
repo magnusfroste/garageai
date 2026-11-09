@@ -5,7 +5,7 @@ description: "Call open models on GPUs in European garages through one OpenAI-co
 kicker: "GarageAI API · for developers"
 breadcrumb: "OpenAI-compatible API"
 h1: "One OpenAI-compatible API for open models, served from European garages"
-lead: "GarageAI's API at https://api.garageai.eu/v1 speaks the OpenAI format, so the OpenAI SDKs, agents and coding tools work by changing the base URL. The models run on GPUs that garage owners connect; you pay per token with prepaid credits, at the price the garage that answered has set."
+lead: "GarageAI's API at https://api.garageai.eu/v1 speaks the OpenAI format, so the OpenAI SDKs, agents and coding tools work by changing the base URL. The models run on GPUs that garage owners connect; you pay per token in prepaid GarageAI credits (today 1 credit = 1 USD of usage), at the price the garage that answered has set."
 commands:
   - label: "curl"
     command: |-
@@ -47,7 +47,7 @@ faqs:
   - question: "Where is my data processed?"
     answer: "Your request goes over TLS to GarageAI's gateway on an EU server (Hetzner, Helsinki), which stores no prompts or answers, and then over an encrypted WireGuard tunnel to the garage that serves the model, where it is processed. Garage owners agree not to log or read prompts, but garages are not yet formally verified, so don't send sensitive or personal data until verified garages and data-processing agreements are in place."
   - question: "How does billing work?"
-    answer: "Prepaid credits, topped up by card through Stripe, with no subscription. Each request is billed per token at the price of the garage that served it; cached input is billed at that garage's lower cache-read price. Usage is shown per key and per model in the portal."
+    answer: "Prepaid GarageAI credits, topped up by card through Stripe, with no subscription; today 1 credit buys 1 US dollar of usage. Each request is billed per token at the price of the garage that served it; cached input is billed at that garage's lower cache-read price. Usage is shown per key and per model in the portal."
   - question: "What happens when a garage goes offline?"
     answer: "In a pool, the request is retried on another garage. If the only garage serving a model is away, the API answers 503 with Retry-After, which SDKs and agents retry, rather than model not found."
 related:
@@ -57,7 +57,7 @@ related:
     url: "https://app.garageai.eu/models"
   - text: "Pricing: every garage sets its own price"
     url: "/#pricing"
-  - text: "Earn with your own GPU instead"
+  - text: "Share your own GPU and earn credits instead"
     url: "/bridge"
   - text: "Privacy policy"
     url: "/privacy"
