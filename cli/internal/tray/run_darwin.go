@@ -37,15 +37,19 @@ type darwinUI struct {
 
 var ui *darwinUI
 
-// symbols are SF Symbols (macOS 11+), template images that follow light and dark menu bars.
-var symbols = map[Level]string{
-	NotConnected: "circle.dashed",
-	Live:         "bolt.horizontal.circle",
-	Serving:      "bolt.horizontal.circle.fill",
-	Paused:       "pause.circle",
-	Problem:      "exclamationmark.triangle",
-	Offline:      "bolt.slash.circle",
+// symbols are SF Symbols, template images that follow light and dark menu bars: a garage (macOS 13+;
+// the door opens while serving), then the circles of macOS 11 and 12. The first that exists is shown.
+var symbols = map[Level][]string{
+	NotConnected: {"door.garage.closed", "circle.dashed"},
+	Live:         {"door.garage.closed", "bolt.horizontal.circle"},
+	Serving:      {"door.garage.open", "bolt.horizontal.circle.fill"},
+	Paused:       {"door.garage.closed", "pause.circle"},
+	Problem:      {"door.garage.closed.trianglebadge.exclamationmark", "exclamationmark.triangle"},
+	Offline:      {"door.garage.closed.trianglebadge.exclamationmark", "bolt.slash.circle"},
 }
+
+// dimmed: the states in which the garage does not answer buyers show a greyed icon.
+var dimmed = map[Level]bool{NotConnected: true, Paused: true, Offline: true}
 
 // Run shows the item and returns only on error; quitting ends the process.
 func Run(version string) error {
@@ -88,10 +92,17 @@ func Run(version string) error {
 func (u *darwinUI) refresh() {
 	m := Build(Load(time.Now(), u.version))
 	button := u.item.Send(sel("button"))
-	if img := class("NSImage").Send(sel("imageWithSystemSymbolName:accessibilityDescription:"),
-		nsString(symbols[m.Level]), nsString("GarageAI: "+m.Level.String())); img != 0 {
+	var img objc.ID
+	for _, name := range symbols[m.Level] {
+		if img = class("NSImage").Send(sel("imageWithSystemSymbolName:accessibilityDescription:"),
+			nsString(name), nsString("GarageAI: "+m.Level.String())); img != 0 {
+			break
+		}
+	}
+	if img != 0 {
 		img.Send(sel("setTemplate:"), true)
 		button.Send(sel("setImage:"), img)
+		button.Send(sel("setAppearsDisabled:"), dimmed[m.Level])
 	} else {
 		button.Send(sel("setTitle:"), nsString("GarageAI")) // macOS 10.15 and older: no SF Symbols
 	}
