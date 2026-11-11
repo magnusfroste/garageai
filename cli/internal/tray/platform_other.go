@@ -15,3 +15,4 @@ func InstallLoginItem(bool) error { return errUnsupported }
 func RemoveLoginItem(bool) error  { return nil }
 func openURL(string) error        { return errUnsupported }
 func openDoctor() error           { return errUnsupported }
+func lock() (func(), error)       { return nil, errUnsupported }

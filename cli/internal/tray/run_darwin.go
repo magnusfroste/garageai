@@ -4,7 +4,9 @@ package tray
 
 import (
 	"fmt"
+	"os"
 	"runtime"
+	"syscall"
 	"time"
 
 	"github.com/ebitengine/purego"
@@ -33,6 +35,8 @@ type darwinUI struct {
 	delegate objc.ID
 	items    []Item // the menu on screen: a click's tag is an index into it
 	text     string // the menu's text, to skip redrawing an unchanged menu
+	unlock   func()
+	watch    *binWatch
 }
 
 var ui *darwinUI
@@ -53,11 +57,10 @@ var dimmed = map[Level]bool{NotConnected: true, Paused: true, Offline: true}
 
 // Run shows the item and returns only on error; quitting ends the process.
 func Run(version string) error {
-	unlock, err := lock()
+	unlock, err := lockWait()
 	if err != nil {
 		return err
 	}
-	defer unlock()
 	if _, err := purego.Dlopen("/System/Library/Frameworks/AppKit.framework/AppKit", purego.RTLD_GLOBAL|purego.RTLD_NOW); err != nil {
 		return fmt.Errorf("could not load AppKit: %w", err)
 	}
@@ -80,7 +83,9 @@ func Run(version string) error {
 	menu := class("NSMenu").Send(sel("new"))
 	menu.Send(sel("setAutoenablesItems:"), false)
 	item.Send(sel("setMenu:"), menu)
-	ui = &darwinUI{version: version, app: app, item: item, menu: menu, delegate: objc.ID(delegateClass).Send(sel("new"))}
+	ui = &darwinUI{version: version, app: app, item: item, menu: menu, delegate: objc.ID(delegateClass).Send(sel("new")),
+		unlock: unlock, watch: newBinWatch(binary())}
+	defer func() { ui.unlock() }()
 	ui.refresh()
 	class("NSTimer").Send(sel("scheduledTimerWithTimeInterval:target:selector:userInfo:repeats:"),
 		float64(5), ui.delegate, sel("tick:"), objc.ID(0), true)
@@ -90,6 +95,9 @@ func Run(version string) error {
 }
 
 func (u *darwinUI) refresh() {
+	if u.watch.replaced(time.Now()) {
+		u.restart()
+	}
 	m := Build(Load(time.Now(), u.version))
 	button := u.item.Send(sel("button"))
 	var img objc.ID
@@ -175,4 +183,18 @@ func (u *darwinUI) click(i int) {
 	}
 	u.text = "" // redraw: a toggled check mark
 	u.refresh()
+}
+
+// restart replaces this process with the new binary (same pid, so launchd keeps its login item).
+// On failure the icon goes on as it is and stops watching.
+func (u *darwinUI) restart() {
+	u.unlock()
+	err := syscall.Exec(u.watch.path, []string{u.watch.path, "tray"}, append(os.Environ(), restartEnv+"=1"))
+	fmt.Fprintln(os.Stderr, "GarageAI icon: could not start the updated binary:", err)
+	u.watch.fi = nil
+	if unlock, err := lock(); err == nil {
+		u.unlock = unlock
+	} else {
+		u.unlock = func() {}
+	}
 }

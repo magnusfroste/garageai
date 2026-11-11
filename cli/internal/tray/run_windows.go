@@ -4,7 +4,10 @@ package tray
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"runtime"
+	"syscall"
 	"time"
 	"unsafe"
 
@@ -129,6 +132,7 @@ type winUI struct {
 	items          []Item
 	taskbarCreated uint32
 	added          bool
+	watch          *binWatch
 }
 
 var wui *winUI
@@ -136,13 +140,13 @@ var wui *winUI
 // Run shows the icon and returns when the user hides it.
 func Run(version string) error {
 	runtime.LockOSThread()
-	unlock, err := lock()
+	unlock, err := lockWait()
 	if err != nil {
 		return err
 	}
 	defer unlock()
 	detachConsole()
-	u := &winUI{version: version, icons: map[Level]windows.Handle{}}
+	u := &winUI{version: version, icons: map[Level]windows.Handle{}, watch: newBinWatch(binary())}
 	wui = u
 	inst, _, _ := pGetModuleHandleW.Call(0)
 	name, _ := windows.UTF16PtrFromString("GarageAITray")
@@ -205,6 +209,9 @@ func (u *winUI) fill(m Menu) {
 }
 
 func (u *winUI) refresh() {
+	if u.watch.replaced(time.Now()) && u.restart() {
+		return
+	}
 	u.fill(Build(Load(time.Now(), u.version)))
 	pShellNotifyIconW.Call(nimModify, uintptr(unsafe.Pointer(&u.nid)))
 }
@@ -321,4 +328,19 @@ func detachConsole() {
 	if n == 1 {
 		pFreeConsole.Call()
 	}
+}
+
+// restart starts the new binary's icon and quits this one; the new icon waits for this one's lock
+// (lockWait). On failure the icon goes on as it is and stops watching.
+func (u *winUI) restart() bool {
+	cmd := exec.Command(u.watch.path, "tray")
+	cmd.Env = append(os.Environ(), restartEnv+"=1")
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: windows.CREATE_NO_WINDOW}
+	if err := cmd.Start(); err != nil {
+		u.watch.fi = nil
+		return false
+	}
+	cmd.Process.Release()
+	pPostQuitMessage.Call(0)
+	return true
 }
