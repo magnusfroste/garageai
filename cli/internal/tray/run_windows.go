@@ -288,16 +288,15 @@ func levelColor(l Level) [3]byte { // R, G, B
 	return [3]byte{0x8a, 0x8a, 0x8a}
 }
 
-// makeIcon draws a 32×32 filled circle (Windows scales it to the notification area): an AND mask
-// that is transparent outside the circle, and the colour inside.
+// makeIcon draws the 32×32 garage (garagePixel; Windows scales it to the notification area): an AND
+// mask that is transparent outside the garage, and the colour inside.
 func makeIcon(c [3]byte) windows.Handle {
 	const n = 32
 	color := make([]byte, n*n*4)
 	mask := make([]byte, n*n/8) // 1 bpp, rows of 4 bytes
 	for y := 0; y < n; y++ {
 		for x := 0; x < n; x++ {
-			dx, dy := float64(x)-15.5, float64(y)-15.5
-			if dx*dx+dy*dy <= 14*14 {
+			if garagePixel(x, y) {
 				o := (y*n + x) * 4
 				color[o], color[o+1], color[o+2] = c[2], c[1], c[0] // BGR
 			} else {
