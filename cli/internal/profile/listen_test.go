@@ -240,3 +240,18 @@ func TestProbeKnownRuntimeAsksOnlyItsOwnQuestions(t *testing.T) {
 		t.Fatalf("tried without the key %d time(s) on the configured port: %v", unauth, paths)
 	}
 }
+
+func TestLowDisk(t *testing.T) {
+	for _, c := range []struct {
+		free *int
+		warn bool
+	}{{nil, false}, {intp(1), true}, {intp(4), true}, {intp(5), false}, {intp(28), false}} {
+		got := false
+		for _, pr := range problems(Profile{diskFreeGB: c.free}) {
+			got = got || pr.Code == "low_disk"
+		}
+		if got != c.warn {
+			t.Errorf("disk free %v: low_disk %v, want %v", c.free, got, c.warn)
+		}
+	}
+}

@@ -35,6 +35,11 @@ gateway sees the garage as down (on garage-m2 this was an 8-minute "tunnel down"
 - The display may still turn off: that does not matter, only sleep does.
 - Check: `pmset -g` shows `sleep 0` (on a MacBook: while plugged in), and doctor no longer reports it.
 
+### `low_disk` (warning)
+Less than 5 GB free on the system disk. Bridge's self-update writes a second copy of itself before
+it swaps, and a model is a few GB, so both can fail with "no space left on device" (garage-m1,
+2026-11-11). Empty the trash and remove models the garage no longer serves.
+
 ### `no_gpu` (info)
 No GPU found (nvidia-smi, rocm-smi, Apple silicon). Fine for a test; a CPU garage is too slow to sell.
 
@@ -95,7 +100,9 @@ own environment, or use the app.
 
 ### `port_mismatch` (error)
 The garage is registered with one port, but the runtime answers on another. Start the runtime on
-the registered port, or run the connect command again with `--port`.
+the registered port, or run the connect command again with `--port`. Since v1.5.5
+`garageai runtime install` does this itself when the runtime the garage was set up with no longer
+answers (Ollama removed, then Runner installed): it moves the garage to Runner and keeps the link.
 
 ### `needs_api_key` (info)
 The runtime wants an API key (vLLM and SGLang usually run with one, since they listen on the

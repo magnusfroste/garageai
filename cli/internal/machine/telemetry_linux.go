@@ -13,7 +13,7 @@ func collectOS() Telemetry {
 	if total, free, ok := linuxMemory(readFile("/proc/meminfo")); ok {
 		t.MemTotalMB, t.MemFreeMB = intp(total), intp(free)
 	}
-	t.DiskFreeGB = diskFreeGB("/")
+	t.DiskFreeGB = DiskFreeGB()
 	t.Power, t.BatteryPct = powerSource()
 	// user_active: no cheap, display-server-independent source on Linux; left unknown.
 	return t
@@ -46,3 +46,5 @@ func statfsFreeGB(path string) int {
 }
 
 func powerSource() (string, *int) { return linuxPower(powerSupplies("/sys/class/power_supply")) }
+
+func systemDisk() string { return "/" }
