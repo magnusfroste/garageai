@@ -302,6 +302,8 @@ Since v0.5.0 Bridge updates itself: the portal tells the heartbeat which version
 fetches that release, checks it against SHA256SUMS, runs the new binary once, and only then swaps
 the service's copy and restarts the tunnel. The heartbeat runs the new version from its next run.
 Your own `garageai` command is refreshed too when it is in `/usr/local/bin` or `~/.local/bin`.
+The menu-bar or notification-area icon restarts itself within a minute or two of an update
+(since v1.5.6); before that it showed the old icon until it was started again.
 `garageai connect --no-auto-update` keeps a version until you run `garageai update` yourself.
 
 ### `update_failed` (warning)
