@@ -1,5 +1,5 @@
 {
- "source": "Joakimpalm-Zen/xyntetik-runner docs/model-tiers.json at v1.15.0 (tier1 and tier2, single-file rows with a recorded pass, passing backends only; licence and whether the row's claim says it fails the fidelity bar)",
+ "source": "Joakimpalm-Zen/xyntetik-runner docs/model-tiers.json at v1.16.0 (tier1 and tier2, single-file rows with a recorded pass, passing backends only; licence and whether the row's claim says it fails the fidelity bar)",
  "schema": "xyntetik.runner.model-tiers.v1",
  "rows": [
   {
