@@ -29,6 +29,7 @@ type Profile struct {
 	winSleepACMin  int  // Windows: minutes until sleep on the power adapter (0 = never, -1 = unknown)
 	winLidSleepsAC bool // Windows laptop: closing the lid on the power adapter sleeps or hibernates
 	displayMinutes int
+	diskFreeGB     *int // free space on the system disk (models, Bridge's updates)
 }
 
 type Machine struct {

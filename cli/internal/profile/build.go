@@ -41,6 +41,7 @@ func Build(version string) Profile {
 		p.Tunnel = &Tunnel{IP: cfg.TunnelIP, Installed: inst, Active: active}
 	}
 	p.darwin = runtime.GOOS == "darwin"
+	p.diskFreeGB = gmachine.DiskFreeGB()
 	p.heartbeatLast, p.sleepMinutes, p.displayMinutes = localFacts(hb)
 	p.laptop = p.darwin && strings.Contains(run("pmset", "-g", "batt"), "InternalBattery")
 	if runtime.GOOS == "windows" {
@@ -97,6 +98,10 @@ func discover(ls []Listener) []Runtime {
 	return out
 }
 
+// lowDiskGB: below this much free space doctor warns. A model is a few GB, Bridge's update needs room
+// for a second copy of itself.
+const lowDiskGB = 5
+
 func problems(p Profile) []Problem {
 	var out []Problem
 	add := func(sev, code, msg, fix string) { out = append(out, Problem{sev, code, msg, fix}) }
@@ -144,6 +149,11 @@ func problems(p Profile) []Problem {
 			}
 			add("error", "port_mismatch", msg, fmt.Sprintf("Start the runtime on port %d, or run the connect command again with --port", *cp))
 		}
+	}
+	if p.diskFreeGB != nil && *p.diskFreeGB < lowDiskGB {
+		// garage-m1 (2026-11-11): 1 GB free, and Bridge's update failed with "no space left on device".
+		add("warning", "low_disk", fmt.Sprintf("Only %d GB disk free: Bridge's updates and model downloads can fail", *p.diskFreeGB),
+			fmt.Sprintf("Free at least %d GB: empty the trash, remove models you no longer serve", lowDiskGB))
 	}
 	switch {
 	case p.GarageAI.ConfiguredRuntime != nil && !p.Heartbeat.Installed:

@@ -45,11 +45,7 @@ func collectOS() Telemetry {
 	if r, _, _ := procGlobalMemoryStatusEx.Call(uintptr(unsafe.Pointer(&m))); r != 0 {
 		t.MemTotalMB, t.MemFreeMB = intp(int(m.TotalPhys>>20)), intp(int(m.AvailPhys>>20))
 	}
-	drive := os.Getenv("SystemDrive")
-	if drive == "" {
-		drive = "C:"
-	}
-	t.DiskFreeGB = diskFreeGB(drive + `\`)
+	t.DiskFreeGB = DiskFreeGB()
 	t.Power, t.BatteryPct = powerSource()
 	return t
 }
@@ -74,4 +70,12 @@ func powerSource() (string, *int) {
 		return "", nil
 	}
 	return windowsPower(s.ACLineStatus, s.BatteryFlag, s.BatteryLifePercent)
+}
+
+func systemDisk() string {
+	drive := os.Getenv("SystemDrive")
+	if drive == "" {
+		drive = "C:"
+	}
+	return drive + `\`
 }

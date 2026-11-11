@@ -11,7 +11,7 @@ func collectOS() Telemetry {
 	if total, free, ok := darwinMemory(run("sysctl", "-n", "hw.memsize"), run("vm_stat")); ok {
 		t.MemTotalMB, t.MemFreeMB = intp(total), intp(free)
 	}
-	t.DiskFreeGB = diskFreeGB("/")
+	t.DiskFreeGB = DiskFreeGB()
 	t.Power, t.BatteryPct = powerSource()
 	if idle, ok := parseHIDIdle(run("ioreg", "-c", "IOHIDSystem", "-d", "4", "-r")); ok {
 		t.UserActive = boolp(idle < 300)
@@ -28,3 +28,5 @@ func statfsFreeGB(path string) int {
 }
 
 func powerSource() (string, *int) { return parsePmsetBatt(run("pmset", "-g", "batt")) }
+
+func systemDisk() string { return "/" }

@@ -221,7 +221,18 @@ func runtimeInstall(args []string) int {
 		time.Sleep(5 * time.Second)
 	}
 	fmt.Printf("  ✓ Runner answers on 127.0.0.1:%d.\n\n", port)
-	if _, err := service.Load(); err == nil {
+	if cfg, err := service.Load(); err == nil {
+		if cfg.Runtime == "xyntetik" && cfg.Port == port {
+			return 0 // the garage serves this Runner already
+		}
+		if !portBusy(cfg.Port) {
+			// The runtime the garage was set up with is gone (garage-m1, 2026-11-11: Ollama removed,
+			// then Runner installed, and doctor said "set up for port 11434"): move the garage to
+			// Runner, keeping the link. A runtime still answering there is left as it is.
+			fmt.Printf("  Nothing answers on port %d any more (%s): moving this garage to Runner.\n\n", cfg.Port, cfg.Runtime)
+			os.Setenv("GARAGEAI_REUSE_LINK", "1")
+			return connect([]string{"--runtime", "xyntetik", "--port", strconv.Itoa(port), "--yes"})
+		}
 		fmt.Printf("  Next: offer it on GarageAI (keeps your link):  garageai connect --runtime xyntetik --port %d\n", port)
 	} else {
 		fmt.Println("  Next: connect this machine to GarageAI:  garageai connect")
