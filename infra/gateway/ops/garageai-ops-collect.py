@@ -241,11 +241,34 @@ def containers():
 
 
 # ---------------------------------------------------------------- garages and providers
+HEALTH_TARGETS = "/var/lib/garageai-health/targets-cache.json"
+HEALTH_TARGETS_FRESH = 150  # seconds: the health check runs every minute
+
+
+def health_targets():
+    """The targets the health check fetched from the portal within the last minutes, or None. The
+    health check asks the portal every minute anyway; reading its copy saves this collector one
+    portal function call a minute (43,000 a month). Only a copy that came from the portal counts:
+    when the portal does not answer the health check, the collector asks itself and reports that."""
+    try:
+        if time.time() - os.path.getmtime(HEALTH_TARGETS) > HEALTH_TARGETS_FRESH:
+            return None
+        if (read_json(HEALTH_LAST, None) or {}).get("source") != "portal":
+            return None
+        targets = read_json(HEALTH_TARGETS, None)
+        return targets if isinstance(targets, list) else None
+    except OSError:
+        return None
+
+
 def portal_targets(env):
     url = env.get("GARAGEAI_PORTAL_URL", "").rstrip("/")
     key = env.get("GARAGEAI_GATEWAY_KEY", "")
     if not url or not key:
         return None, None, None
+    shared = health_targets()
+    if shared is not None:
+        return 200, None, shared
     code, body, ms = http(f"{url}/functions/v1/gateway-targets", {"x-gateway-key": key}, timeout=15)
     if code != 200:
         return code, ms, None
