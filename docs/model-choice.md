@@ -26,7 +26,7 @@ can ask for at least 128k context and never land on a garage that cannot take it
 | Garage or provider | `connection_type` (`mesh` vs `endpoint`) | none |
 | Reliability | `garage_reliability` grade | none |
 | Price | the garage's prices | none |
-| Energy (tokens per kWh) | Bridge v1.3.0 reports `agent.energy` | stored and aggregated per garage and model (portal) |
+| Energy (tokens per kWh) | Door v1.3.0 reports `agent.energy` | stored and aggregated per garage and model (portal) |
 
 ## Step 1: show the differences and filter on a few (portal, Lovable)
 
@@ -39,7 +39,7 @@ our own columns:
 - **Tokens/s and first token:** the median of the last 7 days of real requests where there are
   at least 10, else the latest acceptance test, labelled "test".
 - **Quantization:** the parsed value, or "unknown".
-- **Energy:** tokens per kWh when Bridge reports it. It is empty for garages without a power
+- **Energy:** tokens per kWh when Door reports it. It is empty for garages without a power
   reading, never 0.
 - **Providers** show "datacenter" in the Energy column and are marked as providers.
 - **Garages offline right now** stay in the table, greyed, with "offline". This shows that

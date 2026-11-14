@@ -3,12 +3,12 @@ section: "community"
 order: 10
 title: "Open Source & Community"
 subtitle: "Built in the open"
-description: "GarageAI is built on open-source software, and our own gateway setup and GarageAI Bridge are public. Read the code, run your own gateway, or help us build the platform."
+description: "GarageAI is built on open-source software, and our own gateway setup and GarageAI Door are public. Read the code, run your own gateway, or help us build the platform."
 quotes: []
 stats:
   - icon: "🔐"
     value: "WireGuard"
-    label: "Bridge's encrypted tunnel"
+    label: "Door's encrypted tunnel"
   - icon: "🔀"
     value: "LiteLLM"
     label: "OpenAI-compatible gateway"
@@ -22,7 +22,7 @@ githubDiscussionsUrl: "https://github.com/magnusfroste/garageai/discussions"
 buildTitle: "🛠️ Build & Contribute"
 buildItems:
   - "Read the gateway setup: infra/gateway/README.md"
-  - "Read or improve GarageAI Bridge, the program that connects a garage: cli/"
+  - "Read or improve GarageAI Door, the program that connects a garage: cli/"
   - "Report issues and ideas on GitHub"
   - "Share how you run your garage so others can learn from it"
   - "Serve your own fine-tune or distill so others can try it"

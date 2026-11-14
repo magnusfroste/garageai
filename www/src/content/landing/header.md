@@ -8,8 +8,8 @@ ctaUrl: "https://app.garageai.eu/auth"
 navLinks:
   - label: "Home"
     sectionId: null
-  - label: "Bridge"
-    sectionId: "bridge"
+  - label: "Door"
+    sectionId: "door"
   - label: "How It Works"
     sectionId: "how-it-works"
   - label: "Technology"

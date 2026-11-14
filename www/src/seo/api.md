@@ -58,7 +58,7 @@ related:
   - text: "Pricing: every garage sets its own price"
     url: "/#pricing"
   - text: "Share your own GPU and earn credits instead"
-    url: "/bridge"
+    url: "/door"
   - text: "Privacy policy"
     url: "/privacy"
 ---

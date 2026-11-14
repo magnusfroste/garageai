@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 const Header = ({ logo = 'GarageAI', ctaText = 'Get Started', ctaUrl = 'https://app.garageai.eu/auth', navLinks = [] } = {}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // On the home page the nav scrolls to a section; on other pages (bridge, api, terms, …) the
+  // On the home page the nav scrolls to a section; on other pages (door, api, terms, …) the
   // section is not there, so it goes to the home page's section instead.
   const scrollToSection = (sectionId) => {
     const element = document.getElementById(sectionId);

@@ -1,10 +1,10 @@
-# Signed Bridge releases
+# Signed Door releases
 
 Decided 2026-10-22. Status: code ready, **turned on when the first public key is in the build**.
 
 ## Why
 
-Bridge runs as root (Administrator on Windows) on every garage, including garages of people we
+Door runs as root (Administrator on Windows) on every garage, including garages of people we
 do not know, and it updates itself. Until now an update was trusted because it came from this
 repository's GitHub releases and matched the release's own `SHA256SUMS`. Whoever controls the
 GitHub account (a stolen session, a leaked token, a malicious workflow) could therefore publish a
@@ -69,7 +69,7 @@ go run ./tools/releasesign keygen -out ~/garageai-release-backup.key
 
 1. Generate the two keys and send the two public keys. A PR puts them in `trustedKeys`.
 2. Release that version as usual. That release itself is installed by garages running older
-   Bridge versions, which do not check signatures, so sign it anyway: from then on every release
+   Door versions, which do not check signatures, so sign it anyway: from then on every release
    must be signed.
 3. Update AUDIT.md claim 6 and the security page ("self-update installs only releases signed with
    a key kept off GitHub").

@@ -28,7 +28,7 @@ rows:
     note: "Where the request is processed is a first-class property, not a side effect."
   - feature: "Operators open no inbound ports"
     values: ["yes", "partial", "no", "n/a"]
-    note: "Bridge opens one outgoing WireGuard tunnel; only the gateway can reach the runtime port."
+    note: "Door opens one outgoing WireGuard tunnel; only the gateway can reach the runtime port."
   - feature: "Live in minutes: one line, approve in the browser"
     values: ["yes", "partial", "no", "n/a"]
     note: "Create a garage, run one command, pass the acceptance test, go live."

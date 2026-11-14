@@ -8,7 +8,7 @@ Spec, 2026-10-20. Status: decided, not built. Point 1 of the chat review (the ot
 People who run local AI already have good chat apps at the desk: LM Studio, Ollama's app, Jan,
 Open WebUI. What none of them gives without networking work (Tailscale, a tunnel, open ports) is
 **the same machine from the phone or another computer, anywhere**. GarageAI already has that path:
-Bridge's outgoing tunnel and the gateway. But today an owner reaches their own machine only as a
+Door's outgoing tunnel and the gateway. But today an owner reaches their own machine only as a
 **buyer**. They pay credits to themselves, and only for models that passed the market's
 acceptance test and are offered for sale. A garage paused in the portal cannot be reached at all.
 
@@ -75,7 +75,7 @@ GarageAI over a do-it-yourself setup.
 | Owner check | Gateway, `garageai_callbacks.py` | Rule 2 in `async_pre_call_hook`: the `mine/` prefix requires `user_api_key_dict.user_id == operator_id`, otherwise 404. Rule 7: the deployment filter drops any `garage_tier == "private"` deployment from every model group that is not `mine/...`. Tests in `tests/test_callbacks.py`. |
 | Hidden listing | Gateway, `garageai_callbacks.py` | Built on LiteLLM 1.105's `async_filter_listed_models` hook, which narrows `/v1/models`, `/v1/models/{id}` (404), `/model/info` and `/model_group/info` per caller: a `mine/` name is listed only for a key whose `user_id` is one of its operators. If the filter fails, every private name is hidden. Access groups do not work for this: a key with `models: []` lists every model, access groups included (checked in `get_key_models`). |
 | Health and routing | Gateway, health check | Paused garages (`paused: true`) keep their private routes in routing (rule 5). |
-| Chat | Portal (Lovable, frontend) | The section "Your machines" first in the picker, with the state from the garage's latest heartbeat and health result. The awake, asleep and not-answering wording follows Bridge's own words: an *asleep since* time when the last heartbeat said `away`, or the machine reported battery or sleep. No price on these rows. |
+| Chat | Portal (Lovable, frontend) | The section "Your machines" first in the picker, with the state from the garage's latest heartbeat and health result. The awake, asleep and not-answering wording follows Door's own words: an *asleep since* time when the last heartbeat said `away`, or the machine reported battery or sleep. No price on these rows. |
 | My garages | Portal | The choice "Who can use this machine" (Only me / Me and the market). A one-line explanation for each. Swedish strings. |
 | Ops | Gateway, Ops collector | Private requests are counted per garage in their own column (requests, tokens). They are kept out of revenue, the buyer funnel and market quality. |
 
@@ -110,7 +110,7 @@ any `mine/` deployment.
 - **3. Phone first.** An installable web app (PWA), fast start, voice input. The promise:
   "talk to the computer at home from the bus".
 - **4. Chat history at home.** A third storage choice next to "this device" and "my account":
-  Bridge stores the history on the owner's own machine, and the chat syncs there through the
+  Door stores the history on the owner's own machine, and the chat syncs there through the
   tunnel. Then neither prompts nor history leave the owner's hardware except in transit.
 - **5. What Claude taught everyone to expect.** Projects with their own instructions, files (PDF,
   images for vision models), code and HTML previews in a side panel, web search.

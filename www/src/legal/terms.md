@@ -15,11 +15,11 @@
 
 GarageAI is provided by Liteit AB, org.nr 556616-1658, Kaplansbacken 3, 112 24 Stockholm, Sweden ("GarageAI", "we"), which also takes payments (through Stripe) and issues receipts. Contact:
 hello@garageai.eu. These terms apply to every account on app.garageai.eu, to the API at
-api/llm.garageai.eu and to GarageAI Bridge.
+api/llm.garageai.eu and to GarageAI Door.
 
 ## 2. What GarageAI does, and what it does not
 
-GarageAI provides a portal, an API gateway and the Bridge software. Through them, a buyer's
+GarageAI provides a portal, an API gateway and the Door software. Through them, a buyer's
 request is routed to an operator's machine, where an open model produces the answer, and the
 answer is returned to the buyer. GarageAI measures usage, takes payment from buyers and, when
 payouts exist, pays operators.
@@ -66,7 +66,7 @@ revoke it in the portal.
 - **Confidentiality.** You do not log, store, read, forward or analyse buyers' prompts or answers,
   and you do not enable request logging in your runtime. A garage found doing so is removed and
   the account closed.
-- **Bridge.** Bridge reports your machine's state and models to GarageAI (never prompts, keys or
+- **Door.** Door reports your machine's state and models to GarageAI (never prompts, keys or
   command lines), keeps a tunnel to the gateway and updates itself. You may pause or uninstall it
   at any time.
 - **No guarantee of traffic or income.** How many requests your garage gets depends on demand,
@@ -86,9 +86,9 @@ revoke it in the portal.
 - **Independence.** You act on your own behalf. Nothing in these terms makes you GarageAI's
   employee, agent, partner or subcontractor.
 
-## 6. Bridge (the software)
+## 6. Door (the software)
 
-Bridge is open source under the MIT licence. It is provided as it is; you install it on your own
+Door is open source under the MIT licence. It is provided as it is; you install it on your own
 machine at your own risk. It asks for administrator rights to install its services, opens no
 inbound ports and can be removed with `garageai uninstall`.
 
@@ -127,7 +127,7 @@ credits.
 
 ## 10. Personal data
 
-How we handle personal data (account details, usage figures, Bridge's machine reports) is
+How we handle personal data (account details, usage figures, Door's machine reports) is
 described in the privacy policy (garageai.eu/privacy). GarageAI does not store the content of prompts or answers; the portal's chat keeps your conversations in your account only if you turn that on.
 
 ## 11. Ending

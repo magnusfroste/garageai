@@ -28,7 +28,7 @@ links:
     url: "mailto:powerup@garageai.eu"
   - icon: "💶"
     text: "Share your GPU"
-    url: "/bridge"
+    url: "/door"
   - icon: "🔌"
     text: "OpenAI-compatible API"
     url: "/api"
@@ -50,7 +50,7 @@ partners:
   - name: "Liteit"
     url: "https://www.liteit.se"
 credits: "Built on open source: WireGuard and LiteLLM."
-copyright: "© 2026 Liteit AB · GarageAI · Bridge under the MIT License · Made in Sweden 🇸🇪 · Built for Europe 🇪🇺"
+copyright: "© 2026 Liteit AB · GarageAI · Door under the MIT License · Made in Sweden 🇸🇪 · Built for Europe 🇪🇺"
 ---
 
 Content for this section is defined in the frontmatter above.

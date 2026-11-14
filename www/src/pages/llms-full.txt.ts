@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { getEntry } from 'astro:content';
 import llmsSummary from '../../public/llms.txt?raw';
 import securityPage from '../legal/security.md?raw';
-import bridgePage from '../seo/bridge.md?raw';
+import doorPage from '../seo/door.md?raw';
 import apiPage from '../seo/api.md?raw';
 import myMachinePage from '../seo/my-machine.md?raw';
 
@@ -22,7 +22,7 @@ export const GET: APIRoute = async () => {
     const body = (m ? m[2] : raw).trim().replace(/^## /gm, '### ');
     return `## ${field('h1')} (https://www.garageai.eu${field('path')})\n\n${field('lead')}\n\n${body}`;
   };
-  const pages = [bridgePage, apiPage, myMachinePage].map(page).join('\n\n');
+  const pages = [doorPage, apiPage, myMachinePage].map(page).join('\n\n');
   // The hardware setup guides, from the same entry as the "Pick your setup" cards.
   const setupsEntry = await getEntry('landing', 'setups');
   const setups = ((setupsEntry?.data as any)?.setups ?? [])

@@ -1,7 +1,7 @@
 # Security for garage owners
 
 What happens on your machine when you offer your GPU on GarageAI, in plain words: what the
-connect command (GarageAI Bridge) installs, who can reach your machine, and what they can and cannot do.
+connect command (GarageAI Door) installs, who can reach your machine, and what they can and cannot do.
 
 ## The short version
 
@@ -23,12 +23,12 @@ The plain-language version for operators is at https://www.garageai.eu/security 
                              your machine opened this tunnel, outwards
 ```
 
-Since Bridge v0.4.2 the tunnel is Bridge's own: WireGuard, run inside the `garageai` program
-(no network interface, no VPN client, no route on your machine). Bridge dials out to the
+Since Door v0.4.2 the tunnel is Door's own: WireGuard, run inside the `garageai` program
+(no network interface, no VPN client, no route on your machine). Door dials out to the
 gateway's hub on UDP 51830, and inside that tunnel it accepts connections on one port and passes
 them to your runtime on `127.0.0.1`. Your runtime keeps listening on localhost only. The tunnel
 is keyed: only the hub's key is accepted, so nothing but the gateway can send anything through
-it. Bridge does keep a UDP socket open for the tunnel, but WireGuard answers nothing it cannot
+it. Door does keep a UDP socket open for the tunnel, but WireGuard answers nothing it cannot
 authenticate, so from the internet it looks like nothing at all. Because your machine is the one
 that connects out, it works behind a home router, behind NAT, on a laptop that changes network.
 
@@ -43,10 +43,10 @@ that connects out, it works behind a home router, behind NAT, on a laptop that c
 
 ## What the connect command installs
 
-The command installs **GarageAI Bridge**, one small program called `garageai`, and runs
-`garageai connect`. Bridge is open source: read [`cli/`](../cli/README.md) before you run it.
+The command installs **GarageAI Door**, one small program called `garageai`, and runs
+`garageai connect`. Door is open source: read [`cli/`](../cli/README.md) before you run it.
 The install downloads a build for your system and checks it against the release's checksum.
-Bridge asks for your password once (`sudo`) because these things need administrator rights:
+Door asks for your password once (`sudo`) because these things need administrator rights:
 
 1. **The tunnel service** (`garageai tunnel`, a systemd service on Linux, a launchd daemon on
    macOS) that keeps the tunnel up and reconnects by itself after sleep or a network change. Its
@@ -55,19 +55,19 @@ Bridge asks for your password once (`sudo`) because these things need administra
 2. **A heartbeat service** (`garageai run`, every 5 minutes) that tells GarageAI which models your
    runtime serves and their context windows, and reports what `garageai doctor` finds (so support
    can see what you see). It sends your garage's name, the runtime type, the port, the model names
-   and Bridge's own version. It does not send prompts, files or anything else. Its settings,
+   and Door's own version. It does not send prompts, files or anything else. Its settings,
    including your garage's token, are in `/etc/garageai/bridge.json`, readable only by
    administrators (`bridge-public.json` holds the same without secrets, for doctor). The service
    runs its own copy of the program in a directory only root can write (`/Library/Application
    Support/GarageAI` on macOS, `/usr/local/lib/garageai` on Linux), never the file in your PATH,
    so nothing running as your user can change what runs as root.
-3. **Progress reports.** While connecting, Bridge tells GarageAI which step it is on and, when
+3. **Progress reports.** While connecting, Door tells GarageAI which step it is on and, when
    a step fails, what it found on the machine: operating system, GPU, memory, which inference
    runtimes answer on which ports and addresses, firewall state. Never keys, prompts or command
    lines; file paths are reduced to file names.
 
-Bridge does not change your router, firewall, Docker or other software. `garageai uninstall`
-removes the services and Bridge's settings.
+Door does not change your router, firewall, Docker or other software. `garageai uninstall`
+removes the services and Door's settings.
 
 ## What GarageAI can and cannot do on your machine
 
@@ -75,44 +75,44 @@ removes the services and Bridge's settings.
 
 - **Send requests to your runtime's port** through the tunnel. In practice the gateway calls two
   things: the model list, and chat completions on behalf of buyers.
-- **Update Bridge** (since v0.5.0). The portal names a version it has run on GarageAI's own
-  garages first; Bridge fetches it from this repository's GitHub releases only (no other address
+- **Update Door** (since v0.5.0). The portal names a version it has run on GarageAI's own
+  garages first; Door fetches it from this repository's GitHub releases only (no other address
   is accepted, whatever the portal says), checks it against the release's checksums, runs it
   once, and only then replaces the service's copy. `garageai connect --no-auto-update` turns this
   off; `garageai update` does it by hand.
 - **Fetch or remove models in Ollama** (since v0.6.0), when you add a model under My garages or
   let GarageAI choose. Only from Ollama's library or Hugging Face, one at a time, with 10 GB kept
-  free on the disk; a model you installed yourself is never removed by Bridge. `garageai models`
+  free on the disk; a model you installed yourself is never removed by Door. `garageai models`
   shows what was asked and what happened.
 
 **Cannot:** log in to your machine, run commands, read your files, see your screen, reach other
-ports, or reach other devices on your home network. Bridge runs nothing the portal sends: the
-portal can only choose among the actions above, and each has its own limits in Bridge's code.
+ports, or reach other devices on your home network. Door runs nothing the portal sends: the
+portal can only choose among the actions above, and each has its own limits in Door's code.
 
 Two things you should know, because they follow from how runtimes work:
 
-- **Only inference passes through the tunnel (since Bridge v0.6.2).** Bridge forwards the
+- **Only inference passes through the tunnel (since Door v0.6.2).** Door forwards the
   OpenAI-style inference paths (`/v1/chat/completions`, `/v1/models`, embeddings, the Anthropic
   and Responses variants), the read-only Ollama endpoints the health check uses, and `/metrics`.
   Ollama's management commands (pull, delete, create) and anything else on the port answer 403
-  from Bridge itself and never reach the runtime. This is a property of your machine, not a
+  from Door itself and never reach the runtime. This is a property of your machine, not a
   promise about the gateway.
 - **Your runtime stays on localhost.** Nothing on your home network, and nothing on the internet,
   can reach it through GarageAI.
 
 ## Security review
 
-Bridge was reviewed on 2026-10-13 (an independent read of all of `cli/`, threat model: a
+Door was reviewed on 2026-10-13 (an independent read of all of `cli/`, threat model: a
 compromised portal, a local user on the machine, a network attacker, a buyer, and the operator's
 own secrets). Fixed the same day (v0.6.1):
 
-- The portal could name the address Bridge fetched updates from, and the checksums came from the
+- The portal could name the address Door fetched updates from, and the checksums came from the
   same address: a compromised portal could have run anything as root on every garage. Now only
   this repository's GitHub releases are accepted.
-- After an update, Bridge (as root) refreshed the `garageai` command in every user's `~/.local/bin`
+- After an update, Door (as root) refreshed the `garageai` command in every user's `~/.local/bin`
   by following whatever was there, including a symlink a local user could have planted. It now
   touches only `/usr/local/bin/garageai`, and only when that file and directory are root's.
-- As root, Bridge searched Homebrew's user-owned directories for tools such as `nvidia-smi`; a
+- As root, Door searched Homebrew's user-owned directories for tools such as `nvidia-smi`; a
   file planted there by anything running as your user would have run as root every 5 minutes.
   Root now only uses directories nobody else can write in.
 - The runtime's API key was offered to any local port that answered "unauthorized"; now only to
@@ -124,7 +124,7 @@ own secrets). Fixed the same day (v0.6.1):
 
 Still open, in order: signing the release checksums with a key kept off GitHub (so a compromised
 GitHub account cannot ship a release); running the tunnel service as its own unprivileged user;
-Windows file permissions (Bridge's Windows service is not finished); an inference-only path
+Windows file permissions (Door's Windows service is not finished); an inference-only path
 filter in the tunnel. The findings and their status are tracked in docs/bridge.md.
 
 ## Other people's prompts run on your machine
@@ -164,7 +164,7 @@ and turn it off again before resuming.
 
 ```bash
 garageai doctor      # tunnel, runtime, heartbeat: what works and what to fix
-garageai uninstall   # remove the heartbeat, the tunnel and Bridge's settings
+garageai uninstall   # remove the heartbeat, the tunnel and Door's settings
 ```
 
 Stopping your runtime or shutting down the machine also takes your garage off the market

@@ -48,7 +48,7 @@ hardware is yours first.
 3. **Own requests first at the runtime, where the runtime allows it.**
    - On **vLLM** started with `--scheduling-policy priority`, the gateway sends the owner's
      requests with `priority: -10` and market requests with `0`, so vLLM schedules the owner first
-     even when a buyer's request is queued. Bridge's doctor recommends the flag on vLLM garages
+     even when a buyer's request is queued. Door's doctor recommends the flag on vLLM garages
      with "Pause the market".
    - **Ollama, LM Studio, llama.cpp and Runner** have no priorities. Rule 2 is what helps there,
      and doctor recommends a second parallel slot (`OLLAMA_NUM_PARALLEL=2`, llama.cpp `--parallel
@@ -70,14 +70,14 @@ hardware is yours first.
 |---|---|---|
 | Owner activity | Gateway, `garageai_callbacks.py` | `async_pre_call_hook` on a `mine/` request marks the garage active until now + the garage's hold. `async_log_success_event` and `async_log_failure_event` move the end to request end + hold. The state lives in memory: the gateway is one process, and a restart simply ends every hold. |
 | Hold | Gateway, `async_filter_deployments` | For any non-`mine/` model group, drop the deployments whose `model_info.garage` is owner-active and whose garage has `owner_priority: hold`. This runs before rules 6 and 7. If that leaves nothing, raise the 503 "busy for a moment" with `Retry-After` set to the remaining hold. Log one line per hold start and end: garage, minutes, market requests diverted. |
-| Priority | Gateway, `async_pre_call_deployment_hook` | On a vLLM deployment (`model_info.runtime == "vllm"`) of a garage with the setting on, add `priority` to the request body: `-10` for `mine/` and `0` otherwise. Only send it when Bridge reports that vLLM was started with `--scheduling-policy priority` (heartbeat field, see Bridge). vLLM rejects the field otherwise. |
+| Priority | Gateway, `async_pre_call_deployment_hook` | On a vLLM deployment (`model_info.runtime == "vllm"`) of a garage with the setting on, add `priority` to the request body: `-10` for `mine/` and `0` otherwise. Only send it when Door reports that vLLM was started with `--scheduling-policy priority` (heartbeat field, see Door). vLLM rejects the field otherwise. |
 | Setting | Portal | `garages.owner_priority` (`hold` by default, or `share`) and `owner_hold_minutes` (default 5). Both are copied into `model_info` of the garage's market deployments, as `owner_priority` and `owner_hold_minutes`, so the gateway reads them without asking the portal. The setting and the "paused for you" minutes appear in My garages, and the chat footer note uses a response header from the gateway (below). Swedish strings. |
 | Wait note | Gateway | When an owner's request is served by a garage that had market requests in flight at the time, the response carries `x-garageai-waited-for-market: <seconds>`, measured as the time to first token minus the garage's usual time to first token, only when it is above 5 s. Traefik passes it, and it is listed in CORS `Access-Control-Expose-Headers` for the chat. |
-| Bridge | Bridge (`cli/`) | Doctor detects vLLM's `--scheduling-policy` and reports it in the heartbeat (`runtime_features: ["priority"]`). It recommends the flag on vLLM, and a second parallel slot on Ollama, llama.cpp and Runner, when the garage's setting is "Pause the market". |
+| Door | Door (`cli/`) | Doctor detects vLLM's `--scheduling-policy` and reports it in the heartbeat (`runtime_features: ["priority"]`). It recommends the flag on vLLM, and a second parallel slot on Ollama, llama.cpp and Runner, when the garage's setting is "Pause the market". |
 | Ops | Ops collector | Per garage: hold minutes per day and market requests diverted. An alert when a garage is owner-active for more than 20 hours in a day. |
 
 Order: gateway hold first (rules 1, 2, 4, 5), then the portal setting (until then every garage
-counts as `hold` with 5 minutes), then vLLM priority with Bridge's report, then the wait note and
+counts as `hold` with 5 minutes), then vLLM priority with Door's report, then the wait note and
 Ops.
 
 ## Acceptance

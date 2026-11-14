@@ -1,0 +1,8 @@
+---
+import DoorReact from './DoorReact.jsx';
+
+// "GarageAI Door" section. Content: src/content/landing/door.md.
+const props = Astro.props;
+---
+
+<DoorReact client:visible={{ rootMargin: "300px" }} {...props} />

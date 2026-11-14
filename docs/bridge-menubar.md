@@ -1,15 +1,15 @@
-# Bridge in the menu bar
+# Door in the menu bar
 
 Sketch, 2026-10-17. Phase 1 built 2026-10-20 (`garageai tray`, cli/internal/tray). Inspired by Xyntetik Runner's tray
 (`src/tray_macos.m`, `src/tray_win.c`: an `NSStatusItem` on macOS and a notification-area icon on
 Windows, rendering a menu that portable C code describes).
 
-## Name: GarageAI, not Bridge (decided 2026-10-17)
+## Name: GarageAI, not Door (decided 2026-10-17)
 
 What the operator sees on their own machine is called **GarageAI**: the menu-bar item and its
 tooltip ("GarageAI · garage-m2 · Live"), notifications, the login item ("Open GarageAI at login"),
-the control panel. "Bridge" stays the name of the program where how it works is the point
-(GitHub, the docs, the landing page's "GarageAI Bridge connects your GPU"), the way Tailscale's menu
+the control panel. "Door" stays the name of the program where how it works is the point
+(GitHub, the docs, the landing page's "GarageAI Door connects your GPU"), the way Tailscale's menu
 says Tailscale while tailscaled does the work. The command is `garageai` already. Service
 identifiers stay as they are (renaming them means migrating every garage); the Windows services'
 display names can become "GarageAI tunnel" and "GarageAI heartbeat" without risk, and the
@@ -44,7 +44,7 @@ The menu, top to bottom:
    vision, when it exists). Resume when paused.
 5. **Open My garage…** (the portal) and **Check this machine…** (doctor's summary in a small
    window, with "Copy for support").
-6. **Bridge version** ("up to date", or "updating to 1.2.0"), **Show at login**, and **Hide icon**:
+6. **Door version** ("up to date", or "updating to 1.2.0"), **Show at login**, and **Hide icon**:
    hiding the icon never stops the garage.
 
 Icon states: live (outline), serving (accent, with the number of requests in flight), paused or
@@ -97,7 +97,7 @@ users:**
 | Live in the portal, offered models, today's requests and earnings | the portal's heartbeat answer | **new**: the portal adds `garage: {live, offered, requests_today, tokens_today, earned_today}` to the node-heartbeat response, the heartbeat writes it to `status.json` |
 
 So the one new thing on the portal side is a few fields in the heartbeat answer (Lovable), and
-on Bridge's side a `status.json` next to `bridge-public.json`, rewritten by every heartbeat. The
+on Door's side a `status.json` next to `bridge-public.json`, rewritten by every heartbeat. The
 tray polls the files every 5 seconds (like Runner's tray polls `/health`); the figures are at
 most 5 minutes old, which is fine for "today".
 
@@ -114,7 +114,7 @@ weekly figure on Monday morning.
 
 ## Building it
 
-Bridge is pure Go and cross-compiled without cgo, and the tray keeps it that way: no C on any OS.
+Door is pure Go and cross-compiled without cgo, and the tray keeps it that way: no C on any OS.
 
 - **Windows:** no cgo. `Shell_NotifyIconW`, a hidden message window and `TrackPopupMenu` through
   `golang.org/x/sys/windows` (already a dependency). Notifications through the same icon.
@@ -126,7 +126,7 @@ Bridge is pure Go and cross-compiled without cgo, and the tray keeps it that way
   main thread (`runtime.LockOSThread` in `init`). The darwin binaries stay cross-compiled from Linux
   in the release workflow, exactly as today. Proven by a spike on 2026-10-20 (`spikes/tray-purego`):
   built on Linux with `CGO_ENABLED=0`, it showed "GarageAI" in the menu bar on macos-latest.
-  purego becomes Bridge's first dependency outside `golang.org/x`; it is imported only by the
+  purego becomes Door's first dependency outside `golang.org/x`; it is imported only by the
   darwin tray file. One binary still: `garageai tray` is a subcommand, and every other command
   keeps working without a window server.
 - **Linux:** no tray (servers). Maybe AppIndicator later for Linux desktops.
@@ -149,7 +149,7 @@ That keeps the logic testable in CI on every OS without a screen.
 3. **Notifications:** first request, offline, Smart download done, weekly figure.
 4. **The control panel:** a small window behind "Open GarageAI…" with the week's earnings curve,
    price per model, what Smart would fetch, and "go live with one click" for a machine that has
-   Bridge but no garage yet (`garageai runtime` + connect behind one button).
+   Door but no garage yet (`garageai runtime` + connect behind one button).
 
 Gaming auto-pause (from the vision) slots into phase 2: the tray, in the user's session, is the
 one process that can see that a game is in the foreground.
