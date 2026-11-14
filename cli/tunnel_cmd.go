@@ -25,7 +25,7 @@ func tunnelCmd() int {
 		return 2
 	}
 	if cfg.Transport != "tunnel" || cfg.MeshIP == "" || cfg.HubPublicKey == "" || cfg.HubEndpoint == "" {
-		fmt.Fprintln(os.Stderr, "garageai tunnel: this garage is not set up for the Bridge tunnel (run garageai connect)")
+		fmt.Fprintln(os.Stderr, "garageai tunnel: this garage is not set up for the GarageAI tunnel (run garageai connect)")
 		return 2
 	}
 	key, err := os.ReadFile(service.TunnelKeyPath())
@@ -71,7 +71,7 @@ func tunnelLoop(ctx context.Context, cfg *service.Config, key string, addr netip
 			}
 			continue
 		}
-		logf("tunnel up: %s via %s, Bridge %s", addr, cfg.HubEndpoint, version)
+		logf("tunnel up: %s via %s, Door %s", addr, cfg.HubEndpoint, version)
 		go t.Watch(ctx)
 		// Report the state now and then, and restart the tunnel if the hub has been silent too long
 		// (the hub's key or endpoint changed, or something is wedged that a rebind did not fix).

@@ -28,7 +28,7 @@ func TestNewerVersion(t *testing.T) {
 
 // A release server: the asset and SHA256SUMS. The download is accepted only when the sums match.
 func TestDownloadVerified(t *testing.T) {
-	asset := []byte("#!/bin/sh\necho GarageAI Bridge v9.9.9\n")
+	asset := []byte("#!/bin/sh\necho GarageAI Door v9.9.9\n")
 	sum := sha256.Sum256(asset)
 	good := hex.EncodeToString(sum[:]) + "  " + assetName() + "\n"
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

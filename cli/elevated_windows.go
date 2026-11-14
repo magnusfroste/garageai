@@ -36,9 +36,9 @@ func elevate(cmd string, args []string) int {
 		}
 		list = append(list, psQuote(a))
 	}
-	fmt.Println("Bridge installs Windows services, which needs Administrator: Windows asks you to allow it.")
-	fmt.Println("Answer Yes; Bridge continues in a new window.")
-	// 87 when Windows refused (No in the dialog, or no administrator account): a code Bridge itself
+	fmt.Println("Door installs Windows services, which needs Administrator: Windows asks you to allow it.")
+	fmt.Println("Answer Yes; Door continues in a new window.")
+	// 87 when Windows refused (No in the dialog, or no administrator account): a code Door itself
 	// never exits with, so a real failure of the command is not mistaken for it.
 	script := fmt.Sprintf("try { $p = Start-Process -FilePath %s -ArgumentList %s -Verb RunAs -Wait -PassThru -ErrorAction Stop } catch { exit 87 }; exit $p.ExitCode",
 		psQuote(self), strings.Join(list, ","))

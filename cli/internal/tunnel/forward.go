@@ -75,7 +75,7 @@ func ForwardHandler(local string, logf func(format string, args ...any)) http.Ha
 			if logf != nil {
 				logf("refused %s %s through the tunnel (not an inference path)", r.Method, r.URL.Path)
 			}
-			writeJSON(w, http.StatusForbidden, "GarageAI Bridge forwards inference paths only")
+			writeJSON(w, http.StatusForbidden, "GarageAI Door forwards inference paths only")
 			return
 		}
 		proxy.ServeHTTP(w, r)

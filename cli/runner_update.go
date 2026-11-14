@@ -14,12 +14,12 @@ import (
 	"github.com/magnusfroste/garageai/cli/internal/tunnel"
 )
 
-// Runner follows Bridge. A Runner that `garageai runtime install` installed stays on the release it
-// was installed with unless something moves it; Bridge pins a Runner release (runnerfit.Version), and
-// a Bridge self-update brings a newer pin. Then the heartbeat upgrades Runner too, the same staged
-// way Bridge itself moves (canary garages first, everyone 24 h later):
+// Runner follows Door. A Runner that `garageai runtime install` installed stays on the release it
+// was installed with unless something moves it; Door pins a Runner release (runnerfit.Version), and
+// a Door self-update brings a newer pin. Then the heartbeat upgrades Runner too, the same staged
+// way Door itself moves (canary garages first, everyone 24 h later):
 //
-//   - only Runner installed by Bridge, only to a newer release, not with auto-update off;
+//   - only Runner installed by Door, only to a newer release, not with auto-update off;
 //   - only when it is quiet: Runner reports no active request, and none came in the last minute;
 //   - same model, port and context window as before;
 //   - the previous binary is kept, and restored when the new one does not answer within 3 minutes;

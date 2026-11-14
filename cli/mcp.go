@@ -1,6 +1,6 @@
 package main
 
-// garageai mcp: Bridge's tools for the operator's own agent (Claude Code, Claude Desktop, ChatGPT,
+// garageai mcp: Door's tools for the operator's own agent (Claude Code, Claude Desktop, ChatGPT,
 // opencode, ...) as an MCP server over stdio. Read-only: the tools look at the machine and the
 // knowledge base, and the agent tells the operator what to run. Changing anything (a runtime
 // setting, the service) stays a command the operator runs, or a tool that asks first, later.
@@ -25,7 +25,7 @@ import (
 
 var mcpProtocols = []string{"2025-06-18", "2025-03-26", "2024-11-05"}
 
-const mcpInstructions = `GarageAI Bridge connects this machine's GPU to the GarageAI network as a "garage" that sells inference.
+const mcpInstructions = `GarageAI Door connects this machine's GPU to the GarageAI network as a "garage" that sells inference.
 Start with the doctor tool: it finds what runs here and lists problems, each with a code, a severity and a fix.
 For a problem, explain_problem gives the knowledge base's section (what it means, how to fix it, what we learned).
 For anything else, search_knowledge. garage_status shows how this garage is connected and its heartbeat.
@@ -65,7 +65,7 @@ func mcpTools() []mcpTool {
 	return []mcpTool{
 		{
 			Name:        "doctor",
-			Description: "Look at this machine: OS, GPU, the Bridge tunnel, the heartbeat, every inference runtime and its models, and the problems found, each with a code, severity (error, warning, info) and a fix. The same check the portal and the Operations Center see.",
+			Description: "Look at this machine: OS, GPU, the GarageAI tunnel, the heartbeat, every inference runtime and its models, and the problems found, each with a code, severity (error, warning, info) and a fix. The same check the portal and the Operations Center see.",
 			InputSchema: obj(map[string]any{}),
 			call: func(map[string]any) (string, error) {
 				b, err := json.MarshalIndent(profile.Build(version), "", "  ")
@@ -87,7 +87,7 @@ func mcpTools() []mcpTool {
 		},
 		{
 			Name:        "search_knowledge",
-			Description: "Search GarageAI's garage knowledge base (connecting, the tunnel, runtimes, context windows, sleep, the heartbeat, updating Bridge, known mix-ups) for a question in plain words. Returns the best matching sections.",
+			Description: "Search GarageAI's garage knowledge base (connecting, the tunnel, runtimes, context windows, sleep, the heartbeat, updating Door, known mix-ups) for a question in plain words. Returns the best matching sections.",
 			InputSchema: obj(map[string]any{"query": str("The question or keywords")}, "query"),
 			call: func(a map[string]any) (string, error) {
 				q, _ := a["query"].(string)
@@ -100,7 +100,7 @@ func mcpTools() []mcpTool {
 		},
 		{
 			Name:        "garage_status",
-			Description: "How this garage is connected: Bridge's version, the garage's name, runtime and port, the portal it reports to, which binary the heartbeat service runs (and whether that is safe), and the heartbeat's latest log lines. No secrets.",
+			Description: "How this garage is connected: Door's version, the garage's name, runtime and port, the portal it reports to, which binary the heartbeat service runs (and whether that is safe), and the heartbeat's latest log lines. No secrets.",
 			InputSchema: obj(map[string]any{}),
 			call:        func(map[string]any) (string, error) { return garageStatus(), nil },
 		},
@@ -131,7 +131,7 @@ func garageStatus() string {
 	} else if os.IsPermission(err) {
 		st["garage"] = "configured (" + service.ConfigPath() + " is readable by root only)"
 	} else {
-		st["garage"] = "not connected with Bridge on this machine"
+		st["garage"] = "not connected with Door on this machine"
 	}
 	if prog := service.Program(); prog != "" {
 		hb := map[string]any{"program": prog}
@@ -212,7 +212,7 @@ func mcpServe(in io.Reader, out io.Writer) int {
 			reply(m.ID, map[string]any{
 				"protocolVersion": proto,
 				"capabilities":    map[string]any{"tools": map[string]any{}},
-				"serverInfo":      map[string]any{"name": "garageai-bridge", "title": "GarageAI Bridge", "version": version},
+				"serverInfo":      map[string]any{"name": "garageai-bridge", "title": "GarageAI Door", "version": version},
 				"instructions":    mcpInstructions,
 			}, nil)
 		case "ping":

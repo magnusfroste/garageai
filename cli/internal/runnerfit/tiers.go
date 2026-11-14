@@ -12,7 +12,7 @@ import (
 // one passed on. Since 1.7.0 Tier 1 holds only the files above Runner's download bar and Tier 2
 // carries the same kind of recorded pass, so both count. tiers.json is a compact snapshot taken at
 // the pinned Version: regenerate it whenever Version moves (`python3 gen-tiers.py vX.Y.Z >
-// tiers.json`; the PR that bumps Runner shows both), so Bridge recommends what that exact release
+// tiers.json`; the PR that bumps Runner shows both), so Door recommends what that exact release
 // was validated with, and never fetches a list at run time.
 //
 //go:embed tiers.json
@@ -66,7 +66,7 @@ func (r tierRow) chatModel() bool {
 }
 
 // restrictedLicences limit who may use the model commercially; a garage sells its answers, so
-// Bridge does not recommend them (the operator can still choose one).
+// Door does not recommend them (the operator can still choose one).
 var restrictedLicences = map[string]bool{
 	"lfm1.0":       true, // LFM Open License v1.0: commercial use only under US$10M annual revenue
 	"cc-by-nc-4.0": true, // Creative Commons non-commercial (Hemmingway 1 and 1.5, Runner 1.15.0)

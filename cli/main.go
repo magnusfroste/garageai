@@ -1,12 +1,12 @@
-// GarageAI Bridge: the bridge between an operator's GPU and the GarageAI network, as one command,
+// GarageAI Door: the bridge between an operator's GPU and the GarageAI network, as one command,
 // `garageai`. The roadmap is docs/bridge.md.
 //
 //	garageai connect [options]   open the tunnel, register the runtime, install the heartbeat
 //	garageai doctor [--json]     what runs on this machine, what is wrong, and how to fix it
 //	garageai run [--once]        the heartbeat (what the installed service runs)
-//	garageai uninstall           remove the heartbeat and Bridge's configuration
+//	garageai uninstall           remove the heartbeat and Door's configuration
 //	garageai install-service     make the heartbeat service run this version
-//	garageai mcp                 Bridge's tools for the operator's own agent (MCP over stdio)
+//	garageai mcp                 Door's tools for the operator's own agent (MCP over stdio)
 //	garageai tray [--install]    GarageAI in the menu bar (macOS) or notification area (Windows)
 //	garageai version
 package main
@@ -41,7 +41,7 @@ func main() {
 	}
 	switch args[0] {
 	case "version", "--version", "-v":
-		fmt.Println("GarageAI Bridge", version)
+		fmt.Println("GarageAI Door", version)
 	case "doctor":
 		os.Exit(doctor(len(args) > 1 && args[1] == "--json"))
 	case "connect", "login":
@@ -125,7 +125,7 @@ func sgr(code, s string) string {
 }
 
 func usage(code int) {
-	fmt.Fprintln(os.Stderr, `GarageAI Bridge — connects your GPU to the GarageAI network
+	fmt.Fprintln(os.Stderr, `GarageAI Door (formerly Bridge) — connects your GPU to the GarageAI network
 
 usage:
   garageai connect [options]   open the tunnel, check the runtime, register, install the heartbeat
@@ -134,13 +134,13 @@ usage:
       --runtime ollama|lmstudio|llamacpp|vllm|sglang|paddock|unsloth|mlx|lemonade|other
       --port N  --name NAME  --models a,b  --runtime-api-key KEY  --no-heartbeat  --yes
       --no-auto-update             keep this version until you run garageai update yourself
-      Bridge carries its own tunnel to the gateway (outgoing UDP); the runtime can stay on localhost.
+      Door carries its own tunnel to the gateway (outgoing UDP); the runtime can stay on localhost.
       Every option can also be given as GARAGEAI_REGISTER_TOKEN, GARAGEAI_RUNTIME, ... in the environment.
   garageai doctor [--json]     what runs on this machine, what is wrong, and how to fix it
   garageai run [--once]        the heartbeat: report the runtime's models (the service runs this)
-  garageai uninstall           remove the heartbeat and Bridge's configuration
+  garageai uninstall           remove the heartbeat and Door's configuration
   garageai install-service     make the heartbeat service run this version (the installer does this)
-  garageai mcp                 Bridge's tools for your own AI agent (MCP over stdio)
+  garageai mcp                 Door's tools for your own AI agent (MCP over stdio)
   garageai tunnel              this garage's own tunnel to the gateway (the installed service runs this)
   garageai connect --runtime <kind> --port <n>
                                change the runtime or port of a linked garage (no new link; --relink to link again)
@@ -150,7 +150,7 @@ usage:
                                planned absence: the portal drains this garage, buyers go elsewhere, no alerts
   garageai resume              offer the garage again
   garageai tray [--install|--uninstall|--print]   GarageAI in the menu bar (macOS) or notification area (Windows)
-  garageai update [vX.Y.Z]     update Bridge by hand (it updates itself to the portal's stable version otherwise)
+  garageai update [vX.Y.Z]     update Door by hand (it updates itself to the portal's stable version otherwise)
   garageai version`)
 	os.Exit(code)
 }
@@ -209,7 +209,7 @@ func printHuman(p profile.Profile) {
 				st = "running"
 			}
 		}
-		fmt.Printf("  Tunnel   Bridge tunnel %s, %s\n", p.Tunnel.IP, st)
+		fmt.Printf("  Tunnel   GarageAI tunnel %s, %s\n", p.Tunnel.IP, st)
 	} else {
 		fmt.Println("  Tunnel   not set up (garageai connect)")
 	}
@@ -289,7 +289,7 @@ func printHuman(p profile.Profile) {
 	for _, rt := range p.Runtimes {
 		reach := "only this machine (not linked yet)"
 		if p.Tunnel != nil {
-			reach = "reached through the Bridge tunnel" // the tunnel forwards to localhost: listening wider is not needed
+			reach = "reached through the GarageAI tunnel" // the tunnel forwards to localhost: listening wider is not needed
 		}
 		fmt.Printf("  Runtime  %s on port %d (%s), %d model(s), listens on %s: %s\n", rt.Kind, rt.Port, rt.API, len(rt.Models), strings.Join(rt.Binds, " "), reach)
 		loaded := map[string]int{}

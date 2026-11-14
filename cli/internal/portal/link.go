@@ -13,8 +13,8 @@ import (
 	"time"
 )
 
-// The link flow: Bridge asks the portal for a code, the operator approves this machine in the
-// browser, and Bridge picks up the garage's credentials. No token is ever copied or shown.
+// The link flow: Door asks the portal for a code, the operator approves this machine in the
+// browser, and Door picks up the garage's credentials. No token is ever copied or shown.
 // It is the device-authorization pattern (gh auth login).
 
 // DefaultAPI is the portal's functions URL; GARAGEAI_PORTAL_API overrides it (tests, staging).
@@ -48,7 +48,7 @@ type LinkRequest struct {
 	GPU           string   `json:"gpu,omitempty"`
 	MemoryGB      int      `json:"memory_gb,omitempty"`
 	Runtime       string   `json:"runtime,omitempty"`
-	Transport     string   `json:"transport,omitempty"` // always "tunnel": the Bridge tunnel is the only transport
+	Transport     string   `json:"transport,omitempty"` // always "tunnel": the GarageAI tunnel is the only transport
 	Models        []string `json:"models,omitempty"`
 	SuggestedName string   `json:"suggested_name,omitempty"`
 }

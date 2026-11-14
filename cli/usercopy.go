@@ -69,7 +69,7 @@ func useServiceCopy(args []string) (code int, ok bool) {
 	return 0, true
 }
 
-// versionOf asks a Bridge binary its version ("GarageAI Bridge v1.5.0" → "v1.5.0"), "" when it
+// versionOf asks a Door binary its version ("GarageAI Door v1.5.0" → "v1.5.0"), "" when it
 // does not answer.
 func versionOf(bin string) string {
 	out, err := exec.Command(bin, "version").Output()

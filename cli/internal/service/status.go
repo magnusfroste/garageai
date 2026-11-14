@@ -15,7 +15,7 @@ import (
 type Status struct {
 	Schema    int       `json:"schema"` // 1
 	UpdatedAt time.Time `json:"updated_at"`
-	Version   string    `json:"version"` // the heartbeat's Bridge
+	Version   string    `json:"version"` // the heartbeat's Door
 	Name      string    `json:"name"`
 	Runtime   string    `json:"runtime"`
 	Port      int       `json:"port"`
@@ -27,7 +27,7 @@ type Status struct {
 	Contexts map[string]int `json:"contexts,omitempty"`
 	// Why the garage takes no traffic right now (garageai pause, a runtime manager); nil = serving.
 	State    *StatusState    `json:"state,omitempty"`
-	Managed  []StatusModel   `json:"managed,omitempty"`  // models the portal asked Bridge to fetch
+	Managed  []StatusModel   `json:"managed,omitempty"`  // models the portal asked Door to fetch
 	Problems []StatusProblem `json:"problems,omitempty"` // doctor's findings
 	Power    string          `json:"power,omitempty"`    // ac, battery
 	Battery  *int            `json:"battery_pct,omitempty"`
@@ -116,7 +116,7 @@ func WriteStatus(s Status) error {
 	return nil
 }
 
-// MakeUserReadable lets every local user read a file Bridge wrote as root/SYSTEM. On Unix the mode
+// MakeUserReadable lets every local user read a file Door wrote as root/SYSTEM. On Unix the mode
 // does it (0644 in a 0755 directory); on Windows the file needs its own grant, because the
 // directory passes on Administrators and SYSTEM only.
 func MakeUserReadable(path string) {

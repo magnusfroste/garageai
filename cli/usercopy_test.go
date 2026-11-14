@@ -46,7 +46,7 @@ func TestRefreshCopyRefusesSymlink(t *testing.T) {
 
 func TestVersionOf(t *testing.T) {
 	bin := filepath.Join(t.TempDir(), "bridge")
-	os.WriteFile(bin, []byte("#!/bin/sh\necho 'GarageAI Bridge v1.5.0'\n"), 0o755)
+	os.WriteFile(bin, []byte("#!/bin/sh\necho 'GarageAI Door v1.5.0'\n"), 0o755)
 	if got := versionOf(bin); got != "v1.5.0" {
 		t.Fatalf("versionOf = %q, want v1.5.0", got)
 	}

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Installs GarageAI Bridge, the `garageai` command.
+# Installs GarageAI Door, the `garageai` command.
 #
 #   curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.sh | sh
 #
@@ -55,7 +55,7 @@ asset="garageai-$os-$arch"
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-echo "Downloading GarageAI Bridge $VERSION for $os/$arch..."
+echo "Downloading GarageAI Door $VERSION for $os/$arch..."
 curl -fsSL "$base/$asset" -o "$tmp/$asset" || { echo "garageai: download failed: $base/$asset" >&2; exit 1; }
 curl -fsSL "$base/SHA256SUMS" -o "$tmp/SHA256SUMS" || { echo "garageai: could not get SHA256SUMS for $VERSION" >&2; exit 1; }
 want=$(awk -v f="$asset" '$2 == f || $2 == "*"f {print $1}' "$tmp/SHA256SUMS")

@@ -192,7 +192,7 @@ func tail(items *[]Item, s Snapshot) {
 	if s.Status != nil && s.Status.Version != "" {
 		v = s.Status.Version // what the services run
 	}
-	line := "Bridge " + v
+	line := "Door " + v
 	if s.Status != nil && s.Status.Update.Stable != "" && s.Status.Update.Stable != v && strings.TrimPrefix(v, "v") != "dev" {
 		if s.Status.Update.Auto {
 			line += " · updating to " + s.Status.Update.Stable
@@ -216,10 +216,10 @@ func state(s Snapshot) (Level, string, string) {
 		return Paused, w, s.Pause.Reason
 	}
 	if st == nil {
-		return Offline, "Waiting", "the first report from Bridge's service has not come yet"
+		return Offline, "Waiting", "the first report from Door's service has not come yet"
 	}
 	if age := s.Now.Sub(st.UpdatedAt); age > heartbeatStale {
-		return Offline, "Offline", "Bridge's service has not reported for " + strings.TrimSuffix(ago(age), " ago")
+		return Offline, "Offline", "Door's service has not reported for " + strings.TrimSuffix(ago(age), " ago")
 	}
 	if st.Heartbeat.Rejected {
 		return Problem, "Needs you", st.Heartbeat.Error + " (connect again)"

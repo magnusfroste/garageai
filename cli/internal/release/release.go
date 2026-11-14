@@ -1,7 +1,7 @@
-// Package release signs and verifies Bridge releases (docs/release-signing.md).
+// Package release signs and verifies Door releases (docs/release-signing.md).
 //
 // A release's SHA256SUMS is signed with an ed25519 key that is kept off GitHub and off the
-// gateway. Bridge verifies the signature before self-update installs anything, so whoever controls
+// gateway. Door verifies the signature before self-update installs anything, so whoever controls
 // the GitHub repository (or the portal) still cannot make every garage run new code as root
 // without the key. The signed message names the version, so an old signed release cannot be
 // replayed to push garages back to it.
@@ -72,7 +72,7 @@ func Sign(priv ed25519.PrivateKey, version string, sums []byte) []byte {
 	return []byte(fmt.Sprintf("%s\nversion %s\nkey %s\nsig %s\n", magic, normal(version), KeyID(pub), base64.StdEncoding.EncodeToString(sig)))
 }
 
-// Verify checks a SHA256SUMS.sig against the release's SHA256SUMS and the version Bridge is
+// Verify checks a SHA256SUMS.sig against the release's SHA256SUMS and the version Door is
 // about to install, with the trusted keys.
 func Verify(version string, sums, sigFile []byte) error {
 	return verifyWith(keys, version, sums, sigFile)

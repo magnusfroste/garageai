@@ -13,7 +13,7 @@ import (
 	"github.com/ebitengine/purego/objc"
 )
 
-// The macOS menu-bar item: AppKit called from Go through purego, with no C and no cgo, so Bridge
+// The macOS menu-bar item: AppKit called from Go through purego, with no C and no cgo, so Door
 // stays cross-compiled from Linux (spikes/tray-purego). AppKit must run on the main thread, which
 // is where main.main starts; LockOSThread in init keeps the main goroutine there.
 

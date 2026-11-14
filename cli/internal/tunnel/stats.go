@@ -24,7 +24,7 @@ type Sample struct {
 	At       time.Time `json:"at"`
 	Path     string    `json:"path"`     // a class: chat, completions, embeddings, models, other
 	Status   int       `json:"status"`   //
-	TTFBms   int       `json:"ttfb_ms"`  // runtime's first byte (headers) after the request reached Bridge
+	TTFBms   int       `json:"ttfb_ms"`  // runtime's first byte (headers) after the request reached Door
 	TotalMs  int       `json:"total_ms"` //
 	Streamed bool      `json:"streamed"`
 	Cold     bool      `json:"cold"` // first request after ≥5 min of silence that took ≥3 s to the first byte: a model load
@@ -39,7 +39,7 @@ type Sample struct {
 type Summary struct {
 	WindowMin  int `json:"window_min"`
 	Requests   int `json:"requests"`
-	Errors     int `json:"errors"` // status ≥ 500 (the runtime's or Bridge's), not the buyer's 4xx
+	Errors     int `json:"errors"` // status ≥ 500 (the runtime's or Door's), not the buyer's 4xx
 	Streamed   int `json:"streamed"`
 	ColdStarts int `json:"cold_starts"`
 	TTFBp50ms  int `json:"ttfb_p50_ms"`

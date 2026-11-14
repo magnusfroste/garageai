@@ -186,5 +186,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --prerelease \
-            --title "GarageAI Bridge ${GITHUB_REF_NAME#bridge-}" \
+            --title "GarageAI Door ${GITHUB_REF_NAME#bridge-}" \
             --notes "Experimental. Install: curl -fsSL https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/cli/install.sh | sh -- then: garageai doctor"

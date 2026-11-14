@@ -60,7 +60,7 @@ func ClearPauseState() { os.Remove(PauseStatePath()) }
 
 // The time `garageai resume` last ran, so the portal can lift a pause set in the portal too: a
 // portal pause takes the garage off the market (and, before 2026-10-19, its tunnel), and resume
-// on the machine only cleared Bridge's own pause (garage-m4, 2026-10-18). Sent with the heartbeat
+// on the machine only cleared Door's own pause (garage-m4, 2026-10-18). Sent with the heartbeat
 // for a day after the resume.
 func resumedPath() string { return filepath.Join(filepath.Dir(PauseStatePath()), "resumed-at") }
 

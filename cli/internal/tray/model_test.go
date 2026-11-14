@@ -101,7 +101,7 @@ func TestDownloadsAndUpdate(t *testing.T) {
 	s := live()
 	s.Status.Managed = []service.StatusModel{{Model: "qwen3:8b", Status: "downloading", CompletedMB: 2150, TotalMB: 5325}, {Model: "x", Status: "failed"}}
 	s.Status.Update = service.StatusUpdate{Auto: true, Stable: "v1.3.0"}
-	level(t, s, Live, "Fetching qwen3:8b: 2.1 of 5.2 GB", "Could not fetch x", "Bridge v1.2.0 · updating to v1.3.0")
+	level(t, s, Live, "Fetching qwen3:8b: 2.1 of 5.2 GB", "Could not fetch x", "Door v1.2.0 · updating to v1.3.0")
 }
 
 func TestManyModels(t *testing.T) {

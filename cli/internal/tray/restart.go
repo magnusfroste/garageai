@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// binWatch notices that the binary the icon was started from has been replaced: Bridge's
+// binWatch notices that the binary the icon was started from has been replaced: Door's
 // self-update (macOS, the root-owned copy) or the heartbeat's refresh of the operator's copy
 // (Windows). The icon then starts the new binary and exits, so the operator sees the new icon
 // without restarting it by hand (garage-m4 kept the old circle after v1.5.4, 2026-11-11).

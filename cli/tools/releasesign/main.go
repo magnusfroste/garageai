@@ -1,4 +1,4 @@
-// releasesign creates the release signing key and signs Bridge releases (docs/release-signing.md).
+// releasesign creates the release signing key and signs Door releases (docs/release-signing.md).
 // It runs on the release manager's own computer, never in CI or on the gateway: the private key
 // must not exist anywhere an attacker of GitHub or the gateway could reach.
 //

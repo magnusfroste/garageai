@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// BinaryPath is where the heartbeat service's own copy of Bridge lives. The service runs as root,
+// BinaryPath is where the heartbeat service's own copy of Door lives. The service runs as root,
 // so the file and its directory must be root's alone: a copy in the operator's home (where the
 // installer puts the command they type) could be replaced by anything running as that user.
 // Not /usr/local/bin: with Homebrew on an Intel Mac that directory belongs to the user.

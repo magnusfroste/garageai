@@ -18,7 +18,7 @@ import (
 )
 
 // garageai runtime: for an operator with no runtime. It looks at the machine, says whether
-// Xyntetik Runner is a good fit and with which model, and installs it as a service of Bridge's.
+// Xyntetik Runner is a good fit and with which model, and installs it as a service of Door's.
 // The decision is runnerfit.Assess; the service is service.InstallRunner.
 func runtimeCmd(args []string) int {
 	sub := ""
@@ -85,7 +85,7 @@ func printAssessment(a runnerfit.Assessment) {
 }
 
 func runtimeStatus() int {
-	fmt.Println("GarageAI Bridge " + version + " — a runtime for this machine")
+	fmt.Println("GarageAI Door " + version + " — a runtime for this machine")
 	fmt.Println()
 	a, _ := assessThisMachine()
 	if inst, model := service.RunnerInstalled(); inst {
@@ -93,7 +93,7 @@ func runtimeStatus() int {
 		if runnerAnswers(runnerfit.Port) {
 			state = "serving on 127.0.0.1:" + strconv.Itoa(runnerfit.Port)
 		}
-		fmt.Printf("  Runner   installed by Bridge, %s (%s)\n\n", state, model)
+		fmt.Printf("  Runner   installed by Door, %s (%s)\n\n", state, model)
 	}
 	printAssessment(a)
 	fmt.Println()
@@ -143,7 +143,7 @@ func runtimeInstall(args []string) int {
 		return 2
 	}
 
-	fmt.Println("GarageAI Bridge " + version + " — install Xyntetik Runner " + runnerfit.Version)
+	fmt.Println("GarageAI Door " + version + " — install Xyntetik Runner " + runnerfit.Version)
 	fmt.Println()
 	a, p := assessThisMachine()
 	printAssessment(a)
