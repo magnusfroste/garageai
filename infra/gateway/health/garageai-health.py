@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """garageai-health — level 1 and 2 health checks for every garage, run on the gateway.
 
-Level 1 (tunnel):  has the garage's Bridge tunnel handshaken with the hub (wg-hub) in the last 3 minutes?
+Level 1 (tunnel):  has the garage's GarageAI tunnel handshaken with the hub (wg-hub) in the last 3 minutes?
 Level 2 (runtime): does the runtime answer GET /v1/models through the tunnel, and with which models?
 No tokens are generated. Level 3 (does the model actually generate) stays with the portal's
 acceptance test and hourly probe.
@@ -81,11 +81,11 @@ def load_targets(portal, gw_key, targets_file, cache_path=None):
 
 
 HUB_STATUS = "/var/lib/garageai-hub/status.json"
-HUB_FRESH = 180   # a Bridge tunnel handshakes at least every 25 s (keepalive); silent 3 min is down
+HUB_FRESH = 180   # a GarageAI tunnel handshakes at least every 25 s (keepalive); silent 3 min is down
 
 
 def tunnel_connected():
-    """{tunnel ip: connected} from the Bridge tunnel hub's status, or None when the hub is not running."""
+    """{tunnel ip: connected} from the GarageAI tunnel hub's status, or None when the hub is not running."""
     try:
         with open(HUB_STATUS) as f:
             st = json.load(f)
@@ -126,7 +126,7 @@ def main():
             mesh = None
             runtime_ok, err, models = check_runtime(None, None, t.get("runtime_api_key"), url=t.get("url"))
         else:
-            # A garage: every garage is a Bridge tunnel garage (a missing transport means tunnel), and
+            # A garage: every garage is a GarageAI tunnel garage (a missing transport means tunnel), and
             # the hub's latest handshake says whether it is connected.
             mesh = None if tunnels is None else tunnels.get(t.get("host"), False)
             if mesh is False:

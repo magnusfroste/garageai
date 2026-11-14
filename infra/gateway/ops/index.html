@@ -319,7 +319,7 @@
       <section class="page" data-page="supply">
         <div id="alerts-supply"></div>
         <div class="card"><h2>Garages and providers</h2><div id="garages"></div>
-          <div class="note">Garages are checked through Bridge's tunnel, providers over public HTTPS. Uptime comes from the health check every minute.</div></div>
+          <div class="note">Garages are checked through GarageAI's tunnel, providers over public HTTPS. Uptime comes from the health check every minute.</div></div>
         <div class="card"><h2>Quality per garage</h2><div class="sub">Real traffic, probes excluded. Output speed is tokens per second after the first token (median, replies of 20+ tokens). Cached input is the share of prompt tokens the runtime served from its prefix cache.</div><div id="quality"></div></div>
         <div class="card"><h2>Quality per engine</h2><div class="sub">The same figures per inference engine across all garages: Ollama, vLLM, Xyntetik Runner, llama.cpp... A provider's engine is its own ("provider"). A curve per engine, not a number: speed depends on the machine as much as on the engine, so compare engines on the same hardware class before drawing conclusions.</div><div id="quality-engine"></div></div>
         <div class="card"><h2>Uptime per hour, last 7 days</h2><div id="ch-uptime"></div></div>
@@ -397,7 +397,7 @@
 
       <section class="page" data-page="mesh">
         <div id="alerts-mesh"></div>
-        <div class="card" id="tunnel-card"><h2>Bridge tunnel hub</h2><div class="sub">Every garage carries its own WireGuard tunnel in Bridge to the hub on the gateway (wg-hub, UDP 51830): the hub learns each garage's address from its handshake. The gateway reaches the garages; garages can never reach the gateway or each other (nftables, one way only).</div><div id="tunnel"></div></div>
+        <div class="card" id="tunnel-card"><h2>GarageAI tunnel hub</h2><div class="sub">Every garage carries its own WireGuard tunnel in Door to the hub on the gateway (wg-hub, UDP 51830): the hub learns each garage's address from its handshake. The gateway reaches the garages; garages can never reach the gateway or each other (nftables, one way only).</div><div id="tunnel"></div></div>
       </section>
 
       <section class="page" data-page="server">
@@ -448,7 +448,7 @@ const PAGES = [
   { id: "models", title: "Models", icon: "models", sub: "What buyers can call: public names, garages, prices, context windows, checked against the runtimes" },
   { id: "traffic", title: "Traffic", icon: "traffic", sub: "Requests, tokens, latency and gateway errors" },
   { group: "Infrastructure" },
-  { id: "mesh", title: "Tunnel", icon: "mesh", sub: "Bridge's tunnel hub: each garage's handshake, address and traffic" },
+  { id: "mesh", title: "Tunnel", icon: "mesh", sub: "GarageAI's tunnel hub: each garage's handshake, address and traffic" },
   { id: "server", title: "Server", icon: "server", sub: "Gateway host, containers, timers, backup and certificates" },
   { id: "updates", title: "Updates", icon: "updates", sub: "Running vs latest versions, and deployed files vs main" },
 ];
@@ -755,7 +755,7 @@ function renderFunnel(f, dur) {
   $("onb-kpis").innerHTML = [
     kpi("Onboardings", fmt(f.sessions), `${fmt(f.live)} got live`),
     kpi("Median time to live", dur(f.median_minutes), `90 % within ${dur(f.p90_minutes)}`),
-    kpi("With Bridge", dur(t.bridge?.median_minutes), `${fmt(t.bridge?.live ?? 0)} of ${fmt(t.bridge?.sessions ?? 0)} live (median)`),
+    kpi("With Door", dur(t.bridge?.median_minutes), `${fmt(t.bridge?.live ?? 0)} of ${fmt(t.bridge?.sessions ?? 0)} live (median)`),
     kpi("With the script", dur(t.script?.median_minutes), `${fmt(t.script?.live ?? 0)} of ${fmt(t.script?.sessions ?? 0)} live (median)`),
     ...["web", "terminal"].filter(e => f.by_entry?.[e]?.sessions).map(e => kpi(e === "web" ? "Started on the website" : "Started in the terminal",
       dur(f.by_entry[e].median_minutes), `${fmt(f.by_entry[e].live)} of ${fmt(f.by_entry[e].sessions)} live (median)`)),
@@ -765,7 +765,7 @@ function renderFunnel(f, dur) {
     ? table([["", r => fmtKey(r[0])], ["Onboardings", r => fmt(r[1]), "num"]], rows) : '<div class="small">None.</div>');
   $("onb-failed").innerHTML = counts("Where they failed", f.failed_steps || [], esc);
   $("onb-problems").innerHTML = counts("Problems doctor found", f.problems || [], k => pill("warning", esc(k)));
-  const withOf = s => /bridge/i.test(`${s.tool || ""} ${s.bridge_version || ""}`) ? (s.bridge_version || "Bridge") : "script";
+  const withOf = s => /bridge/i.test(`${s.tool || ""} ${s.bridge_version || ""}`) ? (s.bridge_version || "Door") : "script";
   smartTable("onb-sessions-t", [
     ["Garage", s => `<b>${esc(s.garage)}</b>`, "", s => s.garage],
     ["Started", s => s.first_event_at ? ago(s.first_event_at) : "—", "", s => s.first_event_at],
@@ -776,7 +776,7 @@ function renderFunnel(f, dur) {
     ["Failed steps", s => (s.failed_steps || []).length ? (s.failed_steps || []).map(x => pill("warning", esc(x))).join(" ") : "—", "", s => (s.failed_steps || []).length || null],
     ["Problems", s => (s.problems || []).length ? s.problems.map(x => pill("muted", esc(x))).join(" ") : "—", "", s => (s.problems || []).length || null],
   ], f.recent || [], { text: s => `${s.garage} ${s.entry || ""} ${withOf(s)} ${(s.failed_steps || []).join(" ")} ${(s.problems || []).join(" ")}`, noun: "onboardings",
-    selects: [{ label: "All entries", get: s => s.entry }, { label: "Bridge and script", get: withOf }], problem: s => s.minutes_to_live == null });
+    selects: [{ label: "All entries", get: s => s.entry }, { label: "Door and script", get: withOf }], problem: s => s.minutes_to_live == null });
 }
 
 /* ---------- pages */
@@ -825,7 +825,7 @@ function renderPages(d) {
     selects: [{ label: "All tiers", get: r => r.tier }, { label: "All garages", get: r => r.garage }],
     problem: r => !r.up || r.checks.some(c => c.level !== "info") || (r.price_in == null && r.tier !== "private") || !r.context });
 
-  // What the garage says about itself: its heartbeat and, with Bridge, what doctor finds there.
+  // What the garage says about itself: its heartbeat and, with Door, what doctor finds there.
   const SEV = { error: "critical", warning: "warning", info: "muted" };
   const insideCell = g => {
     if (g.type === "provider") return "—";
@@ -835,11 +835,11 @@ function renderPages(d) {
     if (!a) return hb + '<div class="small">legacy script: no report</div>';
     const probs = (a.problems || []).map(p => `<div class="small"><span class="${SEV[p.severity] || "muted"}">${esc(p.severity)}</span> ${esc(p.message || p.code)}</div>`).join("");
     const m = a.machine || {}, rq = a.requests, st = a.state;
-    const state = st ? `<div class="small"><span class="warning">${esc(st.kind)}${st.reason ? ` (${esc(st.reason)})` : ""}</span>${st.until ? ` until ~${esc(String(st.until).slice(11,16))}Z` : ""} · by ${esc(st.source || "Bridge")}</div>` : "";
+    const state = st ? `<div class="small"><span class="warning">${esc(st.kind)}${st.reason ? ` (${esc(st.reason)})` : ""}</span>${st.until ? ` until ~${esc(String(st.until).slice(11,16))}Z` : ""} · by ${esc(st.source || "Door")}</div>` : "";
     const nodes = (a.nodes || []).length ? `<div class="small">${a.nodes.map(n => `${n.ok ? "●" : "○"} ${esc(n.name)} (${esc(n.role)})${n.gpu_temp_c != null ? ` ${Math.round(n.gpu_temp_c)} °C` : ""}${n.gpu_power_w != null ? ` ${Math.round(n.gpu_power_w)} W` : ""}`).join(" · ")}</div>` : "";
     const machine = (m.load_pct != null || m.power) ? `<div class="small">${m.power === "battery" ? `<span class="warning">on battery ${m.battery_pct ?? "?"} %</span> · ` : ""}${m.load_pct != null ? `load ${m.load_pct} %` : ""}${m.mem_free_mb != null ? ` · ${Math.round(m.mem_free_mb/1024)} of ${Math.round((m.mem_total_mb||0)/1024)} GB free` : ""}${m.gpu_util_pct != null ? ` · GPU ${m.gpu_util_pct} %` : ""}${m.user_active ? " · someone at the keyboard" : ""}</div>` : "";
     const reqs = rq && rq.requests ? `<div class="small">garage saw ${rq.requests} req/5 min${rq.inference ? `, first byte p50 ${rq.ttfb_p50_ms} ms` : ""}${rq.cold_starts ? `, ${rq.cold_starts} cold start${rq.cold_starts > 1 ? "s" : ""}` : ""}${rq.errors ? ` · <span class="warning">${rq.errors} errors</span>` : ""}</div>` : "";
-    return `${hb}<div class="small">Bridge ${esc(a.version || "?")} · ${esc(a.os || "")}</div>${state}${nodes}${machine}${reqs}` + (probs || '<div class="small ok">no problems reported</div>');
+    return `${hb}<div class="small">Door ${esc(a.version || "?")} · ${esc(a.os || "")}</div>${state}${nodes}${machine}${reqs}` + (probs || '<div class="small ok">no problems reported</div>');
   };
   const canary = new Set(((d.business || {}).bridge_versions?.garages || []).filter(x => x.canary).map(x => x.name));
   const engineOf = g => ({ ollama: "Ollama", vllm: "vLLM", xyntetik: "Xyntetik Runner", llamacpp: "llama.cpp", lmstudio: "LM Studio", sglang: "SGLang", provider: "provider" })[g.engine] || g.engine || "—";
@@ -911,7 +911,7 @@ function renderPages(d) {
   $("timers").innerHTML = table([["Timer", t => `${dot(t.active === "active" ? "ok" : "critical")}${esc(t.unit)}`], ["Last exit", t => t.last_exit ?? "—", "num"], ["Last run", t => esc(t.last_run)]], d.timers)
     + `<div class="kv" style="margin-top:12px"><div>Newest backup</div><div>${b.newest ? `${esc(b.newest)}<div class="small">${b.age_hours} h old · ${b.size_mb} MB · ${b.count} kept</div>` : '<span class="critical">none</span>'}</div></div>`;
   const ct = d.chain_test || {};
-  $("chain").innerHTML = !ct.last ? '<div class="small">No run yet (garageai-chain-test.timer, 04:00 UTC: a wanted model on one of our garages → Bridge fetches → offered → routed → answers → removed).</div>'
+  $("chain").innerHTML = !ct.last ? '<div class="small">No run yet (garageai-chain-test.timer, 04:00 UTC: a wanted model on one of our garages → Door fetches → offered → routed → answers → removed).</div>'
     : `<div class="kv"><div>Last run</div><div>${ct.last.ok ? pill("ok", "passed") : ct.last.skipped ? pill("warning", "skipped") : pill("critical", "failed")} <span class="small">${esc(ct.last.at)} · ${esc(ct.last.garage)} · ${esc(ct.last.model)} · ${ct.last.total_seconds} s · ${ct.passed ?? 0} of ${ct.runs ?? 0} nights passed</span>${ct.last.skipped ? `<div class="small">${esc(ct.last.skipped)}</div>` : ""}${ct.last.error ? `<div class="small critical">${esc(ct.last.error)}</div>` : ""}</div></div>`
       + table([["Step", s => `${dot(s.ok ? "ok" : "critical")}${esc(s.name)}`], ["Seconds", s => s.seconds, "num"], ["Detail", s => esc(s.detail)]], ct.last.steps || []);
   $("certs").innerHTML = table([["Host", c => esc(c.host)], ["Days left", c => c.days_left == null ? `<span class="warning">${esc(c.error)}</span>` : `<span class="${c.days_left < 14 ? "warning" : ""}">${c.days_left}</span>`, "num"], ["Expires", c => esc(c.expires)]], d.certs);
@@ -939,7 +939,7 @@ function renderPages(d) {
 }
 
 /* ---------- business */
-// One garage, everything known about it: state, the machine as Bridge reports it, its traffic and
+// One garage, everything known about it: state, the machine as Door reports it, its traffic and
 // quality, its models with prices and context, and its events (docs: Ops review 2026-10-24).
 function renderGarage(d, name) {
   const g = (d.garages || []).find(x => x.garage === name);
@@ -962,10 +962,10 @@ function renderGarage(d, name) {
 
   const fact = (k, v) => `<div class="fact"><div class="k">${k}</div><div class="v">${v}</div></div>`;
   const gb = mb => mb == null ? "—" : `${Math.round(mb / 1024)} GB`;
-  $("g-machine").innerHTML = g.type === "provider" ? `<div class="small">A provider over HTTPS: no Bridge, no machine report.${g.provider?.tls ? ` TLS valid ${g.provider.tls.days_left} more days.` : ""}</div>` : `<div class="facts">
+  $("g-machine").innerHTML = g.type === "provider" ? `<div class="small">A provider over HTTPS: no Door, no machine report.${g.provider?.tls ? ` TLS valid ${g.provider.tls.days_left} more days.` : ""}</div>` : `<div class="facts">
       ${fact("Uptime 1 h / 24 h", `${g.up_1h_pct ?? "—"} % / ${g.up_24h_pct ?? "—"} %`)}
       ${fact("Last heartbeat", g.heartbeat_min == null ? "—" : g.heartbeat_min < 1 ? "just now" : `${g.heartbeat_min} min ago`)}
-      ${fact("Bridge", `${esc(a.version || "—")}<div class="small">${esc(a.os || "")} ${esc(a.arch || "")}</div>`)}
+      ${fact("Door", `${esc(a.version || "—")}<div class="small">${esc(a.os || "")} ${esc(a.arch || "")}</div>`)}
       ${fact("Tunnel", g.mesh ? '<span class="ok">connected</span>' : '<span class="critical">down</span>')}
       ${fact("Power", m.power === "battery" ? `<span class="warning">battery ${m.battery_pct ?? "?"} %</span>` : m.power === "ac" ? "plugged in" : "—")}
       ${fact("Load", m.load_pct != null ? `${m.load_pct} %` : "—")}

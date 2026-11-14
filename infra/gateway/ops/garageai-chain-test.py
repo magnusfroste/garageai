@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """GarageAI Operations Center: the managed-models chain, tested end to end every night.
 
-The chain (docs/bridge.md "Models chosen in the portal, fetched by Bridge"): a wanted model in the
-portal → Bridge fetches it in Ollama → the heartbeat reports it → the portal offers and tests it →
-the gateway routes to it → a buyer gets an answer → the portal asks for its removal → Bridge
+The chain (docs/bridge.md "Models chosen in the portal, fetched by Door"): a wanted model in the
+portal → Door fetches it in Ollama → the heartbeat reports it → the portal offers and tests it →
+the gateway routes to it → a buyer gets an answer → the portal asks for its removal → Door
 removes it → the gateway stops routing. Every step is something we have seen fail once; this
 runs the whole chain on one of our own garages with a small model, times each step, and writes
 chain-test.json for the Ops page (the collector alerts when the last run failed or is old).
@@ -91,8 +91,8 @@ class Portal:
 
 
 def fresh(row):
-    """A failed/refused report counts only when Bridge reported it after this request was made:
-    Bridge reports its state before it acts on the wish list, so the first heartbeat after a new
+    """A failed/refused report counts only when Door reported it after this request was made:
+    Door reports its state before it acts on the wish list, so the first heartbeat after a new
     request can still carry a stale verdict from an earlier one (2026-10-14, run 4)."""
     rep, req = row.get("reported_at"), row.get("requested_at")
     return bool(rep and req and str(rep) > str(req))
@@ -145,7 +145,7 @@ def ask(env, public_name):
 
 def wait_for(name, check, limit, give_up=None):
     """Polls check() until it returns a truthy detail or the limit passes. give_up() returning a
-    reason ends the wait at once as a failure (a pull refused by Bridge will not become ready)."""
+    reason ends the wait at once as a failure (a pull refused by Door will not become ready)."""
     t0 = time.time()
     while True:
         detail = check()

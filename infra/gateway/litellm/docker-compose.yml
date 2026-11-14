@@ -2,7 +2,7 @@
 #
 # Published through the gateway's Traefik (infra/gateway/traefik: entrypoint "websecure",
 # cert resolver "letsencrypt"), so the VPS has a single reverse proxy and a single set of
-# certificates. Garages are reached through the Bridge tunnel hub (wg-hub) on the host.
+# certificates. Garages are reached through the GarageAI tunnel hub (wg-hub) on the host.
 #
 # Start the Traefik stack first: this file joins its Docker network (PROXY_NETWORK).
 #   cp .env.example .env   # then fill in the values

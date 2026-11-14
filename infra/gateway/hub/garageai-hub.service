@@ -1,5 +1,5 @@
 [Unit]
-Description=GarageAI Bridge tunnel hub (wg-hub, peers from the portal)
+Description=GarageAI tunnel hub (wg-hub, peers from the portal)
 After=network-online.target
 Wants=network-online.target
 

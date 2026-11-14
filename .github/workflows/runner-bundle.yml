@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       model:
-        description: 'Hugging Face GGUF to serve (owner/repo[:TAG]); empty = what Bridge recommends for the runner'
+        description: 'Hugging Face GGUF to serve (owner/repo[:TAG]); empty = what Door recommends for the runner'
         required: false
         default: 'Joakimpalm-Zen/gemma-4-E2B-it-Q4_0-GGUF'
 
@@ -31,9 +31,9 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: cli/go.mod
-      - name: build Bridge
+      - name: build Door
         run: go build -o garageai$( [ "$RUNNER_OS" = Windows ] && echo .exe ) .
-      - name: what Bridge recommends here
+      - name: what Door recommends here
         run: ./garageai runtime
       - name: install Runner as a service and wait for it to answer
         run: |

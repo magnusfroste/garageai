@@ -1,11 +1,11 @@
-# GarageAI core: LiteLLM + Bridge tunnel hub on one VPS
+# GarageAI core: LiteLLM + GarageAI tunnel hub on one VPS
 
 The GarageAI core runs on a single EU VPS:
 
 - **LiteLLM** is the OpenAI-compatible API buyers call. It routes each request through the
   tunnel to a garage, counts tokens per key and model, and handles retries and failover.
-- **The Bridge tunnel hub** (`garageai-hub`) is the gateway's end of every garage's tunnel.
-  GarageAI Bridge on the garage carries a WireGuard tunnel in user space and dials out to the
+- **The GarageAI tunnel hub** (`garageai-hub`) is the gateway's end of every garage's tunnel.
+  GarageAI Door on the garage carries a WireGuard tunnel in user space and dials out to the
   hub, so garages open no inbound ports and are never exposed to the public internet. The hub
   is plain WireGuard in the kernel; no tunnel service sits in the path. Design:
   [docs/bridge-tunnel.md](../../docs/bridge-tunnel.md).
@@ -47,7 +47,7 @@ The GarageAI core runs on a single EU VPS:
   |---|---|---|
   | 22 | TCP | SSH, restricted to your own IP |
   | 80, 443 | TCP | Traefik (Let's Encrypt, LiteLLM, Operations Center) |
-  | 51830 | UDP | The Bridge tunnel hub (`wg-hub`): garages dial out to it |
+  | 51830 | UDP | The GarageAI tunnel hub (`wg-hub`): garages dial out to it |
 
 ```bash
 curl -fsSL https://get.docker.com | sh
@@ -67,7 +67,7 @@ It creates the Docker network `garageai_proxy` and the volume `garageai_traefik_
 Streaming passes through without buffering: the entrypoint's read, write and idle timeouts are
 off, because agent-sized prompts stream for minutes.
 
-## 2. The Bridge tunnel hub
+## 2. The GarageAI tunnel hub
 
 `hub/garageai-hub.py` (installed to `/usr/local/sbin/garageai-hub`, run as root by
 `garageai-hub.service`):
@@ -99,7 +99,7 @@ sudo systemctl daemon-reload && sudo systemctl enable --now garageai-hub
 sudo wg show wg-hub                                       # one peer per tunnel garage
 ```
 
-LiteLLM reaches a garage at `http://<tunnel ip>:<port>/v1`. On the garage, Bridge answers on
+LiteLLM reaches a garage at `http://<tunnel ip>:<port>/v1`. On the garage, Door answers on
 its tunnel address only for the runtime's port, as an HTTP proxy with a path allowlist, and
 forwards to the runtime on `127.0.0.1`.
 
@@ -122,7 +122,7 @@ nodes drop out more often than datacenter ones.
 
 The operator starts their runtime (Ollama, LM Studio, llama.cpp, vLLM, Xyntetik Runner, Unsloth)
 and follows the wizard in the portal, which gives them one command: it installs
-[GarageAI Bridge](../../cli/README.md) and runs `garageai connect`. Bridge creates its tunnel
+[GarageAI Door](../../cli/README.md) and runs `garageai connect`. Door creates its tunnel
 key on the machine, sends only the public key, gets its tunnel IP and the hub's key and
 endpoint from the portal, and registers the garage. Within 10 s the hub adds it as a peer.
 
@@ -163,7 +163,7 @@ docker compose -f /opt/garageai/litellm/docker-compose.yml exec litellm python -
 ```
 
 If the host cannot reach it either, `sudo wg show wg-hub` shows whether the garage's latest
-handshake is recent (at most about 25 s old: Bridge's keepalive).
+handshake is recent (at most about 25 s old: Door's keepalive).
 
 ## 6. The two marketplace tiers
 
@@ -281,7 +281,7 @@ removes a model only after repeated real failures.
 
 `ops/` is a read-only dashboard for running the platform, separate from the portal's admin
 (which handles garages, models, money and keys). It shows the gateway host, containers,
-timers, backups and certificates; the Bridge tunnel hub (each garage's latest handshake,
+timers, backups and certificates; the GarageAI tunnel hub (each garage's latest handshake,
 address and traffic); every garage and provider (tunnel, runtime, uptime, vLLM load,
 provider DNS and TLS); gateway traffic per model (TTFT p50/p95, tokens, spend) and error
 classes; the portal and site seen from outside; and a list of current alerts.
@@ -312,7 +312,7 @@ sudo garageai-ops-collect --silence autoversio 36h "DGX Spark reinstall"
 sudo garageai-ops-collect --unsilence autoversio
 ```
 
-It matches the exact garage name: silencing `autoversio` does not silence `autoversio-south`. Later, Bridge's `garageai pause` will set this from the operator's side (docs/bridge.md, phase 1).
+It matches the exact garage name: silencing `autoversio` does not silence `autoversio-south`. Later, Door's `garageai pause` will set this from the operator's side (docs/bridge.md, phase 1).
 
 ### Onboarding
 
@@ -476,7 +476,7 @@ is encrypted and copied off-site (see the script's header; restore: docs/archite
 
 ## Security notes
 
-- The LiteLLM master key stays on the gateway side. Garages never see it, and Bridge does not
+- The LiteLLM master key stays on the gateway side. Garages never see it, and Door does not
   need it.
 - Postgres has no published port and is only on LiteLLM's internal network.
 - Prompts are processed on the operator's machine. The tunnel's encryption protects them in transit,
