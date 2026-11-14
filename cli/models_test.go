@@ -57,7 +57,7 @@ func TestReconcilePullsWantedAndReportsReady(t *testing.T) {
 		t.Fatalf("qwen3:4b state %+v", st["qwen3:4b"])
 	}
 	if st["gemma4:12b"].Status != "ready" || st["gemma4:12b"].Pulled {
-		t.Fatalf("gemma4:12b state %+v: ready, and not marked as pulled by Bridge", st["gemma4:12b"])
+		t.Fatalf("gemma4:12b state %+v: ready, and not marked as pulled by Door", st["gemma4:12b"])
 	}
 }
 
@@ -141,6 +141,6 @@ func TestReconcileForgetsFinishedEntriesNobodyWants(t *testing.T) {
 	reconcileModels(cfg, &portal.HeartbeatResult{WantedModels: []portal.WantedModel{{Model: "keep:1", Action: "pull"}}}, nil, f2, nil)
 	reconcileModels(cfg, &portal.HeartbeatResult{}, []string{"keep:1"}, f2, nil)
 	if service.LoadModelsState()["keep:1"].Status != "ready" {
-		t.Fatal("a fetched model must keep its state (Bridge pulled it; removal needs it)")
+		t.Fatal("a fetched model must keep its state (Door pulled it; removal needs it)")
 	}
 }

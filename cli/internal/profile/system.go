@@ -131,7 +131,7 @@ func heartbeatAndConfig() (Heartbeat, GarageAI) {
 	hb, cfg := Heartbeat{}, GarageAI{}
 	switch runtime.GOOS {
 	case "windows":
-		// Bridge's scheduled task, or the connect script's old one (heartbeat.json, before 1.0).
+		// Door's scheduled task, or the connect script's old one (heartbeat.json, before 1.0).
 		hb.Installed, hb.Active = service.Installed()
 		if !hb.Installed {
 			if b, err := os.ReadFile(filepath.Join(os.Getenv("ProgramData"), "GarageAI", "heartbeat.json")); err == nil {
@@ -155,7 +155,7 @@ func heartbeatAndConfig() (Heartbeat, GarageAI) {
 		}
 		readBridgeConfig(&cfg)
 	default:
-		// Bridge's own service (garageai run) or the connect script's heartbeat: either counts.
+		// Door's own service (garageai run) or the connect script's heartbeat: either counts.
 		_, errBridge := os.Stat("/etc/garageai/bridge.json")
 		_, errScript := os.Stat("/usr/local/bin/garageai-heartbeat")
 		hb.Installed = errBridge == nil || errScript == nil
@@ -176,7 +176,7 @@ func heartbeatAndConfig() (Heartbeat, GarageAI) {
 				exec.Command("systemctl", "is-active", "--quiet", "garageai-heartbeat.timer").Run() == nil
 		}
 		if readBridgeConfig(&cfg) {
-			// Bridge's own configuration
+			// Door's own configuration
 		} else if b, err := os.ReadFile("/etc/garageai/heartbeat.env"); err == nil {
 			for _, line := range strings.Split(string(b), "\n") {
 				k, v, ok := strings.Cut(line, "=")
@@ -194,7 +194,7 @@ func heartbeatAndConfig() (Heartbeat, GarageAI) {
 	return hb, cfg
 }
 
-// readBridgeConfig fills cfg from Bridge's configuration (the secret-free public copy when the
+// readBridgeConfig fills cfg from Door's configuration (the secret-free public copy when the
 // full one is not readable, as for doctor run by a normal user). Same file layout on every OS:
 // before 1.0.1 the Windows branch read only the old script's heartbeat.json, so a tunnel garage
 // on Windows reported localhost_only and netbird_missing (w11, 2026-10-17).
@@ -219,7 +219,7 @@ func readBridgeConfig(cfg *GarageAI) bool {
 	if c.Port > 0 {
 		cfg.ConfiguredPort = &c.Port
 	}
-	// The Bridge tunnel is the only transport: a config without one (written before transport
+	// The GarageAI tunnel is the only transport: a config without one (written before transport
 	// existed) is a tunnel garage too.
 	cfg.Transport, cfg.TunnelIP = "tunnel", c.MeshIP
 	return true
@@ -228,7 +228,7 @@ func readBridgeConfig(cfg *GarageAI) bool {
 func jsonString(v any) string { b, _ := json.Marshal(v); return string(b) }
 
 // ollamaContextTarget: more memory, a bigger window.
-// ContextTarget is the window Bridge recommends for this machine's memory (Ollama and Runner).
+// ContextTarget is the window Door recommends for this machine's memory (Ollama and Runner).
 func ContextTarget(mem *int) int { return ollamaContextTarget(mem) }
 
 func ollamaContextTarget(mem *int) int {

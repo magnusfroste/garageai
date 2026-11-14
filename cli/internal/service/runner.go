@@ -10,12 +10,12 @@ import (
 	"strings"
 )
 
-// Xyntetik Runner as a service of Bridge's (`garageai runtime install`): for an operator with no
+// Xyntetik Runner as a service of Door's (`garageai runtime install`): for an operator with no
 // runtime. Runner's own tray app runs in the user's session; a garage must survive a restart with
-// nobody logged in, so Bridge runs `runner -hf MODEL --serve` the way it runs the tunnel: a systemd
+// nobody logged in, so Door runs `runner -hf MODEL --serve` the way it runs the tunnel: a systemd
 // unit, a launchd daemon, and on Windows a scheduled task at startup (Runner is not a Windows
 // service program, so the service control manager cannot run it). Runner binds loopback only;
-// the Bridge tunnel reaches it there. Its model cache lives under a home of its own.
+// the GarageAI tunnel reaches it there. Its model cache lives under a home of its own.
 const (
 	runnerUnitPath  = "/etc/systemd/system/garageai-runner.service"
 	runnerPlistPath = "/Library/LaunchDaemons/eu.garageai.runner.plist"
@@ -23,7 +23,7 @@ const (
 	WindowsRunner   = "GarageAI Runner"
 )
 
-// RunnerPath is where Bridge keeps the Runner binary (next to its own service copy, root-only).
+// RunnerPath is where Door keeps the Runner binary (next to its own service copy, root-only).
 func RunnerPath() string {
 	name := "runner"
 	if runtime.GOOS == "windows" {
@@ -48,7 +48,7 @@ func RunnerHome() string {
 func RunnerArgs(model string, port, context int) []string {
 	args := []string{"-hf", model, "--serve", "--port", strconv.Itoa(port), "--ttl", "0"}
 	if context > 0 {
-		// Runner's default window is 4096 tokens: too small for buyers' coding agents, so Bridge
+		// Runner's default window is 4096 tokens: too small for buyers' coding agents, so Door
 		// sets one from the machine's memory (garage-m4 served Granite with 4096, 2026-10-18).
 		args = append(args, "-c", strconv.Itoa(context))
 	}
@@ -120,7 +120,7 @@ func InstallRunner(bin, model string, port, context int) error {
 	return fmt.Errorf("Runner as a service is not implemented on %s", runtime.GOOS)
 }
 
-// RunnerSettings is how Bridge's Runner service runs: what an upgrade must keep.
+// RunnerSettings is how Door's Runner service runs: what an upgrade must keep.
 type RunnerSettings struct {
 	Model   string
 	Port    int
@@ -158,7 +158,7 @@ func ParseRunnerCmdline(cmdline string) (RunnerSettings, bool) {
 	return st, st.Model != ""
 }
 
-// RunnerVersionPath records which Runner release Bridge installed (written at install and upgrade).
+// RunnerVersionPath records which Runner release Door installed (written at install and upgrade).
 func RunnerVersionPath() string { return RunnerPath() + ".version" }
 
 // InstalledRunnerVersion is the recorded release, else what the binary says (`runner --version`
@@ -220,7 +220,7 @@ func runnerCmdline() (string, bool) {
 	return "", false
 }
 
-// RunnerInstalled reports whether Bridge's Runner service exists, and the model it serves.
+// RunnerInstalled reports whether Door's Runner service exists, and the model it serves.
 func RunnerInstalled() (installed bool, model string) {
 	var cmdline string
 	switch runtime.GOOS {

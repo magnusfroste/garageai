@@ -6,7 +6,7 @@ import (
 )
 
 // RemoveLegacyScriptHeartbeat removes the heartbeat garageai-connect.sh installed (a shell script
-// run by systemd or launchd with its own token file). Bridge reports instead; two heartbeats with
+// run by systemd or launchd with its own token file). Door reports instead; two heartbeats with
 // two tokens would make the old one fail with 401 as soon as a new token is issued. Returns
 // whether anything was there. Must run as root.
 func RemoveLegacyScriptHeartbeat() bool {

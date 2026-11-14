@@ -11,7 +11,7 @@ import (
 	"github.com/magnusfroste/garageai/cli/internal/service"
 )
 
-// effectiveState is the garage's lifecycle state right now: Bridge's own pause first, else a
+// effectiveState is the garage's lifecycle state right now: Door's own pause first, else a
 // runtime manager's state file (vLLM Panel), else nil (serving). Also returns the manager's
 // nodes and, when a state file exists but is not used, why.
 func effectiveState(now time.Time) (st *portal.AgentState, nodes []machine.Node, ignored string, panel *machine.PanelState) {

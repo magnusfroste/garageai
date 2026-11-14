@@ -46,8 +46,8 @@ type Registration struct {
 	MachineID     string         `json:"machine_id,omitempty"`
 }
 
-// Agent is what the heartbeat tells the portal about Bridge itself and the machine it runs on, so
-// the Operations Center sees a garage from the inside too: which Bridge, and what doctor finds.
+// Agent is what the heartbeat tells the portal about Door itself and the machine it runs on, so
+// the Operations Center sees a garage from the inside too: which Door, and what doctor finds.
 type Agent struct {
 	Tool     string         `json:"tool"`
 	Version  string         `json:"version"`
@@ -55,7 +55,7 @@ type Agent struct {
 	Arch     string         `json:"arch"`
 	Problems []AgentProblem `json:"problems"`
 	Update   *AgentUpdate   `json:"update,omitempty"`
-	// Models the portal asked Bridge to fetch or remove, and how that went (docs/bridge.md).
+	// Models the portal asked Door to fetch or remove, and how that went (docs/bridge.md).
 	Models []AgentModel `json:"models,omitempty"`
 	// The machine right now (load, memory, disk, power, a person at the keyboard, GPU), and the
 	// garage's own timing of the requests that came through the tunnel in the last 5 minutes.
@@ -83,7 +83,7 @@ type AgentState struct {
 	Source string     `json:"source,omitempty"` // "garageai pause" or the manager's name
 }
 
-// AgentModel is Bridge's report on one managed model.
+// AgentModel is Door's report on one managed model.
 type AgentModel struct {
 	Model       string `json:"model"`
 	Status      string `json:"status"` // downloading, ready, failed, removed, refused
@@ -96,14 +96,14 @@ type AgentModel struct {
 
 // WantedModel is one line of the portal's wish list for this garage: pull it or remove it, in the
 // runtime's own naming (an Ollama tag such as qwen3:4b). Filled by the operator (Add on My
-// garages) or by GarageAI Smart; Bridge does not care which.
+// garages) or by GarageAI Smart; Door does not care which.
 type WantedModel struct {
 	Model  string `json:"model"`
 	Action string `json:"action"` // pull, remove
 	By     string `json:"by,omitempty"`
 }
 
-// AgentUpdate is Bridge's self-update state, for the portal and the Operations Center.
+// AgentUpdate is Door's self-update state, for the portal and the Operations Center.
 type AgentUpdate struct {
 	Auto       bool   `json:"auto"`
 	LastCheck  string `json:"last_check,omitempty"`

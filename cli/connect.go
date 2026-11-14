@@ -38,7 +38,7 @@ type Options struct {
 	RegisterToken string
 	NoHeartbeat   bool
 	Yes           bool
-	NoAutoUpdate  bool // keep this Bridge version until the operator updates by hand
+	NoAutoUpdate  bool // keep this Door version until the operator updates by hand
 	Relink        bool // link in the browser again although this machine is linked already
 }
 
@@ -64,7 +64,7 @@ func optionsFromEnv() Options {
 	return o
 }
 
-// netbirdFlags are the options of the NetBird days (before Bridge carried the tunnel itself).
+// netbirdFlags are the options of the NetBird days (before Door carried the tunnel itself).
 // Operators still have one-paste lines with them in their notes: they parse, and get an
 // explanation instead of "unknown option".
 var netbirdFlags = map[string]bool{"--setup-key": true, "--management-url": true, "--tunnel": true, "--skip-install": true}
@@ -275,7 +275,7 @@ func connect(args []string) int {
 	if err := parseConnectArgs(args, &o); err != nil {
 		if errors.Is(err, errNetBirdFlag) {
 			flag := strings.TrimPrefix(err.Error(), errNetBirdFlag.Error()+": ")
-			fmt.Fprintf(os.Stderr, "garageai connect: %s is from the NetBird days. NetBird is no longer used: Bridge connects with its own tunnel.\n  Run garageai connect without %s.\n", flag, flag)
+			fmt.Fprintf(os.Stderr, "garageai connect: %s is from the NetBird days. NetBird is no longer used: Door connects with its own tunnel.\n  Run garageai connect without %s.\n", flag, flag)
 			return 2
 		}
 		fmt.Fprintln(os.Stderr, "garageai connect:", err)
@@ -293,10 +293,10 @@ func connect(args []string) int {
 		return code
 	}
 	if !isAdmin() && runtime.GOOS != "windows" {
-		v := exec.Command("sudo", "-v", "-p", "  [sudo] password for %p (Bridge installs its service; asked now so the browser step is not interrupted): ")
+		v := exec.Command("sudo", "-v", "-p", "  [sudo] password for %p (Door installs its service; asked now so the browser step is not interrupted): ")
 		v.Stdin, v.Stdout, v.Stderr = os.Stdin, os.Stdout, os.Stderr
 		if err := v.Run(); err != nil {
-			fmt.Fprintln(os.Stderr, "garageai connect: sudo is needed to install Bridge's service:", err)
+			fmt.Fprintln(os.Stderr, "garageai connect: sudo is needed to install Door's service:", err)
 			return 1
 		}
 	}
@@ -343,25 +343,25 @@ func connect(args []string) int {
 	c.facts = profile.Build(version)
 	c.step = "0/5  Start"
 	c.profile, _ = json.Marshal(c.facts)
-	c.report("started", "Bridge started", c.profile)
+	c.report("started", "Door started", c.profile)
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	go func() { <-stop; c.report("stopped", "Interrupted (Ctrl-C)", nil); os.Exit(130) }()
 	defer func() {
 		if !c.done {
-			c.report("stopped", "Waiting for the operator: fix what Bridge said, then run the command again", nil)
+			c.report("stopped", "Waiting for the operator: fix what Door said, then run the command again", nil)
 		}
 	}()
 
-	c.bold("GarageAI Bridge " + version + " — connect " + o.Name)
+	c.bold("GarageAI Door " + version + " — connect " + o.Name)
 	fmt.Println()
 
 	// 1. The tunnel
-	c.begin("1/5  Bridge tunnel to the gateway")
+	c.begin("1/5  GarageAI tunnel to the gateway")
 	live, grant := c.bridgeTunnel()
 	tunnelIP := grant.TunnelIP
 	defer live.Close()
-	c.ok("Bridge tunnel up: " + tunnelIP + " (this machine dials out to " + grant.HubEndpoint + "; nothing listens on your network)")
+	c.ok("GarageAI tunnel up: " + tunnelIP + " (this machine dials out to " + grant.HubEndpoint + "; nothing listens on your network)")
 	fmt.Println()
 
 	// 2. Local runtime
@@ -402,7 +402,7 @@ func connect(args []string) int {
 			}
 		}
 		if !probed {
-			c.fail(fmt.Sprintf("%s answers on port %d but requires an API key, and Bridge could not find or get it. Run the command again and paste the key when asked.", o.Runtime, o.Port))
+			c.fail(fmt.Sprintf("%s answers on port %d but requires an API key, and Door could not find or get it. Run the command again and paste the key when asked.", o.Runtime, o.Port))
 		}
 	}
 	if !probed {
@@ -417,7 +417,7 @@ func connect(args []string) int {
 
 	// 3. Reachable through the tunnel
 	c.begin("3/5  Reachable through the tunnel")
-	c.ok(fmt.Sprintf("Bridge forwards %s:%d in the tunnel to 127.0.0.1:%d; the runtime can stay on localhost", tunnelIP, o.Port, o.Port))
+	c.ok(fmt.Sprintf("Door forwards %s:%d in the tunnel to 127.0.0.1:%d; the runtime can stay on localhost", tunnelIP, o.Port, o.Port))
 	offered, skipped := rt.Offer(served, o.Models)
 	for _, m := range offered {
 		c.info("model: " + m)
@@ -518,7 +518,7 @@ func connect(args []string) int {
 	c.begin("5/5  Heartbeat")
 	self, err := serviceBinary()
 	if err != nil {
-		c.fail("Could not install Bridge for the heartbeat service: " + err.Error())
+		c.fail("Could not install Door for the heartbeat service: " + err.Error())
 	}
 	cfg := &service.Config{HeartbeatURL: strings.TrimSuffix(o.RegisterURL, "/register-node") + "/node-heartbeat",
 		RegisterURL: o.RegisterURL, RegisterToken: o.RegisterToken, Name: o.Name, Runtime: o.Runtime, Port: o.Port,
@@ -532,7 +532,7 @@ func connect(args []string) int {
 		c.fail("Could not write " + service.ConfigPath() + ": " + err.Error())
 	}
 	if removed := service.RemoveLegacyScriptHeartbeat(); removed {
-		c.info("Removed the connect script's old heartbeat; Bridge reports from now on.")
+		c.info("Removed the connect script's old heartbeat; Door reports from now on.")
 	}
 	if err := service.Install(self); err != nil {
 		c.fail("Could not install the heartbeat service: " + err.Error())
@@ -541,8 +541,8 @@ func connect(args []string) int {
 	if err := service.InstallTunnel(self); err != nil {
 		c.fail("Could not install the tunnel service: " + err.Error())
 	}
-	c.ok("Installed: the Bridge tunnel runs as a service and reconnects by itself after sleep or a network change.")
-	c.ok("Installed: Bridge reports your models every 5 minutes. Load a new model and it shows up")
+	c.ok("Installed: the GarageAI tunnel runs as a service and reconnects by itself after sleep or a network change.")
+	c.ok("Installed: Door reports your models every 5 minutes. Load a new model and it shows up")
 	c.info("  under My garages in the portal within 5 minutes. Remove with: garageai uninstall")
 	fmt.Println()
 	c.bold("Next: the portal")
@@ -578,12 +578,12 @@ func (c *connectRun) notes() {
 	}
 }
 
-// bridgeTunnel is step 2 with the Bridge tunnel: a key pair on this machine (kept across runs),
+// bridgeTunnel is step 2 with the GarageAI tunnel: a key pair on this machine (kept across runs),
 // the public key to the portal, the tunnel address and the hub back, and the tunnel up so the
 // portal's acceptance test can reach the runtime through it.
 func (c *connectRun) bridgeTunnel() (*tunnel.Tunnel, *portal.TunnelGrant) {
 	if c.portal == nil {
-		c.fail("The Bridge tunnel needs the garage's registration (run garageai connect without options, or pass --register-url and --register-token).")
+		c.fail("The GarageAI tunnel needs the garage's registration (run garageai connect without options, or pass --register-url and --register-token).")
 	}
 	var priv, pub string
 	if b, err := os.ReadFile(service.TunnelKeyPath()); err == nil {

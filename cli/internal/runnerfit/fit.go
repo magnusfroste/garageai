@@ -14,11 +14,11 @@ import (
 	"strings"
 )
 
-// Version is the Runner release Bridge installs. Pinned, like Bridge's own stable version: Runner
+// Version is the Runner release Door installs. Pinned, like Door's own stable version: Runner
 // releases often (three in two days), and a new one is tried on our garages before it moves here.
 const Version = "v1.16.0"
 
-// Port Runner serves on (its default). Loopback only by design; the Bridge tunnel reaches it there.
+// Port Runner serves on (its default). Loopback only by design; the GarageAI tunnel reaches it there.
 const Port = 8080
 
 // GPU is the part of doctor's GPU record the decision needs.
@@ -158,7 +158,7 @@ func Assess(m Machine) Assessment {
 	}
 	if len(m.Runtimes) > 0 {
 		a.Verdict = KeepCurrent
-		a.Reasons = append([]string{fmt.Sprintf("%s already serves models here, and Bridge works with it: keep it. Runner is for a machine with no runtime (garageai runtime install --force installs it next to it anyway).", strings.Join(m.Runtimes, " and "))}, a.Reasons...)
+		a.Reasons = append([]string{fmt.Sprintf("%s already serves models here, and Door works with it: keep it. Runner is for a machine with no runtime (garageai runtime install --force installs it next to it anyway).", strings.Join(m.Runtimes, " and "))}, a.Reasons...)
 	}
 	return a
 }

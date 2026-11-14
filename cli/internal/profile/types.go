@@ -1,4 +1,4 @@
-// Package profile builds the garage profile for GarageAI Bridge: what runs on this machine and what is wrong, as
+// Package profile builds the garage profile for GarageAI Door: what runs on this machine and what is wrong, as
 // JSON (schema 1) for the portal and the Operations Center. Discovery is deterministic: it
 // lists the TCP ports that listen, asks each candidate whether it is an OpenAI-compatible API, and
 // reads a few start flags. Keys and whole command lines are never part of a profile.
@@ -29,7 +29,7 @@ type Profile struct {
 	winSleepACMin  int  // Windows: minutes until sleep on the power adapter (0 = never, -1 = unknown)
 	winLidSleepsAC bool // Windows laptop: closing the lid on the power adapter sleeps or hibernates
 	displayMinutes int
-	diskFreeGB     *int // free space on the system disk (models, Bridge's updates)
+	diskFreeGB     *int // free space on the system disk (models, Door's updates)
 }
 
 type Machine struct {
@@ -93,7 +93,7 @@ type Heartbeat struct {
 	Active    bool `json:"active"`
 }
 
-// Tunnel is Bridge's own tunnel (docs/bridge-tunnel.md), when this machine is linked.
+// Tunnel is Door's own tunnel (docs/bridge-tunnel.md), when this machine is linked.
 type Tunnel struct {
 	IP        string `json:"ip"`
 	Installed bool   `json:"installed"`

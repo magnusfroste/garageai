@@ -7,7 +7,7 @@ import (
 	"runtime"
 )
 
-// The Bridge tunnel runs as its own long-running service next to the heartbeat (which is a
+// The GarageAI tunnel runs as its own long-running service next to the heartbeat (which is a
 // 5-minute one-shot): garageai-tunnel.service on Linux, eu.garageai.tunnel on macOS.
 const (
 	tunnelUnitPath  = "/etc/systemd/system/garageai-tunnel.service"
@@ -40,7 +40,7 @@ func SaveTunnelKey(private string) error {
 func InstallTunnel(self string) error {
 	switch runtime.GOOS {
 	case "linux":
-		unit := fmt.Sprintf("[Unit]\nDescription=GarageAI Bridge tunnel (this garage's tunnel to the gateway)\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nExecStart=%s tunnel\nRestart=always\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n", self)
+		unit := fmt.Sprintf("[Unit]\nDescription=GarageAI tunnel (this garage's tunnel to the gateway)\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nExecStart=%s tunnel\nRestart=always\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n", self)
 		if err := os.WriteFile(tunnelUnitPath, []byte(unit), 0o644); err != nil {
 			return err
 		}

@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// TunnelGrant is what the portal gives a garage that uses the Bridge tunnel (docs/bridge-tunnel.md).
+// TunnelGrant is what the portal gives a garage that uses the GarageAI tunnel (docs/bridge-tunnel.md).
 type TunnelGrant struct {
 	TunnelIP     string `json:"tunnel_ip"`
 	HubPublicKey string `json:"hub_public_key"`

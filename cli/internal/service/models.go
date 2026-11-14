@@ -8,9 +8,9 @@ import (
 	"sort"
 )
 
-// ModelState is what Bridge knows about a model the portal asked it to fetch or remove
-// (docs/bridge.md, "Models chosen in the portal, fetched by Bridge"). World-readable, no secrets.
-// A model Bridge pulled is marked so: the portal may ask to remove those, never one the operator
+// ModelState is what Door knows about a model the portal asked it to fetch or remove
+// (docs/bridge.md, "Models chosen in the portal, fetched by Door"). World-readable, no secrets.
+// A model Door pulled is marked so: the portal may ask to remove those, never one the operator
 // added themselves (the guard rail lives here, not only in the portal).
 type ModelState struct {
 	Model       string `json:"model"`

@@ -1,4 +1,4 @@
-# Installs GarageAI Bridge on Windows: the `garageai` command, and (with -Connect) connects this
+# Installs GarageAI Door on Windows: the `garageai` command, and (with -Connect) connects this
 # computer. Run in PowerShell as Administrator:
 #
 #   irm https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.ps1 | iex
@@ -29,7 +29,7 @@ $asset = "garageai-windows-$arch.exe"
 $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("garageai-" + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $tmp | Out-Null
 try {
-  Write-Host "Downloading GarageAI Bridge $version for windows/$arch..."
+  Write-Host "Downloading GarageAI Door $version for windows/$arch..."
   Invoke-WebRequest "$base/$asset" -OutFile (Join-Path $tmp $asset)
   Invoke-WebRequest "$base/SHA256SUMS" -OutFile (Join-Path $tmp "SHA256SUMS")
   $want = (Get-Content (Join-Path $tmp "SHA256SUMS") | Where-Object { $_ -match "\s\*?$([regex]::Escape($asset))$" }) -replace "\s.*$", ""

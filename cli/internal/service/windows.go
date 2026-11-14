@@ -76,7 +76,7 @@ func windowsInstallTunnel(self string) error {
 		if err := run("sc", "config", WindowsService, "binPath=", bin, "start=", "auto"); err != nil {
 			return err
 		}
-	} else if err := run("sc", "create", WindowsService, "binPath=", bin, "start=", "auto", "DisplayName=", "GarageAI Bridge tunnel"); err != nil {
+	} else if err := run("sc", "create", WindowsService, "binPath=", bin, "start=", "auto", "DisplayName=", "GarageAI tunnel"); err != nil {
 		return err
 	}
 	_ = run("sc", "description", WindowsService, "This garage's tunnel to the GarageAI gateway (dials out; nothing listens).")
@@ -136,7 +136,7 @@ func windowsRestrict(path string, isDir, usersRead bool) error {
 	return run("icacls", args...)
 }
 
-// AllowUsersRun lets every user read and run the service's copy of Bridge (never change it), so
+// AllowUsersRun lets every user read and run the service's copy of Door (never change it), so
 // the heartbeat can run it as a signed-in user to refresh that user's own copy, and an older own
 // copy can hand over to it. The binary holds no secrets; bridge.json stays Administrators/SYSTEM.
 // Without it Windows refused the run-as-user refresh on garage-w11 (v1.5.1, 2026-11-09).

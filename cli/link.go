@@ -18,8 +18,8 @@ import (
 	"github.com/magnusfroste/garageai/cli/internal/profile"
 )
 
-// link connects this machine to the operator's GarageAI account in the browser: Bridge shows a
-// code, the operator approves the machine at app.garageai.eu/bridge/link, and Bridge picks up the
+// link connects this machine to the operator's GarageAI account in the browser: Door shows a
+// code, the operator approves the machine at app.garageai.eu/bridge/link, and Door picks up the
 // garage's credentials itself. No command with a token is copied, pasted or shown. It runs as the
 // operator (their browser, their session) before connect re-runs itself as root.
 //
@@ -55,7 +55,7 @@ func link(o *Options, runtimeGiven bool) int {
 		}
 	}
 
-	fmt.Println(sgr("1", "GarageAI Bridge "+version+" — link this machine to your GarageAI account"))
+	fmt.Println(sgr("1", "GarageAI Door "+version+" — link this machine to your GarageAI account"))
 	fmt.Println()
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
@@ -116,13 +116,13 @@ func link(o *Options, runtimeGiven bool) int {
 // noRuntime stops before anything is sent to GarageAI: approving a machine that has nothing to sell
 // only costs the operator a round trip.
 func noRuntime(where string) {
-	fmt.Println(sgr("1", "GarageAI Bridge "+version))
+	fmt.Println(sgr("1", "GarageAI Door "+version))
 	fmt.Println()
 	fmt.Printf("  %s No inference runtime with a model answers on this machine%s.\n", sgr("31", "✗"), where)
 	fmt.Println("    Start one with a model loaded, then run garageai connect again. For example Ollama:")
 	fmt.Println("      install it from https://ollama.com/download, then: ollama pull qwen3:4b")
 	fmt.Println("    LM Studio, vLLM, llama.cpp and others work too; garageai doctor shows what it finds.")
-	fmt.Println("    Or let Bridge install one: garageai runtime (it says whether Xyntetik Runner fits this machine)")
+	fmt.Println("    Or let Door install one: garageai runtime (it says whether Xyntetik Runner fits this machine)")
 }
 
 var runtimeCheck = hasRuntimeOn // replaced in tests, which have no runtime

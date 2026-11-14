@@ -1,4 +1,4 @@
-// Package kb is Bridge's knowledge base: docs/garage-troubleshooting.md, built into the binary so
+// Package kb is Door's knowledge base: docs/garage-troubleshooting.md, built into the binary so
 // it matches this version's doctor and works when the garage cannot reach anything. One section per
 // doctor problem code, plus general sections (updating, mix-ups).
 package kb

@@ -126,7 +126,7 @@ func inventory(cfg *service.Config) (models []string, contexts map[string]int) {
 	return models, contexts
 }
 
-// maybeSelfUpdate: the portal's bridge_stable decides; Bridge moves there when it is newer, unless
+// maybeSelfUpdate: the portal's bridge_stable decides; Door moves there when it is newer, unless
 // the operator turned auto-update off. The outcome is recorded for the next heartbeat and doctor.
 func maybeSelfUpdate(cfg *service.Config, res *portal.HeartbeatResult) {
 	if cfg.AutoUpdate != nil && !*cfg.AutoUpdate {
@@ -139,18 +139,18 @@ func maybeSelfUpdate(cfg *service.Config, res *portal.HeartbeatResult) {
 		service.SaveUpdateState(st)
 		return
 	}
-	fmt.Printf("%s updating Bridge %s → %s (the portal's stable version)\n", service.Now(), version, res.BridgeStable)
+	fmt.Printf("%s updating Door %s → %s (the portal's stable version)\n", service.Now(), version, res.BridgeStable)
 	if err := selfUpdate(res.BridgeStable, res.BridgeDownloadBase); err != nil {
 		st.LastError = err.Error()
 		fmt.Printf("%s update failed: %v\n", service.Now(), err)
 	} else {
 		st.LastError, st.LastUpdate, st.Version = "", service.Now(), res.BridgeStable
-		fmt.Printf("%s Bridge %s installed; the next heartbeat runs it\n", service.Now(), res.BridgeStable)
+		fmt.Printf("%s Door %s installed; the next heartbeat runs it\n", service.Now(), res.BridgeStable)
 	}
 	service.SaveUpdateState(st)
 }
 
-// agent is Bridge's own report for the heartbeat: its version and what doctor finds right now.
+// agent is Door's own report for the heartbeat: its version and what doctor finds right now.
 func agent(cfg *service.Config) *portal.Agent {
 	p := profile.Build(version)
 	correctRuntime(cfg, p)
@@ -210,7 +210,7 @@ func nonEmpty(m map[string]int) map[string]int {
 	return m
 }
 
-// uninstall removes the heartbeat and tunnel services and Bridge's configuration. The runtime
+// uninstall removes the heartbeat and tunnel services and Door's configuration. The runtime
 // stays; the garage is removed under My garages in the portal.
 func uninstall(args []string) int {
 	yes := len(args) > 0 && (args[0] == "--yes" || args[0] == "-y")
@@ -221,7 +221,7 @@ func uninstall(args []string) int {
 	if runtime.GOOS == "windows" {
 		_ = tray.RemoveLoginItem(true)
 	}
-	fmt.Println("This removes Bridge's heartbeat, its tunnel and its configuration. Your runtime and models are not touched.")
+	fmt.Println("This removes Door's heartbeat, its tunnel and its configuration. Your runtime and models are not touched.")
 	if !yes {
 		fmt.Print("Continue? [y/N] ")
 		var a string
@@ -240,7 +240,7 @@ func uninstall(args []string) int {
 
 // installService makes the heartbeat service run this binary: a root-only copy of it, and the
 // service pointed at that copy. The installer runs it after an update, so `curl ... | sh` updates
-// the heartbeat too. It also moves a service that ran a copy in the operator's home (Bridge before
+// the heartbeat too. It also moves a service that ran a copy in the operator's home (Door before
 // v0.2.4) to the safe place.
 func installService() int {
 	if service.Program() == "" {
@@ -252,14 +252,14 @@ func installService() int {
 	}
 	dest, err := serviceBinary()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Could not install Bridge for the heartbeat service:", err)
+		fmt.Fprintln(os.Stderr, "Could not install Door for the heartbeat service:", err)
 		return 1
 	}
 	if err := service.Install(dest); err != nil {
 		fmt.Fprintln(os.Stderr, "Could not update the heartbeat service:", err)
 		return 1
 	}
-	fmt.Printf("✓ The heartbeat service runs Bridge %s from %s\n", version, dest)
+	fmt.Printf("✓ The heartbeat service runs Door %s from %s\n", version, dest)
 	// The tunnel service is a long-running process of the same binary: without a restart it keeps
 	// the old version (dgx-city ran a v0.6.1 tunnel under a v0.6.5 heartbeat, 2026-10-14, so the
 	// 10 s state poll never ran). A restart reconnects within seconds; requests in flight break.

@@ -13,9 +13,9 @@ import (
 )
 
 // Managed models: the portal's wish list (wanted_models in the heartbeat answer) says which models
-// this garage should have; Bridge makes it so and reports. Only Ollama for now. One pull per
+// this garage should have; Door makes it so and reports. Only Ollama for now. One pull per
 // heartbeat run, at most: a pull blocks this run, and the pace is the portal's (macro, not micro).
-// A model Bridge pulled may be removed on request; one the operator added is never touched.
+// A model Door pulled may be removed on request; one the operator added is never touched.
 
 // puller is what reconcileModels needs from the runtime; a fake in tests.
 type puller interface {
@@ -57,7 +57,7 @@ func reconcileModels(cfg *service.Config, res *portal.HeartbeatResult, served []
 	if cfg.Runtime != "ollama" {
 		for _, w := range res.WantedModels {
 			states[w.Model] = service.ModelState{Model: w.Model, Status: "refused", By: w.By, At: service.Now(),
-				Error: "Bridge can fetch models for Ollama only (this garage runs " + cfg.Runtime + ")"}
+				Error: "Door can fetch models for Ollama only (this garage runs " + cfg.Runtime + ")"}
 		}
 		service.SaveModelsState(states)
 		return true
@@ -76,7 +76,7 @@ func reconcileModels(cfg *service.Config, res *portal.HeartbeatResult, served []
 				continue
 			}
 			if st.Status == "refused" {
-				// An earlier verdict that no longer applies (a Bridge fix, a renamed model): start afresh.
+				// An earlier verdict that no longer applies (a Door fix, a renamed model): start afresh.
 				st.Status, st.Error = "", ""
 			}
 			if have[w.Model] {
@@ -148,7 +148,7 @@ func pullWithProgress(client puller, model string, progress rt.PullProgress, kee
 		if !checked {
 			checked = true
 			if free := freeGB(); free > 0 && float64(total-completed)/1e9 > free-minFreeGB {
-				diskErr = fmt.Errorf("not enough disk: %.0f GB needed, %.0f GB free (Bridge keeps %d GB free)", float64(total-completed)/1e9, free, minFreeGB)
+				diskErr = fmt.Errorf("not enough disk: %.0f GB needed, %.0f GB free (Door keeps %d GB free)", float64(total-completed)/1e9, free, minFreeGB)
 				cancel()
 				return
 			}

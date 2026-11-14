@@ -21,7 +21,7 @@ import (
 )
 
 // Self-update (docs/bridge.md): the portal says which version garages should run (bridge_stable in
-// the heartbeat's answer); Bridge fetches that release from GitHub, checks the SHA256SUMS, runs the
+// the heartbeat's answer); Door fetches that release from GitHub, checks the SHA256SUMS, runs the
 // new binary once, and only then swaps the service's copy and restarts the tunnel. Never straight
 // from "latest": a bad release must not reach every garage at once.
 
@@ -30,7 +30,7 @@ const releasesBase = "https://github.com/magnusfroste/garageai/releases/download
 // trustedBase is where the release is fetched from. The portal may say so (bridge_download_base),
 // but only within this repository's GitHub releases: SHA256SUMS comes from the same place as the
 // binary, so whoever picks the place picks what runs as root on every garage. A portal that is
-// wrong or compromised must not be able to point Bridge anywhere else (found in the 2026-10-13
+// wrong or compromised must not be able to point Door anywhere else (found in the 2026-10-13
 // security review). An unacceptable base is ignored, and the release's own directory is used.
 func trustedBase(stable, base string) string {
 	own := releasesBase + stable
@@ -108,7 +108,7 @@ func fetch(url string, max int64) ([]byte, error) {
 	return io.ReadAll(io.LimitReader(resp.Body, max))
 }
 
-// downloadVerified fetches Bridge's release asset for this OS, checks the release's signature
+// downloadVerified fetches Door's release asset for this OS, checks the release's signature
 // (when this build carries release keys: docs/release-signing.md) and the asset against
 // SHA256SUMS. Returns the path of the verified file (in dir).
 func downloadVerified(base, version, dir string) (string, error) {
@@ -131,7 +131,7 @@ func downloadVerified(base, version, dir string) (string, error) {
 }
 
 // downloadAsset fetches base/asset, checks it against base/SHA256SUMS and writes it to dest
-// (0755). The Runner Bridge installs goes through here (its releases are not ours to sign).
+// (0755). The Runner Door installs goes through here (its releases are not ours to sign).
 func downloadAsset(base, asset, dest string, max int64) error {
 	base = strings.TrimSuffix(base, "/")
 	sums, err := fetch(base+"/SHA256SUMS", 64<<10)
@@ -163,7 +163,7 @@ func downloadAssetWithSums(base, asset, dest string, max int64, sums []byte) err
 	return os.WriteFile(dest, b, 0o755)
 }
 
-// selfUpdate brings the service's Bridge to version stable from base (the release's download
+// selfUpdate brings the service's Door to version stable from base (the release's download
 // directory). Runs in the heartbeat as root. It is a no-op when already there or on Windows.
 func selfUpdate(stable, base string) error {
 	if !newerVersion(version, stable) {
@@ -182,7 +182,7 @@ func selfUpdate(stable, base string) error {
 	// The new binary must run and be what it claims before it replaces anything.
 	out, err := exec.Command(tmp, "version").Output()
 	if err != nil || !strings.Contains(string(out), stable) {
-		return fmt.Errorf("the downloaded Bridge does not run as %s (%q, %v)", stable, strings.TrimSpace(string(out)), err)
+		return fmt.Errorf("the downloaded Door does not run as %s (%q, %v)", stable, strings.TrimSpace(string(out)), err)
 	}
 	if runtime.GOOS == "windows" {
 		// A running exe cannot be overwritten, but it can be renamed: the old one steps aside as
@@ -259,16 +259,16 @@ func updateCmd(args []string) int {
 		target = v
 	}
 	if !newerVersion(version, target) {
-		fmt.Printf("Bridge %s is already %s or newer.\n", version, target)
+		fmt.Printf("Door %s is already %s or newer.\n", version, target)
 		return 0
 	}
-	fmt.Printf("Updating Bridge %s → %s (checksum verified before anything is replaced)...\n", version, target)
+	fmt.Printf("Updating Door %s → %s (checksum verified before anything is replaced)...\n", version, target)
 	if err := selfUpdate(target, ""); err != nil {
 		fmt.Fprintln(os.Stderr, "garageai update:", err)
 		return 1
 	}
 	service.SaveUpdateState(service.UpdateState{LastCheck: service.Now(), LastUpdate: service.Now(), Version: target})
-	fmt.Printf("✓ Bridge %s installed for the service; the heartbeat uses it from its next run, the tunnel was restarted.\n", target)
+	fmt.Printf("✓ Door %s installed for the service; the heartbeat uses it from its next run, the tunnel was restarted.\n", target)
 	return 0
 }
 

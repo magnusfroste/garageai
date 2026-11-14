@@ -19,8 +19,8 @@ type Config struct {
 	Runtime       string `json:"runtime"`
 	Port          int    `json:"port"`
 	RuntimeAPIKey string `json:"runtime_api_key,omitempty"`
-	MeshIP        string `json:"mesh_ip,omitempty"` // the garage's address in the Bridge tunnel (10.66.x.y)
-	// The Bridge tunnel (docs/bridge-tunnel.md), the only transport: transport "tunnel", the hub's
+	MeshIP        string `json:"mesh_ip,omitempty"` // the garage's address in the GarageAI tunnel (10.66.x.y)
+	// The GarageAI tunnel (docs/bridge-tunnel.md), the only transport: transport "tunnel", the hub's
 	// key and endpoint. The private key is in TunnelKeyPath().
 	// Self-update: nil means on. garageai connect --no-auto-update sets it to false.
 	AutoUpdate   *bool  `json:"auto_update,omitempty"`
@@ -138,8 +138,8 @@ const (
 func Install(self string) error {
 	switch runtime.GOOS {
 	case "linux":
-		unit := fmt.Sprintf("[Unit]\nDescription=GarageAI Bridge heartbeat (reports this garage's models)\nAfter=network-online.target\n\n[Service]\nType=oneshot\nExecStart=%s run --once\n", self)
-		timer := "[Unit]\nDescription=GarageAI Bridge heartbeat every 5 minutes\n\n[Timer]\nOnBootSec=1min\nOnUnitActiveSec=5min\nAccuracySec=30s\n\n[Install]\nWantedBy=timers.target\n"
+		unit := fmt.Sprintf("[Unit]\nDescription=GarageAI Door heartbeat (reports this garage's models)\nAfter=network-online.target\n\n[Service]\nType=oneshot\nExecStart=%s run --once\n", self)
+		timer := "[Unit]\nDescription=GarageAI Door heartbeat every 5 minutes\n\n[Timer]\nOnBootSec=1min\nOnUnitActiveSec=5min\nAccuracySec=30s\n\n[Install]\nWantedBy=timers.target\n"
 		if err := os.WriteFile(unitPath, []byte(unit), 0o644); err != nil {
 			return err
 		}

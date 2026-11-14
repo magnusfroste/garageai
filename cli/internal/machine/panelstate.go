@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// A runtime manager (vLLM Panel 1.28.0 first) tells Bridge what it is doing through a small state
-// file in the operator's home, written without sudo (docs/bridge.md, lifecycle states). Bridge
+// A runtime manager (vLLM Panel 1.28.0 first) tells Door what it is doing through a small state
+// file in the operator's home, written without sudo (docs/bridge.md, lifecycle states). Door
 // runs as root and reads it with care: a regular file only, small, fresh, and only states that
 // take traffic away are honoured (the file can take a garage out of the pool, never put one in).
 
@@ -96,7 +96,7 @@ func readPanelState(paths []string, now time.Time) (*PanelState, string) {
 	return nil, why
 }
 
-// Effect maps the panel's kind to Bridge's state kind: only states that reduce traffic.
+// Effect maps the panel's kind to Door's state kind: only states that reduce traffic.
 // "" means no override (serving, failed, unknown).
 func (ps *PanelState) Effect() string {
 	switch ps.State.Kind {

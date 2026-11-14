@@ -1,6 +1,6 @@
-// Package tunnel is Bridge's own tunnel to the GarageAI gateway (docs/bridge-tunnel.md): WireGuard
+// Package tunnel is Door's own tunnel to the GarageAI gateway (docs/bridge-tunnel.md): WireGuard
 // in user space (wireguard-go and the gVisor netstack). No network interface, no routes, no root.
-// The garage dials out to the hub, so any NAT works, and the runtime stays on 127.0.0.1: Bridge
+// The garage dials out to the hub, so any NAT works, and the runtime stays on 127.0.0.1: Door
 // listens on its tunnel address inside its own stack and forwards to the runtime.
 package tunnel
 

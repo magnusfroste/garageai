@@ -3,7 +3,8 @@
 What to do when `garageai doctor` (or the Operations Center's "From the garage" column, or the
 garage page in the portal) reports a problem. One section per problem code, with what it means,
 how to fix it, and what we learned getting real garages online. This is the knowledge base for
-Bridge: when a fix text in `cli/internal/profile/build.go` changes, change it here too, and the
+Door (GarageAI Door, called Bridge before v1.6.0; services, files and release tags keep the old
+name): when a fix text in `cli/internal/profile/build.go` changes, change it here too, and the
 other way round.
 
 Start with:
@@ -12,7 +13,7 @@ Start with:
 garageai doctor
 ```
 
-It prints the machine, the Bridge tunnel, the heartbeat, every runtime it finds and its models, then the
+It prints the machine, the GarageAI tunnel, the heartbeat, every runtime it finds and its models, then the
 problems with a fix for each. `garageai doctor --json` is the same as JSON (the profile that
 connect also reports to the portal).
 
@@ -36,19 +37,19 @@ gateway sees the garage as down (on garage-m2 this was an 8-minute "tunnel down"
 - Check: `pmset -g` shows `sleep 0` (on a MacBook: while plugged in), and doctor no longer reports it.
 
 ### `low_disk` (warning)
-Less than 5 GB free on the system disk. Bridge's self-update writes a second copy of itself before
+Less than 5 GB free on the system disk. Door's self-update writes a second copy of itself before
 it swaps, and a model is a few GB, so both can fail with "no space left on device" (garage-m1,
 2026-11-11). Empty the trash and remove models the garage no longer serves.
 
 ### `no_gpu` (info)
 No GPU found (nvidia-smi, rocm-smi, Apple silicon). Fine for a test; a CPU garage is too slow to sell.
 
-## The Bridge tunnel
+## The GarageAI tunnel
 
-Every garage carries its own tunnel in Bridge (docs/bridge-tunnel.md): no network interface, no
-routes, no sudo for the network, and the runtime stays on `127.0.0.1`. Bridge dials out to the
+Every garage carries its own tunnel in Door (docs/bridge-tunnel.md): no network interface, no
+routes, no sudo for the network, and the runtime stays on `127.0.0.1`. Door dials out to the
 gateway over UDP 51830 and forwards the tunnel to the runtime locally. It was opt-in in v0.4.0
-(`--tunnel bridge`) and the default since v0.4.2; the NetBird mesh it replaced is gone from Bridge,
+(`--tunnel bridge`) and the default since v0.4.2; the NetBird mesh it replaced is gone from Door,
 and the old options (`--setup-key`, `--management-url`, `--tunnel`, `--skip-install`) only print
 that and stop: run `garageai connect` without them.
 
@@ -64,18 +65,18 @@ macOS and `journalctl -u garageai-tunnel` on Linux.
   (a TCP fallback is planned).
 - **After sleep or a network change** the tunnel reconnects by itself within a few seconds.
 - **A new tunnel garage's first handshakes can go unanswered for a few seconds:** the hub learns
-  about it from the portal on its next round (every 10 s). Bridge waits up to a minute and says so.
+  about it from the portal on its next round (every 10 s). Door waits up to a minute and says so.
   Before v0.4.1 it gave up after 20 s ("No answer from the gateway's tunnel hub"); running the
   command again worked, because the hub knew the garage by then.
 - **"Could not install the tunnel service: launchctl bootstrap ... Bootstrap failed: 5: Input/output
   error"** (macOS, connect run again over a running tunnel): launchd was still tearing the old
-  service down when Bridge registered the new one. Run
+  service down when Door registered the new one. Run
   `sudo launchctl bootstrap system /Library/LaunchDaemons/eu.garageai.tunnel.plist` once the
-  tunnel is down for good, or run connect again. Since v0.5.1 Bridge waits for the teardown and
+  tunnel is down for good, or run connect again. Since v0.5.1 Door waits for the teardown and
   retries. Learned: garage-m1 and garage-m4 both hit it on 2026-10-12 when updating to v0.5.0 by
   running the install command.
 - **The runtime on localhost is correct**: the tunnel reaches it there, and listening on the
-  network is not needed. Older Bridge versions reported `localhost_only` (and, on a Mac,
+  network is not needed. Older Door versions reported `localhost_only` (and, on a Mac,
   `ollama_host_not_persistent`) on garages that were not on the tunnel; neither exists any more.
 
 ## The runtime
@@ -109,10 +110,10 @@ The runtime wants an API key (vLLM and SGLang usually run with one, since they l
 network by default; Ollama and LM Studio usually have none). Since v0.4.4 connect finds the key
 itself where the runtime was started (its command line `--api-key`, its environment, or the Docker
 container's command and environment) and otherwise asks for it with hidden input. `garageai doctor`
-run as a normal user cannot read the key (Bridge's configuration is root-only), so it reports
+run as a normal user cannot read the key (Door's configuration is root-only), so it reports
 `needs_api_key` and 0 models: run `sudo garageai doctor` to probe with the key; the heartbeat, which
 runs as root, uses it already. Never paste it in
-a chat or a ticket. With the Bridge tunnel the runtime does not need to listen on the network at
+a chat or a ticket. With the GarageAI tunnel the runtime does not need to listen on the network at
 all: start vLLM with `--host 127.0.0.1` and the key becomes a second lock instead of the only one.
 
 ### `runtime_in_terminal` (warning)
@@ -132,21 +133,21 @@ member logged the operator out.
 ### Xyntetik Runner
 Recognised since v0.6.2 (`runner` process, `runner_` counters on `/metrics`), default port 8080.
 It serves localhost only by design and rejects requests whose `Host` is not loopback, so it works
-with the Bridge tunnel, which reaches it on `127.0.0.1`. Start it with
+with the GarageAI tunnel, which reaches it on `127.0.0.1`. Start it with
 `runner -m <model.gguf> --serve --port 8080 --parallel 2`; it reports cached prompt tokens by
 itself. Under evaluation as a recommended engine (docs/inference-engines.md §8).
 
-Runner that `garageai runtime install` installed **follows Bridge**: when a Bridge update brings
+Runner that `garageai runtime install` installed **follows Door**: when a Door update brings
 a newer pinned Runner release, the heartbeat upgrades Runner too, only while it serves nothing
 (no active request, none in the last minute), with the same model, port and context window. The
 previous binary is kept and restored if the new one does not answer within 3 minutes. Turn it off
-with `garageai connect --no-auto-update` (the same switch as Bridge's own updates).
+with `garageai connect --no-auto-update` (the same switch as Door's own updates).
 
 ### `runner_update_failed` (warning)
-Bridge tried to move Runner to the release it pins, the new Runner did not answer within 3
-minutes, and Bridge went back to the previous release, which serves as before (the message names
+Door tried to move Runner to the release it pins, the new Runner did not answer within 3
+minutes, and Door went back to the previous release, which serves as before (the message names
 both and the reason). Nothing is lost; the garage keeps serving. Look at Runner's log
-(`/var/log/garageai-runner.log` on Linux and macOS, `runner.log` next to Bridge on Windows) and
+(`/var/log/garageai-runner.log` on Linux and macOS, `runner.log` next to Door on Windows) and
 try by hand with `garageai runtime install --force`; tell us what the log says.
 
 ### `no_cached_token_report` (info, vLLM)
@@ -157,15 +158,15 @@ vLLM does not report cached prompt tokens, so buyers pay full price for prefix-c
 
 Since v0.6.0 the portal can ask a garage to fetch or remove a model (My garages → Add, or
 GarageAI Smart choosing in-demand models for the machine; docs/bridge.md). The heartbeat carries
-the wish list, Bridge asks Ollama to pull (`/api/pull`), reports progress ("2.1 of 4.7 GB") and,
+the wish list, Door asks Ollama to pull (`/api/pull`), reports progress ("2.1 of 4.7 GB") and,
 when it is there, the next heartbeat offers the model. `garageai models` shows the list and how
-each went. Ollama only for now. A model the operator added themselves is never removed by Bridge
-("refused" in the list); one Bridge fetched can be. Bridge keeps 10 GB free on the disk and
+each went. Ollama only for now. A model the operator added themselves is never removed by Door
+("refused" in the list); one Door fetched can be. Door keeps 10 GB free on the disk and
 refuses a pull that would not.
 
 ### `model_pull_failed` (warning)
 GarageAI asked this garage to fetch a model and Ollama could not (the reason is in the message:
-no route to ollama.com, not enough disk, a model name that does not exist). Bridge tries again
+no route to ollama.com, not enough disk, a model name that does not exist). Door tries again
 after an hour, not every 5 minutes. Check the disk (`df -h`) and that `ollama pull <model>` works
 by hand; if it does, the next retry will too. `garageai models` shows the state.
 
@@ -178,7 +179,7 @@ elsewhere, finishes requests in flight, and raises no alert:
   reboot, a model change, a GPU you need yourself for a while. Without `--for` it lasts until
   resume. The heartbeat goes out at once, so the portal reacts within seconds.
 - **A runtime manager's state file** (vLLM Panel 1.28.0 and later writes
-  `~/.local/state/vllm-panel/state.json`): Bridge reads it and treats `maintenance`,
+  `~/.local/state/vllm-panel/state.json`): Door reads it and treats `maintenance`,
   `starting` and `stopped` as planned absences, with the manager's reason and ETA. Doctor shows
   "State maintenance (redeploy) since 21:11, until ~21:26, by vLLM Panel". The tunnel service
   checks it every 10 seconds. A stale file (older than 3 minutes: the panel's agent is gone) is
@@ -194,16 +195,16 @@ model serves again.
 `garageai runtime` says whether Xyntetik Runner, a one-file engine, fits this machine and which
 model it would serve; `garageai runtime install` installs it as a service (it asks for sudo or
 Administrator) and waits until the model is downloaded. Then `garageai connect`. It says "keep it"
-when Ollama or another runtime already serves models (Bridge works with those), and "not yet" on
+when Ollama or another runtime already serves models (Door works with those), and "not yet" on
 ARM Linux (DGX Spark), Intel Macs and Windows on ARM. AMD and Intel graphics run on the
 processor. `garageai runtime remove` stops it; the model stays downloaded.
 
 ## Windows
 
-Since Bridge v1.0.0 Windows is a first-class garage. Install with the line from the portal's
+Since Door v1.0.0 Windows is a first-class garage. Install with the line from the portal's
 Windows tab, pasted into PowerShell:
 `irm https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.ps1 | iex; garageai connect`.
-The heartbeat is a scheduled task ("GarageAI Bridge heartbeat", every 5 minutes as SYSTEM), the
+The heartbeat is a scheduled task ("GarageAI Bridge heartbeat": the task keeps the old name; every 5 minutes as SYSTEM), the
 tunnel a Windows service ("GarageAIBridgeTunnel", starts with Windows, log in
 `%ProgramData%\GarageAI\tunnel.log`). Configuration and keys live in `%ProgramData%\GarageAI`,
 readable by Administrators and SYSTEM only. Self-update works (the old exe steps aside as
@@ -213,9 +214,9 @@ a Mac; the tunnel reaches it there.
 
 What the first Windows operators ran into, in the order they meet it:
 
-- **Administrator, not Defender.** Bridge installs Windows services, which needs Administrator.
+- **Administrator, not Defender.** Door installs Windows services, which needs Administrator.
   Since v1.0.4 `garageai connect` in a normal PowerShell asks for it itself: Windows shows its
-  Yes/No dialog, answer Yes, and Bridge continues in a new window that stays open at the end.
+  Yes/No dialog, answer Yes, and Door continues in a new window that stays open at the end.
   Before v1.0.4 it stopped with "Open PowerShell as Administrator", which reads like a block but
   is not one. Open an elevated PowerShell yourself: right-click **Start** → **Terminal (Admin)**
   or **Windows PowerShell (Admin)** → Yes. The title bar then starts with "Administrator:".
@@ -230,12 +231,12 @@ What the first Windows operators ran into, in the order they meet it:
   send longer prompts (`small_context`). Ollama app → Settings → Context length, or in PowerShell
   `setx OLLAMA_CONTEXT_LENGTH 8192`, then quit Ollama in the system tray and start it again.
 - **A second "llamacpp" runtime on a random port** with a sha256 name in doctor is Ollama's own
-  model process, not something you started. Bridge v1.0.4 no longer lists it.
+  model process, not something you started. Door v1.0.4 no longer lists it.
 - **Ryzen or Intel laptops** (Radeon or Intel graphics built into the processor): Ollama on
   Windows runs on the processor, and doctor says `no_gpu`. That is correct, and fine for a
   small model (qwen3:0.6b, qwen3:4b); larger models get too slow for buyers.
 - **Ollama for Windows** runs in the user's session (tray app): when nobody is logged in, the
-  garage has no runtime. Keep the user logged in (locking the screen is fine); Bridge reports
+  garage has no runtime. Keep the user logged in (locking the screen is fine); Door reports
   `runtime_user_session` as on a Mac.
 - **The tunnel service stood still** (`tunnel_stopped`): since v1.0.4 the heartbeat starts it
   again within 5 minutes, and Windows restarts it after an error exit. By hand:
@@ -252,7 +253,7 @@ powercfg /change standby-timeout-ac 0; powercfg /setacvalueindex SCHEME_CURRENT 
 ```
 
 That keeps it awake on the power adapter, also with the lid closed; on battery your own settings
-still apply, and Bridge reports a laptop on battery as away rather than down. Settings → System →
+still apply, and Door reports a laptop on battery as away rather than down. Settings → System →
 Power has the same switches.
 
 ### Windows Defender removed garageai.exe (false positive)
@@ -293,12 +294,12 @@ curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/inst
 
 or `sudo garageai install-service`. The service then runs its own root-only copy
 (`/Library/Application Support/GarageAI/garageai` on macOS, `/usr/local/lib/garageai/garageai` on
-Linux). Learned: Bridge rc1 set up services that ran the copy in the operator's home.
+Linux). Learned: Door rc1 set up services that ran the copy in the operator's home.
 
-## Updating Bridge
+## Updating Door
 
-Since v0.5.0 Bridge updates itself: the portal tells the heartbeat which version garages should run
-(the "stable" version, promoted by GarageAI after it has run on our own garages), and Bridge
+Since v0.5.0 Door updates itself: the portal tells the heartbeat which version garages should run
+(the "stable" version, promoted by GarageAI after it has run on our own garages), and Door
 fetches that release, checks it against SHA256SUMS, runs the new binary once, and only then swaps
 the service's copy and restarts the tunnel. The heartbeat runs the new version from its next run.
 Your own `garageai` command is refreshed too when it is in `/usr/local/bin` or `~/.local/bin`.
@@ -309,13 +310,13 @@ The menu-bar or notification-area icon restarts itself within a minute or two of
 ### `update_failed` (warning)
 The last self-update did not go through (the reason is in the message: no route to github.com, a
 checksum mismatch, or a binary that did not run). Run `garageai update`; if it fails the same way,
-check the machine's internet access to github.com. Nothing was replaced: Bridge keeps running the
+check the machine's internet access to github.com. Nothing was replaced: Door keeps running the
 version it had.
 
 ## Mix-ups we have seen
 
 - **`garageai: command not found` right after installing.** Before 2026-10-13 the installer put
-  Bridge in `~/.local/bin` whenever `/usr/local/bin` was not writable (always, on a Mac), and that
+  Door in `~/.local/bin` whenever `/usr/local/bin` was not writable (always, on a Mac), and that
   directory is not on a Mac's PATH. Either add it
   (`echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc`) or run the install
   command again: it now installs to `/usr/local/bin` with sudo. The heartbeat and the tunnel were
@@ -325,17 +326,17 @@ version it had.
   v0.6.7 a linked machine keeps its link ("Already linked as garage-m1"); `--relink` links again
   on purpose (a new account, a renamed garage).
 - **A register token left in the shell.** `export GARAGEAI_REGISTER_TOKEN=…` from an old connect
-  command stays in that terminal. Bridge then skips the browser link and uses the old token. Since
+  command stays in that terminal. Door then skips the browser link and uses the old token. Since
   v0.4.1 it at least uses GarageAI's own portal address with it; to link afresh, open a new
   terminal or `unset GARAGEAI_REGISTER_TOKEN GARAGEAI_REGISTER_URL`.
 - **The terminal waits for a password behind the browser.** After approving in the browser, the
-  terminal asked for the sudo password, out of sight. Since v0.4.1 Bridge asks for it first, before
+  terminal asked for the sudo password, out of sight. Since v0.4.1 Door asks for it first, before
   the browser opens.
 
 - **One garage name, two machines.** A garage was first set up on one laptop, whose settings were
   then deleted, and later connected from another laptop under the same name. The token belonged to
   the first machine, so the second had to be paired again. Give every
-  machine its own garage (`garage-m2`, `garage-m3`, ...). Planned: Bridge sends a machine id, and
+  machine its own garage (`garage-m2`, `garage-m3`, ...). Planned: Door sends a machine id, and
   the portal warns when a garage suddenly comes from another machine.
 - **A garage that is "offline" though everything runs:** check that its models are not disabled
   by an admin (Admin → Models); routing needs both.

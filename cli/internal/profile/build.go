@@ -36,7 +36,7 @@ func Build(version string) Profile {
 	p.Runtimes = discover(listeners())
 	wg.Wait()
 	p.Heartbeat, p.GarageAI = hb, cfg
-	if cfg.Transport == "tunnel" { // linked: Bridge's config (or the tunnel service) is there
+	if cfg.Transport == "tunnel" { // linked: Door's config (or the tunnel service) is there
 		inst, active := service.TunnelInstalled()
 		p.Tunnel = &Tunnel{IP: cfg.TunnelIP, Installed: inst, Active: active}
 	}
@@ -98,7 +98,7 @@ func discover(ls []Listener) []Runtime {
 	return out
 }
 
-// lowDiskGB: below this much free space doctor warns. A model is a few GB, Bridge's update needs room
+// lowDiskGB: below this much free space doctor warns. A model is a few GB, Door's update needs room
 // for a second copy of itself.
 const lowDiskGB = 5
 
@@ -107,7 +107,7 @@ func problems(p Profile) []Problem {
 	add := func(sev, code, msg, fix string) { out = append(out, Problem{sev, code, msg, fix}) }
 	if len(p.Runtimes) == 0 {
 		add("error", "no_runtime", "No OpenAI-compatible runtime answers on this machine",
-			"Start your runtime (Ollama, LM Studio, vLLM, llama.cpp, Xyntetik Runner, ...) and run this again, or let Bridge install one: garageai runtime install")
+			"Start your runtime (Ollama, LM Studio, vLLM, llama.cpp, Xyntetik Runner, ...) and run this again, or let Door install one: garageai runtime install")
 	}
 	target := ollamaContextTarget(p.Machine.MemoryGB)
 	for _, rt := range p.Runtimes {
@@ -115,7 +115,7 @@ func problems(p Profile) []Problem {
 			fix := "Pass the same key with --runtime-api-key when you connect"
 			if os.Geteuid() != 0 && p.GarageAI.ConfiguredPort != nil && rt.Port == *p.GarageAI.ConfiguredPort {
 				// The key is in the root-only config; as a user, doctor cannot use it (dgx-city, 2026-10-13).
-				fix = "The key is in Bridge's root-only configuration: run `sudo garageai doctor` to probe with it. The heartbeat (root) uses it already"
+				fix = "The key is in Door's root-only configuration: run `sudo garageai doctor` to probe with it. The heartbeat (root) uses it already"
 			}
 			add("info", "needs_api_key", fmt.Sprintf("%s on port %d requires an API key", rt.Kind, rt.Port), fix)
 		}
@@ -151,8 +151,8 @@ func problems(p Profile) []Problem {
 		}
 	}
 	if p.diskFreeGB != nil && *p.diskFreeGB < lowDiskGB {
-		// garage-m1 (2026-11-11): 1 GB free, and Bridge's update failed with "no space left on device".
-		add("warning", "low_disk", fmt.Sprintf("Only %d GB disk free: Bridge's updates and model downloads can fail", *p.diskFreeGB),
+		// garage-m1 (2026-11-11): 1 GB free, and Door's update failed with "no space left on device".
+		add("warning", "low_disk", fmt.Sprintf("Only %d GB disk free: Door's updates and model downloads can fail", *p.diskFreeGB),
 			fmt.Sprintf("Free at least %d GB: empty the trash, remove models you no longer serve", lowDiskGB))
 	}
 	switch {
@@ -175,20 +175,20 @@ func problems(p Profile) []Problem {
 					runAsServiceFix(rt.Kind))
 			case h.UserSess && p.darwin && humanUsers() > 1:
 				add("info", "runtime_user_session", fmt.Sprintf("%s runs in your login session on a Mac with several user accounts: it stops when you log out (another user logging in with fast user switching is fine)", rt.Kind),
-					"Keep your account logged in, or run "+rt.Kind+" as a system service (a LaunchDaemon). Bridge will be able to set that up")
+					"Keep your account logged in, or run "+rt.Kind+" as a system service (a LaunchDaemon). Door will be able to set that up")
 			}
 		}
 	}
 	if p.GarageAI.Transport == "tunnel" { // linked: the tunnel is how the gateway reaches this garage
 		if inst, active := service.TunnelInstalled(); !inst {
-			add("error", "tunnel_missing", "This garage is linked, but the Bridge tunnel service is not installed", "Run: garageai connect")
+			add("error", "tunnel_missing", "This garage is linked, but the GarageAI tunnel service is not installed", "Run: garageai connect")
 		} else if !active {
-			add("error", "tunnel_stopped", "The Bridge tunnel service is installed but not running, so the gateway cannot reach this garage",
+			add("error", "tunnel_stopped", "The GarageAI tunnel service is installed but not running, so the gateway cannot reach this garage",
 				"Linux: sudo systemctl restart garageai-tunnel. macOS: sudo launchctl kickstart -k system/eu.garageai.tunnel. Then: garageai doctor")
 		}
 	}
 	if st := service.LoadUpdateState(); st.LastError != "" {
-		add("warning", "update_failed", "Bridge could not update itself: "+st.LastError, "Run: garageai update. If it fails the same way, check the machine's internet access to github.com")
+		add("warning", "update_failed", "Door could not update itself: "+st.LastError, "Run: garageai update. If it fails the same way, check the machine's internet access to github.com")
 	}
 	if ps, _ := gmachine.ReadPanelState(time.Now()); ps != nil && ps.State.Kind == "failed" {
 		add("error", "runtime_manager_failed", ps.Panel+" reports a failed runtime: "+ps.State.Reason, "Open the runtime manager (vLLM Panel) for the cause; the garage is down for buyers until the model serves again")
@@ -196,7 +196,7 @@ func problems(p Profile) []Problem {
 	for _, m := range service.ModelStates(service.LoadModelsState()) {
 		if m.Status == "failed" {
 			add("warning", "model_pull_failed", "GarageAI asked this garage to fetch "+m.Model+", but it failed: "+m.Error,
-				"Check the disk and the internet access to ollama.com; Bridge retries after an hour. See: garageai models")
+				"Check the disk and the internet access to ollama.com; Door retries after an hour. See: garageai models")
 		}
 	}
 	if prog := service.Program(); prog != "" {
@@ -259,7 +259,7 @@ func runAsServiceFix(kind string) string {
 	return "Run it as a service (systemd, launchd or Docker with --restart) instead of in a terminal"
 }
 
-// OllamaContextTarget is the window Bridge recommends for this machine's memory.
+// OllamaContextTarget is the window Door recommends for this machine's memory.
 func OllamaContextTarget(mem *int) int { return ollamaContextTarget(mem) }
 
 // loopbackOpen: something accepts TCP connections on 127.0.0.1:port.

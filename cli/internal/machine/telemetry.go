@@ -121,7 +121,7 @@ func parseNvidia(out string) (nvidiaGPU, bool) {
 func intp(v int) *int    { return &v }
 func boolp(v bool) *bool { return &v }
 
-// DiskFreeGB is the free space on the disk that holds the models and Bridge itself (the system
+// DiskFreeGB is the free space on the disk that holds the models and Door itself (the system
 // disk for now), or nil when unknown: the input of doctor's low_disk warning.
 func DiskFreeGB() *int { return diskFreeGB(systemDisk()) }
 
