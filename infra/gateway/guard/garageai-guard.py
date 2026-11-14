@@ -49,7 +49,7 @@ def sh(cmd, check=False):
 
 
 def protected():
-    # 10.0.0.0/8 covers the Bridge tunnel (wg-hub, 10.66.0.0/16).
+    # 10.0.0.0/8 covers the GarageAI tunnel (wg-hub, 10.66.0.0/16).
     nets = [ipaddress.ip_network(n) for n in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8",
                                               "::1/128", "fc00::/7", "fe80::/10")]
     own = sh(["hostname", "-I"]).stdout.split()

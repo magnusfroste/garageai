@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""GarageAI Bridge tunnel hub (docs/bridge-tunnel.md): the gateway's end of the garages' tunnels.
+"""GarageAI tunnel hub (docs/bridge-tunnel.md): the gateway's end of the garages' tunnels.
 
-`wg-hub` is a kernel WireGuard interface, 10.66.0.1/16, UDP 51830. Each garage that uses the Bridge
+`wg-hub` is a kernel WireGuard interface, 10.66.0.1/16, UDP 51830. Each garage that uses the Door
 tunnel is one peer: its public key and its /32. There are no endpoints: the hub learns each garage's
 address from its handshakes, whatever NAT it is behind. LiteLLM reaches garages at
 http://<tunnel ip>:<port>/v1 through the host.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # garageai-backup — nightly backup of the GarageAI gateway state.
 # Contents: LiteLLM Postgres (keys, budgets, models, spend), LiteLLM .env (master and
-# salt key), the Bridge tunnel hub's key (/etc/wireguard/garageai-hub.key: lose it and every
+# salt key), the GarageAI tunnel hub's key (/etc/wireguard/garageai-hub.key: lose it and every
 # garage must connect again), /etc/garageai (gateway-health.env, ops-api.key, hub-peers.json),
 # the ops .env, the Traefik compose file and its Let's Encrypt volume (certificates and the
 # ACME account). Kept 7 days in /var/backups/garageai (root only).

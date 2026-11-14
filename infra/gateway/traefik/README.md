@@ -14,7 +14,7 @@ time (a few seconds without HTTPS).
 
 Until now the proxy was `netbird-traefik` from the NetBird installer (`/opt/garageai/netbird`,
 network `netbird_netbird`, volume `netbird_netbird_traefik_letsencrypt`). This moves it to this
-stack and then switches NetBird off. Every garage already runs on the Bridge tunnel hub
+stack and then switches NetBird off. Every garage already runs on the GarageAI tunnel hub
 (`garageai-hub`, `wg-hub`), which this does not touch.
 
 **Interruption:** from step 5 to step 7 buyers get no answers (about 1 to 2 minutes). Do it in a

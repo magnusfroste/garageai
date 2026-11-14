@@ -221,7 +221,7 @@ class ModelTemporarilyUnavailable(ProxyException):
 
 
 # Providers (connection_type "endpoint": a datacenter or partner API reached over HTTPS) are not
-# garages: no Bridge, no heartbeat, no tunnel state, so nothing takes a dead one out of routing
+# garages: no Door, no heartbeat, no tunnel state, so nothing takes a dead one out of routing
 # within minutes. What the gateway does at request time is all there is:
 # - a provider gets a shorter time limit than a home garage (600 s, for 100k-token prefills on home
 #   GPUs): a provider that hangs otherwise holds every request it gets for ten minutes;

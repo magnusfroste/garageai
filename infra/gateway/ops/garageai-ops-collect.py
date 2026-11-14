@@ -3,7 +3,7 @@
 
 Runs every minute on the gateway (garageai-ops.timer) and writes one JSON file with
 everything an operator needs to see: the gateway host, containers, certificates,
-backups, the Bridge tunnel hub, every garage and provider, gateway traffic and errors, the
+backups, the GarageAI tunnel hub, every garage and provider, gateway traffic and errors, the
 portal seen from outside, and a list of current alerts. The page in index.html renders
 it. The file holds no secrets: no keys, no tokens, no prompts.
 
@@ -303,7 +303,7 @@ def minutes_since(ts):
 
 
 def agent_report(t):
-    """Bridge's latest report from the garage's heartbeat: version, OS and what doctor finds. None for
+    """Door's latest report from the garage's heartbeat: version, OS and what doctor finds. None for
     the legacy script, which sends none."""
     a = t.get("agent")
     if not isinstance(a, dict):
@@ -311,10 +311,10 @@ def agent_report(t):
     return {"tool": a.get("tool"), "version": a.get("version"), "os": a.get("os"), "arch": a.get("arch"),
             "age_min": minutes_since(t.get("agent_at")),
             "problems": [p for p in (a.get("problems") or []) if isinstance(p, dict)][:20],
-            # Bridge v0.6.3: the machine right now, and the garage's own timing of the last 5 minutes' requests.
+            # Door v0.6.3: the machine right now, and the garage's own timing of the last 5 minutes' requests.
             "machine": a.get("machine") if isinstance(a.get("machine"), dict) else None,
             "requests": a.get("requests") if isinstance(a.get("requests"), dict) else None,
-            # Bridge v0.6.5: a planned absence (garageai pause, or a runtime manager's state file) and the manager's nodes.
+            # Door v0.6.5: a planned absence (garageai pause, or a runtime manager's state file) and the manager's nodes.
             "state": a.get("state") if isinstance(a.get("state"), dict) else None,
             "nodes": [n for n in (a.get("nodes") or []) if isinstance(n, dict)][:8]}
 
@@ -370,7 +370,7 @@ def garages(env, state, targets):
             "up_1h_pct": round(100 * sum(last60) / len(last60), 1) if last60 else None,
             "up_24h_pct": round(100 * sum(last24) / len(last24), 1) if last24 else None,
             "minutes_tracked": len(last24),
-            # From the inside: the garage's own heartbeat and Bridge's report (gateway-targets).
+            # From the inside: the garage's own heartbeat and Door's report (gateway-targets).
             "heartbeat_min": minutes_since(t.get("last_heartbeat_at")),
             "agent": agent_report(t),
             # The garage's heartbeat comes from another machine than the one it was linked to.
@@ -513,9 +513,9 @@ def ops_summary(env, state):
     return value
 
 
-# ---------------------------------------------------------------- Bridge tunnel hub
+# ---------------------------------------------------------------- GarageAI tunnel hub
 def tunnel_hub():
-    """The Bridge tunnel hub's peers (docs/bridge-tunnel.md): which garages use it, their latest
+    """The GarageAI tunnel hub's peers (docs/bridge-tunnel.md): which garages use it, their latest
     handshake and where they connect from. None when the hub is not running."""
     st = read_json("/var/lib/garageai-hub/status.json", None)
     if not isinstance(st, dict):
@@ -538,7 +538,7 @@ def pctl(xs, p):
 
 def onboarding_funnel(d):
     """How onboarding goes, from the portal's onboarding events (last 30 days): how many got live,
-    how long it took (Bridge and the script apart), where they failed and which problems doctor
+    how long it took (Door and the script apart), where they failed and which problems doctor
     found, and how the browser link went. The numbers every onboarding change is judged by."""
     f = (d.get("business") or {}).get("onboarding_funnel")
     if not isinstance(f, dict):
@@ -715,7 +715,7 @@ def action_for(text, page, garage, code=None):
     if "tunnel down" in t or "runtime not answering" in t:
         if "provider" in t or page == "supply" and g and d_is_provider(g):
             return "A provider is down: pause it in Admin → Providers until it is back, then resume", f"{ADMIN}/providers"
-        return "Ask the operator; if it is planned, silence it here. The garage's page shows its last heartbeat and Bridge's report", f"{ADMIN}/garages?garage={g}"
+        return "Ask the operator; if it is planned, silence it here. The garage's page shows its last heartbeat and Door's report", f"{ADMIN}/garages?garage={g}"
     if t.startswith("spend logs are missing rows"):
         return ("Compare per model on the Traffic page; check that the spend-log id trigger is installed "
                 "(infra/gateway/litellm/sql/spendlogs_unique_request_id.sql) and what changed in the gateway"), \
@@ -723,11 +723,11 @@ def action_for(text, page, garage, code=None):
     if t.startswith("support: a user waits"):
         return "Answer in Admin → Support (or set the chat to Away there when you are travelling)", f"{ADMIN}/support"
     if "no heartbeat" in t:
-        return "Bridge's heartbeat service stopped on the garage: the operator runs garageai doctor, then garageai connect", f"{KB}#heartbeat_missing--heartbeat_stopped-warning"
+        return "Door's heartbeat service stopped on the garage: the operator runs garageai doctor, then garageai connect", f"{KB}#heartbeat_missing--heartbeat_stopped-warning"
     if "another machine" in t:
         return "One garage name on two machines: see mix-ups in the guide", f"{KB}#mix-ups-we-have-seen"
     if "is stuck at" in t or "has not reported a step" in t or "is onboarding" in t:
-        return "Open the garage's onboarding in Admin: the failed step and Bridge's profile say what is wrong on the machine", f"{ADMIN}/garages?garage={g}"
+        return "Open the garage's onboarding in Admin: the failed step and Door's profile say what is wrong on the machine", f"{ADMIN}/garages?garage={g}"
     if "no context window" in t:
         return "The window arrives with the heartbeat once the model is loaded; or set it in Admin → Models", f"{ADMIN}/models"
     if "requests waiting" in t or "the garage is full" in t:
@@ -871,13 +871,13 @@ def alerts(d):
             if state.get("kind") in ("maintenance", "starting", "away") and ((g.get("agent") or {}).get("age_min") or 999) < 60:
                 # A planned absence: the garage said so itself (garageai pause, or vLLM Panel's state file).
                 add("info", f"{g['garage']} is {state['kind']}" + (f" ({state.get('reason')})" if state.get("reason") else "")
-                    + (f" until ~{str(state.get('until'))[11:16]} UTC" if state.get("until") else "") + f", by {state.get('source') or 'Bridge'}: no alert", "supply", garage=g["garage"])
+                    + (f" until ~{str(state.get('until'))[11:16]} UTC" if state.get("until") else "") + f", by {state.get('source') or 'Door'}: no alert", "supply", garage=g["garage"])
             elif g["mesh"] is False and machine.get("power") == "battery" and ((g.get("agent") or {}).get("age_min") or 999) < 60:
                 # A laptop that was unplugged and closed: away, not down (docs/bridge.md, phase 4).
                 add("info", f"{g['garage']} is away: a laptop on battery (last report {machine.get('battery_pct', '?')} %); a garage again when plugged in", "supply", garage=g["garage"])
             else:
                 add("critical", f"{g['garage']}: {'tunnel down' if g['mesh'] is False else 'runtime not answering'}"
-                                + (" (Bridge tunnel)" if g.get("error") == "tunnel_disconnected" else "")
+                                + (" (GarageAI tunnel)" if g.get("error") == "tunnel_disconnected" else "")
                                 + (f" ({g['error']})" if g.get("error") else ""), "supply", garage=g["garage"])
         if g["type"] == "mesh" and g["runtime_ok"] and g["mesh"] is not False and (g.get("heartbeat_min") or 0) >= HEARTBEAT_SILENT_MINUTES:
             add("warning", f"{g['garage']}: no heartbeat for {g['heartbeat_min']} min although it answers"
@@ -892,15 +892,15 @@ def alerts(d):
                 # handshake, and down is already the "tunnel down" alert. Never a second alert for one outage.
                 if ((g.get("agent") or {}).get("state") or {}).get("kind") in ("maintenance", "starting", "away") and pr.get("code") in ("no_runtime", "port_mismatch", "runtime_in_terminal", "small_context"):
                     continue  # the runtime is away on purpose: doctor's "no runtime answers" is expected, not news
-                # Bridge's errors are warnings here (the probes above say whether buyers are hurt);
+                # Door's errors are warnings here (the probes above say whether buyers are hurt);
                 # its warnings are info; its info is shown on the Supply page only.
                 level = {"error": "warning", "warning": "info"}.get(pr.get("severity"))
                 if level:
-                    add(level, f"{g['garage']}: Bridge reports: {pr.get('message') or pr.get('code')}", "supply", garage=g["garage"], code=pr.get("code"))
+                    add(level, f"{g['garage']}: Door reports: {pr.get('message') or pr.get('code')}", "supply", garage=g["garage"], code=pr.get("code"))
         p = g.get("provider") or {}
         if g.get("type") == "provider" and str(g.get("error") or "") in ("http_401", "http_403"):
             # The provider answers but rejects GarageAI's key: every request to it fails until the key
-            # is fixed, and nothing else (no Bridge, no heartbeat) will say so (autoversio, 13 h,
+            # is fixed, and nothing else (no Door, no heartbeat) will say so (autoversio, 13 h,
             # 2026-10-17/18). Auto skips it once it is cooled down; direct buyers get a 503.
             add("critical", f"Provider {g['garage']} rejects GarageAI's API key ({g['error']}): update the key in Admin → Providers", "supply", garage=g["garage"])
         if p.get("private_ip"):
