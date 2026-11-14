@@ -860,7 +860,7 @@ function renderPages(d) {
   ], d.garages, { text: g => `${g.garage} ${g.type} ${engineOf(g)} ${g.error || ""} ${g.agent?.version || ""}`, noun: "garages", sort: "Name",
     selects: [{ label: "All types", get: g => g.type }, { label: "All engines", get: engineOf }],
     problem: g => !g.onboarding && !g.paused && !d.silences?.[g.garage] && !(g.runtime_ok && g.mesh !== false),
-    after: `<div class="note">Portal gateway-targets: ${d.portal.targets_status} in ${d.portal.targets_ms} ms, ${d.portal.garages_listed} listed.</div>` });
+    after: `<div class="note">Portal gateway-targets: ${d.portal.targets_status} ${d.portal.targets_ms == null ? "(the health check's copy, under 3 min old)" : `in ${d.portal.targets_ms} ms`}, ${d.portal.garages_listed} listed.</div>` });
 
   const tcols = [
     ["Garage", r => r.garage === "?" ? '<span class="small">not routed</span>' : esc(r.garage), "", r => r.garage], ["Model", r => `<code>${esc(r.model)}</code>`, "", r => r.model],
