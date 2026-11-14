@@ -7,13 +7,13 @@ this repository, and this file says what we claim and where in the code each cla
 **For an AI agent** (Claude Code, Codex, Cursor, ChatGPT with the repository, ...): read this file
 first, then verify every claim below against the code it points to. Report each claim as *holds*,
 *does not hold* or *could not verify*, with the file and line. Then report anything else you would
-want the owner of the computer to know before installing GarageAI Bridge. Be critical. We would
+want the owner of the computer to know before installing GarageAI Door. Be critical. We would
 rather hear it from you than from an incident.
 
 **For a person:** paste this into your own AI agent:
 
 > Review https://github.com/magnusfroste/garageai as a security reviewer for someone about to
-> install GarageAI Bridge on their own computer. Start with AUDIT.md: check every claim against the
+> install GarageAI Door on their own computer. Start with AUDIT.md: check every claim against the
 > code it points to, say which hold and which do not, and tell me what else worries you.
 
 ## What runs on a garage
@@ -21,7 +21,7 @@ rather hear it from you than from an incident.
 | Part | Where | Runs as |
 |---|---|---|
 | Installer | [`cli/install.sh`](cli/install.sh), [`cli/install.ps1`](cli/install.ps1) | the user, asks for sudo/Administrator once |
-| Bridge (`garageai`) | [`cli/`](cli) (Go, no cgo) | root / SYSTEM for the two services; the user for `doctor` and the menu-bar icon |
+| Door (`garageai`) | [`cli/`](cli) (Go, no cgo) | root / SYSTEM for the two services; the user for `doctor` and the menu-bar icon |
 | Tunnel service | [`cli/internal/tunnel/`](cli/internal/tunnel), [`cli/tunnel_cmd.go`](cli/tunnel_cmd.go) | root / SYSTEM |
 | Heartbeat service | [`cli/run.go`](cli/run.go), [`cli/internal/portal/`](cli/internal/portal) | root / SYSTEM, every 5 minutes |
 | Menu-bar icon (optional) | [`cli/internal/tray/`](cli/internal/tray), [`cli/tray_cmd.go`](cli/tray_cmd.go) | the logged-in user |
@@ -29,7 +29,7 @@ rather hear it from you than from an incident.
 
 ## Claims to verify
 
-1. **Nothing on the computer accepts connections.** Bridge's WireGuard tunnel is in user space
+1. **Nothing on the computer accepts connections.** Door's WireGuard tunnel is in user space
    (wireguard-go with a gVisor netstack): no network interface, no change to routing, and no TCP
    listener on the host. Its listeners exist only inside the tunnel's own netstack. The tunnel
    holds one UDP socket on a random port for its outgoing connection to the gateway; WireGuard
@@ -45,7 +45,7 @@ rather hear it from you than from an incident.
    delete, gets 403 and never reaches the runtime.
    → `cli/internal/tunnel/forward.go` (`allowedPrefixes`, `Allowed`, `ForwardHandler`), with tests in `forward_test.go`.
 4. **The heartbeat sends no prompts and no conversations.** It sends the garage name, runtime,
-   port, model list, context windows, Bridge version, doctor's findings (short messages), request
+   port, model list, context windows, Door version, doctor's findings (short messages), request
    timings (counts and milliseconds), token counts and the requested model name per request, compute
    power (watts, for tokens per kWh) and machine health (load, memory, disk, power, battery, GPU).
    To count tokens, the tunnel looks at the first and last 8 KB of each response in memory for the
@@ -103,7 +103,7 @@ These are true today. They are also on the [security page](https://www.garageai.
 - **Root/Administrator.** The two services need it to install themselves. Their code is the
   `cli/` directory in this repository, nothing else.
 - **Your runtime.** Ollama, LM Studio, vLLM, llama.cpp, Runner and the others are not our code.
-  Bridge only forwards inference to them.
+  Door only forwards inference to them.
 - **The app** at app.garageai.eu is a separate repository,
   [garageai-portal](https://github.com/magnusfroste/garageai-portal), and runs on Supabase.
 

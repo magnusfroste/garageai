@@ -11,9 +11,9 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-// GarageAI Bridge: the one program that connects a garage. All copy comes from
-// src/content/landing/bridge.md.
-const Bridge = ({
+// GarageAI Door: the one program that connects a garage. All copy comes from
+// src/content/landing/door.md.
+const Door = ({
   title,
   subtitle,
   description,
@@ -30,7 +30,7 @@ const Bridge = ({
   secondaryUrl,
 } = {}) => (
   <motion.section
-    id="bridge"
+    id="door"
     className="py-20 px-4 max-w-6xl mx-auto"
     variants={containerVariants}
     initial="hidden"
@@ -134,4 +134,4 @@ const Bridge = ({
   </motion.section>
 );
 
-export default Bridge;
+export default Door;

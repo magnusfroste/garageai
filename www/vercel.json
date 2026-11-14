@@ -50,6 +50,11 @@
   ],
   "redirects": [
     {
+      "source": "/bridge",
+      "destination": "/door",
+      "permanent": true
+    },
+    {
       "source": "/docs",
       "destination": "https://github.com/magnusfroste/garageai#readme",
       "permanent": false

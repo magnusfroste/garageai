@@ -1,7 +1,7 @@
 # Where logic lives
 
 GarageAI has four parts: the **portal** (app.garageai.eu, Lovable/Supabase, repo
-`garageai-portal`), the **gateway** (LiteLLM, Traefik and the Bridge tunnel hub on the Hetzner VPS), **Bridge**
+`garageai-portal`), the **gateway** (LiteLLM, Traefik and the GarageAI tunnel hub on the Hetzner VPS), **Door**
 on each garage (`cli/`), and the **Operations Center** (`infra/gateway/ops/`). This page says which
 part decides what. It applies to every change, whoever makes it: here, in Lovable, or on the
 website.
@@ -14,11 +14,11 @@ Decided 2026-10-11, when `garageai/auto` (ordered failover across a curated list
 |---|---|---|---|
 | **What should hold**: decisions by people, business terms | Portal | minutes to days | which models are sold and at what price, the auto list and its order, garages, owners, terms, earnings, accounts and keys, onboarding (link, wizard) |
 | **Carrying it out right now** | Gateway | milliseconds to seconds | picking a deployment, failover to the next order, cooldown after failures, context checks before the call, request fixes (callbacks), blocking attacks (guard), health checks every minute |
-| **What a garage sees about itself** | Bridge | per run, every 5 min | doctor, the heartbeat with models, contexts and its own report, the knowledge base |
+| **What a garage sees about itself** | Door | per run, every 5 min | doctor, the heartbeat with models, contexts and its own report, the knowledge base |
 | **Measuring and telling** | Operations Center | 5 s to 1 min | Live, alerts and Telegram, time to live, drift between main and what is deployed |
 
 **In short:** anything that must react within seconds lives in the gateway. Anything a person
-decides lives in the portal. Anything the machine knows about itself lives in Bridge. Anything
+decides lives in the portal. Anything the machine knows about itself lives in Door. Anything
 measured lives in the Operations Center.
 
 ## How they connect
@@ -28,7 +28,7 @@ measured lives in the Operations Center.
   its own database (`STORE_MODEL_IN_DB`).
 - **Gateway → portal:** the health service reports every minute (`gateway-health-report`). The
   portal marks models healthy or unhealthy and runs the daily acceptance tests.
-- **Bridge → portal:** `register-node`, `node-heartbeat`, `onboarding-report` and the browser link.
+- **Door → portal:** `register-node`, `node-heartbeat`, `onboarding-report` and the browser link.
 - **Portal and gateway → Operations Center:** `gateway-targets` and `ops-summary` (the portal,
   with the gateway key), LiteLLM's database and API, the tunnel hub's status, the host itself.
 
@@ -81,14 +81,14 @@ pool price set by GarageAI would be administration that grows with the catalogue
 
 Decided by Magnus, deliberately: GarageAI serves two kinds of supply in one catalogue and one API.
 
-- **Garages** run GarageAI Bridge: a machine at home or in an office, reached through Bridge's own
-  WireGuard tunnel (`connection_type: mesh`). Bridge reports a heartbeat every 5 minutes, the
+- **Garages** run GarageAI Door: a machine at home or in an office, reached through Door's own
+  WireGuard tunnel (`connection_type: mesh`). Door reports a heartbeat every 5 minutes, the
   tunnel's state, the runtime's models and planned absences (`garageai pause`, a laptop on
   battery). A garage that goes away is taken out of routing by the portal within minutes, and a
   buyer who names its model gets "temporarily unavailable" (503) from the gateway.
 - **Providers** are datacenter or partner APIs reached over HTTPS with an API key
   (`connection_type: endpoint`): operators GarageAI does not control, who would find installing
-  Bridge hard or impossible. No Bridge, no heartbeat, no tunnel state. What GarageAI knows about a
+  Door hard or impossible. No Door, no heartbeat, no tunnel state. What GarageAI knows about a
   provider comes only from requests: buyers' requests, the hourly acceptance probe, and Ops'
   checks. So the gateway has to handle a failing provider itself, at request time.
 

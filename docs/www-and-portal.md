@@ -7,7 +7,7 @@ links.
 | | **www.garageai.eu** (this repo, `www/`) | **app.garageai.eu** (the portal, Lovable, `garageai-portal`) |
 |---|---|---|
 | Job | **Explain and persuade.** Why GarageAI, how it works, what is safe, what is live and what is not | **Do.** Sign up, keys, credits, chat, connect a computer, My garages, Admin |
-| Content | Narrative, Bridge, security, pricing explained, FAQ, roadmap, legal texts, landing pages per search intent (`/bridge`, `/api`, `/my-machine`) | Live data: the model catalogue, garages with grades and availability, prices, usage, earnings; the API reference |
+| Content | Narrative, Door, security, pricing explained, FAQ, roadmap, legal texts, landing pages per search intent (`/bridge`, `/api`, `/my-machine`) | Live data: the model catalogue, garages with grades and availability, prices, usage, earnings; the API reference |
 | Changes when | The product or the narrative changes | Every heartbeat, price change and new garage |
 | Built for | Search engines and AI answer engines: static HTML, titles per page, JSON-LD, sitemap, `llms.txt` | People who are signed in, or about to be: a React app |
 | Audience language | English (the site is in English) | English and Swedish |

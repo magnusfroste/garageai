@@ -1,18 +1,20 @@
-# GarageAI Bridge — vision and roadmap
+# GarageAI Door — vision and roadmap
 
-**Bridge** is the bridge between an operator's GPU and the GarageAI network. It is one binary,
-`garageai`, on the operator's machine.
+**Door** is the door of an operator's garage: what stands between their GPU and the GarageAI
+network. It is one binary, `garageai`, on the operator's machine. Until v1.6.0 it was called
+Bridge; this file, the release tags (`bridge-vX.Y.Z`), the services and the configuration file keep
+that name, so that installed garages keep working.
 
-A bridge goes both ways:
+A door opens both ways:
 - **Outward:** the garage sells inference to the network. This is what it does today.
 - **Inward:** later, the operator also uses the network from the garage: their own GPU first, the
   network when it is not enough, shared with whom they choose.
 
 **North star:** someone who has never run a model, and only has good hardware they want to earn
-from, opens Bridge. Bridge sees the machine, says what it can earn and with which model, installs
+from, opens Door. Door sees the machine, says what it can earn and with which model, installs
 and configures everything, and the garage is live. No terminal, no flags, no guessing.
 
-Status: Bridge is the default way to connect a garage since 2026-10-10 (bridge-v0.2.0). The connect
+Status: Door is the default way to connect a garage since 2026-10-10 (bridge-v0.2.0). The connect
 script stays as an internal backup and reference. Phase 0 is done and phase 1 is in progress. Everything else is the agreed direction
 (2026-10-10), not a commitment to dates.
 
@@ -21,24 +23,24 @@ script stays as an internal backup and reference. Phase 0 is done and phase 1 is
 - **One contract.**
   - The garage profile (schema 1), the onboarding reports and the heartbeat payload (with
     `contexts`) are the interface to the portal and the Operations Center.
-  - Bridge and `garageai-connect.sh` speak it identically: `scripts/tests/parity-doctor.sh`
+  - Door and `garageai-connect.sh` speak it identically: `scripts/tests/parity-doctor.sh`
     proves it.
-  - The script kept working until Bridge had parity, so the portal and ops never noticed the
+  - The script kept working until Door had parity, so the portal and ops never noticed the
     switch. It was removed with NetBird in 2026-11.
-- **Deterministic discovery, judgment on top.** Bridge itself sees the machine: ports, runtimes,
+- **Deterministic discovery, judgment on top.** Door itself sees the machine: ports, runtimes,
   models, GPU, firewall. The agent (phase 3) explains and chooses fixes on top of that profile.
   Detection does not depend on a model.
 - **Read by default, act after a yes.** Diagnosing never changes anything. Restarting a runtime,
   changing a firewall or loading a model asks first, unless the operator has set it to automatic.
-- **Codes always, text only with consent.** What Bridge does is product data: the problem codes
+- **Codes always, text only with consent.** What Door does is product data: the problem codes
   doctor finds and whether they are gone by the next heartbeat, which knowledge-base sections are
   looked up for which code, searches that found nothing (counted per code, not their words), and
   which tools are called. That shows which fixes work and where the knowledge base has gaps, and
-  it feeds time to live. The operator's own words (questions to Bridge's agent) only with their
+  it feeds time to live. The operator's own words (questions to Door's agent) only with their
   consent, asked once and changeable, redacted on the machine (tokens, keys, paths with user names,
   e-mail) and kept 90 days. The operator's conversation with their own agent over MCP is never
   ours: we see our tool calls only.
-- **Never prompts or keys.** Bridge sees metadata about the machine and the runtime, never buyers'
+- **Never prompts or keys.** Door sees metadata about the machine and the runtime, never buyers'
   prompts or replies. Keys and whole command lines are never reported.
 - **One binary, stdlib first.**
   - Linux, macOS and Windows (amd64 and arm64) from one Go codebase.
@@ -77,15 +79,15 @@ default, `--no-auto-update` to opt out). v1.0.0 (2026-10-17): Windows service, s
   norrivaagent's.
 - To explore: embed the NetBird client (Go, BSD-3) so connecting needs no separate NetBird install.
 
-### 1.5. Bridge tunnel — no NetBird on the garage, no sudo (decided 2026-10-10, spike first)
+### 1.5. GarageAI tunnel — no NetBird on the garage, no sudo (decided 2026-10-10, spike first)
 
 Today a garage needs the NetBird client: a separate install, a system service with a login that
 can be lost (a macOS upgrade logged garage-m2 out), a tun device that needs root, and a runtime
 that listens on all addresses so the mesh can reach it. The model we want is cloudflared's: one
 program, an outbound tunnel, a local forward.
 
-- **Bridge terminates the tunnel itself:** WireGuard in user space (wireguard-go with its
-  netstack) inside Bridge. It connects outward to the gateway, accepts the gateway's requests on
+- **Door terminates the tunnel itself:** WireGuard in user space (wireguard-go with its
+  netstack) inside Door. It connects outward to the gateway, accepts the gateway's requests on
   the garage's mesh address inside its own stack, and forwards them to `127.0.0.1:<port>`.
 - **What that removes:** the NetBird install and login, the tun device and root, `OLLAMA_HOST`
   and any exposure of the runtime to the home network, the firewall rule, and the difference
@@ -97,31 +99,31 @@ program, an outbound tunnel, a local forward.
   command, and a blocked garage is a removed peer. A TCP fallback over 443 comes later for
   networks that block UDP.
 - **What replaces NetBird's pieces:** peer status and last seen come from the WireGuard
-  handshake and Bridge's heartbeat; access rules are trivial (a garage sees only the gateway);
+  handshake and Door's heartbeat; access rules are trivial (a garage sees only the gateway);
   the dashboard is the Operations Center.
 - **Migration without a cut-over:** the gateway reaches old garages through NetBird and new ones
   through the hub at the same time; a garage moves with one "New command". NetBird's management,
   signal, relay and dashboard are switched off when the last garage has moved.
 - **Two ways were weighed.** Embedding NetBird's own client engine (netstack mode plus a
-  forwarder) keeps NetBird's server and dashboard but binds Bridge to internal APIs that change
+  forwarder) keeps NetBird's server and dashboard but binds Door to internal APIs that change
   often and a 40–60 MB binary. An own WireGuard hub is less code to depend on, less to run, and
   fully ours. The hub was chosen as the end state.
-- **Status 2026-11-07: done.** Every garage runs on the Bridge tunnel; the gateway's Traefik has
+- **Status 2026-11-07: done.** Every garage runs on the GarageAI tunnel; the gateway's Traefik has
   its own stack (infra/gateway/traefik) and NetBird's server, dashboard and the gateway's NetBird
   client are switched off. There is no fallback for networks that block UDP until the TCP
   fallback exists.
-- **Spike (2–3 days) before building it:** wireguard-go netstack in Bridge against a WireGuard
+- **Spike (2–3 days) before building it:** wireguard-go netstack in Door against a WireGuard
   end on the gateway, forward to a local runtime, measure throughput and reconnect behaviour,
   and connect one real garage (the Mac) that way. The spike decides; if it holds, this is the
   next big step and phase 2 follows on top of it.
 
-**Bridge in the menu bar** (sketch 2026-10-17, after v0.7.0): status, today's earnings, pause and the few notifications that matter, on macOS and Windows. [bridge-menubar.md](bridge-menubar.md).
+**Door in the menu bar** (sketch 2026-10-17, after v0.7.0): status, today's earnings, pause and the few notifications that matter, on macOS and Windows. [bridge-menubar.md](bridge-menubar.md).
 
 ### 2. Run the runtime — the right engine, configured right
 
-**Decided 2026-10-16 (Magnus): Bridge bundles Xyntetik Runner as the engine for operators who
+**Decided 2026-10-16 (Magnus): Door bundles Xyntetik Runner as the engine for operators who
 have none.** `garageai runtime install` (offered by connect when no runtime answers, after a
-question) fetches Runner from its releases, verifies SHA256SUMS, installs it root-only like Bridge,
+question) fetches Runner from its releases, verifies SHA256SUMS, installs it root-only like Door,
 runs it as a system service (`--serve --port 8080 --parallel 1 -c 8192`) and owns its lifecycle:
 updates, restarts, model changes through the wish list, `runner --fit` as the fit check before a
 pull. Ollama, LM Studio, vLLM and the rest stay supported; Runner is the path for whoever has
@@ -129,12 +131,12 @@ nothing. Why, although Runner measured ~45 % of Ollama's decode on Apple silicon
 2026-10-16 (M1: 8 vs 20 tok/s; M2: 12 vs 27; prefill ~95 tok/s on M2; prefix cache and
 cached_tokens excellent, 2.3 s load, 0.35 s warm first token): the engine gets faster when its
 author sees real installations and our nightly measurements per machine, and a one-file engine
-made in Sweden is what "install Bridge, done" needs. Asks to Joakim: a pull-to-cache command,
+made in Sweden is what "install Door, done" needs. Asks to Joakim: a pull-to-cache command,
 `/v1/models` listing cached models, unique response ids, Apple-silicon speed. Ops gets "engine"
 as a dimension in the acceptance figures so Runner vs Ollama is a curve, not a number. First
 release: v0.7.0.
 
-**Built 2026-10-17 (Bridge 1.1):** `garageai runtime` looks at the machine and says whether Runner
+**Built 2026-10-17 (Door 1.1):** `garageai runtime` looks at the machine and says whether Runner
 fits, and with which model (`internal/runnerfit`, a pure function of doctor's facts, tested on the
 machines we know): CUDA on NVIDIA with a driver from R580; Metal on Apple silicon; the processor on
 AMD/Intel graphics (Runner has no Vulkan) and on old NVIDIA drivers; "keep it" when a runtime
@@ -142,7 +144,7 @@ already serves models; "not yet" on linux/arm64 (DGX Spark), Intel Macs and Wind
 have no Runner build. Models are Runner's own measured ones: Qwen3-30B-A3B selective (18 GB) from
 22 GB of VRAM, 32 GB of unified memory or 48 GB of RAM on CPU; Granite 4.1 3B Q8_0 (3.6 GB) from
 6 GB; the Gemma 4 E2B smoke test below that. `garageai runtime install` downloads the pinned
-Runner release (`runnerfit.Version`, v1.16.0) against its SHA256SUMS into Bridge's root-only
+Runner release (`runnerfit.Version`, v1.16.0) against its SHA256SUMS into Door's root-only
 directory and runs `runner -hf MODEL --serve --port 8080 --ttl 0` (`--ttl 0`: the model stays
 loaded, no cold start for buyers) as a systemd unit, a launchd daemon, or on Windows a scheduled
 task at startup that runs a restarting script (Runner is not a Windows service program; a task's
@@ -151,15 +153,15 @@ It waits for the model download with a progress line, then points at
 `garageai connect --runtime xyntetik --port 8080`. connect's "no runtime" stop mentions it. The
 end-to-end test (`.github/workflows/runner-bundle.yml`) installs it on Linux, macOS and Windows,
 sends a chat request and removes it. Not yet: managed models for Runner (its model set is fixed
-at start: the feature request to Joakim), a Runner version bump through Bridge's own canary.
+at start: the feature request to Joakim), a Runner version bump through Door's own canary.
 
-- **Recommend per hardware** (the engine-diversity principle, done by Bridge):
+- **Recommend per hardware** (the engine-diversity principle, done by Door):
   - Ollama on a Mac, vLLM on NVIDIA with enough VRAM, llama.cpp for small cards.
   - Each with the right flags from the start: context window, prefix cache,
     `--enable-prompt-tokens-details` (so cached tokens bill at the cache price), bind to the mesh.
 - `garageai runtime install|start|stop`, and `garageai models pull|load|unload`.
-- **Models chosen in the portal, fetched by Bridge (next, decided 2026-10-13).** The heartbeat
-  answer carries the garage's wanted models; Bridge asks Ollama to pull them (`/api/pull`, no sudo,
+- **Models chosen in the portal, fetched by Door (next, decided 2026-10-13).** The heartbeat
+  answer carries the garage's wanted models; Door asks Ollama to pull them (`/api/pull`, no sudo,
   no terminal), reports progress in the heartbeat ("downloading, 2.1 of 4.7 GB"), and the model is
   normalized and priced as today once it is there. Removal the same way. Ollama first (every Mac
   garage runs it); LM Studio and vLLM later. Three callers of the same mechanism:
@@ -186,14 +188,14 @@ at start: the feature request to Joakim), a Runner version bump through Bridge's
        load. Smart chooses a set that fits together (1 to 3 on a Mac) and takes the rest out of
        the pool (still on disk, still a dedicated address). `OLLAMA_KEEP_ALIVE` of hours, so a
        loaded model stays loaded between requests.
-     - **Prefer warm garages (gateway side, not Bridge):** the heartbeat already reports which
+     - **Prefer warm garages (gateway side, not Door):** the heartbeat already reports which
        models are loaded; the portal gives a pool deployment whose model is cold a lower weight,
        so requests go to a garage that has the model in memory and a cold one gets traffic when
        the warm ones are full or down. No lock on a garage: a lock takes its other models out
        of the pool and only moves the reload to the next window.
      - First test: garage-m4 (16 GB, gemma4 12B only today) gets qwen3-4b, and that pool has
        three garages.
-  Build order: Bridge first (wanted list in the heartbeat answer, pull with progress, report);
+  Build order: Door first (wanted list in the heartbeat answer, pull with progress, report);
   the contract is the same whoever fills the list. Then the portal: the Add button, then the
   Smart choice with the demand rule as a nightly function.
   **Smart's first day downloads nothing (Magnus, 2026-10-13).** The garage goes live with the
@@ -203,9 +205,9 @@ at start: the feature request to Joakim), a Runner version bump through Bridge's
   **Smart is on from the start: like a Mac, it works at once with sensible choices, and a pro
   can change everything.** So the page after the first heartbeat is not a question but a notice,
   with the Smart switch and the disk limit visible for whoever wants them off.
-  **Bridge side built 2026-10-13 (v0.6.0), the contract:** the heartbeat answer carries
+  **Door side built 2026-10-13 (v0.6.0), the contract:** the heartbeat answer carries
   `wanted_models: [{"model": "qwen3:4b", "action": "pull" | "remove", "by": "operator" | "garageai"}]`
-  in the runtime's naming. Bridge reports `agent.models: [{model, status: downloading | ready |
+  in the runtime's naming. Door reports `agent.models: [{model, status: downloading | ready |
   failed | removed | refused, by, completed_mb, total_mb, error, at}]` with every heartbeat and
   keeps the state in `/etc/garageai/models.json`. One pull per heartbeat run (a pull blocks the
   run; a heartbeat is re-sent every 2 minutes meanwhile), a failed pull is retried after an hour,
@@ -232,7 +234,7 @@ at start: the feature request to Joakim), a Runner version bump through Bridge's
   disk". Smart means we do the work and say why; that is what separates GarageAI from a list.
   Smart is a success factor, not a feature among others (Magnus, 2026-10-13).
 - **Measured profile:**
-  - Bridge benchmarks prefill and decode, the practical maximum prompt, and the time to first
+  - Door benchmarks prefill and decode, the practical maximum prompt, and the time to first
     token at typical agent prompt sizes, then reports them.
   - This is phase 1 of the "GarageAI för agenter" design doc. The gateway can then route and warn
     on facts, for example long prompts to a slow garage.
@@ -243,7 +245,7 @@ at start: the feature request to Joakim), a Runner version bump through Bridge's
 
 ### Security backlog (from the 2026-10-13 review; fixed items in docs/garage-security.md)
 - **Signed releases:** sign SHA256SUMS (minisign/ed25519) with a key kept off CI, embed the
-  public key in Bridge, verify before writing the new binary. Until then a GitHub account or a
+  public key in Door, verify before writing the new binary. Until then a GitHub account or a
   compromised Actions workflow can ship a release that the portal's `bridge_stable` then rolls
   out. Two-person rule for releases.
 - **Tunnel as its own user:** `garageai` system user, `User=`/`UserName`, `NoNewPrivileges`,
@@ -257,7 +259,7 @@ at start: the feature request to Joakim), a Runner version bump through Bridge's
 - **Managed models:** check free space on the filesystem Ollama's model directory is on (not `/`),
   and cap the total with the operator's disk limit from the portal.
 
-### 3. Help — the agent in Bridge
+### 3. Help — the agent in Door
 - `garageai login` (the norrivaagent pattern):
   - the browser page hands over the operator's session and model access;
   - "the agent is you", so RLS applies to it too;
@@ -268,20 +270,20 @@ at start: the feature request to Joakim), a Runner version bump through Bridge's
   - it applies the fix after a yes, then verifies.
 - `garageai mcp`: the same tools for the operator's own agent (Claude Code, opencode, …).
   **First (2026-10-11):** read-only tools (doctor, explain_problem, search_knowledge,
-  garage_status) and the knowledge base. Bridge's own agent (`garageai ask`/`chat`) comes next as
+  garage_status) and the knowledge base. Door's own agent (`garageai ask`/`chat`) comes next as
   one more client of the same tools.
 - The knowledge base is `docs/garage-troubleshooting.md`, one section per doctor problem code,
   built into the binary: it matches that version's doctor and works when the garage reaches
   nothing. No vector database: a few hundred answers fit in one prompt, and doctor's codes make the
   lookup exact. When operators' free-text questions run into thousands, pgvector in the Supabase we
-  already have, and a `kb.json` Bridge can fetch to update answers between releases.
+  already have, and a `kb.json` Door can fetch to update answers between releases.
 - Fleet knowledge: profiles from every onboarding show which setups exist out there, and feed the
   runbooks and the defaults.
-- Name: the agent is a function of Bridge. A separate name, for example "Mechanic", is kept for
+- Name: the agent is a function of Door. A separate name, for example "Mechanic", is kept for
   later in case there is a reason to split.
 
 ### 4. Earn smart
-- **Machine telemetry and the garage's own request timings (Bridge v0.6.3, 2026-10-14).** The
+- **Machine telemetry and the garage's own request timings (Door v0.6.3, 2026-10-14).** The
   heartbeat carries `agent.machine` (`load_pct`, `mem_total_mb`, `mem_free_mb`, `disk_free_gb`,
   `power` = ac | battery | "", `battery_pct`, `user_active`, and on NVIDIA `gpu_util_pct`,
   `vram_used_mb`, `vram_total_mb`) and `agent.requests` (the last 5 minutes as the forward saw
@@ -304,14 +306,14 @@ at start: the feature request to Joakim), a Runner version bump through Bridge's
      `~<user>/.local/state/vllm-panel/state.json`, schema 1, `{panel, updated, state {kind:
      serving|starting|maintenance|stopped|failed, reason, since, until}, model {served_name,
      max_model_len}, nodes [{name, role, ok, container, gpu_temp_c, gpu_power_w,
-     mem_available_mb}]}`, rewritten at least every 60 s. Bridge reads it as root with care
+     mem_available_mb}]}`, rewritten at least every 60 s. Door reads it as root with care
      (regular file only, ≤ 64 KB, `updated` within 180 s, else ignored and said in doctor) and
      honours only states that reduce traffic (maintenance → maintenance, starting → starting,
      stopped → away; failed → a doctor problem with the panel's reason). The tunnel service polls
      the file every 10 s and runs the heartbeat at once on a change; the portal takes the garage
      out of routing on that heartbeat (admin-pause path), in-flight requests finish (the drain).
-     **Measured 2026-10-15 (dgx-city, vLLM Panel 1.28.2, Bridge v0.6.5, a real MiMo redeploy):**
-     maintenance written 11:30:01 → Bridge saw it 11:30:03 → heartbeat 11:30:11 → both
+     **Measured 2026-10-15 (dgx-city, vLLM Panel 1.28.2, Door v0.6.5, a real MiMo redeploy):**
+     maintenance written 11:30:01 → Door saw it 11:30:03 → heartbeat 11:30:11 → both
      deployments gone 11:30:14 (13 s, 20 s before the container stopped); starting 11:31:02;
      serving 11:42:24 → heartbeat 11:42:32 → deployments back 11:43:06 (42 s, of which ~30 s an
      acceptance test the portal will now skip for a model that was live before). No alert, no
@@ -326,7 +328,7 @@ at start: the feature request to Joakim), a Runner version bump through Bridge's
      energy (tokens per kWh from power.draw; the spot-price rule in phase 4).
 - **A laptop is a garage while it is plugged in (backlog 2026-10-13).** garage-m2 was away
   53 minutes when Magnus unplugged it and took it along; Ops paged "tunnel down" within three
-  minutes, as it does every time a laptop leaves. Bridge knows the power state (`pmset -g batt`
+  minutes, as it does every time a laptop leaves. Door knows the power state (`pmset -g batt`
   on macOS, `/sys/class/power_supply` on Linux) and reports it in the heartbeat; the portal and
   Ops treat a laptop on battery as *away*, not *down*: no alert, the pool skips it, and the
   garage page says "away since 10:10 (on battery)". When it is plugged in again it is a garage
@@ -344,15 +346,15 @@ at start: the feature request to Joakim), a Runner version bump through Bridge's
   - one key, and the operator's own agents just work.
 - **Private garage:**
   - share with family, colleagues or a team by invitation, with no public sale;
-  - this is the "Private garage" backlog item, and Bridge is its local half.
-- **Several machines:** one Bridge for a home lab or a small cluster (several GPUs, several nodes,
+  - this is the "Private garage" backlog item, and Door is its local half.
+- **Several machines:** one Door for a home lab or a small cluster (several GPUs, several nodes,
   like the DGX cluster).
 
 ### North star: the control panel for a beginner
 - **The same binary serves a local web UI** (`garageai ui` → `http://localhost:…`, embedded in the
   Go binary). No Electron, nothing else to install. A tray icon or desktop app can come later.
 - **The first visit:**
-  1. Bridge detects the hardware.
+  1. Door detects the hardware.
   2. It says "your RTX 4090 can run *model X* at about N tok/s; at today's prices that is about
      €Y per month when idle at night".
   3. Start earning: one click installs the runtime and the model with the right settings,
@@ -363,15 +365,15 @@ at start: the feature request to Joakim), a Runner version bump through Bridge's
   - model suggestions;
   - the agent in a chat box when something is wrong.
 - Everything an expert does in the terminal, a beginner does with the panel. Both are the same
-  Bridge.
+  Door.
 
-## Where Bridge meets the rest of GarageAI
+## Where Door meets the rest of GarageAI
 
-| Bridge | Portal | Gateway / Operations Center |
+| Door | Portal | Gateway / Operations Center |
 |---|---|---|
 | profile, onboarding reports | onboarding_events (+ profile), wizard progress, admin | Onboarding page, stuck alerts |
 | heartbeat with contexts | garage_models.context_length → LiteLLM limits | Models page checks against the runtime |
 | pause / planned stop | garage status *paused* | info, not critical; no reminders |
-| Bridge tunnel (hub) | key pair + mesh address per garage in the connect command | WireGuard end on the gateway; peer status from handshakes |
+| GarageAI tunnel (hub) | key pair + mesh address per garage in the connect command | WireGuard end on the gateway; peer status from handshakes |
 | measured profile | routing facts, "verified" badge | quality per garage |
 | local endpoint, private garage | keys, sharing, billing | routing to private pools |

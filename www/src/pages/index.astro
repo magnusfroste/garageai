@@ -4,7 +4,7 @@ import Layout from '../layouts/Layout.astro';
 import ScrollProgress from '../components/ScrollProgress.jsx';
 import Header from '../components/Header.astro';
 import Hero from '../components/Hero.astro';
-import Bridge from '../components/Bridge.astro';
+import Door from '../components/Door.astro';
 import HowItWorks from '../components/HowItWorks.astro';
 import Positioning from '../components/Positioning.astro';
 import Setups from '../components/Setups.astro';
@@ -22,7 +22,7 @@ import Footer from '../components/Footer.astro';
 // All content is authored in src/content/landing/*.md and src/content/faq/*.md.
 const header = await getEntry('landing', 'header');
 const hero = await getEntry('landing', 'hero');
-const bridge = await getEntry('landing', 'bridge');
+const door = await getEntry('landing', 'door');
 const howItWorks = await getEntry('landing', 'how-it-works');
 const positioning = await getEntry('landing', 'positioning');
 const setups = await getEntry('landing', 'setups');
@@ -59,13 +59,13 @@ const howToSchema = {
   '@type': 'HowTo',
   name: 'How to share a GPU on GarageAI',
   description:
-    'Connect a Mac, Linux or Windows machine with a GPU to GarageAI with GarageAI Bridge: one line in the terminal, approve the computer in the browser, live in a few minutes.',
+    'Connect a Mac, Linux or Windows machine with a GPU to GarageAI with GarageAI Door: one line in the terminal, approve the computer in the browser, live in a few minutes.',
   totalTime: 'PT5M',
   supply: [
     { '@type': 'HowToSupply', name: 'A Mac (Apple silicon), Linux or Windows machine with a GPU' },
     { '@type': 'HowToSupply', name: 'A runtime with a model loaded: Ollama, LM Studio, vLLM, llama.cpp or Xyntetik Runner' },
   ],
-  tool: [{ '@type': 'HowToTool', name: 'GarageAI Bridge (garageai), open source' }],
+  tool: [{ '@type': 'HowToTool', name: 'GarageAI Door (garageai), open source' }],
   step: [
     {
       '@type': 'HowToStep',
@@ -81,7 +81,7 @@ const howToSchema = {
     {
       '@type': 'HowToStep',
       name: 'Approve your computer in the browser',
-      text: 'Bridge opens app.garageai.eu with a code. Check that it is your computer, name your garage and approve. Bridge opens its encrypted tunnel to the gateway; you open no ports.',
+      text: 'Door opens app.garageai.eu with a code. Check that it is your computer, name your garage and approve. Door opens its encrypted tunnel to the gateway; you open no ports.',
     },
     {
       '@type': 'HowToStep',
@@ -95,7 +95,7 @@ const howToSchema = {
 
 <Layout
   title="GarageAI: Local AI Inference from European Garages"
-  description="Share your GPU and your models, try everyone else's: one line connects it with GarageAI Bridge. Or use open models through one OpenAI-compatible API."
+  description="Share your GPU and your models, try everyone else's: one line connects it with GarageAI Door. Or use open models through one OpenAI-compatible API."
 >
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(faqSchema)} />
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(howToSchema)} />
@@ -106,7 +106,7 @@ const howToSchema = {
   <Hero {...hero.data} stats={stats.default} />
 
   <!-- What works today -->
-  <Bridge {...bridge.data} />
+  <Door {...door.data} />
   <HowItWorks {...howItWorks.data} />
   <Setups {...setups.data} />
   <Positioning {...positioning.data} />

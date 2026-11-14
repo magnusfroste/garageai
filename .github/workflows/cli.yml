@@ -1,4 +1,4 @@
-name: Bridge (Go)
+name: Door (Go)
 
 on:
   pull_request:

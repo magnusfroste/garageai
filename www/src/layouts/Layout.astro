@@ -15,11 +15,11 @@ const canonicalURL = new URL(Astro.url.pathname, site).href;
 const imageURL = new URL(image, site).href;
 
 const siteURL = site.href;
-const BRIDGE_INSTALL =
+const DOOR_INSTALL =
   'curl -fsSL https://raw.githubusercontent.com/magnusfroste/garageai/main/cli/install.sh | sh -s -- connect';
 
 // One JSON-LD graph: the organization, the site, the marketplace service, its API and
-// GarageAI Bridge. Answer engines read these as facts, so keep them in step with the copy.
+// GarageAI Door. Answer engines read these as facts, so keep them in step with the copy.
 const graph = {
   '@context': 'https://schema.org',
   '@graph': [
@@ -61,7 +61,7 @@ const graph = {
       alternateName: 'Garage AI',
       url: siteURL,
       description:
-        'Local AI inference from GPUs in European garages: connect your GPU with GarageAI Bridge and earn per token, or use open models through one OpenAI-compatible API.',
+        'Local AI inference from GPUs in European garages: connect your GPU with GarageAI Door and earn per token, or use open models through one OpenAI-compatible API.',
       inLanguage: 'en',
       publisher: { '@id': `${siteURL}#organization` },
     },
@@ -86,7 +86,7 @@ const graph = {
       areaServed: { '@type': 'Place', name: 'Europe' },
       url: siteURL,
       description:
-        'Buyers call open models served by GPUs in European garages through one OpenAI-compatible API and pay per token at the price the serving garage set. Garage owners connect their GPU with GarageAI Bridge and earn that price for every token they serve.',
+        'Buyers call open models served by GPUs in European garages through one OpenAI-compatible API and pay per token at the price the serving garage set. Garage owners connect their GPU with GarageAI Door and earn that price for every token they serve.',
       offers: {
         '@type': 'Offer',
         description:
@@ -106,8 +106,8 @@ const graph = {
     },
     {
       '@type': 'SoftwareApplication',
-      '@id': `${siteURL}#bridge`,
-      name: 'GarageAI Bridge',
+      '@id': `${siteURL}#door`,
+      name: 'GarageAI Door',
       alternateName: 'garageai',
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'macOS, Linux, Windows',
@@ -121,7 +121,7 @@ const graph = {
       offers: { '@type': 'Offer', price: 0, priceCurrency: 'EUR' },
       publisher: { '@id': `${siteURL}#organization` },
       codeRepository: 'https://github.com/magnusfroste/garageai/tree/main/cli',
-      text: BRIDGE_INSTALL,
+      text: DOOR_INSTALL,
     },
   ],
 };
