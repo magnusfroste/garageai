@@ -346,6 +346,10 @@
           <div class="card"><h2>Stripe</h2><div id="biz-stripe"></div></div>
         </div>
         <div class="grid">
+          <div class="card"><h2>Who the requests come from</h2><div class="sub">Requests in the spend log per day. Own = GarageAI's own accounts (listed on the gateway); internal = tests and tools without an account; external = everyone else. Counts only.</div><div id="biz-demand"></div></div>
+          <div class="card"><h2>What new accounts came for, last 30 days</h2><div class="sub">The answer to "What do you want to do first?" after sign-up, and how far each group got. Counts only.</div><div id="biz-goal"></div></div>
+        </div>
+        <div class="grid">
           <div class="card"><h2>Admin activity</h2><div id="biz-admin"></div></div>
         </div>
       </section>
@@ -782,6 +786,7 @@ function renderFunnel(f, dur) {
 /* ---------- pages */
 function renderPages(d) {
   renderBusiness(d.business);
+  renderDemand(d.demand, d.business);
   const dur = m => m == null ? "—" : m < 90 ? `${m} min` : m < 2880 ? `${Math.round(m / 60)} h` : `${Math.round(m / 1440)} d`;
   $("onb").innerHTML = table([
     ["Garage", o => `${dot(o.stuck ? "warning" : "info")}<b>${esc(o.garage)}</b>`],
@@ -1040,6 +1045,27 @@ function renderBusiness(b) {
       ((f.stuck || []).length ? `<div class="sub" style="margin-top:10px">Stuck</div>` + table([["Account", a => `<code>${esc(a.id)}</code>`], ["Signed up", a => ago(a.created_at)], ["Stuck at", a => esc(stepName[a.stuck_at] || a.stuck_at)], ["For", a => a.minutes >= 1440 ? `${Math.round(a.minutes / 1440)} d` : a.minutes >= 60 ? `${Math.round(a.minutes / 60)} h` : `${a.minutes} min`, "num"]], f.stuck)
         : '<div class="small ok" style="margin-top:8px">Nobody is stuck.</div>');
   } else $("buyer-funnel").innerHTML = '<div class="small">Not in the portal summary yet.</div>';
+}
+
+function renderDemand(dm, b) {
+  if (!dm) $("biz-demand").innerHTML = '<div class="small">Not collected yet.</div>';
+  else {
+    const w = dm.last_7d || {}, all = (w.own || 0) + (w.internal || 0) + (w.external || 0);
+    const pct = v => all ? ` <span class="small">${Math.round(100 * (v || 0) / all)} %</span>` : "";
+    $("biz-demand").innerHTML = `<div class="kv">
+      <div>External, 7 days</div><div><b>${fmt(w.external ?? 0)}</b>${pct(w.external)} <span class="small">from ${fmt(w.external_accounts ?? 0)} account(s)</span></div>
+      <div>Own, 7 days</div><div><b>${fmt(w.own ?? 0)}</b>${pct(w.own)}</div>
+      <div>Internal, 7 days</div><div><b>${fmt(w.internal ?? 0)}</b>${pct(w.internal)}</div></div>` +
+      (dm.own_accounts_listed ? "" : '<div class="note warning">No own accounts are listed on the gateway (/etc/garageai/ops-own-users.json): everything with an account counts as external.</div>');
+    $("biz-demand").innerHTML += table([["Day", r => esc(r.date)], ["External", r => fmt(r.external), "num"], ["Accounts", r => fmt(r.external_accounts), "num"],
+      ["Own", r => fmt(r.own), "num"], ["Internal", r => fmt(r.internal), "num"]], (dm.days || []).slice().reverse());
+  }
+  const g = b && !b._error ? b.first_goal : null;
+  if (!g) { $("biz-goal").innerHTML = '<div class="small">Not in the portal summary yet.</div>'; return; }
+  const names = { look: "Look around", use: "Use AI from the garages", own_machine: "Use my own computer", share: "Share my computer" };
+  $("biz-goal").innerHTML = `<div class="sub">${fmt(g.asked ?? 0)} asked · ${fmt(g.skipped ?? 0)} skipped</div>` +
+    table([["Came to", r => esc(names[r[0]] || r[0])], ["Accounts", r => fmt(r[1].accounts ?? 0), "num"], ["First use", r => fmt(r[1].first_use ?? 0), "num"], ["Connected a garage", r => fmt(r[1].connected_garage ?? 0), "num"]],
+      Object.entries(g.by_goal || {}));
 }
 
 /* ---------- history: charts and events */

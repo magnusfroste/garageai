@@ -521,3 +521,10 @@ external tester a key. All commands from the gateway; `$BUYER` is an ordinary bu
 6. **Secrets are where they should be and nowhere else:** `.env` and `config.yaml` are
    0600/root, nothing secret in the repo (`git grep -I sk-`), and any key pasted in a chat or
    ticket has been rotated.
+
+### Own accounts in Ops' demand split
+
+`/etc/garageai/ops-own-users.json` (`{"users": ["<LiteLLM user id>", ...]}`) lists GarageAI's own
+accounts. Ops' Business page counts their requests as "own", requests without an account as
+"internal" and the rest as "external". Without the file every account counts as external, and
+the page says so.
