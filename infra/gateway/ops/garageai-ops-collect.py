@@ -482,6 +482,37 @@ def traffic():
     return res
 
 
+OWN_USERS = "/etc/garageai/ops-own-users.json"  # {"users": ["<LiteLLM user id>", ...]}: our own accounts
+
+
+def demand():
+    """Who the requests come from, per UTC day for 14 days. "own" are the accounts listed in
+    OWN_USERS (GarageAI's own apps: on 2026-11-14 they were 95 % of all requests, so the total said
+    little about demand); "internal" are requests without an account (acceptance tests, tools, the
+    master key); "external" is everyone else. Counts and how many accounts, no ids."""
+    own = set((read_json(OWN_USERS, None) or {}).get("users") or [])
+    rows = psql("""
+      select to_char(date_trunc('day', "startTime"), 'YYYY-MM-DD'), coalesce(nullif("user", ''), '-'), count(*)
+      from "LiteLLM_SpendLogs"
+      where "startTime" > now() - interval '14 days' and model_group not like 'probe/%' and model_group not like 'garage-probe%'
+      group by 1, 2""")
+    kind = lambda u: "own" if u in own else "internal" if u == "-" or u.startswith("default") else "external"
+    days, week, accounts = {}, {"own": 0, "internal": 0, "external": 0}, set()
+    since = time.strftime("%Y-%m-%d", time.gmtime(time.time() - 7 * 86400))
+    for day, user, n in rows:
+        k, n = kind(user), int(n)
+        d = days.setdefault(day, {"date": day, "own": 0, "internal": 0, "external": 0, "external_accounts": set()})
+        d[k] += n
+        if k == "external":
+            d["external_accounts"].add(user)
+        if day > since:
+            week[k] += n
+            if k == "external":
+                accounts.add(user)
+    out = [{**d, "external_accounts": len(d["external_accounts"])} for d in sorted(days.values(), key=lambda d: d["date"])]
+    return {"days": out, "last_7d": {**week, "external_accounts": len(accounts)}, "own_accounts_listed": len(own)}
+
+
 def gateway_log_counts():
     out = sh(["docker", "compose", "-f", f"{LITELLM_DIR}/docker-compose.yml", "logs", "--since", "60m", "litellm"], timeout=60)
     endpoints = {}
@@ -1593,6 +1624,7 @@ def main():
         "traffic": traffic(),
         "errors_last_hour": gateway_log_counts(),
         "spend_completeness": spend_completeness(),
+        "demand": demand(),
         "outside": outside(),
         "guard": guard(),
         "business": ops_summary(env, state),
