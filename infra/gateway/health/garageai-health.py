@@ -7,7 +7,8 @@ No tokens are generated. Level 3 (does the model actually generate) stays with t
 acceptance test and hourly probe.
 
 Every run:
-  1. targets  = GET  {portal}/functions/v1/gateway-targets      (falls back to a local file)
+  1. targets  = the list in the previous report's reply; GET {portal}/functions/v1/gateway-targets
+                when there is none under 150 s old (falls back to a local file)
   2. level 1  = the hub's /var/lib/garageai-hub/status.json (latest handshake), by tunnel ip
   3. level 2  = GET http://<host>:<port>/v1/models through the tunnel, 5 s timeout
   4. results  = POST {portal}/functions/v1/gateway-health-report (skipped in observe mode)
@@ -42,6 +43,37 @@ def http(method, url, headers=None, body=None, timeout=TIMEOUT):
 TARGETS_CACHE_MAX_AGE = 3600  # use the portal's last list for an hour when the portal does not answer
 
 
+REPLY_TARGETS_MAX_AGE = 150  # seconds: the list from the previous minute's report
+
+
+def save_targets(targets, cache_path=None):
+    cache_path = cache_path or f"{STATE_DIR}/targets-cache.json"
+    try:
+        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+        tmp = cache_path + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(targets, f)
+        os.chmod(tmp, 0o600)  # runtime API keys: root only
+        os.replace(tmp, cache_path)
+    except OSError as e:
+        print(f"targets cache: {e}", file=sys.stderr)
+
+
+def reply_targets(cache_path=None, now=None):
+    """The list the portal sent with its reply to the previous report (gateway-health-report returns
+    the same list as gateway-targets since 2026-11-15), or None when there is none or it is older
+    than REPLY_TARGETS_MAX_AGE. With it the check asks the portal once a minute instead of twice."""
+    cache_path = cache_path or f"{STATE_DIR}/targets-cache.json"
+    try:
+        if (now or time.time()) - os.path.getmtime(cache_path) > REPLY_TARGETS_MAX_AGE:
+            return None
+        with open(cache_path) as f:
+            targets = json.load(f)
+        return targets if isinstance(targets, list) and targets else None
+    except (OSError, ValueError):
+        return None
+
+
 def load_targets(portal, gw_key, targets_file, cache_path=None):
     """[{garage, peer_id, host, port, runtime_api_key?}] — from the portal; when the portal does not
     answer, its last good list (at most an hour old); only then the local file. A slow portal once
@@ -49,19 +81,14 @@ def load_targets(portal, gw_key, targets_file, cache_path=None):
     garage "not answering" for a minute (2026-10-20 15:46)."""
     cache_path = cache_path or f"{STATE_DIR}/targets-cache.json"
     if portal and gw_key:
+        fresh = reply_targets(cache_path)
+        if fresh is not None:
+            return fresh, "portal"
         try:
             _, data = http("GET", f"{portal}/functions/v1/gateway-targets",
                            {"x-gateway-key": gw_key}, timeout=15)
             targets = data.get("targets", [])
-            try:
-                os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-                tmp = cache_path + ".tmp"
-                with open(tmp, "w") as f:
-                    json.dump(targets, f)
-                os.chmod(tmp, 0o600)  # runtime API keys: root only
-                os.replace(tmp, cache_path)
-            except OSError as e:
-                print(f"targets cache: {e}", file=sys.stderr)
+            save_targets(targets, cache_path)
             return targets, "portal"
         except urllib.error.HTTPError as e:
             if e.code != 404:
@@ -145,8 +172,12 @@ def main():
 
     if source == "portal":
         try:
-            http("POST", f"{portal}/functions/v1/gateway-health-report",
-                 {"x-gateway-key": gw_key}, {"results": results}, timeout=15)
+            _, reply = http("POST", f"{portal}/functions/v1/gateway-health-report",
+                            {"x-gateway-key": gw_key}, {"results": results}, timeout=15)
+            # The reply carries the next run's list. Without it (an older portal, or the list failed
+            # there) the cache goes stale and the next run asks gateway-targets as before.
+            if isinstance(reply, dict) and isinstance(reply.get("targets"), list) and reply["targets"]:
+                save_targets(reply["targets"])
         except Exception as e:  # noqa: BLE001
             print(f"gateway-health-report: {e}", file=sys.stderr)
 
