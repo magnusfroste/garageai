@@ -185,6 +185,20 @@ elsewhere, finishes requests in flight, and raises no alert:
   checks it every 10 seconds. A stale file (older than 3 minutes: the panel's agent is gone) is
   ignored and doctor says so.
 
+- **On battery (since v1.7.0):** a machine that runs on battery reports itself *away*, and is on
+  the market again when it is plugged in. An unplugged laptop sleeps or leaves the network, and
+  buyers' requests then fail (garage-m1 failed 18 of 22 of the portal's tests in a day). Doctor
+  says "on battery: away for buyers until plugged in". `sudo garageai battery serve` keeps the
+  garage on the market on battery; `sudo garageai battery away` goes back. `garageai battery`
+  shows which one is set.
+
+### Paused by GarageAI
+GarageAI's admin can pause a garage in the portal (a machine that fails tests for a long time, or
+a request to stop). `garageai resume` and the portal's own Resume button do not lift that pause.
+Since v1.7.0 doctor, `garageai resume` and the menu-bar icon say "paused by GarageAI" when the
+portal reports it; before that nothing on the machine said so, and two of our own garages were
+paused for weeks unnoticed. Write to support@garageai.eu to have it lifted.
+
 ### `runtime_manager_failed` (error)
 The runtime manager (vLLM Panel) reports that the model failed to start or the container exited;
 its reason is in the message. Open the panel for the log. Buyers are not routed here until the

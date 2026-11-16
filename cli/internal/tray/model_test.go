@@ -95,6 +95,11 @@ func TestPortalFigures(t *testing.T) {
 	level(t, s, Live, "Today: 142 requests · €0.41")
 	s.Status.Portal.Live = &off
 	level(t, s, Paused, "Not on the market")
+	s.Status.Portal.PausedBy = "admin" // GarageAI's own pause: said as such, with where to ask
+	level(t, s, Paused, "Paused by GarageAI", "support@garageai.eu")
+	s.Status.Portal.PausedReason = "fails the tool test"
+	level(t, s, Paused, "Paused by GarageAI", "fails the tool test")
+	s.Status.Portal.PausedBy, s.Status.Portal.PausedReason = "", ""
 }
 
 func TestDownloadsAndUpdate(t *testing.T) {

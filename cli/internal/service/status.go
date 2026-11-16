@@ -89,6 +89,8 @@ type StatusPortal struct {
 	TokensToday   *int64   `json:"tokens_today,omitempty"`
 	EarnedToday   *float64 `json:"earned_today,omitempty"`
 	Currency      string   `json:"currency,omitempty"`
+	PausedBy      string   `json:"paused_by,omitempty"` // "admin" or "operator": a pause set in the portal
+	PausedReason  string   `json:"paused_reason,omitempty"`
 }
 
 // StatusPath is a variable so tests can point it at a temp dir.

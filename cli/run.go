@@ -318,6 +318,9 @@ func writeStatus(cfg *service.Config, models []string, contexts map[string]int, 
 		if g := res.Garage; g != nil {
 			st.Portal = &service.StatusPortal{Live: g.Live, Offered: g.Offered, RequestsToday: g.RequestsToday,
 				TokensToday: g.TokensToday, EarnedToday: g.EarnedToday, Currency: g.Currency}
+			if g.Paused != nil {
+				st.Portal.PausedBy, st.Portal.PausedReason = g.Paused.By, g.Paused.Reason
+			}
 		}
 	}
 	// Today's energy for the menu-bar icon: since local midnight. The request samples cover the

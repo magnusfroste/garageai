@@ -68,6 +68,8 @@ func main() {
 		os.Exit(runtimeCmd(args[1:]))
 	case "pause":
 		os.Exit(pauseCmd(args[1:]))
+	case "battery":
+		os.Exit(batteryCmd(args[1:]))
 	case "tray":
 		os.Exit(trayCmd(args[1:]))
 	case "resume":
@@ -146,6 +148,8 @@ usage:
                                change the runtime or port of a linked garage (no new link; --relink to link again)
   garageai models              models the portal asked this garage to fetch or remove, and how that went
   garageai runtime [install]   no runtime yet? whether Xyntetik Runner fits this machine, and install it as a service
+  garageai battery [serve|away]
+                               on battery a garage is away for buyers and live again when plugged in; serve keeps it on the market
   garageai pause [--reason "redeploy"] [--for 15m]
                                planned absence: the portal drains this garage, buyers go elsewhere, no alerts
   garageai resume              offer the garage again
@@ -257,7 +261,11 @@ func printHuman(p profile.Profile) {
 		}
 		switch tel.Power {
 		case "battery":
-			line += fmt.Sprintf(", on battery (%s): away for buyers until plugged in", pctText(tel.BatteryPct))
+			if service.ServeOnBattery() {
+				line += fmt.Sprintf(", on battery (%s): still serving buyers (garageai battery away changes that)", pctText(tel.BatteryPct))
+			} else {
+				line += fmt.Sprintf(", on battery (%s): away for buyers until plugged in", pctText(tel.BatteryPct))
+			}
 		case "ac":
 			line += ", on power"
 		}
@@ -312,6 +320,10 @@ func printHuman(p profile.Profile) {
 		}
 	}
 	fmt.Println()
+	if why := adminPause(); why != "" {
+		fmt.Println("  ⏸ " + why)
+		fmt.Println()
+	}
 	if len(p.Problems) == 0 {
 		fmt.Println("  ✓ No problems found.")
 		return

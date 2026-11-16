@@ -290,7 +290,8 @@ at start: the feature request to Joakim), a Runner version bump through Door's o
   them: `requests`, `inference`, `errors` (5xx), `streamed`, `cold_starts`, `ttfb_p50_ms`,
   `ttfb_p95_ms`, `total_p50_ms`). Doctor prints a "Now" line. Ops shows both in "From the
   garage" and treats a tunnel that drops on a laptop on battery as *away* (info), not down.
-  Next: the portal and the pool use them (prefer idle and warm garages, skip a laptop on battery,
+  Since v1.7.0 a machine on battery reports itself away (`garageai battery serve` opts out).
+  Next: the portal and the pool use them (prefer idle and warm garages,
   Smart's fit check), and the gateway's timings next to the garage's separate network from model.
 - **From the vLLM Panel sync (2026-10-14, Joakim's session on dgx-city), in order:**
   1. *Unified memory:* when nvidia-smi reports N/A (DGX Spark / GB10), treat the GPU as unified

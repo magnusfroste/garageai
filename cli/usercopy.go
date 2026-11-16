@@ -26,7 +26,7 @@ const delegatedEnv = "GARAGEAI_DELEGATED"
 // elevated halves) and the ones about this binary itself (version, update, install-service) are not.
 var ownCopyCommands = map[string]bool{
 	"connect": true, "login": true, "doctor": true, "uninstall": true, "mcp": true, "models": true,
-	"runtime": true, "pause": true, "resume": true, "tray": true, "help": true, "--help": true, "-h": true,
+	"runtime": true, "pause": true, "resume": true, "battery": true, "tray": true, "help": true, "--help": true, "-h": true,
 }
 
 // useServiceCopy runs the command with the service's copy when this copy is older, after trying to
