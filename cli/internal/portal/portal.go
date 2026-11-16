@@ -25,7 +25,7 @@ type Client struct {
 }
 
 func New(registerURL, token string) *Client {
-	return &Client{RegisterURL: registerURL, Token: token, HTTP: &http.Client{Timeout: 190 * time.Second}}
+	return &Client{RegisterURL: ownAddress(registerURL), Token: token, HTTP: &http.Client{Timeout: 190 * time.Second}}
 }
 
 func (c *Client) sibling(name string) string {
@@ -172,10 +172,14 @@ func (c *Client) post(ctx context.Context, url string, body any, out any, timeou
 	b, _ := json.Marshal(body)
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	req, _ := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(b))
-	req.Header.Set("Authorization", "Bearer "+c.Token)
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := c.HTTP.Do(req)
+	resp, err := send(ctx, c.HTTP, url, func(url string) (*http.Request, error) {
+		req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(b))
+		if err == nil {
+			req.Header.Set("Authorization", "Bearer "+c.Token)
+			req.Header.Set("Content-Type", "application/json")
+		}
+		return req, err
+	})
 	if err != nil {
 		return 0, err
 	}

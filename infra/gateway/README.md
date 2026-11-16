@@ -528,3 +528,16 @@ external tester a key. All commands from the gateway; `$BUYER` is an ordinary bu
 accounts. Ops' Business page counts their requests as "own", requests without an account as
 "internal" and the rest as "external". Without the file every account counts as external, and
 the page says so.
+
+### portal.garageai.eu (the portal's functions under our own name)
+
+`infra/gateway/portal-proxy/` is a small nginx behind Traefik: `https://portal.garageai.eu/functions/v1/<function>`
+is passed on to the host the portal's functions run on (`PORTAL_UPSTREAM_HOST` in its `.env`).
+Door calls this name from v1.7.0 and falls back to the old address when the name does not answer,
+so the order of DNS record, proxy and Door release does not matter. The day the portal moves
+(see docs/architecture.md), change `PORTAL_UPSTREAM_HOST` or point the DNS name elsewhere: the
+paths stay `/functions/v1/<function>`. The gateway's own timers (`GARAGEAI_PORTAL_URL`) may keep
+calling the portal directly; they are ours to change.
+
+Start it only after `portal.garageai.eu` resolves to this server (Let's Encrypt limits failed
+attempts). Nothing is logged or stored by the proxy.

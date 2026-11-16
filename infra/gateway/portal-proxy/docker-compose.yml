@@ -1,0 +1,46 @@
+# portal.garageai.eu: the portal's functions under GarageAI's own name. Door (from v1.7.0) and
+# anything else outside calls https://portal.garageai.eu/functions/v1/<function>; this nginx
+# passes it on to where the portal runs today (PORTAL_UPSTREAM_HOST). When the portal moves, only
+# that host changes here (or the DNS name is pointed somewhere else): no installed Door has to.
+#
+# DNS first: portal.garageai.eu → this server (A record, DNS only, as api.garageai.eu), then
+#   docker compose up -d        (in /opt/garageai/portal-proxy)
+# Traefik fetches the certificate on the first start; without the DNS record that fails and
+# Let's Encrypt limits retries, so do not start it before the name resolves.
+#
+# .env: PORTAL_UPSTREAM_HOST=<project>.supabase.co   (no secret; the same host Door used before)
+name: garageai-portal-proxy
+
+services:
+  portal-proxy:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/var/cache/nginx, /var/run, /tmp, /etc/nginx/conf.d]
+    volumes:
+      - ./nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+    environment:
+      PORTAL_UPSTREAM_HOST: ${PORTAL_UPSTREAM_HOST:?set PORTAL_UPSTREAM_HOST in .env (the host the portal's functions run on)}
+      NGINX_ENVSUBST_FILTER: ^PORTAL_
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    networks: [proxy]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=garageai_proxy
+      - traefik.http.routers.portal-proxy.rule=Host(`portal.garageai.eu`) && PathPrefix(`/functions/v1/`)
+      - traefik.http.routers.portal-proxy.entrypoints=websecure
+      - traefik.http.routers.portal-proxy.tls=true
+      - traefik.http.routers.portal-proxy.tls.certresolver=letsencrypt
+      - traefik.http.routers.portal-proxy.middlewares=portal-ratelimit
+      # Per source address: a garage sends one heartbeat every 5 minutes; a link in progress polls
+      # every few seconds. Far above both, far below a flood.
+      - traefik.http.middlewares.portal-ratelimit.ratelimit.average=5
+      - traefik.http.middlewares.portal-ratelimit.ratelimit.burst=40
+      - traefik.http.services.portal-proxy.loadbalancer.server.port=8080
+
+networks:
+  proxy:
+    name: garageai_proxy
+    external: true
