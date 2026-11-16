@@ -17,14 +17,11 @@ import (
 // browser, and Door picks up the garage's credentials. No token is ever copied or shown.
 // It is the device-authorization pattern (gh auth login).
 
-// DefaultAPI is the portal's functions URL; GARAGEAI_PORTAL_API overrides it (tests, staging).
-const DefaultAPI = "https://sjopaiquzqotymqmrcke.supabase.co/functions/v1"
-
 func API() string {
 	if v := os.Getenv("GARAGEAI_PORTAL_API"); v != "" && SecureURL(v) {
 		return strings.TrimSuffix(v, "/")
 	}
-	return DefaultAPI
+	return ownAPI
 }
 
 // SecureURL: https, or plain http to this machine only (tests). The register token travels in
@@ -76,9 +73,13 @@ func linkPost(ctx context.Context, name string, body, out any) (int, error) {
 	b, _ := json.Marshal(body)
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
-	req, _ := http.NewRequestWithContext(ctx, "POST", API()+"/"+name, bytes.NewReader(b))
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := send(ctx, http.DefaultClient, API()+"/"+name, func(url string) (*http.Request, error) {
+		req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(b))
+		if err == nil {
+			req.Header.Set("Content-Type", "application/json")
+		}
+		return req, err
+	})
 	if err != nil {
 		return 0, err
 	}
