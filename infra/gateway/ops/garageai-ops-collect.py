@@ -543,7 +543,9 @@ def outside():
     rows = []
     for name, url, expect in (("gateway", "https://llm.garageai.eu/health/liveliness", 200), ("gateway (api)", "https://api.garageai.eu/health/liveliness", 200),
                               ("portal", "https://app.garageai.eu/", 200), ("site", "https://www.garageai.eu/", 200),
-                              ("portal functions (Door)", "https://portal.garageai.eu/functions/v1/bridge-link-poll", 405)):
+                              ("portal functions (Door)", "https://portal.garageai.eu/functions/v1/bridge-link-poll", 405),
+                              # This page itself: signed out, a working Operations Center sends the login page (302 → /login).
+                              ("operations center", "https://ops.garageai.eu/login", 200)):
         code, _, ms = http(url, timeout=10)
         rows.append({"name": name, "url": url, "status": code, "ms": ms, "ok": code == expect})
     return rows

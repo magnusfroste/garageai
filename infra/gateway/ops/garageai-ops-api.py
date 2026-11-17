@@ -240,7 +240,19 @@ if __name__ == "__main__":
     PASSWORD = open(PASSWORD_FILE).read().strip()
     SESSION_KEY = open(SESSION_KEY_FILE).read().strip().encode()
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8781
-    addrs = ["127.0.0.1"] + ([docker_bridge_ip()] if docker_bridge_ip() else [])
+    # After a reboot this service can start before Docker has given docker0 its address. Then it
+    # listened on 127.0.0.1 only, nginx in the ops container got "connection refused" on the bridge
+    # address, and the Operations Center answered 500 for 11 hours (2026-11-17). Wait for the
+    # bridge; without it after 2 minutes, exit and let systemd start the service again.
+    bridge = docker_bridge_ip()
+    for _ in range(60):
+        if bridge:
+            break
+        time.sleep(2)
+        bridge = docker_bridge_ip()
+    if not bridge:
+        sys.exit("docker0 has no address yet: the ops container could not reach this API; restarting")
+    addrs = ["127.0.0.1", bridge]
     servers = [HTTPServer((a, port), H) for a in addrs]
     for srv in servers[1:]:
         threading.Thread(target=srv.serve_forever, daemon=True).start()
