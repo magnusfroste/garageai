@@ -253,6 +253,13 @@ func state(s Snapshot) (Level, string, string) {
 	if len(st.Models) == 0 {
 		return Problem, "Needs you", runtimeName(st.Runtime) + " does not answer"
 	}
+	if p := st.Portal; p != nil && p.PausedBy == "admin" {
+		why := p.PausedReason
+		if why == "" {
+			why = "ask support@garageai.eu; garageai resume does not lift this"
+		}
+		return Paused, "Paused by GarageAI", why
+	}
 	if p := st.Portal; p != nil && p.Live != nil && !*p.Live {
 		return Paused, "Not on the market", "nothing offered, or paused in the portal"
 	}

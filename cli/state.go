@@ -28,8 +28,17 @@ func effectiveState(now time.Time) (st *portal.AgentState, nodes []machine.Node,
 			}
 		}
 	}
+	if st == nil && powerSource() == "battery" && !service.ServeOnBattery() {
+		st = &portal.AgentState{Kind: "away", Reason: batteryReason, Source: "garageai battery"}
+	}
 	return st, nodes, ignored, panel
 }
+
+// batteryReason is the away state a machine on battery reports (see service.ServeOnBatteryPath).
+const batteryReason = "on battery; live again when plugged in"
+
+// powerSource is a variable so tests do not depend on the machine they run on.
+var powerSource = machine.PowerSource
 
 // stateKey is what the tunnel service watches for changes: a heartbeat goes out at once when it
 // changes. The power source is part of it: a laptop unplugged and closed sleeps before the next
@@ -40,7 +49,7 @@ func stateKey(now time.Time) string {
 	if st, _, _, _ := effectiveState(now); st != nil {
 		key = st.Kind + "|" + st.Reason
 	}
-	return key + "|power=" + machine.PowerSource()
+	return key + "|power=" + powerSource()
 }
 
 // pauseCmd: `garageai pause [--reason "..."] [--for 15m]` and `garageai resume`.
@@ -91,6 +100,54 @@ func resumeCmd() int {
 	service.ClearPauseState()
 	service.MarkResumed(time.Now())
 	fmt.Println("✓ Resumed: the garage is offered again after the next heartbeat (now), also when it was paused in the portal.")
+	code := beatNow()
+	if why := adminPause(); why != "" {
+		fmt.Println("  ! " + why)
+	}
+	return code
+}
+
+// adminPause says, from the last heartbeat's answer, that GarageAI's admin has paused this garage:
+// a pause that neither resume nor the portal's own Resume button lifts (garage-m1 and garage-m4
+// were paused this way for weeks and nothing on the machine said so, 2026-11-11).
+func adminPause() string {
+	st := service.LoadStatus()
+	if st == nil || st.Portal == nil || st.Portal.PausedBy != "admin" {
+		return ""
+	}
+	why := "This garage is paused by GarageAI, not by you: garageai resume does not lift that. Ask support@garageai.eu"
+	if r := st.Portal.PausedReason; r != "" {
+		why += " (reason given: " + r + ")"
+	}
+	return why + "."
+}
+
+// batteryCmd: `garageai battery [serve|away]`: whether this garage stays on the market on battery.
+func batteryCmd(args []string) int {
+	if len(args) == 0 {
+		if service.ServeOnBattery() {
+			fmt.Println("On battery this garage keeps serving buyers (garageai battery away changes that).")
+		} else {
+			fmt.Println("On battery this garage is away for buyers and live again when plugged in (garageai battery serve changes that).")
+		}
+		return 0
+	}
+	if len(args) != 1 || (args[0] != "serve" && args[0] != "away") {
+		fmt.Fprintln(os.Stderr, "usage: garageai battery [serve|away]")
+		return 2
+	}
+	if !isAdmin() {
+		return asRootSimple("battery", args)
+	}
+	if err := service.SetServeOnBattery(args[0] == "serve"); err != nil {
+		fmt.Fprintln(os.Stderr, "garageai battery:", err)
+		return 1
+	}
+	if args[0] == "serve" {
+		fmt.Println("✓ This garage keeps serving buyers on battery. A laptop that sleeps or leaves the network still drops their requests.")
+	} else {
+		fmt.Println("✓ On battery this garage is away for buyers, and live again when plugged in.")
+	}
 	return beatNow()
 }
 

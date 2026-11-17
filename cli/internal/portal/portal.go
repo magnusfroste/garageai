@@ -166,6 +166,15 @@ type GarageToday struct {
 	TokensToday   *int64   `json:"tokens_today,omitempty"`
 	EarnedToday   *float64 `json:"earned_today,omitempty"`
 	Currency      string   `json:"currency,omitempty"`
+	// A pause set in the portal: by "admin" (GarageAI; `garageai resume` does not lift it) or by
+	// "operator". Absent when not paused, and from portals that do not send it yet.
+	Paused *PortalPause `json:"paused,omitempty"`
+}
+
+type PortalPause struct {
+	By     string     `json:"by"`
+	Since  *time.Time `json:"since,omitempty"`
+	Reason string     `json:"reason,omitempty"`
 }
 
 func (c *Client) post(ctx context.Context, url string, body any, out any, timeout time.Duration) (int, error) {

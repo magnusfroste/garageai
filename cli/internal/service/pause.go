@@ -81,3 +81,30 @@ func LastResumed(now time.Time) *time.Time {
 	}
 	return &t
 }
+
+// ServeOnBatteryPath marks a garage that stays on the market on battery (`garageai battery serve`).
+// Without it a machine on battery reports itself away: a laptop that is unplugged sleeps or is
+// carried off, and buyers' requests then fail (garage-m1 failed 18 of 22 acceptance tests in a
+// day, 2026-11-14). A variable so tests can point it at a temp dir.
+var ServeOnBatteryPath = func() string {
+	return filepath.Join(filepath.Dir(PauseStatePath()), "serve-on-battery")
+}
+
+func ServeOnBattery() bool {
+	_, err := os.Stat(ServeOnBatteryPath())
+	return err == nil
+}
+
+func SetServeOnBattery(on bool) error {
+	if !on {
+		if err := os.Remove(ServeOnBatteryPath()); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+		return nil
+	}
+	if err := os.WriteFile(ServeOnBatteryPath(), []byte("this garage serves buyers on battery too (garageai battery away undoes it)\n"), 0o644); err != nil {
+		return err
+	}
+	MakeUserReadable(ServeOnBatteryPath())
+	return nil
+}
