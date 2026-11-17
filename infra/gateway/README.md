@@ -201,9 +201,22 @@ Traefik only exposes the LLM API publicly (`/v1/chat/completions`, `/v1/completi
 `/v1/embeddings`, `/v1/models`, `/v1/messages`, `/v1/responses`, the non-`/v1` aliases and
 `/health/liveliness|readiness`), rate limited per client IP. Every other route (admin UI, `/sso`,
 `/openapi.json`, `/model/*`, `/key/*`, `/user/*`, `/spend/*`, `/health`) is only routed when the
-request carries the master key, and returns 403 otherwise. Buyer keys therefore cannot read
+request carries an admin key, and returns 403 otherwise. Buyer keys therefore cannot read
 `/model/info` (garage addresses) or call `/health` (real inference on every garage).
-After rotating the master key, recreate the container (`docker compose up -d`) so the rule follows.
+
+There are two admin keys (2026-11-17):
+
+- **The portal's key** (`LITELLM_PORTAL_KEY`; the portal stores it in its `LITELLM_MASTER_KEY`
+  secret). It is not the master key: Traefik routes it only on the paths the portal's functions
+  call (the list in `litellm/docker-compose.yml`, router `litellm-portal`) and replaces it with the
+  master key on the way in. A portal function that needs a new admin path gets 403 until the path
+  is added there.
+- **The master key**, every path, only from `LITELLM_ADMIN_SOURCE` (this server's own address:
+  the Operations Center and the health check). It never leaves the server.
+
+Rotating either key: change `.env`, recreate the container (`docker compose up -d`, a quiet
+window: it interrupts traffic for some seconds). The master key needs nothing else; the portal's
+key must also be changed in the portal's secret.
 
 Responses are stripped of everything that would tell a buyer which garage or provider served
 them: the `x-litellm-*` headers (upstream `api_base`, deployment id, runtime model name, timing)
