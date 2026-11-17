@@ -21,7 +21,12 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Connection "";
         # The caller's address as Traefik saw it: the portal limits link attempts per address.
+        # The portal's host replaces X-Forwarded-For with the address that connects to it (this
+        # server: measured 2026-11-17), so the caller's address also travels in a header of our
+        # own. It is always set here, so a caller cannot send its own; the portal trusts it only
+        # on requests that come from this server's address.
         proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+        proxy_set_header X-GarageAI-Client-IP $http_x_forwarded_for;
         proxy_connect_timeout 10s;
         proxy_send_timeout 60s;
         proxy_read_timeout 200s;   # register-node runs the acceptance test: up to 190 s

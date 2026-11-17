@@ -535,11 +535,17 @@ def gateway_log_counts():
 
 # ---------------------------------------------------------------- outside view
 def outside():
+    """Our public names, asked from here as anyone would. `expect` is the answer that means "up":
+    200 for pages and health endpoints. portal.garageai.eu is the portal's functions under our own
+    name (Door calls it from v1.7.0, infra/gateway/portal-proxy): a GET on a POST-only function
+    answers 405 from the portal itself, which proves the name, the certificate, the proxy and the
+    portal behind it in one request, without a key."""
     rows = []
-    for name, url in (("gateway", "https://llm.garageai.eu/health/liveliness"), ("gateway (api)", "https://api.garageai.eu/health/liveliness"), ("portal", "https://app.garageai.eu/"),
-                      ("site", "https://www.garageai.eu/")):
+    for name, url, expect in (("gateway", "https://llm.garageai.eu/health/liveliness", 200), ("gateway (api)", "https://api.garageai.eu/health/liveliness", 200),
+                              ("portal", "https://app.garageai.eu/", 200), ("site", "https://www.garageai.eu/", 200),
+                              ("portal functions (Door)", "https://portal.garageai.eu/functions/v1/bridge-link-poll", 405)):
         code, _, ms = http(url, timeout=10)
-        rows.append({"name": name, "url": url, "status": code, "ms": ms})
+        rows.append({"name": name, "url": url, "status": code, "ms": ms, "ok": code == expect})
     return rows
 
 
@@ -1024,8 +1030,10 @@ def alerts(d):
     elif (now() - datetime.fromisoformat(gd["checked_at"])).total_seconds() > 300:
         add("warning", f"garageai-guard last ran {gd['checked_at']}", "traffic")
     for o in d["outside"]:
-        if o["status"] != 200:
-            add("critical", f"{o['name']} ({o['url']}) answered {o['status']}", "server")
+        if not o.get("ok", o["status"] == 200):
+            # Door falls back to the portal's old address when our own name does not answer, so
+            # that one is a warning; the others have no fallback.
+            add("warning" if o["name"].startswith("portal functions") else "critical", f"{o['name']} ({o['url']}) answered {o['status']}", "server")
     # Every request must have its spend-log row (billing, earnings, quality). Today's counts lag
     # by a minute or two (both are written in batches), so today needs a clear gap; a full day
     # must match. The text names the day only, so the alert stays one alert while counts move.

@@ -902,7 +902,7 @@ function renderPages(d) {
     <div>Disk used</div><div class="${h.disk_used_pct >= 80 ? "warning" : ""}">${h.disk_used_pct} % (${h.disk_free_gb} GB free)</div>
     <div>Uptime</div><div>${h.uptime_hours} h</div>
     <div>OS updates pending</div><div>${h.updates_pending}${h.reboot_required ? ' · <span class="warning">reboot required</span>' : ""}</div></div>`;
-  $("outside").innerHTML = table([["Service", o => `${dot(o.status === 200 ? "ok" : "critical")}${esc(o.name)}`], ["Status", o => o.status ?? "no answer", "num"], ["Time", o => `${o.ms} ms`, "num"]], d.outside);
+  $("outside").innerHTML = table([["Service", o => `${dot((o.ok ?? o.status === 200) ? "ok" : "critical")}${esc(o.name)}`], ["Status", o => o.status ?? "no answer", "num"], ["Time", o => `${o.ms} ms`, "num"]], d.outside);
   $("containers").innerHTML = table([["Container", c => `${dot(c.state === "running" ? "ok" : "critical")}${esc(c.name)}`], ["Image", c => `<code>${esc(c.image)}</code>`], ["Status", c => esc(c.status)]], d.containers);
   const n = d.notify || {};
   $("notify").innerHTML = `<div class="kv">
