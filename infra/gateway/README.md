@@ -89,6 +89,11 @@ service) and the hub's private key `/etc/wireguard/garageai-hub.key` (root, 0600
 confines `wg` to `/etc/wireguard`). The key never leaves the gateway; its public half is the
 `hub_public_key` the portal hands to every garage. Lose it and every garage must connect again,
 so it is in the nightly backup. `/etc/garageai/hub-peers.json` can hold static test peers.
+Two keys live there since 2026-11-18: `GARAGEAI_GATEWAY_KEY` is what the portal checks in
+`x-gateway-key` (the portal's admin key, `LITELLM_PORTAL_KEY`), and `GARAGEAI_LITELLM_KEY` is the
+LiteLLM master key for the gateway's own calls to LiteLLM (Operations Center, chain test). When
+the master key is rotated, change it here and in `litellm/.env`; the hub and the health service
+only use the first one. The hub reads the file at start: restart it after a change (tunnels stay).
 
 ```bash
 sudo sh -c 'umask 077; wg genkey > /etc/wireguard/garageai-hub.key'

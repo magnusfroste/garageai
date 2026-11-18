@@ -63,7 +63,7 @@ def garage_of(model_id, api_base):
 
 def auto_entries(env):
     """{deployment id: {order, garage, model}} for garageai/auto's deployments, from LiteLLM."""
-    code, body, _ = collect.http(f"{collect.LITELLM_URL}/v1/model/info", {"Authorization": f"Bearer {env.get('GARAGEAI_GATEWAY_KEY', '')}"}, timeout=15)
+    code, body, _ = collect.http(f"{collect.LITELLM_URL}/v1/model/info", {"Authorization": f"Bearer {(env.get('GARAGEAI_LITELLM_KEY') or env.get('GARAGEAI_GATEWAY_KEY', ''))}"}, timeout=15)
     out = {}
     if code != 200:
         return out

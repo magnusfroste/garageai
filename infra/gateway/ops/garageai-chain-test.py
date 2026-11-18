@@ -18,7 +18,8 @@ tested for three days.
 
 Runs as a systemd timer (garageai-chain-test.timer, 04:00 UTC). Portal side: the
 managed-models-ops edge function (want / cancel / status, gateway key). Needs the gateway key
-(GARAGEAI_GATEWAY_KEY) and portal URL (GARAGEAI_PORTAL_URL) from /etc/garageai/gateway-health.env.
+(GARAGEAI_GATEWAY_KEY), the LiteLLM master key (GARAGEAI_LITELLM_KEY) and portal URL
+(GARAGEAI_PORTAL_URL) from /etc/garageai/gateway-health.env.
 Options: CHAIN_TEST_GARAGE (default garage-m1), CHAIN_TEST_MODEL (default qwen3:0.6b).
 """
 import importlib.machinery
@@ -116,7 +117,7 @@ def garage_model(status, model):
 
 def deployments(env, model):
     """The gateway's deployments for GARAGE serving `model` (by Ollama tag), as [(public name, id)]."""
-    code, body, _ = collect.http(f"{collect.LITELLM_URL}/v1/model/info", {"Authorization": f"Bearer {env.get('GARAGEAI_GATEWAY_KEY', '')}"}, timeout=15)
+    code, body, _ = collect.http(f"{collect.LITELLM_URL}/v1/model/info", {"Authorization": f"Bearer {(env.get('GARAGEAI_LITELLM_KEY') or env.get('GARAGEAI_GATEWAY_KEY', ''))}"}, timeout=15)
     out = []
     if code != 200:
         return out
@@ -131,7 +132,7 @@ def ask(env, public_name):
     """One short completion through the public API, pinned to this garage. (status, seconds)."""
     body = json.dumps({"model": public_name, "max_tokens": 8, "messages": [{"role": "user", "content": "Chain test: say ok"}]}).encode()
     req = urllib.request.Request("https://api.garageai.eu/v1/chat/completions", data=body, method="POST",
-                                 headers={"Content-Type": "application/json", "Authorization": f"Bearer {env.get('GARAGEAI_GATEWAY_KEY', '')}", "User-Agent": collect.UA})
+                                 headers={"Content-Type": "application/json", "Authorization": f"Bearer {(env.get('GARAGEAI_LITELLM_KEY') or env.get('GARAGEAI_GATEWAY_KEY', ''))}", "User-Agent": collect.UA})
     t0 = time.time()
     try:
         with urllib.request.urlopen(req, timeout=120) as r:
