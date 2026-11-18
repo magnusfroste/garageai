@@ -118,9 +118,24 @@ services:
       - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-age=
       - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-etag=
       - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-last-modified=
-      # Admin API (model, key, user, spend routes): only with the master key, so buyer keys
-      # cannot read /model/info (garage addresses) or trigger /health (real inference).
-      - traefik.http.routers.litellm-admin.rule=Host(`${LITELLM_DOMAIN}`) && Header(`Authorization`, `Bearer ${LITELLM_MASTER_KEY:?set LITELLM_MASTER_KEY in .env}`)
+      # Admin API (model, key, user, spend routes). Buyer keys cannot read /model/info (garage
+      # addresses) or trigger /health (real inference). Two ways in:
+      # 1. The portal: its own key (LITELLM_PORTAL_KEY, not the master key) and only the paths its
+      #    functions call. Traefik swaps in the master key, so the master key never leaves this
+      #    server and can be rotated without touching the portal. A new portal path must be added
+      #    here, or the portal gets 403.
+      - traefik.http.routers.litellm-portal.rule=Host(`${LITELLM_DOMAIN}`) && Header(`Authorization`, `Bearer ${LITELLM_PORTAL_KEY:?set LITELLM_PORTAL_KEY in .env}`) && (Path(`/user/info`) || Path(`/user/new`) || Path(`/user/update`) || Path(`/user/list`) || Path(`/user/daily/activity`) || Path(`/model/info`) || Path(`/v1/model/info`) || Path(`/v2/model/info`) || Path(`/model/new`) || Path(`/model/delete`) || Path(`/key/info`) || Path(`/key/generate`) || Path(`/key/update`) || Path(`/key/delete`) || Path(`/spend/logs`) || Path(`/spend/logs/v2`) || Path(`/global/spend/report`) || Path(`/health`) || Path(`/health/readiness`) || Path(`/v1/models`) || Path(`/v1/chat/completions`))
+      - traefik.http.routers.litellm-portal.priority=350
+      - traefik.http.routers.litellm-portal.entrypoints=websecure
+      - traefik.http.routers.litellm-portal.tls=true
+      - traefik.http.routers.litellm-portal.tls.certresolver=letsencrypt
+      - traefik.http.routers.litellm-portal.service=litellm
+      - traefik.http.routers.litellm-portal.middlewares=litellm-portal-auth
+      - traefik.http.middlewares.litellm-portal-auth.headers.customrequestheaders.Authorization=Bearer ${LITELLM_MASTER_KEY:?set LITELLM_MASTER_KEY in .env}
+      # 2. The master key itself, every path: only from LITELLM_ADMIN_SOURCE. Set that to this
+      #    server's own address (<ip>/32) once the portal uses its own key; then the master key is
+      #    useless from the internet (the Operations Center and the health check call from here).
+      - traefik.http.routers.litellm-admin.rule=Host(`${LITELLM_DOMAIN}`) && Header(`Authorization`, `Bearer ${LITELLM_MASTER_KEY}`) && ClientIP(`${LITELLM_ADMIN_SOURCE:-0.0.0.0/0}`)
       - traefik.http.routers.litellm-admin.priority=200
       - traefik.http.routers.litellm-admin.entrypoints=websecure
       - traefik.http.routers.litellm-admin.tls=true

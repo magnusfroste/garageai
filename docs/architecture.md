@@ -192,5 +192,8 @@ public name. Today it is reachable on `llm.garageai.eu` (Traefik passes it only 
 master-key header), because the portal's functions call it there. In the control plane it is reached
 only from inside (the control plane, the Operations Center), and `llm.garageai.eu` becomes a plain
 alias of `api.garageai.eu` for old clients. Noted 2026-10-12.
+First step done 2026-11-17: the portal no longer holds the master key. It has its own key, limited
+by Traefik to the admin paths it calls, and the master key itself only works from the gateway
+(infra/gateway/README.md, "Locked-down admin API"). The admin API is still on the public name.
 
 Until then, keep the boundaries above, so that the move is a relocation and not a rewrite.
