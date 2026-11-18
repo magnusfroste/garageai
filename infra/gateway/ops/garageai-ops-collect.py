@@ -1107,7 +1107,7 @@ def runtime_contexts(t, state, served):
 def models(env, state, targets):
     """Every LiteLLM deployment with what buyers get (public name, tier, price, context, output cap)
     and checks that it is consistent with the garage behind it."""
-    key = env.get("GARAGEAI_GATEWAY_KEY", "")
+    key = env.get("GARAGEAI_LITELLM_KEY") or env.get("GARAGEAI_GATEWAY_KEY", "")
     code, body, _ = http(f"{LITELLM_URL}/v1/model/info", {"Authorization": f"Bearer {key}"}, timeout=15)
     if code != 200:
         return {"error": f"LiteLLM /v1/model/info answered {code}"}
