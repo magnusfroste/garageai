@@ -27,7 +27,7 @@ faqs:
   - question: "Can I still use my computer for games or work?"
     answer: "Yes. garageai pause takes your garage off the market for a while and garageai resume brings it back; when you use your own machine through GarageAI, buyers are sent to other garages until a few minutes after your last request. Pausing automatically when a game or a render takes the GPU is coming to Door."
   - question: "Does a laptop work?"
-    answer: "Yes, while it is plugged in. Set it not to sleep on the power adapter (garageai doctor tells you how); on battery the garage is shown as away, not down, and comes back when you plug in."
+    answer: "Yes, while it is plugged in. Set it not to sleep on the power adapter (garageai doctor tells you how); on battery the garage is shown as away, not down, and comes back when you plug in. To keep serving on battery, run garageai battery serve; garageai battery away turns it back."
   - question: "How do I stop?"
     answer: "garageai pause stops selling for a while. garageai uninstall removes Door, its two services and its settings. Your runtime and your models stay as they were."
 related:
