@@ -52,7 +52,7 @@ setups:
     os: "unix"
     faqs:
       - question: "Does a MacBook work?"
-        answer: "Yes, while it is plugged in. Turn on Battery → Options → \"Prevent automatic sleeping on power adapter when the display is off\"; on battery the garage shows as away, not down, and comes back when you plug in."
+        answer: "Yes, while it is plugged in. Turn on Battery → Options → \"Prevent automatic sleeping on power adapter when the display is off\"; on battery the garage shows as away, not down, and comes back when you plug in. To keep serving on battery, run garageai battery serve; garageai battery away turns it back."
       - question: "Ollama, LM Studio or Xyntetik Runner?"
         answer: "Any of them. LM Studio uses Apple's MLX and is point and click, Ollama is the simplest to keep running, and garageai runtime install can set up Xyntetik Runner with a model that fits your Mac. Each can stay on localhost."
       - question: "Does Door measure energy on a Mac?"
