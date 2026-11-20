@@ -224,6 +224,13 @@ def run(env):
         return {"ok": False, "skipped": "leftover model, removal requested", "steps": steps}
 
     code, body = portal.want(MODEL, "pull")
+    if code == 422 and "available for Ollama" in str(body.get("error", "")):
+        # The garage runs another engine (ours moved to Runner): the portal fetches models for
+        # Ollama only, so there is no chain to test here. Skipped, not failed; Ops warns after
+        # three untested days, which is the true state until a garage with Ollama is chosen.
+        why = f"{GARAGE} does not run Ollama (the portal fetches models for Ollama only)"
+        log(f"chain test skipped: {why}")
+        return {"ok": None, "skipped": why, "steps": steps}
     steps.append({"name": "want", "ok": code == 200, "seconds": 0, "detail": body.get("error") or f"row {body.get('status', 'created')}"})
     if code != 200:
         return {"ok": False, "steps": steps, "error": f"want: HTTP {code} {body.get('error', '')}"}
