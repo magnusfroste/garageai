@@ -329,5 +329,12 @@ _dr2._hidden_params = {"response_cost": 0.5}
 check("cost: dict answer (Anthropic shape) gets cost", cb.add_usage_cost(_dr2)["usage"]["cost"], 0.5)
 check("cost: no usage, no change", cb.add_usage_cost({"id": "x"}), {"id": "x"})
 
+_na = cb.neutral_auth_error
+check("auth: blocked key", (_na(Exception("Authentication Error - Key is blocked. Update via `/key/unblock` if you're an admin.")).status_code, _na(Exception("Key is blocked")).detail), (401, "This key is disabled."))
+check("auth: deleted key", _na(Exception("Authentication Error, Invalid proxy server token passed. key=abc, not found in db. Create key via `/key/generate` call. token_not_found_in_db LiteLLM_VerificationTokenTable")).detail, "Invalid API key.")
+check("auth: expired key", _na(Exception("Authentication Error - Expired Key. Key Expiry time 2026-01-01")).detail, "This key has expired.")
+check("auth: budget is not touched", _na(Exception("Budget has been exceeded! Key=key (sk-...ab)")), None)
+check("auth: other errors untouched", _na(Exception("No deployments available for selected model")), None)
+
 print("all tests passed" if not fails else f"{fails} test(s) failed")
 sys.exit(1 if fails else 0)

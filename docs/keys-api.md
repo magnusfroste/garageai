@@ -94,7 +94,7 @@ once, add up `usage.cost` from the answers.
 | Code | When | Retry? |
 |---|---|---|
 | 400 | bad input (`{"error": {"code": 400, "message": "…"}}`), or the account already has 100 keys | no, fix the request |
-| 401 | `Invalid management key` / `Invalid API key` (wrong, revoked or expired) | no |
+| 401 | management calls: `Invalid management key`. Model calls: `Invalid API key.` (wrong or deleted key), `This key is disabled.` (PATCH `disabled: true`), `This key has expired.` | no; a disabled key works again after PATCH `disabled: false` |
 | 402 | on a model call: the key's limit or the account's balance is spent (`"type": "budget_exceeded"`) | no, final until the limit resets or credits are bought |
 | 404 | the hash is not a key of this account | no |
 | 429 | more than 60 management calls per minute per management key, or the key's rpm on model calls | yes, after a short wait |
