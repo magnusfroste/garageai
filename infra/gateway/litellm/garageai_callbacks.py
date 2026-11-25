@@ -661,6 +661,24 @@ def served_deployment_id(obj, request_data=None):
     return None
 
 
+def neutral_auth_error(exception):
+    """A plain 401 for a key the gateway refuses, instead of LiteLLM's text: it names admin routes
+    ("Update via /key/unblock") and echoes the key's hash and table name. docs/keys-api.md.
+    None for any other error, which keeps its own answer."""
+    text = str(getattr(exception, "message", "") or exception)
+    if "Key is blocked" in text:
+        detail = "This key is disabled."
+    elif "Expired Key" in text or "expired" in text.lower() and "key" in text.lower():
+        detail = "This key has expired."
+    elif (getattr(exception, "type", None) == "token_not_found_in_db" or "token_not_found_in_db" in text
+          or "VerificationToken" in text
+          or "Invalid proxy server token" in text or "No api key passed in" in text):
+        detail = "Invalid API key."
+    else:
+        return None
+    return HTTPException(status_code=401, detail=detail)
+
+
 def add_usage_cost(response):
     """Puts the request's cost (credits) in `usage.cost` of a non-streamed answer, like OpenRouter's
     `usage.cost`, so a buyer can count per key without reading headers. Streamed answers get it in
@@ -1227,6 +1245,9 @@ class GarageAICallbacks(CustomLogger):
 
     async def async_post_call_failure_hook(self, request_data, original_exception, user_api_key_dict,
                                            traceback_str=None):
+        neutral = neutral_auth_error(original_exception)
+        if neutral is not None:
+            return neutral
         if isinstance(original_exception, (ContextLengthExceeded, ModelTemporarilyUnavailable, ModelNotFound, HTTPException)):
             return None
         away = provider_unavailable(original_exception, request_data)
