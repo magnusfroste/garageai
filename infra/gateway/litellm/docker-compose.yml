@@ -44,12 +44,12 @@ services:
       - traefik.http.middlewares.litellm-ratelimit.ratelimit.burst=60
       # Buyers must not learn which garage or provider served them: LiteLLM adds headers with
       # the upstream api_base, deployment id and runtime model name. Keep only the call id
-      # (support) and the total cost. Provider headers (llm_provider-*) are disabled in config.yaml.
+      # (support, per-turn reconciliation), the total cost and the key's own spend and budget
+      # (docs/keys-api.md; stripped too until 2026-11-25). Provider headers
+      # (llm_provider-*) are dropped in the callbacks.
       # LiteLLM 1.105 added these (and x-litellm-response-cost without a suffix).
-      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-call-id=
       - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-cache-key=
       - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-model-region=
-      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-response-cost=
       - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-response-cost-cache-read=
       - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-response-cost-cache-creation=
       - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.llm_provider-x-generation-id=
@@ -61,7 +61,6 @@ services:
       - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-model-name=
       - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-model-group=
       - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-version=
-      - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-key-spend=
       - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-attempted-fallbacks=
       - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-attempted-retries=
       - traefik.http.middlewares.litellm-strip.headers.customresponseheaders.x-litellm-callback-duration-ms=

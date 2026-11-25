@@ -306,5 +306,28 @@ for k, v in (("reasoning_effort", "high"), ("thinking", {"type": "enabled", "bud
     kw, quiet = cb.quiet_thinking(_dk("ollama", **{k: v}))
     check(f"thinking: the buyer's own {k} is kept", (quiet, kw.get(k), kw.get("reasoning_effort") if k != "reasoning_effort" else kw[k]), (False, v, None if k != "reasoning_effort" else v))
 
+from litellm.types.utils import ModelResponse, Usage  # noqa: E402
+
+_mr = ModelResponse(usage=Usage(prompt_tokens=6, completion_tokens=12, total_tokens=18))
+_mr._hidden_params = {"response_cost": 2.7e-06}
+check("cost: usage.cost on a non-streamed answer", cb.add_usage_cost(_mr).usage.cost, 2.7e-06)
+check("cost: tokens untouched", (_mr.usage.prompt_tokens, _mr.usage.completion_tokens), (6, 12))
+_mr2 = ModelResponse(usage=Usage(prompt_tokens=1, completion_tokens=1, total_tokens=2))
+_mr2._hidden_params = {}
+check("cost: unknown cost leaves usage alone", getattr(cb.add_usage_cost(_mr2).usage, "cost", None), None)
+
+
+class _D(dict):
+    pass
+
+
+_dr = _D(usage={"input_tokens": 3, "output_tokens": 4, "cost": 9.0})
+_dr._hidden_params = {"response_cost": 1.0}
+check("cost: an existing cost is kept", cb.add_usage_cost(_dr)["usage"]["cost"], 9.0)
+_dr2 = _D(usage={"input_tokens": 3})
+_dr2._hidden_params = {"response_cost": 0.5}
+check("cost: dict answer (Anthropic shape) gets cost", cb.add_usage_cost(_dr2)["usage"]["cost"], 0.5)
+check("cost: no usage, no change", cb.add_usage_cost({"id": "x"}), {"id": "x"})
+
 print("all tests passed" if not fails else f"{fails} test(s) failed")
 sys.exit(1 if fails else 0)

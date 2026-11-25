@@ -661,6 +661,26 @@ def served_deployment_id(obj, request_data=None):
     return None
 
 
+def add_usage_cost(response):
+    """Puts the request's cost (credits) in `usage.cost` of a non-streamed answer, like OpenRouter's
+    `usage.cost`, so a buyer can count per key without reading headers. Streamed answers get it in
+    the last chunk from LiteLLM itself (litellm_settings.include_cost_in_streaming_usage).
+    Leaves the answer alone when the cost is unknown or already there. Returns the response."""
+    hp = getattr(response, "_hidden_params", None)
+    cost = hp.get("response_cost") if isinstance(hp, dict) else None
+    if not isinstance(cost, (int, float)) or isinstance(cost, bool):
+        return response
+    usage = response.get("usage") if isinstance(response, dict) else getattr(response, "usage", None)
+    if isinstance(usage, dict):
+        usage.setdefault("cost", cost)
+    elif usage is not None and getattr(usage, "cost", None) is None:
+        try:
+            setattr(usage, "cost", cost)
+        except Exception:  # noqa: BLE001 - the cost is a courtesy, never a failure
+            pass
+    return response
+
+
 def name_the_model(obj, request_data):
     """Puts the served model's canonical name in obj's `model` (a response or a stream chunk) when the
     buyer asked for garageai/auto. Returns obj."""
@@ -1071,6 +1091,7 @@ class GarageAICallbacks(CustomLogger):
                 name_the_model(response, data)
         except Exception:  # noqa: BLE001 - the name is a courtesy, never a failure
             pass
+        add_usage_cost(response)
         rid = response.get("id") if isinstance(response, dict) else getattr(response, "id", None)
         if isinstance(rid, str) and rid.startswith("resp_") and _is_anthropic(request_data=data):
             neutral = "msg_" + hashlib.sha256(rid.encode()).hexdigest()[:24]
