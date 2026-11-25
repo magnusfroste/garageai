@@ -38,6 +38,18 @@ services:
       # every few seconds. Far above both, far below a flood.
       - traefik.http.middlewares.portal-ratelimit.ratelimit.average=5
       - traefik.http.middlewares.portal-ratelimit.ratelimit.burst=40
+      - traefik.http.routers.portal-proxy.service=portal-proxy
+      # Customer keys API (docs/keys-api.md): api.garageai.eu/v1/keys…, /v1/key and /v1/credits go
+      # to the portal function customer-keys, path kept (…/functions/v1/customer-keys/v1/keys/{hash}).
+      # The model paths stay on LiteLLM's router; these names are not among them.
+      - traefik.http.routers.customer-keys.rule=Host(`${LITELLM_API_DOMAIN:-api.garageai.eu}`) && (Path(`/v1/keys`) || PathPrefix(`/v1/keys/`) || Path(`/v1/key`) || Path(`/v1/credits`))
+      - traefik.http.routers.customer-keys.priority=10000
+      - traefik.http.routers.customer-keys.entrypoints=websecure
+      - traefik.http.routers.customer-keys.tls=true
+      - traefik.http.routers.customer-keys.tls.certresolver=letsencrypt
+      - traefik.http.routers.customer-keys.middlewares=portal-ratelimit,customer-keys-path
+      - traefik.http.routers.customer-keys.service=portal-proxy
+      - traefik.http.middlewares.customer-keys-path.addprefix.prefix=/functions/v1/customer-keys
       - traefik.http.services.portal-proxy.loadbalancer.server.port=8080
 
 networks:
