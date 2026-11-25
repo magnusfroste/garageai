@@ -35,13 +35,15 @@ then be locked to one named model, for example a Swedish garage model for school
 1. **Streamed responses:** the last chunk's `usage` gets `cost`, in credits, like OpenRouter's
    `usage.cost`, when `stream_options.include_usage` is set. Non-streamed responses get
    `usage.cost` too.
-2. **Error when a key's limit is reached:** HTTP **402**, in OpenRouter's body shape, instead of
-   LiteLLM's 400 `budget_exceeded`. The empty account balance gets the same treatment. Documented as
+2. **Error when a key's limit is reached:** HTTP **402** instead of LiteLLM's default 422. The body
+   stays LiteLLM's: `{"error": {"message": "Budget has been exceeded! ...", "type": "budget_exceeded",
+   "code": "402"}}`. The empty account balance gets the same treatment. Documented as
    final, not to be retried.
 3. Traefik routes for `/v1/keys*`, `/v1/key` and `/v1/credits` to the edge function.
-4. Send buyers only the response headers they need (cost, call id, key spend and budget).
+4. Response headers for buyers: `x-litellm-call-id`, `x-litellm-response-cost`, `x-litellm-key-spend` and
+   `x-litellm-key-max-budget`. Until this change only the budget header reached buyers.
 
-Items 1, 2 and 4 are in the callback and need a LiteLLM restart in a quiet window.
+Items 1, 2 and 4: PR #272, which needs a LiteLLM restart in a quiet window.
 
 ## Portal side (Lovable)
 
