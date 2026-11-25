@@ -336,5 +336,49 @@ check("auth: expired key", _na(Exception("Authentication Error - Expired Key. Ke
 check("auth: budget is not touched", _na(Exception("Budget has been exceeded! Key=key (sk-...ab)")), None)
 check("auth: other errors untouched", _na(Exception("No deployments available for selected model")), None)
 
+# Upstream 4xx texts as they reached buyers on 2026-11-25 (garage names, paths and hosts made up).
+_up = cb.clean_upstream_error
+_sgl = litellm.BadRequestError(
+    message="OpenAIException - 2 validation errors:\n  {'type': 'value_error', 'msg': \"'role' must be one of 'system', 'assistant'\"}\n\n"
+            "  File \"/sgl-workspace/sglang/python/sglang/srt/entrypoints/http_server.py\", line 1740, in openai_v1_chat_completions\n"
+            "    POST /v1/chat/completions [...]\n\nLiteLLM: model group 'garage/g1/m' failed with the error above. No fallback was attempted.",
+    model="m", llm_provider="openai")
+_u = _up(_sgl)
+check("upstream: status kept", _u.status_code, 400)
+check("upstream: reason kept", "'role' must be one of" in _u.detail, True)
+check("upstream: no traceback, path, prefix or model group",
+      any(s in _u.detail for s in ("sgl-workspace", "http_server.py", "File \"", "litellm.", "OpenAIException", "LiteLLM:", "garage/g1")), False)
+_t = _up(litellm.BadRequestError(message="OpenAIException - temperature must be in [0, 2], got 99.0. (parameter=temperature)", model="m", llm_provider="openai"))
+check("upstream: plain reason passes", _t.detail, "temperature must be in [0, 2], got 99.0. (parameter=temperature)")
+_h = _up(litellm.BadRequestError(message="OpenAIException - <html><head><title>400 Bad Request</title></head><body><center>cloudflare</center>"
+                                         "kluster.example.ai</body></html>", model="m", llm_provider="openai"))
+check("upstream: an HTML page becomes a sentence", _h.detail, "The model's runtime rejected the request (400).")
+_a = _up(litellm.BadRequestError(message="OpenAIException - Error code: 400 - {'message': 'could not reach https://gpu.example.ai:8443/v1 "
+                                         "or 10.0.0.7:8000 or node7.example.se'}", model="m", llm_provider="openai"))
+check("upstream: URLs, IPs and hosts hidden", ("example" in _a.detail, "10.0.0.7" in _a.detail, _a.detail.count("[address]")), (False, False, 3))
+check("upstream: model names are not hosts", _up(litellm.BadRequestError(message="OpenAIException - qwen3.8-27b and deepseek-v4.1-flash: bad tool",
+                                                                          model="m", llm_provider="openai")).detail, "qwen3.8-27b and deepseek-v4.1-flash: bad tool")
+check("upstream: long text capped", len(_up(litellm.BadRequestError(message="x" * 5000, model="m", llm_provider="openai")).detail), cb.UPSTREAM_ERROR_MAX + 1)
+_x = _up(litellm.InternalServerError(message="OpenAIException - boom at http://10.1.2.3:8000/v1\n  File \"/srv/app.py\", line 3", model="m", llm_provider="openai"))
+check("upstream: 5xx cleaned, status kept", (_x.status_code, _x.detail), (500, "boom at [address]"))
+check("upstream: 429 untouched", _up(litellm.RateLimitError(message="slow down", model="m", llm_provider="openai")), None)
+check("upstream: our own errors untouched", (_up(Exception("Budget has been exceeded!")), _up(cb.ContextLengthExceeded("too long"))), (None, None))
+
+_hd = {"llm_provider-x-openrouter-release": "api;1", "LLM_PROVIDER-Server": "x", "x-litellm-model-api-base": "https://k.example.ai/v1",
+       "x-litellm-call-id": "c", "x-litellm-response-cost": "0.1", "x-ratelimit-remaining-requests": "5", "retry-after": "60"}
+check("headers: provider headers and api base dropped", sorted(cb.drop_provider_headers(_hd)),
+      ["retry-after", "x-litellm-call-id", "x-litellm-response-cost", "x-ratelimit-remaining-requests"])
+check("headers: filter installed", cb.install_header_filter(), True)
+from litellm.proxy import common_request_processing as _crp  # noqa: E402
+from litellm.proxy._types import UserAPIKeyAuth  # noqa: E402
+_ch = _crp.ProxyBaseLLMRequestProcessing.get_custom_headers(
+    user_api_key_dict=UserAPIKeyAuth(), call_id="c1", api_base="https://k.example.ai/v1", version="1",
+    **{"llm_provider-x-openrouter-release": "api;1", "llm_provider-server": "x"})
+check("headers: success path has no provider header or api base",
+      (any(k.lower().startswith("llm_provider-") for k in _ch), "x-litellm-model-api-base" in _ch, _ch.get("x-litellm-call-id")), (False, False, "c1"))
+check("headers: error path has no provider header",
+      any(k.startswith("llm_provider-") for k in _crp.get_response_headers({"x-openrouter-release": "api;1", "server": "cf"})), False)
+check("headers: installing twice is harmless", (cb.install_header_filter(), _crp.ProxyBaseLLMRequestProcessing.get_custom_headers._garageai), (True, True))
+
 print("all tests passed" if not fails else f"{fails} test(s) failed")
 sys.exit(1 if fails else 0)

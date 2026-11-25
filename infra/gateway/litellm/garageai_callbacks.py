@@ -100,6 +100,11 @@
     vLLM deployment with `reasoning_effort: "none"`, which both honour (verified through the
     gateway on mac-mini-1cab and dgx-city). A buyer who wants reasoning asks for it in the
     request. Providers, Runner, private machines and probes are left as they are.
+
+14. Nothing of the deployment reaches the buyer (2026-11-25). A garage's or provider's error text
+    keeps its reason but loses LiteLLM's prefixes, tracebacks, URLs, host names and IP addresses
+    (clean_upstream_error), and no `llm_provider-*` header or `x-litellm-model-api-base` leaves the
+    proxy (install_header_filter), whatever header names a provider adds next.
 """
 import asyncio
 import hashlib
@@ -677,6 +682,89 @@ def neutral_auth_error(exception):
     else:
         return None
     return HTTPException(status_code=401, detail=detail)
+
+
+UPSTREAM_ERROR_MAX = 500  # characters of a runtime's own reason we pass on
+_ADDRESS = re.compile(r"\b[a-z][a-z0-9+.-]*://\S+"                       # any URL
+                      r"|\b\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?\b"             # IPv4, with port
+                      r"|\b(?:[a-z0-9-]+\.)+(?:ai|com|net|org|io|eu|se|dev|app|cloud|local|lan|internal|"
+                      r"home|arpa|xyz|tech|run|sh|me|co|de|fi|no|dk|uk|us)\b(?::\d+)?", re.I)
+_HTML = re.compile(r"<\s*(?:!doctype|html|head|body|title|center|h1)\b", re.I)
+
+
+def clean_upstream_error(exception):
+    """The buyer's error from a garage or provider, in the runtime's own words but nothing more.
+    LiteLLM passes the deployment's text on as is: "litellm.BadRequestError: OpenAIException - ",
+    an SGLang traceback with the operator's file paths, LiteLLM's model-group line, and whatever an
+    operator's proxy put in its error page (a Cloudflare or nginx page names the host). The reason
+    ("temperature must be in [0, 2]") is what a buyer needs, so it stays; prefixes, tracebacks,
+    URLs, host names and IP addresses go, an HTML page becomes a plain sentence, and the text is
+    capped. Returned as an HTTPException, which also means no provider headers ride along (LiteLLM
+    copies them only from an exception that carries none of its own). None for anything that is
+    not a deployment's error (our own errors, and 401/403/408/429, which have their own answers).
+    A 5xx is cleaned the same way and keeps its status, so a client still retries it."""
+    status = getattr(exception, "status_code", None)
+    if not getattr(exception, "llm_provider", None) or isinstance(exception, (HTTPException, ProxyException)) \
+            or not isinstance(status, int) or not 400 <= status < 600 or status in (401, 402, 403, 407, 408, 429):
+        return None
+    text = str(getattr(exception, "message", "") or exception)
+    text = text.split("\n\nLiteLLM:")[0].split("Received Model Group=")[0]
+    text = re.split(r'\s*File "|\s*Traceback \(most recent', text)[0]
+    for _ in range(3):  # "litellm.BadRequestError: OpenAIException - Error code: 400 - {...}"
+        text = re.sub(r"^\s*(?:litellm\.\w+:|\w*Exception\s*-|Error code:\s*\d+\s*-)\s*", "", text)
+    if _HTML.search(text):
+        text = ""
+    text = " ".join(_ADDRESS.sub("[address]", text).split())
+    if len(text) > UPSTREAM_ERROR_MAX:
+        text = text[:UPSTREAM_ERROR_MAX].rstrip() + "…"
+    return HTTPException(status_code=status, detail=text or f"The model's runtime rejected the request ({status}).")
+
+
+PROVIDER_HEADER_PREFIX = "llm_provider-"
+HIDDEN_HEADERS = ("x-litellm-model-api-base",)
+
+
+def drop_provider_headers(headers):
+    """Response headers without the deployment's own (LiteLLM passes every upstream header on as
+    `llm_provider-<name>`) and without the deployment's address. Traefik's litellm-strip removes
+    the names we know, but a new provider header got through on 2026-11-25
+    (llm_provider-x-openrouter-*); here it is a rule, not a list."""
+    if not isinstance(headers, dict):
+        return headers
+    return {k: v for k, v in headers.items()
+            if not str(k).lower().startswith(PROVIDER_HEADER_PREFIX) and str(k).lower() not in HIDDEN_HEADERS}
+
+
+def install_header_filter():
+    """Wraps the two places LiteLLM's proxy builds response headers from a deployment's: the
+    custom headers of every answer (streamed or not, all routes) and the provider headers of an
+    error. Idempotent; returns whether it is in place. A LiteLLM upgrade that moves them is caught
+    by the test, and Traefik's strip list still stands behind it."""
+    try:
+        from litellm.proxy import common_request_processing as crp
+    except Exception as e:  # noqa: BLE001 - a missing proxy module must not stop the callbacks
+        print(f"garageai: header filter not installed: {e!r}", flush=True)
+        return False
+    cls = crp.ProxyBaseLLMRequestProcessing
+    if not getattr(cls.get_custom_headers, "_garageai", False):
+        original = cls.get_custom_headers
+
+        def get_custom_headers(*args, **kwargs):
+            kwargs = {k: v for k, v in kwargs.items() if not str(k).lower().startswith(PROVIDER_HEADER_PREFIX)}
+            kwargs["api_base"] = None
+            return drop_provider_headers(original(*args, **kwargs))
+
+        get_custom_headers._garageai = True
+        cls.get_custom_headers = staticmethod(get_custom_headers)
+    if hasattr(crp, "get_response_headers") and not getattr(crp.get_response_headers, "_garageai", False):
+        original_error = crp.get_response_headers
+
+        def get_response_headers(*args, **kwargs):
+            return drop_provider_headers(original_error(*args, **kwargs))
+
+        get_response_headers._garageai = True
+        crp.get_response_headers = get_response_headers
+    return True
 
 
 def add_usage_cost(response):
@@ -1268,7 +1356,7 @@ class GarageAICallbacks(CustomLogger):
         text = str(original_exception)
         if not (isinstance(original_exception, litellm.ContextWindowExceededError)
                 or "maximum context length" in text or "Max Input Tokens" in text):
-            return None
+            return clean_upstream_error(original_exception)
         limit = re.search(r"maximum context length is (\d+)|Max Input Tokens=(\d+)", text)
         total = re.search(r"total of at least (\d+)|Got=(\d+)", text)
         output = _requested_output(request_data)
@@ -1282,4 +1370,5 @@ class GarageAICallbacks(CustomLogger):
         raise HTTPException(status_code=400, detail=message)
 
 
+install_header_filter()
 proxy_handler_instance = GarageAICallbacks()
