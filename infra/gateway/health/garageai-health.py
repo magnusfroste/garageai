@@ -16,7 +16,7 @@ The gateway authenticates to the portal with the LiteLLM master key, a secret bo
 The last results are always written to /var/lib/garageai-health/last.json.
 
 Config (environment, e.g. /etc/garageai/gateway-health.env):
-  GARAGEAI_PORTAL_URL        https://<project>.supabase.co
+  GARAGEAI_PORTAL_URL        https://portal.garageai.eu (the portal proxy; was https://<project>.supabase.co)
   GARAGEAI_GATEWAY_KEY       what the portal checks in x-gateway-key (the portal's admin key,
                              LITELLM_PORTAL_KEY; not the LiteLLM master key since 2026-11-18)
   GARAGEAI_TARGETS_FILE      optional local targets, used when the portal endpoint is missing

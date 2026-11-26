@@ -554,8 +554,12 @@ is passed on to the host the portal's functions run on (`PORTAL_UPSTREAM_HOST` i
 Door calls this name from v1.7.0 and falls back to the old address when the name does not answer,
 so the order of DNS record, proxy and Door release does not matter. The day the portal moves
 (see docs/architecture.md), change `PORTAL_UPSTREAM_HOST` or point the DNS name elsewhere: the
-paths stay `/functions/v1/<function>`. The gateway's own timers (`GARAGEAI_PORTAL_URL`) may keep
-calling the portal directly; they are ours to change.
+paths stay `/functions/v1/<function>`. The gateway's own services use the same name:
+`GARAGEAI_PORTAL_URL=https://portal.garageai.eu` in `/etc/garageai/gateway-health.env` (since
+2026-11-26; health check, hub, Ops collector and chain test). They call it through Traefik on
+this server, about one call every ten seconds, far below the proxy's rate limit, so the move
+does not touch the gateway either. After changing the file, restart `garageai-hub` (it reads
+the file at start; the timers read it on every run).
 
 Start it only after `portal.garageai.eu` resolves to this server (Let's Encrypt limits failed
 attempts). Nothing is logged or stored by the proxy.
